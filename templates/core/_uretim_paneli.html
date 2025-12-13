@@ -1,0 +1,650 @@
+{# core/_uretim_paneli.html #}
+
+<style>
+    .production-wrapper {
+        display: grid;
+        grid-template-columns: minmax(0, 1.2fr) minmax(0, 1.3fr);
+        gap: 24px;
+        margin-top: 24px;
+    }
+
+    @media (max-width: 992px) {
+        .production-wrapper {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    /* 🎯 Timeline alanı */
+    .timeline-card {
+        background: #ffffff;
+        border-radius: 14px;
+        padding: 16px 18px;
+        box-shadow: 0 6px 16px rgba(15, 23, 42, 0.06);
+        border: 1px solid #e5e7eb;
+    }
+
+    .timeline-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 8px;
+    }
+
+    .timeline-header-title {
+        font-size: 16px;
+        font-weight: 700;
+        color: #111827;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .timeline-header-badge {
+        font-size: 11px;
+        padding: 3px 10px;
+        border-radius: 999px;
+        background: #eef2ff;
+        color: #3730a3;
+        font-weight: 600;
+    }
+
+    .timeline-list {
+        list-style: none;
+        padding-left: 0;
+        margin: 0;
+        max-height: 420px;
+        overflow-y: auto;
+    }
+
+    .timeline-item {
+        position: relative;
+        padding-left: 20px;
+        padding-bottom: 14px;
+    }
+
+    .timeline-item:last-child {
+        padding-bottom: 0;
+    }
+
+    .timeline-item::before {
+        content: "";
+        position: absolute;
+        left: 6px;
+        top: 6px;
+        width: 10px;
+        height: 10px;
+        border-radius: 999px;
+        background: linear-gradient(135deg, #6366f1, #22c55e);
+        box-shadow: 0 0 0 4px rgba(129, 140, 248, 0.25);
+    }
+
+    .timeline-item::after {
+        content: "";
+        position: absolute;
+        left: 10px;
+        top: 18px;
+        width: 2px;
+        bottom: -4px;
+        background: #e5e7eb;
+    }
+
+    .timeline-item:last-child::after {
+        display: none;
+    }
+
+    .timeline-main {
+        font-size: 14px;
+        color: #111827;
+        font-weight: 500;
+    }
+
+    .timeline-meta {
+        font-size: 12px;
+        color: #6b7280;
+        margin-top: 4px;
+    }
+
+    .timeline-tags {
+        margin-top: 3px;
+        font-size: 12px;
+        color: #4b5563;
+    }
+
+    .timeline-delete-btn {
+        border: none;
+        background: transparent;
+        font-size: 11px;
+        padding: 2px 6px;
+        border-radius: 999px;
+        color: #b91c1c;
+        border: 1px solid rgba(239, 68, 68, 0.4);
+        margin-left: 8px;
+    }
+
+    .timeline-delete-btn:hover {
+        background: rgba(239, 68, 68, 0.08);
+    }
+
+    /* 🎛 Sağ taraf: aşama kartları */
+    .stage-column {
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+    }
+
+    .stage-card {
+        background: #ffffff;
+        border-radius: 14px;
+        padding: 14px 16px 10px;
+        box-shadow: 0 6px 16px rgba(15, 23, 42, 0.06);
+        border: 1px solid #e5e7eb;
+    }
+
+    .stage-card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 8px;
+    }
+
+    .stage-card-title {
+        font-size: 14px;
+        font-weight: 700;
+        color: #111827;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .stage-card-title span.icon {
+        font-size: 18px;
+    }
+
+    .stage-card-sub {
+        font-size: 11px;
+        color: #6b7280;
+    }
+
+    .stage-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    .soft-btn {
+        padding: 7px 12px;
+        border-radius: 999px;
+        border: none;
+        font-size: 12px;
+        cursor: pointer;
+        transition: all 0.18s ease-in-out;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        white-space: nowrap;
+    }
+
+    .soft-btn:active {
+        transform: scale(0.96);
+    }
+
+    .btn-soft-primary {
+        background: #e0ecff;
+        color: #1d4ed8;
+    }
+
+    .btn-soft-primary:hover {
+        background: #d1e0ff;
+    }
+
+    .btn-soft-warning {
+        background: #fff7e6;
+        color: #b45309;
+    }
+
+    .btn-soft-warning:hover {
+        background: #ffedd5;
+    }
+
+    .btn-soft-success {
+        background: #dcfce7;
+        color: #15803d;
+    }
+
+    .btn-soft-success:hover {
+        background: #bbf7d0;
+    }
+
+    .btn-soft-info {
+        background: #e0f2fe;
+        color: #0369a1;
+    }
+
+    .btn-soft-info:hover {
+        background: #bae6fd;
+    }
+
+    .btn-soft-dark {
+        background: #e5e7eb;
+        color: #111827;
+    }
+
+    .btn-soft-dark:hover {
+        background: #d4d4d8;
+    }
+
+    .stage-dropdown .dropdown-menu {
+        font-size: 13px;
+    }
+
+    .stage-dropdown .dropdown-item {
+        padding: 4px 10px;
+    }
+</style>
+
+<hr>
+<h3 class="mt-3">🧵 Üretim Paneli</h3>
+
+<div class="production-wrapper">
+
+    {# SOL: Timeline / Üretim Geçmişi #}
+    <div class="timeline-card">
+        <div class="timeline-header">
+            <div class="timeline-header-title">
+                📜 <span>Üretim Geçmişi</span>
+            </div>
+            <div class="timeline-header-badge">
+                {{ events|length }} kayıt
+            </div>
+        </div>
+
+        {% if events %}
+            <ul id="gecmis-listesi" class="timeline-list">
+                {% for e in events reversed %}
+                    {% if e.event_type == "stage" %}
+                        <li class="timeline-item">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div>
+                                    <div class="timeline-main">
+                                        {% comment %}
+                                            Ham stage/value’ları Türkçeye çeviriyoruz
+                                        {% endcomment %}
+                                        {% if e.stage == 'dikim_durum' and e.value == 'sıraya_alındı' %}
+                                            Dikime Alındı
+                                        {% elif e.stage == 'susleme_durum' and e.value == 'sıraya_alındı' %}
+                                            Süsleme Sırasına Alındı
+                                        {% elif e.stage == 'dikim_durum' and e.value == 'basladi' %}
+                                            Dikime Başlandı
+                                        {% elif e.stage == 'dikim_durum' and e.value == 'kismi_bitti' %}
+                                            Kısmi Dikim Yapıldı
+                                        {% elif e.stage == 'dikim_durum' and e.value == 'bitti' %}
+                                            Dikim Bitti
+                                        {% elif e.stage == 'kesim_durum' and e.value == 'basladi' %}
+                                            Kesime Başlandı
+                                        {% elif e.stage == 'kesim_durum' and e.value == 'kismi_bitti' %}
+                                            Kısmi Kesim Yapıldı
+                                        {% elif e.stage == 'kesim_durum' and e.value == 'bitti' %}
+                                            Kesim Bitti
+                                        {% elif e.stage == 'susleme_durum' and e.value == 'basladi' %}
+                                            Süsleme Başladı
+                                        {% elif e.stage == 'susleme_durum' and e.value == 'kismi_bitti' %}
+                                            Kısmi Süsleme Yapıldı
+                                        {% elif e.stage == 'susleme_durum' and e.value == 'bitti' %}
+                                            Süsleme Bitti
+                                        {% elif e.stage == 'dikim_fason_durumu' and e.value == 'verildi' %}
+                                            Dikim İçin Fasona Verildi
+                                        {% elif e.stage == 'dikim_fason_durumu' and e.value == 'alindi' %}
+                                            Dikim Fasoncusundan Alındı
+                                        {% elif e.stage == 'susleme_fason_durumu' and e.value == 'verildi' %}
+                                            Süsleme İçin Fasona Verildi
+                                        {% elif e.stage == 'susleme_fason_durumu' and e.value == 'alindi' %}
+                                            Süsleme Fasoncusundan Alındı
+                                        {% elif e.stage == 'sevkiyat_durum' and e.value == 'gonderildi' %}
+                                            Sevkiyat Gönderildi
+                                        {% else %}
+                                            {{ e.stage|title }} → {{ e.value|title }}
+                                        {% endif %}
+                                    </div>
+
+                                    <div class="timeline-meta">
+                                        {{ e.timestamp|date:"d.m.Y H:i" }} — 👤 {{ e.user }}
+                                    </div>
+
+                                    <div class="timeline-tags">
+                                        {% if e.parca %}🧩 {{ e.parca }}{% endif %}
+                                        {% if e.adet %}
+    <span style="display:none;">
+        {% if e.parca %} • {% endif %}
+        🔢 {{ e.adet }} adet
+    </span>
+{% endif %}
+                                        {% if e.aciklama %} {% if e.parca or e.adet %} • {% endif %}💬 {{ e.aciklama }}{% endif %}
+                                        {% if e.ortak_calisanlar %} • 👥 {{ e.ortak_calisanlar }}{% endif %}
+                                        {% if e.fasoncu %} • 🏭 {{ e.fasoncu.ad|upper }}{% endif %}
+                                        {% if e.nakisci %} • 🪡 {{ e.nakisci.ad|upper }}{% endif %}
+                                    </div>
+                                </div>
+
+                                {% if is_manager %}
+                                    <form action="{% url 'delete_order_event' e.id %}"
+                                          method="POST"
+                                          onsubmit="return confirm('Bu üretim kaydını silmek istediğinize emin misiniz?');">
+                                        {% csrf_token %}
+                                        <button type="submit" class="timeline-delete-btn">
+                                            Sil
+                                        </button>
+                                    </form>
+                                {% endif %}
+                            </div>
+                        </li>
+                    {% endif %}
+                {% endfor %}
+            </ul>
+        {% else %}
+            <div class="text-muted small">
+                Bu sipariş için henüz üretim kaydı yok.
+            </div>
+        {% endif %}
+    </div>
+
+    {# SAĞ: Aşama Kartları #}
+    <div class="stage-column">
+
+        {# ✂️ KESİM #}
+        <div class="stage-card">
+            <div class="stage-card-header">
+                <div class="stage-card-title">
+                    <span class="icon">✂️</span> <span>Kesim</span>
+                </div>
+                <div class="stage-card-sub">Kesim süreç adımları</div>
+            </div>
+            <div class="stage-actions">
+                <button class="soft-btn btn-soft-primary"
+                        hx-get="{% url 'update_stage' order.id %}"
+                        hx-vals='{"stage": "kesim_durum", "value": "basladi"}'
+                        hx-target="#uretim-paneli" hx-swap="innerHTML">
+                    Başla
+                </button>
+
+                <button class="soft-btn btn-soft-warning"
+                        onclick="return kismiIslem(this, 'kesim_durum', 'kismi_bitti');">
+                    Kısmi Kesim
+                </button>
+
+                <button class="soft-btn btn-soft-success"
+                        hx-get="{% url 'update_stage' order.id %}"
+                        hx-vals='{"stage": "kesim_durum", "value": "bitti"}'
+                        hx-target="#uretim-paneli" hx-swap="innerHTML">
+                    Kesim Bitti
+                </button>
+            </div>
+        </div>
+
+        {# 🧵 DİKİM #}
+        <div class="stage-card">
+            <div class="stage-card-header">
+                <div class="stage-card-title">
+                    <span class="icon">🧵</span> <span>Dikim</span>
+                </div>
+                <div class="stage-card-sub">Dikim süreç adımları</div>
+            </div>
+            <div class="stage-actions">
+                <button class="soft-btn btn-soft-secondary"
+                        hx-get="{% url 'update_stage' order.id %}"
+                        hx-vals='{"stage": "dikim_durum", "value": "sıraya_alındı"}'
+                        hx-target="#uretim-paneli" hx-swap="innerHTML">
+                    Sıraya Alındı
+                </button>
+
+                <button class="soft-btn btn-soft-primary"
+                        hx-get="{% url 'update_stage' order.id %}"
+                        hx-vals='{"stage": "dikim_durum", "value": "basladi"}'
+                        hx-target="#uretim-paneli" hx-swap="innerHTML">
+                    Dikim Başladı
+                </button>
+
+                <button class="soft-btn btn-soft-warning"
+                        onclick="return kismiIslem(this, 'dikim_durum', 'kismi_bitti');">
+                    Kısmi Dikim
+                </button>
+
+                <button class="soft-btn btn-soft-success"
+                        hx-get="{% url 'update_stage' order.id %}"
+                        hx-vals='{"stage": "dikim_durum", "value": "bitti"}'
+                        hx-target="#uretim-paneli" hx-swap="innerHTML">
+                    Dikim Bitti
+                </button>
+            </div>
+        </div>
+
+        {# 🏭 FASON DİKİM #}
+        <div class="stage-card">
+            <div class="stage-card-header">
+                <div class="stage-card-title">
+                    <span class="icon">🏭</span> <span>Fason Dikim</span>
+                </div>
+                <div class="stage-card-sub">Dikim fason süreçleri</div>
+            </div>
+            <div class="stage-actions">
+
+                <div class="dropdown stage-dropdown">
+                    <button class="soft-btn btn-soft-warning dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                        Fason Verildi
+                    </button>
+                    <ul class="dropdown-menu">
+                        {% for f in fasoncular %}
+                            <li>
+                                <a class="dropdown-item" href="#"
+                                   onclick="return fasonIslem('{{ f.id }}', 'dikim_fason_durumu', 'verildi');">
+                                    {{ f.ad }}
+                                </a>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+
+                <div class="dropdown stage-dropdown">
+                    <button class="soft-btn btn-soft-info dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                        Fason Alındı
+                    </button>
+                    <ul class="dropdown-menu">
+                        {% for f in fasoncular %}
+                            <li>
+                                <a class="dropdown-item" href="#"
+                                   onclick="return fasonIslem('{{ f.id }}', 'dikim_fason_durumu', 'alindi');">
+                                    {{ f.ad }}
+                                </a>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        {# 🪡 NAKIŞ #}
+        <div class="stage-card">
+            <div class="stage-card-header">
+                <div class="stage-card-title">
+                    <span class="icon">🪡</span> <span>Nakış</span>
+                </div>
+                <div class="stage-card-sub">Nakış fason süreçleri</div>
+            </div>
+            <div class="stage-actions">
+
+                <div class="dropdown stage-dropdown">
+                    <button class="soft-btn btn-soft-warning dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                        Nakış Verildi
+                    </button>
+                    <ul class="dropdown-menu">
+                        {% for n in nakisciler %}
+                            <li>
+                                <a class="dropdown-item" href="#"
+                                   onclick="return fasonIslem('{{ n.id }}', 'nakis_durumu', 'verildi');">
+                                    {{ n.ad }}
+                                </a>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+
+                <div class="dropdown stage-dropdown">
+                    <button class="soft-btn btn-soft-info dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                        Nakış Alındı
+                    </button>
+                    <ul class="dropdown-menu">
+                        {% for n in nakisciler %}
+                            <li>
+                                <a class="dropdown-item" href="#"
+                                   onclick="return fasonIslem('{{ n.id }}', 'nakis_durumu', 'alindi');">
+                                    {{ n.ad }}
+                                </a>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+
+            </div>
+        </div>
+
+        {# ✨ SÜSLEME #}
+        <div class="stage-card">
+            <div class="stage-card-header">
+                <div class="stage-card-title">
+                    <span class="icon">✨</span> <span>Süsleme</span>
+                </div>
+                <div class="stage-card-sub">Süsleme süreç adımları</div>
+            </div>
+            <div class="stage-actions">
+                <button class="soft-btn btn-soft-secondary"
+                        hx-get="{% url 'update_stage' order.id %}"
+                        hx-vals='{"stage": "susleme_durum", "value": "sıraya_alındı"}'
+                        hx-target="#uretim-paneli" hx-swap="innerHTML">
+                    Sıraya Alındı
+                </button>
+
+                <button class="soft-btn btn-soft-primary"
+                        hx-get="{% url 'update_stage' order.id %}"
+                        hx-vals='{"stage": "susleme_durum", "value": "basladi"}'
+                        hx-target="#uretim-paneli" hx-swap="innerHTML">
+                    Süsleme Başladı
+                </button>
+
+                <button class="soft-btn btn-soft-warning"
+                        onclick="return kismiIslem(this, 'susleme_durum', 'kismi_bitti');">
+                    Kısmi Süsleme
+                </button>
+
+                <button class="soft-btn btn-soft-success"
+                        hx-get="{% url 'update_stage' order.id %}"
+                        hx-vals='{"stage": "susleme_durum", "value": "bitti"}'
+                        hx-target="#uretim-paneli" hx-swap="innerHTML">
+                    Süsleme Bitti
+                </button>
+            </div>
+        </div>
+
+        {# 📦 HAZIR & 🚚 SEVKİYAT #}
+        <div class="stage-card">
+            <div class="stage-card-header">
+                <div class="stage-card-title">
+                    <span class="icon">📦</span> <span>Hazır & Sevkiyat</span>
+                </div>
+                <div class="stage-card-sub">Depoya giriş & sevkiyat</div>
+            </div>
+            <div class="stage-actions">
+                <button type="button"
+                        class="soft-btn btn-soft-success"
+                        data-bs-toggle="modal"
+                        data-bs-target="#stokModal">
+                    Depoya Girdi
+                </button>
+
+                <button class="soft-btn btn-soft-dark"
+                        hx-get="{% url 'update_stage' order.id %}"
+                        hx-vals='{"stage": "sevkiyat_durum", "value": "gonderildi"}'
+                        hx-target="#uretim-paneli" hx-swap="innerHTML">
+                    🚚 Gönderildi
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function kismiIslem(button, stage, value) {
+    const text = prompt("Kısmi işlemi belirtiniz (ör: Kol, Etek, Yaka)");
+    if (!text) return false;
+
+    htmx.ajax('GET', "{% url 'update_stage' order.id %}", {
+        target: '#uretim-paneli',
+        swap: 'innerHTML',
+        values: {
+            stage: stage,
+            value: value,
+            aciklama: text
+        }
+    });
+    return false;
+}
+
+function fasonIslem(fasoncuId, stage, value) {
+    if (!fasoncuId) return false;
+
+    htmx.ajax('GET', "{% url 'update_stage' order.id %}", {
+        target: '#uretim-paneli',
+        swap: 'innerHTML',
+        values: {
+            stage: stage,
+            value: value,
+            fasoncu: fasoncuId
+        }
+    });
+    return false;
+}
+
+document.body.addEventListener('htmx:afterSwap', function(evt) {
+    if (evt.target.id === 'uretim-paneli') {
+        const list = document.getElementById('gecmis-listesi');
+        if (list && list.lastElementChild) {
+            list.lastElementChild.scrollIntoView({ behavior: 'smooth', block: 'end' });
+        }
+    }
+});
+</script>
+
+{# Depoya Aktarım Modal'ı aynen koruyoruz #}
+<div class="modal fade" id="stokModal" tabindex="-1" aria-labelledby="stokModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <form method="POST" action="{% url 'stok_ekle' order.id %}">
+        {% csrf_token %}
+        <div class="modal-header">
+          <h5 class="modal-title" id="stokModalLabel">Depoya Ürün Aktarımı</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-3">
+            <label class="form-label">Depo Seç</label>
+            <select name="depo" class="form-select" required>
+              <option value="">-- Seçiniz --</option>
+              <option value="KORIDOR">Koridor</option>
+              <option value="SHOWROOM">Showroom</option>
+              <option value="SHOWROOM_MUTF">Showroom Mutfak</option>
+              <option value="DANTEL_YANI">Dantel Odası Yanı</option>
+              <option value="ELISI">Elişi Deposu</option>
+            </select>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Adet</label>
+            <input type="number" name="adet" class="form-control"
+                   value="{{ order.adet|default_if_none:'' }}" min="1" required>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button>
+          <button type="submit" class="btn btn-success">Kaydet</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,74 @@
+{% comment %} KESİM {% endcomment %}
+{% if status == "Kesim Başladı" %}
+    <span class="status-badge status-blue">Kesim Başladı</span>
+
+{% elif status == "Kısmi Kesim" %}
+    <span class="status-badge status-yellow">Kısmi Kesim</span>
+
+{% elif status == "Kesim Bitti" %}
+    <span class="status-badge status-green">Kesildi</span>
+
+
+{% comment %} DİKİM {% endcomment %}
+{% elif status == "Dikim Sırasına Alındı" %}
+    <span class="status-badge status-gray">Dikim Sırasında</span>
+
+{% elif status == "Dikim Başladı" %}
+    <span class="status-badge status-blue">Dikim Başladı</span>
+
+{% elif status == "Kısmi Dikim" %}
+    <span class="status-badge status-yellow">Kısmi Dikim</span>
+
+{% elif status == "Dikim Bitti" %}
+    <span class="status-badge status-green">Dikildi</span>
+
+
+{% comment %} FASON DİKİM {% endcomment %}
+{% elif status == "Fason Verildi" %}
+    <span class="status-badge status-yellow">Fason Dikime Verildi</span>
+
+{% elif status == "Fason Alındı" %}
+    <span class="status-badge status-blue">Fason Dikimden Alındı</span>
+
+
+{% comment %} NAKIŞ {% endcomment %}
+{% elif status == "Nakış Verildi" %}
+    <span class="status-badge status-yellow">Nakış Verildi</span>
+
+{% elif status == "Nakış Alındı" %}
+    <span class="status-badge status-blue">Nakış Alındı</span>
+
+
+{% comment %} SÜSLEME {% endcomment %}
+{% elif status == "Süsleme Sırasına Alındı" %}
+    <span class="status-badge status-gray">Süsleme Sırasında</span>
+
+{% elif status == "Süsleme Başladı" %}
+    <span class="status-badge status-blue">Süsleme Başladı</span>
+
+{% elif status == "Kısmi Süsleme" %}
+    <span class="status-badge status-yellow">Kısmi Süsleme</span>
+
+{% elif status == "Süsleme Bitti" %}
+    <span class="status-badge status-green">Süsleme Bitti</span>
+
+
+{% comment %} FASON SÜSLEME {% endcomment %}
+{% elif status == "Fason Süsleme Verildi" %}
+    <span class="status-badge status-yellow">Fason Süslemeye Verildi</span>
+
+{% elif status == "Fason Süsleme Alındı" %}
+    <span class="status-badge status-blue">Fason Süslemeden Alındı</span>
+
+
+{% comment %} SEVK {% endcomment %}
+{% elif status == "Depoya Girdi" %}
+    <span class="status-badge status-green">Depoya Girdi</span>
+
+{% elif status == "Gönderildi" %}
+    <span class="status-badge status-green">Sevk Edildi</span>
+
+
+{% else %}
+    <span class="status-badge status-gray">{{ status }}</span>
+{% endif %}

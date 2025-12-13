@@ -1,0 +1,153 @@
+<!-- ------------------------------------------------------------- -->
+<!-- 📌 MÜŞTERİ YÖNETİM MODALI (EKLE + PASİF) -->
+<!-- ------------------------------------------------------------- -->
+<div class="modal fade" id="musteriModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+
+      <div class="modal-header">
+        <h5 class="modal-title">👤 Müşteri Yönetimi</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+
+      <div class="modal-body">
+
+        <h6 class="fw-bold mb-2">➕ Yeni Müşteri Ekle</h6>
+        <input type="text" id="modal_musteri_ad" class="form-control mb-3" placeholder="Örn: Ahmet Tekstil">
+        <button class="btn btn-primary w-100 mb-4" onclick="musteriKaydet()">➕ Kaydet</button>
+
+        <hr>
+
+        <h6 class="fw-bold mb-2">⚠️ Müşteri Pasif Yap</h6>
+        <select id="modal_musteri_listesi" class="form-select mb-2">
+            <option value="">Müşteri seçin...</option>
+            {% for musteri in aktif_musteriler %}
+                <option value="{{ musteri.id }}">{{ musteri.ad }}</option>
+            {% endfor %}
+        </select>
+
+        <button class="btn btn-warning w-100" onclick="musteriPasifYap()">🚫 Seçili Müşteriyi Pasif Yap</button>
+
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn btn-secondary" data-bs-dismiss="modal">Kapat</button>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ------------------------------------------------------------- -->
+<!-- 📌 RENK YÖNETİM MODALI -->
+<!-- ------------------------------------------------------------- -->
+<div class="modal fade" id="renkModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+
+      <div class="modal-header">
+        <h5 class="modal-title">🎨 Renk Yönetimi</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+
+      <div class="modal-body">
+        <h6 class="fw-bold mb-2">➕ Yeni Renk Ekle</h6>
+        <input type="text" id="modal_renk_ad" class="form-control mb-3" placeholder="Örn: Lacivert">
+        <button class="btn btn-primary w-100 mb-4" onclick="renkKaydet()">➕ Kaydet</button>
+
+        <hr>
+
+        <h6 class="fw-bold mb-2">⚠️ Renk Pasif Yap</h6>
+        <select id="modal_renk_listesi" class="form-select mb-2">
+            <option value="">Renk seçin...</option>
+            {% for r in aktif_renkler %}
+                <option value="{{ r.id }}">{{ r.ad }}</option>
+            {% endfor %}
+        </select>
+
+        <button class="btn btn-warning w-100" onclick="renkPasifYap()">🚫 Seçili Rengi Pasif Yap</button>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn btn-secondary" data-bs-dismiss="modal">Kapat</button>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ------------------------------------------------------------- -->
+<!-- 📌 BEDEN YÖNETİM MODALI -->
+<!-- ------------------------------------------------------------- -->
+<div class="modal fade" id="bedenModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+
+      <div class="modal-header">
+        <h5 class="modal-title">👕 Beden Yönetimi</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+
+      <div class="modal-body">
+        <h6 class="fw-bold mb-2">➕ Yeni Beden Ekle</h6>
+        <input type="text" id="modal_beden_ad" class="form-control mb-3" placeholder="Örn: S / M / L / 1Y">
+        <button class="btn btn-primary w-100 mb-4" onclick="bedenKaydet()">➕ Kaydet</button>
+
+        <hr>
+
+        <h6 class="fw-bold mb-2">⚠️ Beden Pasif Yap</h6>
+        <select id="modal_beden_listesi" class="form-select mb-2">
+            <option value="">Beden seçin...</option>
+            {% for b in aktif_bedenler %}
+                <option value="{{ b.id }}">{{ b.ad }}</option>
+            {% endfor %}
+        </select>
+
+        <button class="btn btn-warning w-100" onclick="bedenPasifYap()">🚫 Seçili Bedeni Pasif Yap</button>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn btn-secondary" data-bs-dismiss="modal">Kapat</button>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ------------------------------------------------------------- -->
+<!-- 📌 ÜRÜN KODU YÖNETİM MODALI -->
+<!-- ------------------------------------------------------------- -->
+<div class="modal fade" id="urunKodModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+
+      <div class="modal-header">
+        <h5 class="modal-title">📦 Ürün Kodu Yönetimi</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+
+      <div class="modal-body">
+        <h6 class="fw-bold mb-2">➕ Yeni Ürün Kodu Ekle</h6>
+        <input type="text" id="modal_urun_kod" class="form-control mb-3" placeholder="Örn: 7058 / VS01">
+        <button class="btn btn-primary w-100 mb-4" onclick="urunKodKaydet()">➕ Kaydet</button>
+
+        <hr>
+
+        <h6 class="fw-bold mb-2">⚠️ Ürün Kodunu Pasif Yap</h6>
+        <select id="modal_urun_kod_listesi" class="form-select mb-2">
+            <option value="">Ürün kodu seçin...</option>
+            {% for u in aktif_urun_kodlari %}
+                <option value="{{ u.id }}">{{ u.kod }}</option>
+            {% endfor %}
+        </select>
+
+        <button class="btn btn-warning w-100" onclick="urunKodPasifYap()">🚫 Seçili Ürün Kodunu Pasif Yap</button>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn btn-secondary" data-bs-dismiss="modal">Kapat</button>
+      </div>
+
+    </div>
+  </div>
+</div>

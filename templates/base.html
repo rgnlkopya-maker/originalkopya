@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+
+  <!-- Bootstrap -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
+  <!-- Select2 -->
+  <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+
+  <!-- Premium Font -->
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap">
+
+  <style>
+
+    /*************************/
+    /* GLOBAL SETTINGS       */
+    /*************************/
+    body {
+      font-family: "Plus Jakarta Sans", sans-serif;
+      font-size: 14.5px;
+      background: #f3f4f8;
+      overflow-x: hidden;
+      color: #1d1e2c;
+    }
+
+    /*************************/
+    /* NAVBAR (SABİT ÜSTTE)  */
+    /*************************/
+    .app-navbar {
+      background: #fff;
+      box-shadow: 0 4px 18px rgba(0,0,0,0.05);
+      position: sticky;
+      top: 0;
+      height: 64px;
+      z-index: 100 !important;
+    }
+
+    .chip-scroll {
+      display: flex;
+      gap: 12px;
+      overflow-x: auto;
+      padding-bottom: 6px;
+    }
+
+    .chip {
+      padding: 10px 18px;
+      background: #eef1ff;
+      border-radius: 18px;
+      font-size: 14px;
+      text-decoration: none !important;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      white-space: nowrap;
+      border: 1px solid #e3e6fb;
+      color: #39405a !important;
+      font-weight: 500;
+      transition: 0.2s ease;
+    }
+
+    .chip:hover {
+      background: #e7ebff;
+      border-color: #cfd6ff;
+      box-shadow: 0 3px 8px rgba(74,99,255,0.15);
+    }
+
+    .chip.active {
+      background: #4a63ff;
+      border-color: #3b54e9;
+      color: #fff !important;
+      box-shadow: 0 4px 12px rgba(74,99,255,0.30);
+    }
+
+    /*************************/
+    /* MODAL Z-INDEX         */
+    /*************************/
+    .modal {
+      z-index: 2000 !important;
+    }
+
+    .modal-backdrop {
+      z-index: 1500 !important;
+    }
+
+    /*************************/
+    /* SELECT2 Z-INDEX       */
+    /*************************/
+
+    /* SAYFADAKİ Select2 → düşük z-index */
+    /* SAYFADAKİ Select2 → panel içinde görünür */
+    .select2-container {
+        z-index: 99999 !important;
+    }
+
+    /* Dropdown kutusu */
+    .select2-dropdown {
+        z-index: 999999 !important;
+    }
+
+
+    /* MODAL İÇİNDEKİ Select2 → en üste */
+    .modal .select2-container {
+      z-index: 3000 !important;
+    }
+
+    .select2-hidden-accessible {
+      display: none !important;
+      visibility: hidden !important;
+    }
+
+  </style>
+
+  {% block extra_css %}{% endblock %}
+  <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+</head>
+
+<body>
+
+<!-- NAVBAR -->
+
+<nav class="navbar app-navbar px-3 mb-0">
+  <div class="container-fluid d-flex align-items-center justify-content-between">
+
+    <!-- SOL: CHIP MENU -->
+    <div class="chip-scroll">
+
+      <a href="{% url 'order_list' %}"
+         class="chip {% if request.resolver_match.url_name == 'order_list' %}active{% endif %}">
+        <i class="bi bi-file-text"></i> Sipariş Listesi
+      </a>
+
+      <a href="{% url 'order_multi_create' %}"
+         class="chip {% if request.resolver_match.url_name == 'order_multi_create' %}active{% endif %}">
+        <i class="bi bi-plus-circle"></i> Yeni Sipariş Ekle
+      </a>
+
+      <a class="chip"><i class="bi bi-building"></i> Depolar</a>
+      <a class="chip"><i class="bi bi-bar-chart"></i> Raporlar</a>
+      <a class="chip"><i class="bi bi-coin"></i> Ürün Maliyetleri</a>
+      <a class="chip"><i class="bi bi-people"></i> Kullanıcı Yönetimi</a>
+      <a class="chip"><i class="bi bi-clock-history"></i> Puantaj & Mesai</a>
+      <a class="chip"><i class="bi bi-robot"></i> Moli Asistan</a>
+      <a class="chip"><i class="bi bi-gear"></i> Ayarlar</a>
+
+    </div>
+
+    <!-- SAĞ: KULLANICI -->
+    {% if user.is_authenticated %}
+      <div class="d-flex align-items-center gap-3">
+        <span>👤 {{ user.username }}</span>
+        <a href="{% url 'logout' %}" class="btn btn-outline-danger btn-sm">Çıkış</a>
+      </div>
+    {% endif %}
+
+  </div>
+</nav>
+
+<!-- ANA İÇERİK -->
+<div id="mainContent">
+  {% block content %}{% endblock %}
+</div>
+
+<!-- JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
+{% block extra_js %}{% endblock %}
+<!-- GLOBAL CSRF TOKEN (AJAX için şarttır) -->
+<input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}">
+
+</body>
+</html>

@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <title>Sipariş Yazdır</title>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            color: #000;
+        }
+
+        /* === A4 SAYFA === */
+        .page {
+            width: 210mm;
+            height: 297mm;
+            padding: 25mm;
+            box-sizing: border-box;
+            page-break-after: always;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        h1 {
+            text-align: center;
+            font-size: 26px;
+            margin-bottom: 25px;
+        }
+
+        .content {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 30px;
+        }
+
+        .info {
+            font-size: 16px;
+            line-height: 1.8;
+        }
+
+        .label {
+            font-weight: bold;
+        }
+
+        .qr {
+            text-align: center;
+        }
+
+        .qr img {
+            width: 220px;
+            height: auto;
+        }
+
+        /* === EK GÖRSEL SAYFASI === */
+        .image-page {
+            width: 210mm;
+            height: 297mm;
+            padding: 15mm;
+            box-sizing: border-box;
+            page-break-after: always;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .image-page img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+        }
+
+        @media print {
+            body {
+                margin: 0;
+            }
+        }
+    </style>
+
+    <script>
+        window.onload = function () {
+            window.print();
+        };
+    </script>
+</head>
+<body>
+
+{% for order in orders %}
+
+<!-- ========================= -->
+<!-- 1️⃣ SİPARİŞ BİLGİ SAYFASI -->
+<!-- ========================= -->
+<div class="page">
+
+    <h1>Sipariş Bilgileri</h1>
+
+    <div class="content">
+
+        <div class="info">
+            <div><span class="label">Sipariş Tipi:</span> {{ order.siparis_tipi|default:"—" }}</div>
+            <div><span class="label">Müşteri:</span> {{ order.musteri.ad|default:"—" }}</div>
+            <div><span class="label">Ürün Kodu:</span> {{ order.urun_kodu }}</div>
+            <div><span class="label">Müşteri Sipariş Referansı:</span> {{ order.musteri_referans|default:"—" }}</div>
+            <div><span class="label">Renk:</span> {{ order.renk }}</div>
+            <div><span class="label">Beden:</span> {{ order.beden }}</div>
+            <div><span class="label">Adet:</span> {{ order.adet }}</div>
+            <div><span class="label">Sipariş Tarihi:</span> {{ order.siparis_tarihi|date:"d.m.Y" }}</div>
+            <div><span class="label">Teslim Tarihi:</span>
+                {% if order.teslim_tarihi %}
+                    {{ order.teslim_tarihi|date:"d.m.Y" }}
+                {% else %}
+                    —
+                {% endif %}
+            </div>
+            <div><span class="label">Açıklama:</span> {{ order.aciklama|default:"—" }}</div>
+
+            {% if order.orderimage_set.exists %}
+                <div style="margin-top:20px; font-weight:bold;">
+                    Ek sipariş görselleri vardır.
+                </div>
+            {% endif %}
+        </div>
+
+        {% if order.qr_code_url %}
+        <div class="qr">
+            <img src="{{ order.qr_code_url }}">
+        </div>
+        {% endif %}
+
+    </div>
+</div>
+
+<!-- ========================= -->
+<!-- 2️⃣ EK GÖRSELLER (HER BİRİ AYRI A4) -->
+<!-- ========================= -->
+{% for img in order.orderimage_set.all %}
+    {% if img.image %}
+    <div class="image-page">
+        <img src="{{ img.image.url }}">
+    </div>
+    {% endif %}
+{% endfor %}
+
+{% endfor %}
+
+</body>
+</html>

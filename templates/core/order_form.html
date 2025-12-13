@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <title>{% if edit_mode %}Siparişi Düzenle{% else %}Yeni Sipariş{% endif %}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="bg-light py-5">
+
+<div class="container">
+    <div class="card shadow-lg mx-auto p-4" style="max-width: 700px;">
+        <h2 class="mb-4 text-center">
+            {% if edit_mode %}✏️ Siparişi Düzenle{% else %}➕ Yeni Sipariş Ekle{% endif %}
+        </h2>
+
+        <form method="post" enctype="multipart/form-data">
+            {% csrf_token %}
+
+            <!-- 🧾 TEMEL BİLGİLER -->
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Sipariş Tipi</label>
+                    {{ form.siparis_tipi }}
+                </div>
+
+                <!-- 💡 MÜŞTERİ + Yeni Ekle Butonu -->
+                <div class="col-md-6 mb-3" id="musteri_div">
+                    <label class="form-label">Müşteri</label>
+
+                    <div class="d-flex gap-2">
+                        {{ form.musteri }}
+
+                        <!-- Modalı açan buton -->
+                        <button type="button"
+                                class="btn btn-outline-primary btn-sm"
+                                data-bs-toggle="modal"
+                                data-bs-target="#musteriModal">
+                            + Yeni Ekle
+                        </button>
+                    </div>
+                </div>
+
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Müşteri Sipariş Referansı</label>
+                    {{ form.musteri_referans }}
+                </div>
+
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Sipariş Tarihi</label>
+                    {{ form.siparis_tarihi }}
+                </div>
+
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Teslim Tarihi</label>
+                    {{ form.teslim_tarihi }}
+                </div>
+
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Ürün Kodu</label>
+                    {{ form.urun_kodu }}
+                </div>
+
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Adet</label>
+                    {{ form.adet }}
+                </div>
+
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Renk</label>
+                    {{ form.renk }}
+                </div>
+
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Beden</label>
+                    {{ form.beden }}
+                </div>
+
+                <div class="col-12 mb-3">
+                    <label class="form-label">Açıklama</label>
+                    {{ form.aciklama }}
+                </div>
+
+                
+
+            <!-- 💰 FİYAT & MALİYET ALANLARI (Yalnızca patron / müdür için) -->
+            {% if is_manager %}
+            <hr class="mt-4 mb-3">
+            <h5 class="text-primary">💰 Fiyat & Maliyet Bilgileri</h5>
+
+            <div class="row g-3">
+
+                <div class="col-md-4">
+                    <label class="form-label fw-semibold">Satış Fiyatı</label>
+                    {{ form.satis_fiyati }}
+                </div>
+
+                <div class="col-md-2">
+                    <label class="form-label fw-semibold">Para</label>
+                    {{ form.para_birimi }}
+                </div>
+
+                <div class="col-md-4">
+                    <label class="form-label fw-semibold">Maliyet (Sistemdeki)</label>
+                    {{ form.maliyet_uygulanan }}
+                </div>
+
+                <div class="col-md-2">
+                    <label class="form-label fw-semibold">Para</label>
+                    {{ form.maliyet_para_birimi }}
+                </div>
+
+                <div class="col-md-4">
+                    <label class="form-label fw-semibold">Manuel Maliyet</label>
+                    {{ form.maliyet_override }}
+                </div>
+
+                <div class="col-md-4">
+                    <label class="form-label fw-semibold">Ekstra Maliyet</label>
+                    {{ form.ekstra_maliyet }}
+                </div>
+
+                <div class="col-12">
+                    <div class="alert alert-info py-2 mt-2">
+                        <strong>💹 Kar Bilgisi:</strong> Bu siparişin karı sistem tarafından otomatik hesaplanacaktır.
+                    </div>
+                </div>
+
+            </div>
+            {% endif %}
+
+            <!-- 🧭 Butonlar -->
+            <div class="d-flex justify-content-between mt-4">
+                {% if edit_mode %}
+                    <a href="{% url 'order_detail' order.id %}" class="btn btn-secondary">❌ Vazgeç</a>
+                    <button type="submit" class="btn btn-warning">💾 Güncelle</button>
+                {% else %}
+                    <a href="{% url 'order_list' %}" class="btn btn-secondary">⬅ Geri</a>
+                    <button type="submit" class="btn btn-primary">💾 Kaydet</button>
+                {% endif %}
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- ------------------------------------------------------------- -->
+<!-- 📌 GELİŞMİŞ MÜŞTERİ EKLE / PASİF YAP MODALI -->
+<!-- ------------------------------------------------------------- -->
+<div class="modal fade" id="musteriModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+
+      <div class="modal-header">
+        <h5 class="modal-title">👤 Müşteri Yönetimi</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+
+      <div class="modal-body">
+
+        <!-- 🟦 YENİ MÜŞTERİ EKLE -->
+        <h6 class="fw-bold mb-2">➕ Yeni Müşteri Ekle</h6>
+
+        <input type="text" id="modal_musteri_ad" class="form-control mb-3" placeholder="Örn: Ahmet Tekstil">
+
+        <button class="btn btn-primary w-100 mb-4" onclick="musteriKaydet()">
+            ➕ Kaydet
+        </button>
+
+        <hr>
+
+        <!-- 🟨 MEVCUT MÜŞTERİYİ PASİF YAP -->
+        <h6 class="fw-bold mb-2">⚠️ Müşteri Pasif Yap</h6>
+
+        <select id="modal_musteri_listesi" class="form-select mb-2">
+            <option value="">Müşteri seçin...</option>
+
+            {% for musteri in aktif_musteriler %}
+                <option value="{{ musteri.id }}">{{ musteri.ad }}</option>
+            {% endfor %}
+        </select>
+
+        <button class="btn btn-warning w-100" onclick="musteriPasifYap()">
+            🚫 Seçili Müşteriyi Pasif Yap
+        </button>
+
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn btn-secondary" data-bs-dismiss="modal">Kapat</button>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+
+<!-- ------------------------------------------------------------- -->
+<!-- 📌 MÜŞTERİ AJAX KAYDETME SCRIPTİ -->
+<!-- ------------------------------------------------------------- -->
+<script>
+function musteriKaydet() {
+    const ad = document.getElementById("modal_musteri_ad").value.trim();
+    if (!ad) {
+        alert("Müşteri adı boş olamaz!");
+        return;
+    }
+
+    fetch("/ajax/musteri/ekle/", {
+        method: "POST",
+        headers: { "X-CSRFToken": "{{ csrf_token }}" },
+        body: new URLSearchParams({ "ad": ad })
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+
+            // Dropdown'a ekle
+            const select = document.getElementById("id_musteri");
+            const option = new Option(data.ad, data.id, true, true);
+            select.add(option);
+
+            // Modalı kapat
+            bootstrap.Modal.getInstance(document.getElementById("musteriModal")).hide();
+
+            document.getElementById("modal_musteri_ad").value = "";
+        } else {
+            alert(data.message);
+        }
+    });
+}
+</script>
+
+<!-- Mevcut JS (Stoğa üretim kontrolü) -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+
+    const siparisTipiSelect = document.getElementById('id_siparis_tipi');
+    const musteriDiv = document.getElementById('musteri_div');
+
+    function toggleMusteri() {
+        if (siparisTipiSelect.value === 'STOK') {
+            musteriDiv.style.display = 'none';
+            const musteriInput = document.getElementById('id_musteri');
+            if (musteriInput) musteriInput.value = '';
+        } else {
+            musteriDiv.style.display = 'block';
+        }
+    }
+
+    siparisTipiSelect.addEventListener('change', toggleMusteri);
+    toggleMusteri();
+});
+</script>
+
+<script>
+function musteriPasifYap() {
+    const musteriId = document.getElementById("modal_musteri_listesi").value;
+
+    if (!musteriId) {
+        alert("Lütfen pasif yapmak için bir müşteri seçin!");
+        return;
+    }
+
+    if (!confirm("Seçili müşteriyi pasif yapmak istediğinize emin misiniz?")) {
+        return;
+    }
+
+    fetch("/ajax/musteri/pasif-yap/", {
+        method: "POST",
+        headers: { "X-CSRFToken": "{{ csrf_token }}" },
+        body: new URLSearchParams({ "id": musteriId })
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+            alert("Müşteri pasif yapıldı!");
+
+            // Dropdown'dan kaldır
+            const select = document.getElementById("id_musteri");
+            const option = select.querySelector(`option[value="${musteriId}"]`);
+            if (option) option.remove();
+
+            // Modal listeden kaldır
+            const modalSelect = document.getElementById("modal_musteri_listesi");
+            const modalOption = modalSelect.querySelector(`option[value="${musteriId}"]`);
+            if (modalOption) modalOption.remove();
+        } else {
+            alert(data.message || "Hata oluştu.");
+        }
+    });
+}
+</script>
+
+
+<!-- Bootstrap JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+</body>
+</html>

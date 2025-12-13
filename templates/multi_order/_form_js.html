@@ -1,0 +1,153 @@
+<script>
+$(document).ready(function () {
+
+    /* ============================================================
+       1) GLOBAL SELECT2 AYARLARI (SADECE 1 KEZ INIT EDİLİR!)
+    ============================================================ */
+    function initSelect2(context) {
+
+        // Tekli selectler
+        $(context).find(".select2:not([multiple])").select2({
+            placeholder: "Seçiniz",
+            allowClear: true,
+            width: "100%",
+            minimumResultsForSearch: 0
+        });
+
+        // Çoklu selectler (BEDEN)
+        $(context).find("select.select2[multiple], select.select2[multiple='']").select2({
+            placeholder: "Beden seçiniz",
+            closeOnSelect: false,
+            allowClear: true,
+            width: "100%",
+            minimumResultsForSearch: 0
+        });
+
+        // *** BEDEN SELECT2 ***
+        $(context).find(".beden-select").each(function () {
+            $(this).select2({
+                placeholder: "Beden seçiniz",
+                closeOnSelect: false, // multiple bozulmasın
+                allowClear: true,
+                width: "100%",
+                minimumResultsForSearch: 0
+            }).on("select2:select", function () {
+                $(this).select2("close"); // *** SEÇİNCE KAPAT ***
+            });
+        });
+    }
+
+    // Sayfa açılır açılmaz tüm Select2’leri başlat
+    initSelect2(document);
+
+
+    /* ============================================================
+       2) MODAL İÇİNDE SELECT2 FIX
+    ============================================================ */
+    $(document).on("select2:open", function (e) {
+    let el = $(e.target);
+
+    if (el.closest(".modal").length) {
+        let modal = el.closest(".modal");
+
+        el.select2("close");
+
+        // 🔹 MODAL İÇİN Select2 AYARLARI 
+        let options = {
+            dropdownParent: modal,
+            width: "100%",
+            placeholder: el.attr("multiple") ? "Beden seçiniz" : "Seçiniz",
+            closeOnSelect: !el.is("[multiple]"), 
+            allowClear: true
+        };
+
+        // 🔥 Eğer bu Beden Select2 ise → kapanma davranışını değiştir
+        if (el.hasClass("beden-select")) {
+            options.closeOnSelect = true;   // ⭐ multiple olsa bile kapanır
+        }
+
+        el.select2(options);
+        el.select2("open");
+    }
+});
+
+
+
+    /* ============================================================
+       3) SATIR EKLEME
+    ============================================================ */
+    let index = 1;
+
+    $("#add-row").click(function () {
+
+        let row = `
+        <div class="row mb-3 renk-beden-row" data-index="${index}">
+
+            <div class="col-md-3">
+                <label class="form-label">Renk</label>
+                <select name="renk_row_${index}" class="form-select select2">
+                    {% for r in renkler %}
+                        <option value="{{ r.ad }}">{{ r.ad }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="col-md-4">
+                <label class="form-label">Bedenler</label>
+                <select name="beden_row_${index}[]" class="form-select select2 beden-select" multiple>
+                    {% for b in bedenler %}
+                        <option value="{{ b.ad }}">{{ b.ad }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="col-md-2">
+                <label class="form-label">Adet</label>
+                <input type="number" min="1" value="1" name="adet_row_${index}" class="form-control">
+            </div>
+
+            <div class="col-md-3">
+                <label class="form-label">Müşteri Ref</label>
+                <input type="text" name="musteri_ref_row_${index}" class="form-control">
+            </div>
+
+            <div class="col-12 mt-2">
+                <button type="button" class="btn btn-danger remove-row">Sil</button>
+            </div>
+
+        </div>`;
+
+        $("#rows-container").append(row);
+
+        // ❗❗ YENİ EKLENEN SELECTLERİ TEKRAR INIT ET
+        initSelect2(`.renk-beden-row[data-index="${index}"]`);
+
+        index++;
+    });
+
+
+    /* ============================================================
+       4) SATIR SİLME
+    ============================================================ */
+    $(document).on("click", ".remove-row", function () {
+        $(this).closest(".renk-beden-row").remove();
+    });
+
+
+    /* ============================================================
+       5) STOK → Müşteri Gizleme
+    ============================================================ */
+    $("#siparis_tipi_select").on("change", function () {
+        const tip = $(this).val();
+        const musteriDiv = $("#musteri_select").closest(".col-md-4");
+
+        if (tip === "STOK") {
+            $("#musteri_select").val("").trigger("change");
+            musteriDiv.hide();
+        } else {
+            musteriDiv.show();
+        }
+    }).trigger("change");
+
+});
+</script>

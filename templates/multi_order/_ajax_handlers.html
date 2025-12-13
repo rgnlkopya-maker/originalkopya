@@ -1,0 +1,195 @@
+<script>
+function getCSRFToken() {
+    const el = document.querySelector('[name=csrfmiddlewaretoken]');
+    return el ? el.value : "";
+}
+
+
+/* ----------------- MÜŞTERİ ----------------- */
+function musteriKaydet() {
+    const ad = document.getElementById("modal_musteri_ad").value.trim();
+    if (!ad) { alert("Müşteri adı boş olamaz!"); return; }
+
+    fetch("/ajax/musteri/ekle/", {
+        method: "POST",
+        headers: { "X-CSRFToken": getCSRFToken() },
+        body: new URLSearchParams({ "ad": ad })
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+            const select = document.getElementById("musteri_select");
+            const opt = new Option(data.ad, data.id, true, true);
+            select.add(opt);
+            $("#musteri_select").trigger("change");
+
+            const modalSelect = document.getElementById("modal_musteri_listesi");
+            modalSelect.add(new Option(data.ad, data.id));
+
+            document.getElementById("modal_musteri_ad").value = "";
+            bootstrap.Modal.getInstance(document.getElementById("musteriModal")).hide();
+        } else { alert(data.message || "Hata oluştu."); }
+    });
+}
+
+function musteriPasifYap() {
+    const musteriId = document.getElementById("modal_musteri_listesi").value;
+    if (!musteriId) { alert("Lütfen müşteri seçin."); return; }
+    if (!confirm("Seçili müşteriyi pasif yapmak istediğinize emin misiniz?")) return;
+
+    fetch("/ajax/musteri/pasif-yap/", {
+        method: "POST",
+        headers: { "X-CSRFToken": getCSRFToken() },
+        body: new URLSearchParams({ "id": musteriId })
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+            alert("Müşteri pasif yapıldı.");
+
+            $("#musteri_select option[value='" + musteriId + "']").remove();
+            $("#musteri_select").trigger("change");
+            $("#modal_musteri_listesi option[value='" + musteriId + "']").remove();
+        } else { alert(data.message || "Hata oluştu."); }
+    });
+}
+
+/* ----------------- RENK ----------------- */
+function renkKaydet() {
+    const ad = document.getElementById("modal_renk_ad").value.trim();
+    if (!ad) { alert("Renk adı boş olamaz!"); return; }
+
+    fetch("/ajax/renk/ekle/", {
+        method: "POST",
+        headers: { "X-CSRFToken": getCSRFToken() },
+        body: new URLSearchParams({ "ad": ad })
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+            document.querySelectorAll(".renk-select").forEach(sel => {
+                sel.add(new Option(data.ad, data.ad));
+            });
+
+            const modalSelect = document.getElementById("modal_renk_listesi");
+            modalSelect.add(new Option(data.ad, data.id));
+
+            document.getElementById("modal_renk_ad").value = "";
+            bootstrap.Modal.getInstance(document.getElementById("renkModal")).hide();
+        } else { alert(data.message || "Hata oluştu."); }
+    });
+}
+
+function renkPasifYap() {
+    const renkId = document.getElementById("modal_renk_listesi").value;
+    if (!renkId) { alert("Lütfen renk seçin."); return; }
+
+    if (!confirm("Seçili rengi pasif yapmak istediğinize emin misiniz?")) return;
+
+    fetch("/ajax/renk/pasif-yap/", {
+        method: "POST",
+        headers: { "X-CSRFToken": getCSRFToken() },
+        body: new URLSearchParams({ "id": renkId })
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+            alert("Renk pasif yapıldı.");
+            $("#modal_renk_listesi option[value='" + renkId + "']").remove();
+        } else { alert(data.message || "Hata oluştu."); }
+    });
+}
+
+/* ----------------- BEDEN ----------------- */
+function bedenKaydet() {
+    const ad = document.getElementById("modal_beden_ad").value.trim();
+    if (!ad) { alert("Beden boş olamaz!"); return; }
+
+    fetch("/ajax/beden/ekle/", {
+        method: "POST",
+        headers: { "X-CSRFToken": getCSRFToken() },
+        body: new URLSearchParams({ "ad": ad })
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+            document.querySelectorAll(".beden-select").forEach(sel => {
+                sel.add(new Option(data.ad, data.ad));
+            });
+
+            const modalSelect = document.getElementById("modal_beden_listesi");
+            modalSelect.add(new Option(data.ad, data.id));
+
+            document.getElementById("modal_beden_ad").value = "";
+            bootstrap.Modal.getInstance(document.getElementById("bedenModal")).hide();
+        } else { alert(data.message || "Hata oluştu."); }
+    });
+}
+
+function bedenPasifYap() {
+    const bedenId = document.getElementById("modal_beden_listesi").value;
+    if (!bedenId) { alert("Lütfen beden seçin."); return; }
+
+    if (!confirm("Seçili bedeni pasif yapmak istediğinize emin misiniz?")) return;
+
+    fetch("/ajax/beden/pasif-yap/", {
+        method: "POST",
+        headers: { "X-CSRFToken": getCSRFToken() },
+        body: new URLSearchParams({ "id": bedenId })
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+            alert("Beden pasif yapıldı.");
+            $("#modal_beden_listesi option[value='" + bedenId + "']").remove();
+        } else { alert(data.message || "Hata oluştu."); }
+    });
+}
+
+/* ----------------- ÜRÜN KODU ----------------- */
+function urunKodKaydet() {
+    const kod = document.getElementById("modal_urun_kod").value.trim();
+    if (!kod) { alert("Ürün kodu boş olamaz!"); return; }
+
+    fetch("/ajax/urun-kod/ekle/", {
+        method: "POST",
+        headers: { "X-CSRFToken": getCSRFToken() },
+        body: new URLSearchParams({ "kod": kod })
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+            const select = document.getElementById("urun_kodu_select");
+            const opt = new Option(data.kod, data.kod, true, true);
+            select.add(opt);
+            $("#urun_kodu_select").trigger("change");
+
+            const modalSelect = document.getElementById("modal_urun_kod_listesi");
+            modalSelect.add(new Option(data.kod, data.id));
+
+            document.getElementById("modal_urun_kod").value = "";
+            bootstrap.Modal.getInstance(document.getElementById("urunKodModal")).hide();
+        } else { alert(data.message || "Hata oluştu."); }
+    });
+}
+
+function urunKodPasifYap() {
+    const urunId = document.getElementById("modal_urun_kod_listesi").value;
+    if (!urunId) { alert("Lütfen ürün kodu seçin."); return; }
+
+    if (!confirm("Seçili ürün kodunu pasif yapmak istediğinize emin misiniz?")) return;
+
+    fetch("/ajax/urun-kod/pasif-yap/", {
+        method: "POST",
+        headers: { "X-CSRFToken": getCSRFToken() },
+        body: new URLSearchParams({ "id": urunId })
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+            alert("Ürün kodu pasif yapıldı.");
+            $("#modal_urun_kod_listesi option[value='" + urunId + "']").remove();
+        } else { alert(data.message || "Hata oluştu."); }
+    });
+}
+</script>

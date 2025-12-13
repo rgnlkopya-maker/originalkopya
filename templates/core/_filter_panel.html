@@ -1,0 +1,170 @@
+<style>
+/* === GELİŞMİŞ FİLTRE PANELİ — TASARIM === */
+.filter-panel {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    width: 460px;
+    max-width: 95%;
+    transform: translate(-50%, -50%) scale(0.94);
+    background: #ffffff;
+    border-radius: 18px;
+    padding: 20px 22px;
+    box-shadow: 0 20px 45px rgba(15,23,42,0.25);
+    z-index: 9999;
+    opacity: 0;
+    pointer-events: none;
+    transition: all 0.22s ease;
+}
+
+.filter-panel.show {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translate(-50%, -50%) scale(1);
+}
+
+.filter-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(15,23,42,0.25);
+    backdrop-filter: blur(4px);
+    z-index: 9990;
+    display: none;
+}
+
+.filter-backdrop.show {
+    display: block;
+    opacity: 1;
+    pointer-events: auto;
+}
+
+/* Genel hidden class */
+.hidden {
+    display: none !important;
+}
+
+/* Panel içi layout */
+.filter-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+}
+
+.filter-header h3 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 700;
+    color: #111827;
+}
+
+.close-btn {
+    background: none;
+    border: none;
+    font-size: 26px;
+    line-height: 1;
+    cursor: pointer;
+    color: #6b7280;
+}
+
+.filter-body {
+    margin-top: 14px;
+    max-height: 420px;
+    overflow-y: auto;
+}
+
+.filter-label {
+    margin-top: 10px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #4b5563;
+}
+
+.filter-select {
+    width: 100%;
+    margin-top: 4px;
+}
+
+.filter-footer {
+    margin-top: 18px;
+    display: flex;
+    justify-content: flex-end;
+}
+
+.apply-btn {
+    background: #4a63ff;
+    color: #ffffff;
+    border: none;
+    padding: 9px 18px;
+    border-radius: 10px;
+    font-weight: 600;
+    font-size: 14px;
+    cursor: pointer;
+    box-shadow: 0 8px 20px rgba(74,99,255,0.35);
+}
+
+.apply-btn:hover {
+    background: #3b54e9;
+}
+</style>
+
+<!-- ARKA PLAN -->
+<div id="filterBackdrop" class="filter-backdrop hidden"></div>
+
+<!-- PANEL -->
+<div id="filterPanel" class="filter-panel hidden">
+    <div class="filter-header">
+        <h3>Gelişmiş Filtreleme</h3>
+        <button id="closeFilter" class="close-btn">×</button>
+    </div>
+
+    <div class="filter-body">
+
+        <label class="filter-label">Sipariş No</label>
+        <select id="f_siparis_no" class="filter-select" multiple>
+            {% for s in siparis_options %}
+                <option value="{{ s }}">{{ s }}</option>
+            {% endfor %}
+        </select>
+
+        <label class="filter-label">Müşteri</label>
+        <select id="f_musteri" class="filter-select" multiple>
+            {% for m in musteri_options %}
+                <option value="{{ m }}">{{ m }}</option>
+            {% endfor %}
+        </select>
+
+        <label class="filter-label">Ürün Kodu</label>
+        <select id="f_urun" class="filter-select" multiple>
+            {% for u in urun_options %}
+                <option value="{{ u }}">{{ u }}</option>
+            {% endfor %}
+        </select>
+
+        <label class="filter-label">Renk</label>
+        <select id="f_renk" class="filter-select" multiple>
+            {% for r in renk_options %}
+                <option value="{{ r }}">{{ r }}</option>
+            {% endfor %}
+        </select>
+
+        <label class="filter-label">Beden</label>
+        <select id="f_beden" class="filter-select" multiple>
+            {% for b in beden_options %}
+                <option value="{{ b }}">{{ b }}</option>
+            {% endfor %}
+        </select>
+
+        <label class="filter-label">Son Durum</label>
+        <select id="f_status" class="filter-select" multiple>
+            {% for s in status_options %}
+                <option value="{{ s }}">{{ s }}</option>
+            {% endfor %}
+        </select>
+
+    </div>
+
+    <div class="filter-footer">
+        <button id="applyFilter" class="apply-btn">Filtreleri Uygula</button>
+    </div>
+</div>
