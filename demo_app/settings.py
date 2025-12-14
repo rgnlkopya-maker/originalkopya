@@ -133,3 +133,5 @@ ALLOWED_HOSTS = os.getenv(
     "localhost,127.0.0.1"
 ).split(",")
 
+SUPABASE_URL = os.environ.get("SUPABASE_URL")
+SUPABASE_SERVICE_ROLE_KEY = os.environ.get("SUPABASE_SERVICE_ROLE_KEY")

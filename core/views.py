@@ -3,6 +3,7 @@ import time
 import json
 import requests
 from datetime import datetime, timedelta
+from core.utils.qr import ensure_order_qr
 
 # ========================
 # 📌 MODELLER (TÜMÜ TEK PARÇA)
@@ -428,25 +429,25 @@ def order_create(request):
                 except ProductCost.DoesNotExist:
                     order.maliyet_uygulanan = None
 
-            order.save()
-            cache.clear()
-            return redirect(f"{reverse('order_list')}?t={int(time.time())}")
+            order.save()                 # 1️⃣ Siparişi kaydet
+            ensure_order_qr(order)       # 2️⃣ QR üret + Supabase upload
+            cache.clear()                # 3️⃣ Cache temizle
+
+            return redirect(
+                f"{reverse('order_list')}?t={int(time.time())}"
+            )
     else:
         form = OrderForm(user=request.user)
 
     is_manager = request.user.groups.filter(name__in=["patron", "mudur"]).exists()
 
-    # ✅ Modalda kullanmak için aktif müşteriler → GEREKLİ!
     aktif_musteriler = Musteri.objects.filter(aktif=True).order_by("ad")
 
     return render(request, "core/order_form.html", {
         "form": form,
         "is_manager": is_manager,
-        "aktif_musteriler": aktif_musteriler,   # ← EKLENDİ
+        "aktif_musteriler": aktif_musteriler,
     })
-
-
-
 
 
 

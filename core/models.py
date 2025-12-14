@@ -5,8 +5,6 @@ from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.db.models.signals import post_save
 from django.dispatch import receiver
-import qrcode
-from io import BytesIO
 from django.contrib.auth.models import User
 from django.db.models.signals import post_save
 from django.dispatch import receiver
@@ -284,41 +282,7 @@ class Order(models.Model):
 
         super().save(*args, **kwargs)
 
-        # --- QR KOD OLUŞTUR ---
-        if creating and not self.qr_code_url:
-            base_url = settings.BASE_URL
-            detail_url = f"{base_url}{reverse('order_detail', args=[self.pk])}"
-
-            qr = qrcode.QRCode(box_size=8, border=2)
-            qr.add_data(detail_url)
-            qr.make(fit=True)
-            img = qr.make_image(fill_color="black", back_color="white")
-
-            from datetime import datetime
-            buffer = BytesIO()
-            img.save(buffer, format="PNG")
-            buffer.seek(0)
-
-            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            filename = f"qr_{self.pk}_{timestamp}.png"
-
-                    # QR kodu yerel dosya sistemine kaydet
-            qr_path = f"media/qr_codes/{filename}"
-            full_path = settings.BASE_DIR / qr_path
-
-            # media/qr_codes klasörü yoksa oluştur
-            full_path.parent.mkdir(parents=True, exist_ok=True)
-
-            with open(full_path, "wb") as f:
-                f.write(buffer.getvalue())
-
-            # URL olarak kaydet
-            self.qr_code_url = f"/{qr_path}"
-
-            super().save(update_fields=["qr_code_url"])
-
-
-
+        
 from django.db import models
 from django.contrib.auth.models import User
 
@@ -330,16 +294,6 @@ class MesaiKayit(models.Model):
     def __str__(self):
         return f"{self.user.username} - {self.giris_zamani}"
 
-
-
-
-
-
-
-
-
-
-        
 
     @property
     def son_durum(self):
