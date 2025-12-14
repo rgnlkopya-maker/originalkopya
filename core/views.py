@@ -1954,6 +1954,7 @@ def order_multi_create(request):
                         ekstra_maliyet=ekstra_maliyet,
                     )
 
+                    ensure_order_qr(order)
                     created_orders.append(order)
 
 
