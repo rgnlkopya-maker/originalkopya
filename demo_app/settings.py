@@ -123,3 +123,13 @@ LOGOUT_REDIRECT_URL = "/login/"
 
 # QR Kod için temel URL
 BASE_URL = "http://127.0.0.1:8000"
+
+import os
+
+DEBUG = os.getenv("DEBUG", "False") == "True"
+
+ALLOWED_HOSTS = os.getenv(
+    "ALLOWED_HOSTS",
+    "localhost,127.0.0.1"
+).split(",")
+
