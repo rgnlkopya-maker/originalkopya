@@ -101,3 +101,4 @@ wsproto==1.2.0
 yarl==1.22.0
 zope.event==6.0
 zope.interface==8.0.1
+gunicorn
