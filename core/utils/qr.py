@@ -1,7 +1,7 @@
 import io
 import qrcode
 from django.conf import settings
-from .supabase import supabase
+from .supabase import get_supabase
 
 
 def ensure_order_qr(order):
@@ -10,7 +10,6 @@ def ensure_order_qr(order):
     - üret
     - Supabase'a yükle
     - public URL'i DB'ye kaydet
-    Varsa: dokunma
     """
 
     if order.qr_code_url:
@@ -26,7 +25,7 @@ def ensure_order_qr(order):
     filename = f"order_{order.id}.png"
 
     try:
-        result = supabase.storage.from_("order-qr").upload(
+        supabase.storage.from_("order-qr").upload(
             filename,
             buffer.getvalue(),
             file_options={
@@ -35,7 +34,13 @@ def ensure_order_qr(order):
             }
         )
 
-        public_url = supabase.storage.from_("order-qr").get_public_url(filename)
+        # ✅ DOĞRU PUBLIC URL
+        public_url = (
+            supabase
+            .storage
+            .from_("order-qr")
+            .get_public_url(filename)["data"]["publicUrl"]
+        )
 
         order.qr_code_url = public_url
         order.save(update_fields=["qr_code_url"])
