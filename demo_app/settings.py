@@ -101,3 +101,10 @@ BASE_URL = os.getenv("BASE_URL", "http://127.0.0.1:8000")
 # Supabase
 SUPABASE_URL = os.environ.get("SUPABASE_URL")
 SUPABASE_SERVICE_ROLE_KEY = os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
+
+import os
+
+CREATE_ADMIN = os.environ.get("CREATE_ADMIN") == "1"
+ADMIN_USERNAME = os.environ.get("ADMIN_USERNAME", "patron")
+ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "patron19")
+ADMIN_EMAIL = os.environ.get("ADMIN_EMAIL", "admin@example.com")
