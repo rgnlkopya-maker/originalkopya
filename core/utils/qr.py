@@ -15,6 +15,9 @@ def ensure_order_qr(order):
     if order.qr_code_url:
         return order.qr_code_url
 
+    # ✅ BURAYI EKLEMEK ZORUNDASIN
+    supabase = get_supabase()
+
     qr_data = f"{settings.BASE_URL.rstrip('/')}/orders/{order.id}/"
 
     qr = qrcode.make(qr_data)
@@ -34,7 +37,6 @@ def ensure_order_qr(order):
             }
         )
 
-        # ✅ DOĞRU PUBLIC URL
         public_url = (
             supabase
             .storage
