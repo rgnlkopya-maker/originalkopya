@@ -6,6 +6,8 @@ from django.contrib.auth import logout
 from django.shortcuts import redirect
 from core import views
 from core.views import notification_list
+from django.contrib import admin
+from django.urls import path, include
 
 
 def logout_view(request):
@@ -20,7 +22,6 @@ urlpatterns = [
     path("custom-login/", views.custom_login, name="custom_login"),
     path("logout/", logout_view, name="logout"),
     path("", views.order_list, name="order_list"),
-    path("management/", views.management_panel, name="management_panel"),
     path("order/new/", views.order_create, name="order_create"),
     path("order/<int:pk>/", views.order_detail, name="order_detail"),
     path("order/<int:pk>/edit/", views.order_edit, name="order_edit"),
@@ -37,7 +38,6 @@ urlpatterns = [
     path("users/", views.user_management_view, name="user_management"),
     path("reports/", views.reports_view, name="reports"),
     path("staff-reports/", views.staff_reports_view, name="staff_reports"),
-    path("reports/fast/", views.fast_profit_report, name="fast_profit_report"),
     path("reports/giden-urunler/", views.giden_urunler_raporu, name="giden_urunler_raporu"),
     path("reports/home/", views.reports_home, name="reports_home"),
     path(
@@ -68,6 +68,12 @@ urlpatterns = [
     path("ajax/renk/ekle/", views.renk_ekle_ajax, name="renk_ekle_ajax"),
     path("ajax/renk/pasif-yap/", views.renk_pasif_yap_ajax, name="renk_pasif_yap_ajax"),
     path("orders/print/", views.order_print, name="order_print"),
+    path("orders/label/print/", views.order_label_print, name="order_label_print"),
+    path("order/<int:pk>/toggle-active/", views.order_toggle_active, name="order_toggle_active"),
+    path("reports/dashboard/", views.dashboard_view, name="dashboard"),
+    path("reports/shipped-live/", views.live_shipped_orders, name="live_shipped_orders"),
+    path("reports/sevkiyat-finans/", views.sevkiyat_finans_tablosu, name="sevkiyat_finans_tablosu"),
+    path("reports/personel/", views.personel_raporu, name="personel_raporu"),
 ]
 
 if settings.DEBUG:

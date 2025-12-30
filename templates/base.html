@@ -23,7 +23,9 @@
       font-size: 14.5px;
       background: #f3f4f8;
       overflow-x: hidden;
-      color: #1d1e2c;
+      color: #111827;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
     }
 
     /*************************/
@@ -38,33 +40,40 @@
       z-index: 100 !important;
     }
 
+    /* ✅ CHIP SCROLL (TEK HALİ) */
     .chip-scroll {
       display: flex;
       gap: 12px;
       overflow-x: auto;
       padding-bottom: 6px;
+      max-width: 70vw;
+      flex: unset !important;
+      min-width: unset !important;
     }
 
+    /* ✅ CHIP (TEK HALİ / ÇAKIŞMALAR TEMİZLENDİ) */
     .chip {
-      padding: 10px 18px;
+      width: 44px;
+      height: 44px;
       background: #eef1ff;
-      border-radius: 18px;
-      font-size: 14px;
-      text-decoration: none !important;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      white-space: nowrap;
       border: 1px solid #e3e6fb;
       color: #39405a !important;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 16px;
+      text-decoration: none !important;
       font-weight: 500;
       transition: 0.2s ease;
+      font-size: 18px;
+      box-shadow: 0 6px 18px rgba(15, 23, 42, 0.06);
     }
 
     .chip:hover {
       background: #e7ebff;
       border-color: #cfd6ff;
       box-shadow: 0 3px 8px rgba(74,99,255,0.15);
+      transform: translateY(-1px);
     }
 
     .chip.active {
@@ -72,6 +81,70 @@
       border-color: #3b54e9;
       color: #fff !important;
       box-shadow: 0 4px 12px rgba(74,99,255,0.30);
+    }
+
+    /* ✅ NAVBAR GRID LAYOUT */
+    .topbar-grid{
+      display: grid;
+      grid-template-columns: 1fr auto 1fr; /* sol boş - orta ikonlar - sağ kullanıcı */
+      align-items: center;
+      width: 100%;
+    }
+
+    .topbar-center{
+      justify-self: center;
+      width: fit-content;
+    }
+
+    .topbar-left{
+      justify-self: start;
+    }
+
+    .topbar-right{
+      justify-self: end;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    /* ✅ USER CHIP */
+    .user-chip{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      background: #f4f6ff;
+      border: 1px solid #e3e6fb;
+      height: 44px;
+      padding: 0 14px;
+      border-radius: 16px;
+      font-weight: 600;
+      color: #39405a;
+      box-shadow: 0 6px 18px rgba(15, 23, 42, 0.06);
+    }
+
+    /* ✅ LOGOUT BUTTON (soft) */
+    .logout-btn{
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      height:44px;
+      padding:0 16px;
+      border-radius:16px;
+      background: linear-gradient(to bottom right, #fff5f5, #ffe2e2);
+      border: 1px solid #ffd1d1;
+      color:#d53333;
+      font-weight:700;
+      font-size:14px;
+      text-decoration:none;
+      box-shadow: 0 6px 18px rgba(15, 23, 42, 0.06);
+      transition:0.2s ease;
+    }
+
+    .logout-btn:hover{
+      background: linear-gradient(to bottom right, #ffecec, #ffd7d7);
+      border-color:#ffbcbc;
+      transform: translateY(-1px);
+      box-shadow:0 10px 22px rgba(15, 23, 42, 0.10);
     }
 
     /*************************/
@@ -89,26 +162,76 @@
     /* SELECT2 Z-INDEX       */
     /*************************/
 
-    /* SAYFADAKİ Select2 → düşük z-index */
-    /* SAYFADAKİ Select2 → panel içinde görünür */
-    .select2-container {
-        z-index: 99999 !important;
-    }
+    /* Bootstrap modal katmanı */
+    .modal { z-index: 20000 !important; }
+    .modal-backdrop { z-index: 19999 !important; }
 
-    /* Dropdown kutusu */
-    .select2-dropdown {
-        z-index: 999999 !important;
-    }
+    /* Normal sayfada Select2 dropdown */
+    .select2-container { z-index: 5000 !important; }
+    .select2-dropdown { z-index: 5000 !important; }
 
-
-    /* MODAL İÇİNDEKİ Select2 → en üste */
-    .modal .select2-container {
-      z-index: 3000 !important;
-    }
+    /* Modal içindeki Select2 her zaman modalın üstünde olsun */
+    .modal .select2-container { z-index: 20001 !important; }
+    .modal .select2-dropdown { z-index: 20001 !important; }
 
     .select2-hidden-accessible {
       display: none !important;
       visibility: hidden !important;
+    }
+
+    .navbar .container-fluid {
+      flex-wrap: nowrap !important;
+    }
+
+    table thead th {
+      font-weight: 600;
+      font-size: 12px;
+      color: #64748b;
+      letter-spacing: 0.4px;
+      text-transform: uppercase;
+    }
+
+    table tbody td {
+      font-weight: 500;
+      color: #111827;
+      font-size: 14px;
+    }
+
+    table tbody td:nth-child(2),
+    table tbody td:nth-child(3),
+    table tbody td:nth-child(4) {
+      font-weight: 700;
+      color: #0f172a;
+    }
+
+    table a {
+      color: #2563eb;
+      font-weight: 600;
+      text-decoration: none;
+    }
+
+    table a:hover {
+      text-decoration: underline;
+    }
+
+    table tbody tr {
+      transition: 0.15s ease;
+    }
+
+    table tbody tr:hover {
+      background: #f4f7ff;
+      box-shadow: inset 0 0 0 1px rgba(99,102,241,0.18);
+    }
+
+    table tbody td {
+      padding-top: 16px !important;
+      padding-bottom: 16px !important;
+    }
+
+    .badge, .btn-status {
+      font-weight: 700;
+      border-radius: 12px;
+      padding: 8px 12px;
     }
 
   </style>
@@ -120,39 +243,64 @@
 <body>
 
 <!-- NAVBAR -->
-
 <nav class="navbar app-navbar px-3 mb-0">
-  <div class="container-fluid d-flex align-items-center justify-content-between">
+  <div class="container-fluid topbar-grid">
 
-    <!-- SOL: CHIP MENU -->
-    <div class="chip-scroll">
+    <!-- SOL (şimdilik boş) -->
+    <div class="topbar-left"></div>
 
-      <a href="{% url 'order_list' %}"
-         class="chip {% if request.resolver_match.url_name == 'order_list' %}active{% endif %}">
-        <i class="bi bi-file-text"></i> Sipariş Listesi
-      </a>
+    <!-- ORTA: CHIP MENU -->
+    <div class="topbar-center">
+      <div class="chip-scroll">
 
-      <a href="{% url 'order_multi_create' %}"
-         class="chip {% if request.resolver_match.url_name == 'order_multi_create' %}active{% endif %}">
-        <i class="bi bi-plus-circle"></i> Yeni Sipariş Ekle
-      </a>
+        <a href="{% url 'order_list' %}"
+          class="chip {% if request.resolver_match.url_name == 'order_list' %}active{% endif %}"
+          title="Sipariş Listesi">
+          <i class="bi bi-file-text"></i>
+        </a>
 
-      <a class="chip"><i class="bi bi-building"></i> Depolar</a>
-      <a class="chip"><i class="bi bi-bar-chart"></i> Raporlar</a>
-      <a class="chip"><i class="bi bi-coin"></i> Ürün Maliyetleri</a>
-      <a class="chip"><i class="bi bi-people"></i> Kullanıcı Yönetimi</a>
-      <a class="chip"><i class="bi bi-clock-history"></i> Puantaj & Mesai</a>
-      <a class="chip"><i class="bi bi-robot"></i> Asistan</a>
-      <a class="chip"><i class="bi bi-gear"></i> Ayarlar</a>
+        <a href="{% url 'order_multi_create' %}"
+          class="chip {% if request.resolver_match.url_name == 'order_multi_create' %}active{% endif %}"
+          title="Yeni Sipariş Ekle">
+          <i class="bi bi-plus-circle"></i>
+        </a>
 
+        <a class="chip" title="Depolar"><i class="bi bi-building"></i></a>
+
+        <a href="{% url 'dashboard' %}"
+          class="chip {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}"
+          title="Raporlar">
+          <i class="bi bi-bar-chart"></i>
+        </a>
+
+        <a href="{% url 'product_cost_list' %}"
+          class="chip {% if request.resolver_match.url_name == 'product_cost_list' %}active{% endif %}"
+          title="Ürün Maliyetleri">
+          <i class="bi bi-coin"></i>
+        </a>
+
+        <a href="{% url 'user_management' %}"
+          class="chip {% if request.resolver_match.url_name == 'user_management' %}active{% endif %}"
+          title="Kullanıcı Yönetimi">
+          <i class="bi bi-people"></i>
+        </a>
+
+        <a class="chip" title="Puantaj & Mesai"><i class="bi bi-clock-history"></i></a>
+        <a class="chip" title="Asistan"><i class="bi bi-robot"></i></a>
+        <a class="chip" title="Ayarlar"><i class="bi bi-gear"></i></a>
+
+      </div>
     </div>
 
     <!-- SAĞ: KULLANICI -->
     {% if user.is_authenticated %}
-      <div class="d-flex align-items-center gap-3">
-        <span>👤 {{ user.username }}</span>
-        <a href="{% url 'logout' %}" class="btn btn-outline-danger btn-sm">Çıkış</a>
-      </div>
+    <div class="topbar-right">
+      <span class="user-chip">
+        <i class="bi bi-person-circle"></i> {{ user.username }}
+      </span>
+
+      <a href="{% url 'logout' %}" class="logout-btn">Çıkış</a>
+    </div>
     {% endif %}
 
   </div>
@@ -169,6 +317,7 @@
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 
 {% block extra_js %}{% endblock %}
+
 <!-- GLOBAL CSRF TOKEN (AJAX için şarttır) -->
 <input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}">
 

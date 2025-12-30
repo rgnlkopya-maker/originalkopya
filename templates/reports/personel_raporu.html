@@ -1,0 +1,224 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block extra_css %}
+<style>
+body { background: #f5f7fb; }
+
+/* HEADER */
+.modern-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #ffffffee;
+    backdrop-filter: blur(12px);
+    border-radius: 14px;
+    padding: 14px 20px;
+    margin: 22px 0;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.06);
+}
+.header-title {
+    font-size: 18px;
+    font-weight: 700;
+    color: #111827;
+}
+.header-actions {
+    display: flex;
+    gap: 10px;
+    align-items: end;
+}
+.header-actions label {
+    font-size: 12px;
+    font-weight: 600;
+    color: #6b7280;
+}
+.header-actions input, .header-actions select {
+    height: 38px;
+    border-radius: 10px;
+    border: 1px solid #e6e9f2;
+    padding: 0 10px;
+    font-size: 13px;
+}
+
+/* ✅ Order list ile aynı ikon butonlar */
+.filter-btn, .filter-clear-btn{
+    width: 42px;
+    height: 42px;
+    border-radius: 22px;
+    border: 1px solid #e6e9f2;
+    background: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    padding: 0;
+    text-decoration: none;
+}
+
+.filter-btn i { font-size: 20px; color: #395bff; }
+.filter-btn:hover { background: #f3f6ff; border-color: #cfd8ff; }
+
+.filter-clear-btn i { font-size: 20px; color: #ff4b4b; }
+.filter-clear-btn:hover { background: #fff1f1; border-color: #ffcaca; }
+
+/* TABLE */
+.table-modern {
+    width: 100%;
+    border-collapse: separate !important;
+    border-spacing: 0 10px !important;
+}
+.table-modern thead th {
+    background: #f5f7fb;
+    color: #6b7280;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    padding: 14px 18px;
+    border: none !important;
+    text-align: left !important;
+}
+.table-modern tbody tr {
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+    transition: all .15s ease;
+}
+.table-modern tbody tr:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(0,0,0,0.1);
+}
+.table-modern tbody td {
+    padding: 16px 18px;
+    font-size: 14px;
+    border: none !important;
+}
+.table-modern tbody tr td:first-child {
+    border-top-left-radius: 12px;
+    border-bottom-left-radius: 12px;
+}
+.table-modern tbody tr td:last-child {
+    border-top-right-radius: 12px;
+    border-bottom-right-radius: 12px;
+}
+
+.order-link {
+    color: #395bff;
+    font-weight: 700;
+    text-decoration: none;
+}
+.order-link:hover { text-decoration: underline; }
+
+.badge-action {
+    background: #eef2ff;
+    color: #3730a3;
+    padding: 6px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 700;
+    display: inline-block;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-2">
+
+    <!-- ✅ HEADER -->
+    <div class="modern-header">
+        <div class="header-title">👤 Personel Raporu</div>
+
+        <form method="GET" class="header-actions">
+
+            <div>
+                <label>Personel</label><br>
+                <select name="user">
+                    <option value="">Tümü</option>
+                    {% for u in users %}
+                        <option value="{{ u.username }}" {% if selected_user == u.username %}selected{% endif %}>
+                            {{ u.username }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div>
+                <label>Başlangıç</label><br>
+                <input type="date" name="start_date" value="{{ start_date }}">
+            </div>
+
+            <div>
+                <label>Bitiş</label><br>
+                <input type="date" name="end_date" value="{{ end_date }}">
+            </div>
+
+            <!-- 🔍 Filtrele -->
+            <button type="submit" class="filter-btn" title="Filtrele">
+                <i class="bi bi-search"></i>
+            </button>
+
+            <!-- ❌ Temizle -->
+            <a href="{% url 'personel_raporu' %}" class="filter-clear-btn" title="Temizle">
+                <i class="bi bi-x-circle"></i>
+            </a>
+
+        </form>
+    </div>
+
+    <!-- ✅ TABLE -->
+    <div class="table-responsive shadow-sm rounded">
+        <table class="table-modern">
+            <thead>
+                <tr>
+                    <th>Sipariş No</th>
+                    <th>MÜŞTERİ</th>
+                    <th>ÜRÜN</th>
+                    <th>RENK</th>
+                    <th>BEDEN</th>
+                    <th>AÇIKLAMA (Sipariş)</th>
+                    <th>Personel</th>
+                    <th>İşlem</th>
+                    <th>Tarih / Saat</th>
+                    <th>AÇIKLAMA (İşlem)</th>
+                </tr>
+            </thead>
+
+            <tbody>
+                {% for r in raporlar %}
+                    <tr>
+                        <td>
+                            <a class="order-link" href="{% url 'order_detail' r.order_id %}">
+                                {{ r.siparis_no }}
+                            </a>
+                        </td>
+
+                        <td>{{ r.musteri }}</td>
+                        <td>{{ r.urun_kodu }}</td>
+                        <td>{{ r.renk }}</td>
+                        <td>{{ r.beden }}</td>
+
+                        <td>{{ r.siparis_aciklama }}</td>
+
+                        <td>{{ r.personel }}</td>
+
+                        <td>
+                            <span class="badge-action">{{ r.action }}</span>
+                        </td>
+
+                        <td>{{ r.timestamp|date:"d.m.Y H:i" }}</td>
+
+                        <td>{{ r.islem_aciklama }}</td>
+                    </tr>
+                {% empty %}
+                    <tr>
+                        <td colspan="10" style="text-align:center; color:#6b7280; padding: 20px;">
+                            Bu filtreyle kayıt bulunamadı.
+                        </td>
+                    </tr>
+                {% endfor %}
+
+            </tbody>
+        </table>
+    </div>
+
+</div>
+{% endblock %}

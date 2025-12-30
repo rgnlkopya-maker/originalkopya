@@ -1,0 +1,212 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block extra_css %}
+<style>
+  .page-wrap{
+    max-width: 980px;
+    margin: 28px auto;
+  }
+
+  .soft-card{
+    background: #ffffffee;
+    backdrop-filter: blur(12px);
+    border-radius: 16px;
+    box-shadow: 0 8px 28px rgba(15, 23, 42, 0.08);
+    border: 1px solid rgba(226,232,240,0.7);
+    overflow: hidden;
+  }
+
+  .soft-card-header{
+    padding: 16px 18px;
+    border-bottom: 1px solid rgba(226,232,240,0.9);
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap: 12px;
+  }
+
+  .soft-card-title{
+    font-size: 18px;
+    font-weight: 800;
+    color: #0f172a;
+    display:flex;
+    align-items:center;
+    gap:10px;
+  }
+
+  .soft-card-body{
+    padding: 18px;
+  }
+
+  .soft-btn{
+    border-radius: 14px !important;
+    font-weight: 700 !important;
+    padding: 10px 16px !important;
+    box-shadow: 0 6px 18px rgba(15, 23, 42, 0.06);
+  }
+
+  .form-control, .form-select{
+    border-radius: 14px !important;
+    padding: 12px 14px !important;
+    border: 1px solid #e3e6fb !important;
+    box-shadow: 0 4px 14px rgba(15, 23, 42, 0.04);
+    font-weight: 600;
+  }
+
+  .table thead th{
+    font-weight: 800;
+    font-size: 12px;
+    color: #64748b;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    border-bottom: 1px solid #e8ecff;
+    background: #f7f8ff;
+  }
+
+  .table tbody td{
+    font-weight: 600;
+    color: #111827;
+    font-size: 14px;
+    vertical-align: middle;
+  }
+
+  .table tbody tr:hover{
+    background: #f4f7ff;
+    box-shadow: inset 0 0 0 1px rgba(99,102,241,0.18);
+  }
+
+  .badge-soft{
+    background: #eef1ff;
+    border: 1px solid #e3e6fb;
+    color: #3b45d9;
+    font-weight: 800;
+    border-radius: 999px;
+    padding: 6px 12px;
+    font-size: 12px;
+  }
+
+  .delete-btn{
+    border-radius: 14px !important;
+    font-weight: 800 !important;
+    padding: 8px 12px !important;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-2">
+  <div class="page-wrap">
+
+    <div class="soft-card">
+
+      <div class="soft-card-header">
+        <div class="soft-card-title">
+          <span>💰</span>
+          <span>Ürün Maliyetleri</span>
+          <span class="badge-soft">ProductCost</span>
+        </div>
+      </div>
+
+      <div class="soft-card-body">
+
+        <!-- ✅ Yeni ürün ekleme / güncelleme -->
+        <form method="POST" class="row g-3 align-items-end mb-4">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="add">
+
+          <div class="col-md-4">
+            <label class="form-label fw-bold text-muted small">Ürün Kodu</label>
+            <input name="urun_kodu" class="form-control" placeholder="Örn: ML-101" required>
+          </div>
+
+          <div class="col-md-3">
+            <label class="form-label fw-bold text-muted small">Maliyet</label>
+            <input name="maliyet" type="number" step="0.01" class="form-control" placeholder="0.00" required>
+          </div>
+
+          <div class="col-md-2">
+            <label class="form-label fw-bold text-muted small">Para Birimi</label>
+            <select name="para_birimi" class="form-select">
+              <option value="TRY">TRY</option>
+              <option value="USD">USD</option>
+              <option value="EUR">EUR</option>
+            </select>
+          </div>
+
+          <div class="col-md-3">
+            <button class="btn btn-primary w-100 soft-btn">
+              ➕ Ekle / Güncelle
+            </button>
+          </div>
+        </form>
+
+        <!-- ✅ Liste -->
+        <div class="table-responsive">
+          <table class="table align-middle mb-0">
+            <thead>
+              <tr>
+                <th>Ürün Kodu</th>
+                <th>Maliyet</th>
+                <th>Para Birimi</th>
+                <th class="text-end">Sil</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for cost in costs %}
+              <tr>
+                <td class="fw-bold">{{ cost.urun_kodu }}</td>
+                <td>{{ cost.maliyet|floatformat:2 }}</td>
+                <td>
+                  <span class="badge-soft">{{ cost.para_birimi }}</span>
+                </td>
+                <td class="text-end">
+                  <form method="POST" class="d-inline">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="delete">
+                    <input type="hidden" name="id" value="{{ cost.id }}">
+                    <button class="btn btn-danger btn-sm delete-btn"
+                            onclick="return confirm('Bu maliyeti silmek istiyor musun?');">
+                      🗑️ Sil
+                    </button>
+                  </form>
+                </td>
+              </tr>
+              {% empty %}
+              <tr>
+                <td colspan="4" class="text-center text-muted py-4">
+                  Henüz maliyet kaydı yok.
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+
+        <!-- ✅ Sayfalama -->
+        <nav class="mt-4">
+          <ul class="pagination justify-content-center">
+            {% if costs.has_previous %}
+            <li class="page-item">
+              <a class="page-link" href="?page={{ costs.previous_page_number }}">Önceki</a>
+            </li>
+            {% endif %}
+
+            <li class="page-item active">
+              <span class="page-link">{{ costs.number }}</span>
+            </li>
+
+            {% if costs.has_next %}
+            <li class="page-item">
+              <a class="page-link" href="?page={{ costs.next_page_number }}">Sonraki</a>
+            </li>
+            {% endif %}
+          </ul>
+        </nav>
+
+      </div>
+    </div>
+
+  </div>
+</div>
+{% endblock %}

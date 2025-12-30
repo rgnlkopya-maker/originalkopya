@@ -3,12 +3,7 @@
 
 {% block extra_css %}
 <style>
-/* Sayfa genel arka planı */
-body {
-    background: #f5f7fb;
-}
-
-/* === MODERN HEADER (Order List ile uyumlu) === */
+body { background: #f5f7fb; }
 
 .detail-header {
     display: flex;
@@ -22,11 +17,7 @@ body {
     box-shadow: 0 4px 14px rgba(0,0,0,0.06);
 }
 
-.detail-header-left {
-    display: flex;
-    gap: 10px;
-    align-items: center;
-}
+.detail-header-left { display: flex; gap: 10px; align-items: center; }
 
 .detail-back-btn {
     font-size: 14px;
@@ -41,133 +32,32 @@ body {
     align-items: center;
     gap: 6px;
 }
+.detail-back-btn:hover { background: #e5e7ff; }
 
-.detail-back-btn:hover {
-    background: #e5e7ff;
-}
+.detail-header-title { font-size: 20px; font-weight: 700; color: #111827; }
 
-.detail-header-title {
-    font-size: 20px;
-    font-weight: 700;
-    color: #111827;
-}
+.detail-header-actions { display: flex; gap: 8px; align-items: center; }
+.detail-header-actions .btn { border-radius: 999px; font-size: 13px; padding: 6px 14px; }
 
-.detail-header-actions {
-    display: flex;
-    gap: 8px;
-    align-items: center;
-}
+.detail-card { border-radius: 16px; box-shadow: 0 2px 10px rgba(15, 23, 42, 0.08); }
 
-.detail-header-actions .btn {
-    border-radius: 999px;
-    font-size: 13px;
-    padding: 6px 14px;
-}
-
-/* Ana kart (detay gövdesi) */
-.detail-card {
-    border-radius: 16px;
-    box-shadow: 0 2px 10px rgba(15, 23, 42, 0.08);
-}
-
-/* Eski stil: label + stage buttons vs. (KORUNDU) */
 .label { font-weight: 600; }
-.print-btn { float: right; }
+.stage-buttons form { display: inline-block; margin-right: 5px; margin-bottom: 5px; }
 
-.stage-buttons form {
-    display: inline-block;
-    margin-right: 5px;
-    margin-bottom: 5px;
-}
+.qr-print-block { display: flex; align-items: center; gap: 15px; font-size: 14px; line-height: 1.3; }
+.qr-print-block img, .qr-img { max-height: 140px; width: auto; }
 
-/* 💻 Ekran görünümü için QR bloğu */
-.qr-print-block {
-    display: flex;
-    align-items: center;
-    gap: 15px;
-    font-size: 14px;
-    line-height: 1.3;
-}
-
-.qr-print-block img,
-.qr-img {
-    max-height: 140px;
-    width: auto;
-}
-
-.qr-print-block .qr-text {
-    font-size: 14px;
-    line-height: 1.3;
-}
-
-/* ✅ YAZDIRMA MODU */
 @media print {
-
-    html, body {
-        margin: 0 !important;
-        padding: 0 !important;
-        width: 100% !important;
-        height: auto !important;
-    }
-
-    .container, .card {
-        max-width: 100% !important;
-        width: 100% !important;
-        box-shadow: none !important;
-        border: none !important;
-        margin: 0 !important;
-        padding: 5mm !important;
-    }
-
-    .no-print,
-    .btn-warning,
-    .extra-images-section,
-    .extra-images-section + form {
-        display: none !important;
-    }
-
-    /* 🔍 QR ve yazılarını büyük bas */
-    .qr-print-block {
-        display: flex !important;
-        align-items: center !important;
-        gap: 20px !important;
-        font-size: 18pt !important;
-        line-height: 1.4 !important;
-    }
-
-    .qr-print-block img,
-    .qr-img {
-        max-height: 260px !important;
-        width: auto !important;
-    }
-
-    .qr-print-block .qr-text {
-        font-size: 18pt !important;
-        line-height: 1.4 !important;
-        font-weight: 600 !important;
-    }
-
-    /* İçindeki tüm satırlar aynı büyüklükte olsun (açıklama dahil) */
-    .qr-print-block .qr-text div {
-        font-size: inherit !important;
-        line-height: inherit !important;
-    }
+    html, body { margin: 0 !important; padding: 0 !important; width: 100% !important; height: auto !important; }
+    .container, .card { max-width: 100% !important; width: 100% !important; box-shadow: none !important; border: none !important; margin: 0 !important; padding: 5mm !important; }
+    .no-print, .btn-warning, .extra-images-section, .extra-images-section + form { display: none !important; }
+    .qr-print-block { display: flex !important; align-items: center !important; gap: 20px !important; font-size: 18pt !important; line-height: 1.4 !important; }
+    .qr-print-block img, .qr-img { max-height: 260px !important; width: auto !important; }
+    .qr-print-block .qr-text { font-size: 18pt !important; line-height: 1.4 !important; font-weight: 600 !important; }
+    .qr-print-block .qr-text div { font-size: inherit !important; line-height: inherit !important; }
 }
 
-/* 🎯 Görsel bölümünü öne al ve tıklanabilir hale getir */
-.extra-images-section {
-    position: relative;
-    z-index: 999 !important;
-}
-
-.extra-images-section a {
-    display: inline-block;
-    position: relative;
-    z-index: 1000 !important;
-    pointer-events: auto !important;
-    cursor: pointer !important;
-}
-
+.extra-images-section { position: relative; z-index: 999 !important; }
 .extra-images-section img {
     position: relative;
     z-index: 1001 !important;
@@ -176,30 +66,9 @@ body {
     border-radius: 8px;
     transition: transform 0.2s ease;
 }
+.extra-images-section img:hover { transform: scale(1.03); filter: brightness(1.05); }
+.extra-images-section form { position: absolute !important; top: 2px !important; right: 2px !important; z-index: 2000 !important; }
 
-.extra-images-section img:hover {
-    transform: scale(1.03);
-    filter: brightness(1.05);
-}
-
-.extra-images-section * {
-    pointer-events: auto !important;
-}
-
-.extra-images-section form {
-    position: absolute !important;
-    top: 2px !important;
-    right: 2px !important;
-    z-index: 2000 !important;
-}
-
-.extra-images-section form button {
-    opacity: 1 !important;
-    visibility: visible !important;
-    display: inline-block !important;
-}
-
-/* 🔍 Gelişmiş görsel önizleme (lightbox) */
 #lightboxOverlay {
   position: fixed;
   top: 0; left: 0;
@@ -221,17 +90,10 @@ body {
   transition: transform 0.25s ease-in-out;
   transform: scale(1.05);
 }
+#lightboxOverlay img:hover { transform: scale(1.15); }
 
-#lightboxOverlay img:hover {
-  transform: scale(1.15);
-}
-
-/* 📱 Mobil için optimize */
 @media (max-width: 768px) {
-  #lightboxOverlay img {
-    width: 90vw;
-    transform: none;
-  }
+  #lightboxOverlay img { width: 90vw; transform: none; }
 }
 
 #lightboxPrev, #lightboxNext {
@@ -247,11 +109,10 @@ body {
   cursor: pointer;
   user-select: none;
 }
-#lightboxPrev:hover, #lightboxNext:hover { background: rgba(255,255,255,0.3); }
 #lightboxPrev { left: 30px; }
 #lightboxNext { right: 30px; }
+#lightboxPrev:hover, #lightboxNext:hover { background: rgba(255,255,255,0.3); }
 @media print { #lightboxOverlay { display: none !important; } }
-
 </style>
 {% endblock %}
 
@@ -260,53 +121,31 @@ body {
 {% block content %}
 <div class="container-fluid px-2 py-3">
 
-    <!-- 🔹 Modern Header -->
     <div class="detail-header no-print">
         <div class="detail-header-left">
-            <!-- Anasayfa (Sipariş Listesi) -->
-            <a href="{% url 'order_list' %}" class="detail-back-btn">
-                🏠 <span>Anasayfa</span>
-            </a>
-
-            <!-- Geri: hangi sayfadan geldiyse oraya -->
-            <a href="{{ back_url }}" class="detail-back-btn">
-                ⬅ <span>Geri</span>
-            </a>
+            <a href="{% url 'order_list' %}" class="detail-back-btn">🏠 <span>Anasayfa</span></a>
+            <a href="{{ back_url }}" class="detail-back-btn">⬅ <span>Geri</span></a>
         </div>
 
-        <div class="detail-header-title">
-            📦 Sipariş Detayı
-        </div>
+        <div class="detail-header-title">📦 Sipariş Detayı</div>
 
         <div class="detail-header-actions">
             {% if is_manager %}
-                <a href="{% url 'order_edit' order.id %}" class="btn btn-warning btn-sm">
-                    ✏️ Düzenle
-                </a>
+                <a href="{% url 'order_edit' order.id %}" class="btn btn-warning btn-sm">✏️ Düzenle</a>
+                <button type="button" onclick="window.print()" class="btn btn-outline-primary btn-sm">🖨️ Yazdır</button>
 
-                <button type="button"
-                        onclick="window.print()"
-                        class="btn btn-outline-primary btn-sm">
-                    🖨️ Yazdır
-                </button>
-
-                <form action="{% url 'order_delete' order.id %}"
-                      method="POST"
-                      class="d-inline-block"
+                <form action="{% url 'order_delete' order.id %}" method="POST" class="d-inline-block"
                       onsubmit="return confirm('Bu siparişi silmek istediğine emin misin?');">
                     {% csrf_token %}
-                    <button type="submit" class="btn btn-danger btn-sm">
-                        🗑️ Sil
-                    </button>
+                    <button type="submit" class="btn btn-danger btn-sm">🗑️ Sil</button>
                 </form>
             {% endif %}
         </div>
     </div>
 
-    <!-- 🔹 İçerik Kartı -->
+
     <div class="card shadow-lg mx-auto p-4 detail-card" style="max-width: 900px;">
 
-        <!-- Üstte minik sipariş numarası (başlıkta istemedin, burada bilgi olarak kalsın) -->
         <div class="d-flex justify-content-between align-items-center mb-2">
             <div class="text-muted small">
                 <span class="label">Sipariş No:</span> {{ order.siparis_numarasi }}
@@ -315,7 +154,6 @@ body {
 
         <hr>
 
-        <!-- 📝 Temel Bilgiler -->
         <div class="row mb-3">
             <div class="col-md-6"><span class="label">Sipariş Tipi:</span> {{ order.siparis_tipi }}</div>
         </div>
@@ -331,7 +169,6 @@ body {
                     <span class="text-muted">—</span>
                 {% endif %}
             </div>
-
             <div class="col-md-6"><span class="label">Ürün Kodu:</span> {{ order.urun_kodu }}</div>
         </div>
 
@@ -357,15 +194,13 @@ body {
             <div class="col-md-6"><span class="label">Açıklama:</span> {{ order.aciklama }}</div>
         </div>
 
-        <!-- 📸 Ek Sipariş Görselleri -->
-        <h5 class="fw-bold mt-4">📸 Ek Sipariş Görselleri</h5>
 
+        <h5 class="fw-bold mt-4">📸 Ek Sipariş Görselleri</h5>
         <div class="d-flex flex-wrap justify-content-center mb-3 extra-images-section">
             {% for img in order.extra_images.all %}
             <div class="position-relative d-inline-block m-2">
                 {% if img.image_url %}
-                    <!-- 🔍 Tıklanabilir görsel -->
-                    <img src="{{ img.image_url }}" 
+                    <img src="{{ img.image_url }}"
                          alt="Ek Görsel"
                          class="img-thumbnail shadow-sm preview-img"
                          style="max-height:180px; border-radius:8px; cursor: zoom-in;">
@@ -393,60 +228,45 @@ body {
         </div>
 
         {% if is_manager %}
-        <form 
-          action="{% url 'order_add_image' order.pk %}" 
-          method="POST" 
-          enctype="multipart/form-data" 
-          class="no-print mt-3">
+        <form action="{% url 'order_add_image' order.pk %}" method="POST"
+              enctype="multipart/form-data" class="no-print mt-3">
             {% csrf_token %}
             <input type="file" name="images" accept="image/*" multiple required>
-            <button type="submit" class="btn btn-outline-secondary btn-sm">
-                📤 Çoklu Görsel Yükle
-            </button>
+            <button type="submit" class="btn btn-outline-secondary btn-sm">📤 Çoklu Görsel Yükle</button>
         </form>
         {% endif %}
 
-        <!-- 🔴 SİPARİŞ DÜZENLEME GEÇMİŞİ -->
-        <div class="card border-danger mt-4" style="max-width: 650px; margin: 0 auto;">
-            <div class="card-header bg-danger text-white fw-bold">
-                ⚠️ Sipariş Düzenleme Kayıtları
-            </div>
-            <div class="card-body">
 
+        <div class="card border-danger mt-4" style="max-width: 650px; margin: 0 auto;">
+            <div class="card-header bg-danger text-white fw-bold">⚠️ Sipariş Düzenleme Kayıtları</div>
+            <div class="card-body">
                 {% if update_events %}
                     <ul class="list-group">
                         {% for ev in update_events %}
                             <li class="list-group-item">
                                 <strong>{{ ev.stage|title }}</strong> alanı değişti:
-
                                 <br>
                                 <small class="text-muted">Önce:</small>
                                 <span class="text-decoration-line-through text-muted">{{ ev.old_value|default:"—" }}</span>
-
                                 <br>
                                 <small class="text-muted">Sonra:</small>
                                 <span class="fw-bold text-danger">{{ ev.new_value }}</span>
-
                                 <br>
-                                <small class="text-muted">
-                                    {{ ev.timestamp|date:"d.m.Y H:i" }} — {{ ev.user }}
-                                </small>
+                                <small class="text-muted">{{ ev.timestamp|date:"d.m.Y H:i" }} — {{ ev.user }}</small>
                             </li>
                         {% endfor %}
                     </ul>
                 {% else %}
-                    <div class="text-muted fst-italic">
-                        Bu siparişte henüz düzenleme yapılmamış.
-                    </div>
+                    <div class="text-muted fst-italic">Bu siparişte henüz düzenleme yapılmamış.</div>
                 {% endif %}
-
             </div>
         </div>
 
-        <!-- 🧵 Üretim Paneli -->
+
         <div class="mt-4 no-print" id="uretim-paneli">
             {% include "core/_uretim_paneli.html" with order=order events=events %}
         </div>
+
 
         <hr class="mt-4">
         <h5 class="mt-3">📊 Üretim Adet Kaydı</h5>
@@ -465,65 +285,77 @@ body {
             </div>
         </div>
 
-        <!-- 💰 Maliyet & Kâr Bilgileri -->
+
         {% if is_manager %}
         <div class="cost-section no-print">
             <hr>
             <h5 class="mt-4">💰 Maliyet & Kâr Bilgileri</h5>
+
             <table class="table table-sm table-bordered bg-white">
+
                 <tr>
                     <th>Satış Fiyatı</th>
                     <td>
-                        {% if order.satis_fiyati %}
+                        {% if order.satis_fiyati is not None %}
                             {{ order.satis_fiyati|floatformat:2 }} {{ order.para_birimi|default:"₺" }}
                         {% else %}
                             <span class="text-muted">—</span>
                         {% endif %}
                     </td>
                 </tr>
+
                 <tr>
                     <th>Etkin Maliyet</th>
                     <td>
-                        {% if order.efektif_maliyet %}
+                        {% if order.efektif_maliyet is not None %}
                             {{ order.efektif_maliyet|floatformat:2 }} {{ order.maliyet_para_birimi|default:"₺" }}
                         {% else %}
                             <span class="text-muted">—</span>
                         {% endif %}
                     </td>
                 </tr>
+
                 <tr>
                     <th>Ekstra Maliyet</th>
                     <td>
-                        {% if order.ekstra_maliyet %}
+                        {% if order.ekstra_maliyet is not None %}
                             {{ order.ekstra_maliyet|floatformat:2 }} {{ order.maliyet_para_birimi|default:"₺" }}
                         {% else %}
                             0,00 {{ order.maliyet_para_birimi|default:"₺" }}
                         {% endif %}
                     </td>
                 </tr>
+
                 <tr>
                     <th>Toplam Maliyet</th>
-                    <td>{{ order.toplam_maliyet|floatformat:2 }} {{ order.maliyet_para_birimi|default:"₺" }}</td>
+                    <td>
+                        {% if order.toplam_maliyet is not None %}
+                            {{ order.toplam_maliyet|floatformat:2 }} {{ order.maliyet_para_birimi|default:"₺" }}
+                        {% else %}
+                            <span class="text-muted">—</span>
+                        {% endif %}
+                    </td>
                 </tr>
+
                 <tr>
                     <th><b>Kâr</b></th>
                     <td>
-                        {% if order.kar_backend %}
+                        {% if order.kar_backend is not None %}
                             <b>{{ order.kar_backend|floatformat:2 }} {{ order.para_birimi|default:"₺" }}</b>
                         {% else %}
                             <span class="text-muted">—</span>
                         {% endif %}
                     </td>
                 </tr>
+
             </table>
         </div>
         {% endif %}
 
-    </div>  {# /card #}
+    </div>
+</div>
 
-</div>  {# /container-fluid #}
 
-<!-- 🖨️ Görsel Yazdır Butonu -->
 <button id="printImageBtn" class="btn btn-light btn-sm no-print" style="
   position: fixed;
   bottom: 30px;
@@ -538,7 +370,6 @@ body {
   🖨️ Yazdır
 </button>
 
-<!-- Lightbox overlay (gelişmiş görsel önizleme) -->
 <div id="lightboxOverlay">
   <button id="lightboxPrev">⟨</button>
   <img id="lightboxImage" src="">
@@ -550,25 +381,22 @@ body {
 
 
 {% block extra_js %}
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
 <script>
-// Üretim adet kaydı (checkbox'tan)
 function adetKaydet(checkbox, stage) {
     if (!checkbox.checked) return;
     htmx.ajax('POST', "{% url 'update_stage' order.id %}", {
-    headers: { "X-CSRFToken": getCookie("csrftoken") },
+        headers: { "X-CSRFToken": getCookie("csrftoken") },
         target: '#uretim-paneli',
         swap: 'outerHTML',
-        values: { 
-            stage: stage, 
-            value: 'done', 
+        values: {
+            stage: stage,
+            value: 'done',
             is_production_count: '1'
         }
     });
 }
 
-// 🖨️ Lightbox açıkken Yazdır butonunu göster/gizle
 document.addEventListener('click', function(e) {
   const overlay = document.getElementById('lightboxOverlay');
   const printBtn = document.getElementById('printImageBtn');
@@ -601,7 +429,6 @@ document.getElementById('printImageBtn').addEventListener('click', function() {
   w.document.close();
 });
 
-// Gelişmiş lightbox
 document.addEventListener('DOMContentLoaded', () => {
   const imgs = Array.from(document.querySelectorAll('.preview-img'));
   const overlay = document.getElementById('lightboxOverlay');
@@ -637,7 +464,6 @@ document.addEventListener('DOMContentLoaded', () => {
   nextBtn.addEventListener('click', () => showImage((currentIndex + 1) % imgs.length));
 });
 
-// CSRF Token Al (ileride ihtiyaç olursa, existing behaviour korunuyor)
 function getCookie(name) {
     let cookieValue = null;
     if (document.cookie && document.cookie !== "") {
@@ -652,55 +478,6 @@ function getCookie(name) {
     }
     return cookieValue;
 }
-
-// Üretim aşamalarını güncelle (HTMX POST)
-function updateStage(orderId, stage, value, isProductionCount = false) {
-    htmx.ajax('POST', `/order/${orderId}/update_stage/`, {
-        target: '#uretim-paneli',
-        swap: 'outerHTML',
-        values: {
-            stage: stage,
-            value: value,
-            is_production_count: isProductionCount
-        }
-    });
-}
-
-// =========================
-// 🗑 Sipariş Sil → AJAX + Yönlendirme
-// =========================
-document.addEventListener("DOMContentLoaded", function () {
-    const deleteForm = document.querySelector("form[action$='{{ order.id }}/delete/']");
-
-    if (!deleteForm) return;
-
-    deleteForm.addEventListener("submit", function (e) {
-        e.preventDefault();
-
-        if (!confirm("Bu siparişi silmek istediğine emin misin?")) return;
-
-        const formData = new FormData(deleteForm);
-
-        fetch(deleteForm.action, {
-            method: "POST",
-            body: formData,
-            headers: { "X-Requested-With": "XMLHttpRequest" }
-        })
-        .then(r => r.json())
-        .then(data => {
-            if (data.status === "ok") {
-                // ✔ Silindi → Order List sayfasına git
-                window.location.href = "{% url 'order_list' %}";
-            } else {
-                alert("Silme başarısız: " + (data.message || "Hata"));
-            }
-        })
-        .catch(err => {
-            alert("Beklenmeyen bir hata oluştu.");
-            console.error(err);
-        });
-    });
-});
 
 </script>
 {% endblock %}

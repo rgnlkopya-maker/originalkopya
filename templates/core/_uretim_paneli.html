@@ -197,6 +197,16 @@
         background: #d1e0ff;
     }
 
+    /* ✅ EKSİK OLAN CLASS BUYDU */
+    .btn-soft-secondary {
+        background: #eef2ff;
+        color: #4338ca;
+    }
+
+    .btn-soft-secondary:hover {
+        background: #e0e7ff;
+    }
+
     .btn-soft-warning {
         background: #fff7e6;
         color: #b45309;
@@ -313,11 +323,11 @@
                                     <div class="timeline-tags">
                                         {% if e.parca %}🧩 {{ e.parca }}{% endif %}
                                         {% if e.adet %}
-    <span style="display:none;">
-        {% if e.parca %} • {% endif %}
-        🔢 {{ e.adet }} adet
-    </span>
-{% endif %}
+                                            <span style="display:none;">
+                                                {% if e.parca %} • {% endif %}
+                                                🔢 {{ e.adet }} adet
+                                            </span>
+                                        {% endif %}
                                         {% if e.aciklama %} {% if e.parca or e.adet %} • {% endif %}💬 {{ e.aciklama }}{% endif %}
                                         {% if e.ortak_calisanlar %} • 👥 {{ e.ortak_calisanlar }}{% endif %}
                                         {% if e.fasoncu %} • 🏭 {{ e.fasoncu.ad|upper }}{% endif %}
@@ -435,7 +445,7 @@
                         {% for f in fasoncular %}
                             <li>
                                 <a class="dropdown-item" href="#"
-                                   onclick="return fasonIslem('{{ f.id }}', 'dikim_fason_durumu', 'verildi');">
+                                   onclick="return fasonIslem(event, '{{ f.id }}', 'dikim_fason_durumu', 'verildi');">
                                     {{ f.ad }}
                                 </a>
                             </li>
@@ -451,7 +461,7 @@
                         {% for f in fasoncular %}
                             <li>
                                 <a class="dropdown-item" href="#"
-                                   onclick="return fasonIslem('{{ f.id }}', 'dikim_fason_durumu', 'alindi');">
+                                   onclick="return fasonIslem(event, '{{ f.id }}', 'dikim_fason_durumu', 'alindi');">
                                     {{ f.ad }}
                                 </a>
                             </li>
@@ -479,7 +489,7 @@
                         {% for n in nakisciler %}
                             <li>
                                 <a class="dropdown-item" href="#"
-                                   onclick="return fasonIslem('{{ n.id }}', 'nakis_durumu', 'verildi');">
+                                   onclick="return fasonIslem(event, '{{ n.id }}', 'nakis_durumu', 'verildi');">
                                     {{ n.ad }}
                                 </a>
                             </li>
@@ -495,7 +505,7 @@
                         {% for n in nakisciler %}
                             <li>
                                 <a class="dropdown-item" href="#"
-                                   onclick="return fasonIslem('{{ n.id }}', 'nakis_durumu', 'alindi');">
+                                   onclick="return fasonIslem(event, '{{ n.id }}', 'nakis_durumu', 'alindi');">
                                     {{ n.ad }}
                                 </a>
                             </li>
@@ -587,23 +597,54 @@ function kismiIslem(button, stage, value) {
     return false;
 }
 
-function fasonIslem(fasoncuId, stage, value) {
-    if (!fasoncuId) return false;
+/*
+    ✅ KRİTİK DÜZELTME:
+    - Nakış işlemlerinde "nakisci" parametresi gönderilir
+    - Fason işlemlerinde "fasoncu" parametresi gönderilir
+*/
+function fasonIslem(event, secilenId, stage, value) {
+    if (event) event.preventDefault();
+    if (!secilenId) return false;
+
+    const valuesPayload = {
+        stage: stage,
+        value: value
+    };
+
+    // Nakış ise nakisci gönder
+    if (stage === "nakis_durumu") {
+        valuesPayload["nakisci"] = secilenId;
+    } else {
+        valuesPayload["fasoncu"] = secilenId;
+    }
 
     htmx.ajax('GET', "{% url 'update_stage' order.id %}", {
         target: '#uretim-paneli',
         swap: 'innerHTML',
-        values: {
-            stage: stage,
-            value: value,
-            fasoncu: fasoncuId
-        }
+        values: valuesPayload
     });
+
     return false;
 }
 
+/*
+    ✅ HTMX paneli yenileyince dropdown'lar yeniden aktifleşsin
+*/
+function initDropdowns() {
+    if (typeof bootstrap === "undefined") return;
+    document.querySelectorAll('[data-bs-toggle="dropdown"]').forEach(el => {
+        bootstrap.Dropdown.getOrCreateInstance(el);
+    });
+}
+
+document.addEventListener('DOMContentLoaded', initDropdowns);
+
 document.body.addEventListener('htmx:afterSwap', function(evt) {
     if (evt.target.id === 'uretim-paneli') {
+
+        // ✅ dropdown yeniden aktif
+        initDropdowns();
+
         const list = document.getElementById('gecmis-listesi');
         if (list && list.lastElementChild) {
             list.lastElementChild.scrollIntoView({ behavior: 'smooth', block: 'end' });

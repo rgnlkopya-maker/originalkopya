@@ -65,6 +65,8 @@ class ProductCost(models.Model):
     urun_kodu = models.CharField(max_length=100, unique=True)
     maliyet = models.DecimalField(max_digits=12, decimal_places=2)
     para_birimi = models.CharField(max_length=3, choices=CURRENCY_CHOICES, default="TRY")
+    is_active = models.BooleanField(default=True)
+
 
     def __str__(self):
         return f"{self.urun_kodu} - {self.maliyet} {self.para_birimi}"
@@ -196,6 +198,8 @@ class Order(models.Model):
     maliyet_override = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
     ekstra_maliyet = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     last_updated = models.DateTimeField(auto_now=True)
+    is_active = models.BooleanField(default=True, db_index=True)
+
 
 
 
@@ -247,6 +251,23 @@ class Order(models.Model):
         """
         return self.kar_backend
 
+    @property
+    def son_durum(self):
+        """Siparişin genel durumunu (özetini) döner."""
+        if self.sevkiyat_durum == "gonderildi":
+            return "Sevkiyat Tamamlandı ✅"
+        elif self.hazir_durum == "bitti":
+            return "Hazırlık Tamamlandı"
+        elif self.susleme_durum == "bitti":
+            return "Süsleme Tamamlandı"
+        elif self.dikim_durum == "bitti":
+            return "Dikim Tamamlandı"
+        elif self.kesim_durum == "bitti":
+            return "Kesim Tamamlandı"
+        else:
+            return "Bekliyor ⏳"
+
+
 
 
 
@@ -295,29 +316,6 @@ class MesaiKayit(models.Model):
         return f"{self.user.username} - {self.giris_zamani}"
 
 
-    @property
-    def son_durum(self):
-        """Siparişin genel durumunu (özetini) döner."""
-        # Sevkiyat bittiyse en üst öncelikli durum
-        if self.sevkiyat_durum == "gonderildi":
-            return "Sevkiyat Tamamlandı ✅"
-        # Hazır bittiyse
-        elif self.hazir_durum == "bitti":
-            return "Hazırlık Tamamlandı"
-        # Süsleme bittiyse
-        elif self.susleme_durum == "bitti":
-            return "Süsleme Tamamlandı"
-        # Dikim bittiyse
-        elif self.dikim_durum == "bitti":
-            return "Dikim Tamamlandı"
-        # Kesim bittiyse
-        elif self.kesim_durum == "bitti":
-            return "Kesim Tamamlandı"
-        # Hiçbiri bitmemişse
-        else:
-            return "Bekliyor ⏳"
-
-
 class OrderImage(models.Model):
     order = models.ForeignKey('Order', on_delete=models.CASCADE, related_name='extra_images')
     image = models.ImageField(upload_to='temp_uploads/', blank=True, null=True)
@@ -326,10 +324,6 @@ class OrderImage(models.Model):
 
     def save(self, *args, **kwargs):
         super().save(*args, **kwargs)
-
-
-
-
 
 
 # 📜 ÜRETİM GEÇMİŞİ

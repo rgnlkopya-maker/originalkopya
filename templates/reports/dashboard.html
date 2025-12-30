@@ -1,0 +1,719 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block extra_css %}
+<style>
+
+/* GENEL SAYFA */
+body {
+    background: #f5f7fb !important;
+    font-family: Inter, sans-serif;
+}
+
+/* ÜST STICKY BAR */
+.topbar-sticky{
+    position: sticky;
+    top: 0;
+    z-index: 999;
+    background: #f5f7fb;
+    padding: 14px 10px;
+    border-bottom: 1px solid #e5e7eb;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.06);
+}
+
+/* ✅ ÜST BAR BUTONLAR */
+.top-action-btn{
+    font-size: 14px;
+    background: #f3f4ff;
+    padding: 8px 14px;
+    border-radius: 10px;
+    text-decoration: none;
+    color: #3b45d9;
+    font-weight: 700;
+    border: 1px solid #dfe3ff;
+    transition: .15s ease;
+}
+.top-action-btn:hover{
+    background: #e9edff;
+    border-color: #cfd7ff;
+    color: #2f3ad6;
+}
+
+/* Üst bar butonları ortala */
+.top-actions-center{
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+/* Dashboard ana kart */
+.main-card{
+    border-radius: 16px;
+    border: 1px solid #e5e7eb;
+}
+
+/* Dashboard iç kartlar */
+.dashboard-card{
+    border-radius: 16px;
+    border: 1px solid #e5e7eb;
+    padding: 18px 18px;
+    background: white;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+    height: 100%;
+}
+
+/* Başlıklar */
+.section-title {
+    font-size: 18px;
+    font-weight: 800;
+    margin-bottom: 16px;
+    color: #111827;
+}
+
+/* mini badge */
+.badge-soft{
+    background: #eef2ff;
+    border: 1px solid #dbeafe;
+    color: #1f2937;
+    border-radius: 12px;
+    padding: 6px 10px;
+    font-weight: 800;
+    font-size: 13px;
+}
+
+/* modern tablo */
+.table-modern th{
+    font-size: 12px;
+    letter-spacing: .4px;
+    text-transform: uppercase;
+    color: #6b7280;
+    border-bottom: 1px solid #e5e7eb !important;
+    padding: 12px;
+    background: #fbfcff;
+    position: sticky;
+    top: 0;
+    z-index: 2;
+}
+.table-modern td{
+    padding: 12px;
+    border-bottom: 1px solid #f1f5f9 !important;
+    font-size: 14px;
+    color: #111827;
+}
+.table-modern tr:hover{
+    background: #f9fafb;
+}
+
+/* Kart başlığı */
+.card-title-row{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:10px;
+    margin-bottom: 10px;
+}
+
+.card-subtitle{
+    font-size: 12px;
+    color: #6b7280;
+    font-weight: 600;
+    margin-top: -6px;
+}
+
+/* Grafik alanları */
+.chart-box{
+    min-height: 260px;
+}
+.chart-box-small{
+    min-height: 220px;
+}
+
+/* dönem sekmeleri */
+.period-tabs{
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+.period-tab{
+    padding: 7px 12px;
+    background: #f3f4ff;
+    border: 1px solid #dfe3ff;
+    border-radius: 10px;
+    font-weight: 800;
+    font-size: 13px;
+    color: #3b45d9;
+    text-decoration: none;
+    transition: .15s ease;
+}
+.period-tab:hover{
+    background: #e9edff;
+    border-color: #cfd7ff;
+}
+.period-tab.active{
+    background: #3b45d9;
+    border-color: #3b45d9;
+    color: white;
+}
+
+/* empty state */
+.empty-state{
+    text-align: center;
+    color: #6b7280;
+    padding: 30px 10px;
+    border: 1px dashed #e5e7eb;
+    border-radius: 14px;
+    background: #fcfdff;
+    font-weight: 600;
+}
+
+/* tooltip icon */
+.tip{
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+}
+.tip i{
+    font-size: 14px;
+    color: #6b7280;
+    cursor: help;
+}
+
+/* responsive */
+@media(max-width: 992px){
+    .chart-box{ min-height: 240px; }
+    .chart-box-small{ min-height: 220px; }
+}
+
+</style>
+{% endblock %}
+
+
+{% block content %}
+
+<!-- Bootstrap Icons (ikonlar için gerekli) -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
+<!-- ApexCharts -->
+<script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+
+<!-- ✅ STICKY ÜST BAR -->
+<div class="topbar-sticky">
+  <div class="d-flex align-items-center gap-3 flex-wrap">
+    <div class="top-actions-center">
+      <a href="{% url 'sevkiyat_finans_tablosu' %}" class="top-action-btn fw-bold">
+        <i class="bi bi-truck"></i> Sevkiyat Finans Tablosu
+      </a>
+
+      <a href="{% url 'personel_raporu' %}" class="top-action-btn fw-bold">
+        <i class="bi bi-person"></i> Personel Raporu
+      </a>
+
+      <a href="/reports/fasoncu/" class="top-action-btn fw-bold">🧵 Fason</a>
+      <a href="/reports/nakisci/" class="top-action-btn fw-bold">🪡 Nakış</a>
+    </div>
+  </div>
+</div>
+
+<!-- ✅ DASHBOARD -->
+<div class="container-fluid px-2 mt-3">
+  <div class="card shadow p-4 main-card">
+
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+      <h4 class="section-title mb-0">📊 Dashboard</h4>
+
+      <!-- ✅ Dönem Sekmeleri -->
+      <div class="period-tabs">
+        <a href="?period=today" class="period-tab {% if period == 'today' %}active{% endif %}">Bugün</a>
+        <a href="?period=week" class="period-tab {% if period == 'week' or not period %}active{% endif %}">Bu hafta</a>
+        <a href="?period=month" class="period-tab {% if period == 'month' %}active{% endif %}">Bu ay</a>
+      </div>
+    </div>
+
+    <div class="row g-4">
+
+      <!-- ✅ SON 7/30/Bugün ÖZET -->
+      <div class="col-lg-4">
+        <div class="dashboard-card">
+          <div class="card-title-row">
+            <div class="section-title mb-0">
+              <span class="tip">
+                📅 Özet
+                <i class="bi bi-info-circle" title="Seçtiğiniz döneme göre özet veriler"></i>
+              </span>
+            </div>
+            <span class="badge-soft">
+              {% if period == 'today' %}Bugün{% elif period == 'month' %}Son 30 Gün{% else %}Son 7 Gün{% endif %}
+            </span>
+          </div>
+
+          <div class="mt-3">
+            <div class="d-flex justify-content-between py-2 border-bottom">
+              <span>Yeni Sipariş</span>
+              <strong>{{ son7_yeni }}</strong>
+            </div>
+
+            <div class="d-flex justify-content-between py-2 border-bottom">
+              <span>Sevk Edilen</span>
+              <strong>{{ son7_sevk }}</strong>
+            </div>
+
+            <div class="d-flex justify-content-between py-2">
+              <span>Üretimde</span>
+              <strong>{{ son7_uretim }}</strong>
+            </div>
+          </div>
+
+          <div class="card-subtitle mt-3">
+            İpucu: Grafikler seçili döneme göre otomatik güncellenir.
+          </div>
+        </div>
+      </div>
+
+      <!-- ✅ TREND: Sipariş -->
+      <div class="col-lg-8">
+        <div class="dashboard-card">
+          <div class="card-title-row">
+            <div class="section-title mb-0">
+              <span class="tip">
+                📈 Sipariş Trend
+                <i class="bi bi-info-circle" title="Gün gün sipariş adedi"></i>
+              </span>
+            </div>
+            <span class="badge-soft">Line</span>
+          </div>
+          <div id="chartSiparisTrend" class="chart-box"></div>
+          <div id="emptySiparisTrend" class="empty-state d-none">Bu dönem için sipariş verisi yok.</div>
+        </div>
+      </div>
+
+      <!-- ✅ TREND: Sevkiyat -->
+      <div class="col-lg-4">
+        <div class="dashboard-card">
+          <div class="card-title-row">
+            <div class="section-title mb-0">
+              <span class="tip">
+                🚚 Sevkiyat Trend
+                <i class="bi bi-info-circle" title="Gün gün sevk edilen sipariş adedi"></i>
+              </span>
+            </div>
+            <span class="badge-soft">Line</span>
+          </div>
+          <div id="chartSevkiyatTrend" class="chart-box-small"></div>
+          <div id="emptySevkiyatTrend" class="empty-state d-none">Bu dönem için sevkiyat verisi yok.</div>
+        </div>
+      </div>
+
+      <!-- ✅ TREND: Kâr -->
+      <div class="col-lg-8">
+        <div class="dashboard-card">
+          <div class="card-title-row">
+            <div class="section-title mb-0">
+              <span class="tip">
+                💰 Kâr Trend
+                <i class="bi bi-info-circle" title="Toplam kâr trendi (satış - maliyet)"></i>
+              </span>
+            </div>
+            <span class="badge-soft">Area</span>
+          </div>
+          <div id="chartKarTrend" class="chart-box"></div>
+          <div id="emptyKarTrend" class="empty-state d-none">
+            Bu dönem için kâr verisi yok (satış fiyatı / maliyet girilmemiş olabilir).
+          </div>
+        </div>
+      </div>
+
+      <!-- ✅ TOP 10 PERSONEL -->
+      <div class="col-lg-4">
+        <div class="dashboard-card">
+          <div class="card-title-row">
+            <div class="section-title mb-0">
+              <span class="tip">
+                👷 Top 10 Personel
+                <i class="bi bi-info-circle" title="Seçilen dönemde en fazla işlem yapan personeller"></i>
+              </span>
+            </div>
+            <span class="badge-soft">Bar</span>
+          </div>
+          <div id="chartTopPersonel" class="chart-box-small"></div>
+          <div id="emptyTopPersonel" class="empty-state d-none">Bu dönem için personel verisi yok.</div>
+        </div>
+      </div>
+
+      <!-- ✅ STACKED: Personel aşama dağılımı -->
+      <div class="col-lg-8">
+        <div class="dashboard-card">
+          <div class="card-title-row">
+            <div class="section-title mb-0">
+              <span class="tip">
+                🧩 Personel Aşama Dağılımı
+                <i class="bi bi-info-circle" title="Personelin hangi aşamalarda daha aktif olduğunu gösterir"></i>
+              </span>
+            </div>
+            <span class="badge-soft">Stacked</span>
+          </div>
+          <div id="chartStackedPersonel" class="chart-box"></div>
+          <div id="emptyStackedPersonel" class="empty-state d-none">Bu dönem için dağılım verisi yok.</div>
+        </div>
+      </div>
+
+      <!-- ✅ HEATMAP -->
+      <div class="col-lg-12">
+        <div class="dashboard-card">
+          <div class="card-title-row">
+            <div class="section-title mb-0">
+              <span class="tip">
+                🔥 İşlem Yoğunluğu (Heatmap)
+                <i class="bi bi-info-circle" title="Gün / saat bazlı işlem yoğunluğu"></i>
+              </span>
+            </div>
+            <span class="badge-soft">Heatmap</span>
+          </div>
+          <div id="chartHeatmap" class="chart-box"></div>
+          <div id="emptyHeatmap" class="empty-state d-none">Bu dönem için yoğunluk verisi yok.</div>
+        </div>
+      </div>
+
+      <!-- ✅ MÜŞTERİ ANALİTİĞİ: Top 5 Sipariş -->
+      <div class="col-lg-6">
+        <div class="dashboard-card">
+          <div class="card-title-row">
+            <div class="section-title mb-0">
+              <span class="tip">
+                🧍 Top 5 Müşteri (Sipariş)
+                <i class="bi bi-info-circle" title="Seçilen dönemde en çok sipariş veren müşteriler"></i>
+              </span>
+            </div>
+            <span class="badge-soft">Bar</span>
+          </div>
+          <div id="chartMusteriSiparis" class="chart-box-small"></div>
+          <div id="emptyMusteriSiparis" class="empty-state d-none">Bu dönem için müşteri sipariş verisi yok.</div>
+
+          <table class="table table-modern mt-3">
+            <thead>
+              <tr>
+                <th>Müşteri</th>
+                <th class="text-end">Sipariş</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for m in top_musteriler %}
+              <tr>
+                <td>{{ m.musteri__ad }}</td>
+                <td class="text-end"><strong>{{ m.total }}</strong></td>
+              </tr>
+              {% empty %}
+              <tr><td colspan="2" class="text-center text-muted">Veri yok</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+
+        </div>
+      </div>
+
+      <!-- ✅ MÜŞTERİ ANALİTİĞİ: Top 5 Ciro -->
+      <div class="col-lg-6">
+        <div class="dashboard-card">
+          <div class="card-title-row">
+            <div class="section-title mb-0">
+              <span class="tip">
+                💳 Top 5 Müşteri (Ciro)
+                <i class="bi bi-info-circle" title="Seçilen dönemde müşteri bazlı toplam satış"></i>
+              </span>
+            </div>
+            <span class="badge-soft">Bar</span>
+          </div>
+          <div id="chartMusteriCiro" class="chart-box-small"></div>
+          <div id="emptyMusteriCiro" class="empty-state d-none">Bu dönem için ciro verisi yok.</div>
+        </div>
+      </div>
+
+      <!-- ✅ ÜRÜN ANALİTİĞİ: Top 5 adet -->
+      <div class="col-lg-6">
+        <div class="dashboard-card">
+          <div class="card-title-row">
+            <div class="section-title mb-0">
+              <span class="tip">
+                📦 Top Ürün Kodları (Adet)
+                <i class="bi bi-info-circle" title="En çok üretilen/sipariş edilen ürün kodları"></i>
+              </span>
+            </div>
+            <span class="badge-soft">Bar</span>
+          </div>
+          <div id="chartUrunAdet" class="chart-box-small"></div>
+          <div id="emptyUrunAdet" class="empty-state d-none">Bu dönem için ürün verisi yok.</div>
+
+          <table class="table table-modern mt-3">
+            <thead>
+              <tr>
+                <th>Ürün</th>
+                <th class="text-end">Adet</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for u in top_urunler %}
+              <tr>
+                <td>{{ u.urun_kodu }}</td>
+                <td class="text-end"><strong>{{ u.total }}</strong></td>
+              </tr>
+              {% empty %}
+              <tr><td colspan="2" class="text-center text-muted">Veri yok</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+
+        </div>
+      </div>
+
+      <!-- ✅ ÜRÜN ANALİTİĞİ: Top 5 kâr -->
+      <div class="col-lg-6">
+        <div class="dashboard-card">
+          <div class="card-title-row">
+            <div class="section-title mb-0">
+              <span class="tip">
+                💰 Top Ürün Kodları (Kâr)
+                <i class="bi bi-info-circle" title="Ürün kodu bazlı toplam kâr"></i>
+              </span>
+            </div>
+            <span class="badge-soft">Bar</span>
+          </div>
+          <div id="chartUrunKar" class="chart-box-small"></div>
+          <div id="emptyUrunKar" class="empty-state d-none">Bu dönem için ürün kâr verisi yok.</div>
+        </div>
+      </div>
+
+      <!-- ✅ SON 10 SİPARİŞ -->
+      <div class="col-12">
+        <div class="dashboard-card">
+          <div class="card-title-row">
+            <div class="section-title mb-0">🕒 Son Siparişler</div>
+            <span class="badge-soft">Son 10</span>
+          </div>
+
+          <table class="table table-modern mt-3">
+            <thead>
+              <tr>
+                <th>Sipariş No</th>
+                <th>Müşteri</th>
+                <th>Ürün</th>
+                <th>Renk</th>
+                <th>Beden</th>
+                <th class="text-end">Tarih</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for o in last_orders %}
+              <tr>
+                <td>
+                  <a href="{% url 'order_detail' o.id %}" class="fw-bold text-primary">
+                    {{ o.siparis_numarasi }}
+                  </a>
+                </td>
+                <td>{{ o.musteri.ad|default:"-" }}</td>
+                <td>{{ o.urun_kodu|default:"-" }}</td>
+                <td>{{ o.renk|default:"-" }}</td>
+                <td>{{ o.beden|default:"-" }}</td>
+                <td class="text-end">{{ o.siparis_tarihi|date:"d.m.Y" }}</td>
+              </tr>
+              {% empty %}
+              <tr><td colspan="6" class="text-center text-muted">Sipariş yok</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ====================== -->
+<!-- ✅ CHARTS SCRIPT        -->
+<!-- ====================== -->
+<script>
+  // Güvenli JSON parse helper:
+  function safeJson(value, fallback) {
+    try {
+      if (value === undefined || value === null) return fallback;
+      return value;
+    } catch(e) {
+      return fallback;
+    }
+  }
+
+  // Django context’ten gelen JSON verilerini al
+  const siparisLabels = safeJson({{ siparis_trend_labels|default:"[]"|safe }}, []);
+  const siparisValues = safeJson({{ siparis_trend_values|default:"[]"|safe }}, []);
+
+  const sevkiyatLabels = safeJson({{ sevkiyat_trend_labels|default:"[]"|safe }}, []);
+  const sevkiyatValues = safeJson({{ sevkiyat_trend_values|default:"[]"|safe }}, []);
+
+  const karLabels = safeJson({{ kar_trend_labels|default:"[]"|safe }}, []);
+  const karValues = safeJson({{ kar_trend_values|default:"[]"|safe }}, []);
+
+  const topPersonelLabels = safeJson({{ top_personel_labels|default:"[]"|safe }}, []);
+  const topPersonelValues = safeJson({{ top_personel_values|default:"[]"|safe }}, []);
+
+  const stackedLabels = safeJson({{ stack_labels|default:"[]"|safe }}, []);
+  const stackedSeries = safeJson({{ stack_series|default:"[]"|safe }}, []);
+
+  const heatSeries = safeJson({{ heat_series|default:"[]"|safe }}, []);
+
+  const musteriSiparisLabels = safeJson({{ musteri_top_labels|default:"[]"|safe }}, []);
+  const musteriSiparisValues = safeJson({{ musteri_top_values|default:"[]"|safe }}, []);
+
+  const musteriCiroLabels = safeJson({{ musteri_ciro_labels|default:"[]"|safe }}, []);
+  const musteriCiroValues = safeJson({{ musteri_ciro_values|default:"[]"|safe }}, []);
+
+  const urunAdetLabels = safeJson({{ urun_top_labels|default:"[]"|safe }}, []);
+  const urunAdetValues = safeJson({{ urun_top_values|default:"[]"|safe }}, []);
+
+  const urunKarLabels = safeJson({{ urun_kar_labels|default:"[]"|safe }}, []);
+  const urunKarValues = safeJson({{ urun_kar_values|default:"[]"|safe }}, []);
+
+  function showEmpty(chartId, emptyId, condition) {
+    const c = document.getElementById(chartId);
+    const e = document.getElementById(emptyId);
+    if (condition) {
+      c.classList.add("d-none");
+      e.classList.remove("d-none");
+      return true;
+    }
+    c.classList.remove("d-none");
+    e.classList.add("d-none");
+    return false;
+  }
+
+  // Ortak chart ayarları
+  const baseOptions = {
+    chart: { toolbar: { show: false }, zoom: { enabled: false } },
+    grid: { borderColor: "#eef2f7" },
+    dataLabels: { enabled: false },
+    stroke: { curve: "smooth", width: 3 },
+    tooltip: { theme: "light" }
+  };
+
+  // 1) Sipariş Trend
+  if (!showEmpty("chartSiparisTrend", "emptySiparisTrend", !siparisLabels || siparisLabels.length === 0)) {
+    new ApexCharts(document.querySelector("#chartSiparisTrend"), {
+      ...baseOptions,
+      chart: { ...baseOptions.chart, type: "line", height: 260 },
+      series: [{ name: "Sipariş", data: siparisValues }],
+      xaxis: { categories: siparisLabels },
+    }).render();
+  }
+
+  // 2) Sevkiyat Trend
+  if (!showEmpty("chartSevkiyatTrend", "emptySevkiyatTrend", !sevkiyatLabels || sevkiyatLabels.length === 0)) {
+    new ApexCharts(document.querySelector("#chartSevkiyatTrend"), {
+      ...baseOptions,
+      chart: { ...baseOptions.chart, type: "line", height: 220 },
+      series: [{ name: "Sevkiyat", data: sevkiyatValues }],
+      xaxis: { categories: sevkiyatLabels },
+    }).render();
+  }
+
+  // 3) Kâr Trend
+  if (!showEmpty("chartKarTrend", "emptyKarTrend", !karLabels || karLabels.length === 0)) {
+    new ApexCharts(document.querySelector("#chartKarTrend"), {
+      ...baseOptions,
+      chart: { ...baseOptions.chart, type: "area", height: 260 },
+      series: [{ name: "Kâr", data: karValues }],
+      xaxis: { categories: karLabels },
+      fill: { type: "gradient", gradient: { opacityFrom: 0.35, opacityTo: 0.05 } }
+    }).render();
+  }
+
+  // 4) Top 10 Personel
+  if (!showEmpty("chartTopPersonel", "emptyTopPersonel", !topPersonelLabels || topPersonelLabels.length === 0)) {
+    new ApexCharts(document.querySelector("#chartTopPersonel"), {
+      ...baseOptions,
+      chart: { ...baseOptions.chart, type: "bar", height: 220 },
+      series: [{ name: "İşlem", data: topPersonelValues }],
+      xaxis: { categories: topPersonelLabels },
+      plotOptions: { bar: { borderRadius: 8, horizontal: true } }
+    }).render();
+  }
+
+  // 5) Stacked Personel
+  if (!showEmpty("chartStackedPersonel", "emptyStackedPersonel", !stackedLabels || stackedLabels.length === 0)) {
+    new ApexCharts(document.querySelector("#chartStackedPersonel"), {
+      ...baseOptions,
+      chart: { ...baseOptions.chart, type: "bar", stacked: true, height: 260 },
+      series: stackedSeries,
+      xaxis: { categories: stackedLabels },
+      plotOptions: { bar: { borderRadius: 6 } },
+      legend: { position: "top" }
+    }).render();
+  }
+
+  // 6) Heatmap
+  if (!showEmpty("chartHeatmap", "emptyHeatmap", !heatSeries || heatSeries.length === 0)) {
+    new ApexCharts(document.querySelector("#chartHeatmap"), {
+      ...baseOptions,
+      chart: { ...baseOptions.chart, type: "heatmap", height: 260 },
+      series: heatSeries,
+      plotOptions: {
+        heatmap: {
+          radius: 4,
+          shadeIntensity: 0.4,
+          colorScale: {
+            ranges: [
+              { from: 0, to: 0, name: "0", color: "#f3f4f6" }
+            ]
+          }
+        }
+      },
+      xaxis: { type: "category" },
+    }).render();
+  }
+
+  // 7) Top 5 müşteri sipariş (bar)
+  if (!showEmpty("chartMusteriSiparis", "emptyMusteriSiparis", !musteriSiparisLabels || musteriSiparisLabels.length === 0)) {
+    new ApexCharts(document.querySelector("#chartMusteriSiparis"), {
+      ...baseOptions,
+      chart: { ...baseOptions.chart, type: "bar", height: 220 },
+      series: [{ name: "Sipariş", data: musteriSiparisValues }],
+      xaxis: { categories: musteriSiparisLabels },
+      plotOptions: { bar: { borderRadius: 8, horizontal: true } }
+    }).render();
+  }
+
+  // 8) Top 5 müşteri ciro (bar)
+  if (!showEmpty("chartMusteriCiro", "emptyMusteriCiro", !musteriCiroLabels || musteriCiroLabels.length === 0)) {
+    new ApexCharts(document.querySelector("#chartMusteriCiro"), {
+      ...baseOptions,
+      chart: { ...baseOptions.chart, type: "bar", height: 220 },
+      series: [{ name: "Ciro", data: musteriCiroValues }],
+      xaxis: { categories: musteriCiroLabels },
+      plotOptions: { bar: { borderRadius: 8, horizontal: true } }
+    }).render();
+  }
+
+  // 9) Ürün adet (bar)
+  if (!showEmpty("chartUrunAdet", "emptyUrunAdet", !urunAdetLabels || urunAdetLabels.length === 0)) {
+    new ApexCharts(document.querySelector("#chartUrunAdet"), {
+      ...baseOptions,
+      chart: { ...baseOptions.chart, type: "bar", height: 220 },
+      series: [{ name: "Adet", data: urunAdetValues }],
+      xaxis: { categories: urunAdetLabels },
+      plotOptions: { bar: { borderRadius: 8, horizontal: true } }
+    }).render();
+  }
+
+  // 10) Ürün kâr (bar)
+  if (!showEmpty("chartUrunKar", "emptyUrunKar", !urunKarLabels || urunKarLabels.length === 0)) {
+    new ApexCharts(document.querySelector("#chartUrunKar"), {
+      ...baseOptions,
+      chart: { ...baseOptions.chart, type: "bar", height: 220 },
+      series: [{ name: "Kâr", data: urunKarValues }],
+      xaxis: { categories: urunKarLabels },
+      plotOptions: { bar: { borderRadius: 8, horizontal: true } }
+    }).render();
+  }
+
+</script>
+
+{% endblock %}

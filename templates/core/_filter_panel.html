@@ -29,11 +29,12 @@
     background: rgba(15,23,42,0.25);
     backdrop-filter: blur(4px);
     z-index: 9990;
-    display: none;
+    opacity: 0;
+    pointer-events: none;
+    transition: all 0.22s ease;
 }
 
 .filter-backdrop.show {
-    display: block;
     opacity: 1;
     pointer-events: auto;
 }
@@ -115,48 +116,55 @@
 <div id="filterPanel" class="filter-panel hidden">
     <div class="filter-header">
         <h3>Gelişmiş Filtreleme</h3>
-        <button id="closeFilter" class="close-btn">×</button>
+        <button id="closeFilter" class="close-btn" type="button">×</button>
     </div>
 
     <div class="filter-body">
 
+        <label class="filter-label">Aktiflik</label>
+        <select id="f_active" name="active" class="filter-select" multiple>
+            <option value="1">Aktif Siparişler</option>
+            <option value="0">Pasif Siparişler</option>
+            <option value="all">Tümü</option>
+        </select>
+
         <label class="filter-label">Sipariş No</label>
-        <select id="f_siparis_no" class="filter-select" multiple>
+        <select id="f_siparis_no" name="siparis_no" class="filter-select" multiple>
             {% for s in siparis_options %}
                 <option value="{{ s }}">{{ s }}</option>
             {% endfor %}
         </select>
 
         <label class="filter-label">Müşteri</label>
-        <select id="f_musteri" class="filter-select" multiple>
+        <select id="f_musteri" name="musteri" class="filter-select" multiple>
             {% for m in musteri_options %}
                 <option value="{{ m }}">{{ m }}</option>
             {% endfor %}
         </select>
 
         <label class="filter-label">Ürün Kodu</label>
-        <select id="f_urun" class="filter-select" multiple>
+        <select id="f_urun" name="urun_kodu" class="filter-select" multiple>
             {% for u in urun_options %}
                 <option value="{{ u }}">{{ u }}</option>
             {% endfor %}
         </select>
 
         <label class="filter-label">Renk</label>
-        <select id="f_renk" class="filter-select" multiple>
+        <select id="f_renk" name="renk" class="filter-select" multiple>
             {% for r in renk_options %}
                 <option value="{{ r }}">{{ r }}</option>
             {% endfor %}
         </select>
 
         <label class="filter-label">Beden</label>
-        <select id="f_beden" class="filter-select" multiple>
+        <select id="f_beden" name="beden" class="filter-select" multiple>
             {% for b in beden_options %}
                 <option value="{{ b }}">{{ b }}</option>
             {% endfor %}
         </select>
 
         <label class="filter-label">Son Durum</label>
-        <select id="f_status" class="filter-select" multiple>
+        <select id="f_status" name="status" class="filter-select" multiple>
             {% for s in status_options %}
                 <option value="{{ s }}">{{ s }}</option>
             {% endfor %}
@@ -165,6 +173,6 @@
     </div>
 
     <div class="filter-footer">
-        <button id="applyFilter" class="apply-btn">Filtreleri Uygula</button>
+        <button id="applyFilter" class="apply-btn" type="button">Filtreleri Uygula</button>
     </div>
 </div>

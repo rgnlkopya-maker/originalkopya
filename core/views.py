@@ -4,6 +4,37 @@ import json
 import requests
 from datetime import datetime, timedelta
 from core.utils.qr import ensure_order_qr
+from django.http import JsonResponse
+from django.views.decorators.http import require_POST
+from django.contrib.auth.decorators import login_required
+from django.shortcuts import get_object_or_404
+from .models import Order
+from django.contrib.auth.decorators import login_required
+from django.http import HttpResponseForbidden
+from django.utils import timezone
+from django.db.models import Count, Q
+from datetime import timedelta
+from django.http import HttpResponseForbidden
+from django.db.models import OuterRef, Subquery
+from django.db.models import Count, Q
+from django.db.models.functions import Coalesce
+from django.utils import timezone
+from django.template.loader import render_to_string
+from django.http import HttpResponse
+from django.contrib.auth.decorators import login_required
+from core.models import Order, OrderEvent
+from datetime import timedelta
+from django.db.models import F, DecimalField, ExpressionWrapper
+from django.db.models.functions import Coalesce
+from decimal import Decimal
+from django.db.models import DateTimeField
+from decimal import Decimal
+from django.db.models import DecimalField, Value
+
+DEC = DecimalField(max_digits=12, decimal_places=2)
+ZERO = Value(Decimal("0.00"), output_field=DEC)
+
+
 
 # ========================
 # 📌 MODELLER (TÜMÜ TEK PARÇA)
@@ -210,7 +241,7 @@ def order_list(request):
     ("susleme_fason_durumu", "alindi"): "Fason Süslemeden Alındı",
 
     # --- Sevkiyat & Depo ---
-    ("sevkiyat_durum", "gonderildi"): "Gönderildi",
+    ("sevkiyat_durum", "gonderildi"): "Sevkedildi",
     ("sevkiyat_durum", "depoya"): "Depoya Girdi",
 }
 
@@ -245,11 +276,36 @@ def order_list(request):
         .annotate(
             latest_stage=Subquery(latest_event.values("stage")),
             latest_value=Subquery(latest_event.values("value")),
+            last_status_date=Subquery(latest_event.values("timestamp"), output_field=DateTimeField()),
         )
         .order_by("-id")
     )
 
-   # -----------------------------------------
+
+    qs_for_counts = qs  # <-- aktif/pasif/sevkedilen sayıları için referans queryset
+
+    # -----------------------------------------
+    # 📌 4.1) AKTİF / PASİF (GÖRÜNÜRLÜK) FİLTRESİ
+    # -----------------------------------------
+    active_values = request.GET.getlist("active")
+
+    # Eğer hiçbir şey seçilmediyse varsayılan: aktifleri göster
+    if not active_values:
+        active_values = ["1"]
+
+    # all seçildiyse veya hem 1 hem 0 seçildiyse -> filtre yok
+    if "all" in active_values or ("1" in active_values and "0" in active_values):
+        pass
+    elif "1" in active_values:
+        qs = qs.filter(is_active=True)
+    elif "0" in active_values:
+        qs = qs.filter(is_active=False)
+
+
+
+
+
+    # -----------------------------------------
     # 📌 5) FİLTRELER (DOĞRU HALİ)
     # -----------------------------------------
     siparis_nolar = request.GET.getlist("siparis_no")
@@ -304,6 +360,18 @@ def order_list(request):
         qs = qs.filter(teslim_tarihi__gte=teslim_baslangic)
     elif teslim_bitis:
         qs = qs.filter(teslim_tarihi__lte=teslim_bitis)
+
+    # ✅ Aktif / Pasif / Sevkedilen sayılarını hesapla
+    aktif_count = qs_for_counts.filter(is_active=True).count()
+    pasif_count = qs_for_counts.filter(is_active=False).count()
+
+    # ✅ Sevkedilen = SADECE aktif + sevkiyat gönderildi olanlar
+    sevke_count = qs_for_counts.filter(
+        is_active=True,
+        latest_stage="sevkiyat_durum",
+        latest_value="gonderildi"
+    ).count()
+
 
     # 📊 Filtrelenmiş sipariş adedi
     filtered_count = qs.count()
@@ -390,6 +458,9 @@ def order_list(request):
         "siparis_tipi_options": Order.objects.values_list("siparis_tipi", flat=True).distinct().order_by("siparis_tipi"),
         "total_count": total_count,
         "filtered_count": filtered_count,
+        "aktif_count": aktif_count,
+        "pasif_count": pasif_count,
+        "sevke_count": sevke_count,
         "is_manager": is_manager,
         "request": request, 
     }
@@ -400,15 +471,6 @@ def order_list(request):
     response["Expires"] = "0"
 
     return response   # ⚠️ Fonksiyonun tam sonu
-
-
-
-
-
-
-
-
-
 
 
 @login_required
@@ -568,13 +630,6 @@ def custom_login(request):
             user_groups = list(user.groups.values_list("name", flat=True))
             next_url = request.GET.get("next", "/")
 
-            if next_url and next_url not in ["/", "/management/"]:
-                return redirect(next_url)
-
-            if any(role in user_groups for role in ["patron", "mudur"]):
-                return redirect("/management/")
-            else:
-                return redirect("/")
         else:
             return render(request, "registration/custom_login.html", {"error": True})
 
@@ -1110,81 +1165,6 @@ from decimal import Decimal
 from django.db.models import F, Sum, DecimalField, ExpressionWrapper
 from django.db.models.functions import Coalesce
 
-@login_required
-@never_cache
-def fast_profit_report(request):
-
-    # 🛡️ Yetki kontrolü
-    if not request.user.groups.filter(name__in=["patron", "mudur"]).exists():
-        return HttpResponseForbidden("Bu sayfaya erişim yetkiniz yok.")
-
-    musteri = request.GET.get("musteri", "").strip()
-    tarih1 = request.GET.get("t1")
-    tarih2 = request.GET.get("t2")
-
-    orders = (
-        Order.objects
-        .select_related("musteri")
-        .filter(sevkiyat_durum="gonderildi")
-        .order_by("-id")
-    )
-
-    # ---- Filtreler ----
-    if musteri:
-        orders = orders.filter(musteri__ad__icontains=musteri)
-
-    if tarih1 and tarih2:
-        orders = orders.filter(siparis_tarihi__range=[tarih1, tarih2])
-    elif tarih1:
-        orders = orders.filter(siparis_tarihi__gte=tarih1)
-    elif tarih2:
-        orders = orders.filter(siparis_tarihi__lte=tarih2)
-
-    # ----------------------------------------------------
-    # 🛠️ TİP GÜVENLİ MALİYET HESABI
-    # ----------------------------------------------------
-    DEC = DecimalField(max_digits=12, decimal_places=2)
-    ZERO = Decimal("0.00")
-
-    maliyet_expr = ExpressionWrapper(
-        Coalesce(F("maliyet_override"), ZERO, output_field=DEC)
-        + Coalesce(F("maliyet_uygulanan"), ZERO, output_field=DEC)
-        + Coalesce(F("ekstra_maliyet"), ZERO, output_field=DEC),
-        output_field=DEC,
-    )
-
-    # ----------------------------------------------------
-    # ⚡ TOPLAM HESAPLAMA
-    # ----------------------------------------------------
-    agg = orders.aggregate(
-        toplam_ciro=Coalesce(Sum("satis_fiyati", output_field=DEC), ZERO, output_field=DEC),
-        toplam_maliyet=Coalesce(Sum(maliyet_expr, output_field=DEC), ZERO, output_field=DEC),
-    )
-
-    toplam_ciro = agg["toplam_ciro"]
-    toplam_maliyet = agg["toplam_maliyet"]
-    toplam_kar = toplam_ciro - toplam_maliyet
-
-    # ---- Sayfalama ----
-    paginator = Paginator(orders, 20)
-    page_obj = paginator.get_page(request.GET.get("page"))
-
-    context = {
-        "page_obj": page_obj,
-        "toplam_ciro": toplam_ciro,
-        "toplam_maliyet": toplam_maliyet,
-        "toplam_kar": toplam_kar,
-        "musteri": musteri or "",
-    }
-
-    response = render(request, "reports/fast_profit_report.html", context)
-    response["Cache-Control"] = "no-cache, no-store, must-revalidate"
-    response["Pragma"] = "no-cache"
-    response["Expires"] = "0"
-    return response
-
-
-
 
 # 🧾 ÜRÜN MALİYET LİSTESİ YÖNETİMİ
 @login_required
@@ -1199,7 +1179,7 @@ def product_cost_list(request):
 
         # ➕ Yeni kayıt ekle veya güncelle
         if action == "add":
-            urun_kodu = request.POST.get("urun_kodu", "").strip()
+            urun_kodu = request.POST.get("urun_kodu", "").strip().upper()
             maliyet = request.POST.get("maliyet", "").strip()
             para_birimi = request.POST.get("para_birimi", "TRY")
 
@@ -1220,43 +1200,8 @@ def product_cost_list(request):
     page_number = request.GET.get("page")
     page_obj = paginator.get_page(page_number)
 
-    return render(request, "costs/product_cost_list.html", {"costs": page_obj})
+    return render(request, "core/product_cost_list.html", {"costs": page_obj})
 
-# 🧭 Yönetim Paneli
-@login_required
-def management_panel(request):
-    # Kullanıcı rolünü kontrol et (sadece patron veya müdür erişebilir)
-    user_groups = list(request.user.groups.values_list("name", flat=True))
-    user_is_manager = any(role in user_groups for role in ["patron", "mudur"])
-
-    # Eğer kullanıcı müdür veya patron değilse, order_list sayfasına yönlendir
-    if not user_is_manager:
-        return redirect("order_list")
-
-    # 📅 Bugünün tarihini al
-    today = timezone.now().date()
-
-    # 🔹 Bugün yapılan işlemleri grupla (personel bazlı)
-    events_today = (
-        OrderEvent.objects.filter(timestamp__date=today)
-        .values("user")
-        .annotate(total=Count("id"), last_time=Max("timestamp"))
-        .order_by("-total")
-    )
-
-    # 🔹 Kullanıcı görev bilgilerini al
-    user_profiles = {p.user.username: p.gorev for p in UserProfile.objects.all()}
-
-    # 🔹 Yetki durumunu şablona gönder
-    context = {
-        "events_today": events_today,
-        "user_profiles": user_profiles,
-        "today": today,
-        "user_is_manager": user_is_manager,  # <-- burası yeni eklendi
-    }
-
-    # Yönetim paneli sayfasını göster
-    return render(request, "management_panel.html", context)
 
 
 # 📊 RAPORLAR ANA SAYFASI (Raporlara Git →)
@@ -1861,7 +1806,10 @@ def order_multi_create(request):
 
         # ---- GENEL ALANLAR ----
         urun_kodu = request.POST.get("urun_kodu")
+        urun_kodu = (urun_kodu or "").strip().upper()
         musteri_id = request.POST.get("musteri")
+        print("URUN KODU:", urun_kodu)
+        print("VAR MI:", ProductCost.objects.filter(urun_kodu__iexact=urun_kodu).exists())
         siparis_tipi = request.POST.get("siparis_tipi") or None
         teslim_tarihi = request.POST.get("teslim_tarihi") or None
         aciklama = request.POST.get("aciklama")
@@ -1872,22 +1820,38 @@ def order_multi_create(request):
         from decimal import Decimal
 
         def to_decimal(value):
-            if not value:
-                return Decimal("0")
+            if value in [None, "", "None"]:
+                return None
             try:
                 return Decimal(str(value))
             except:
-                return Decimal("0")
+                return None
 
+
+
+        from decimal import Decimal
 
         # ---- FİYAT & MALİYET (Tüm siparişler için ortak) ----
-        satis_fiyati = to_decimal(request.POST.get("satis_fiyati"))
-        maliyet_uygulanan = to_decimal(request.POST.get("maliyet_uygulanan"))
-        maliyet_override = to_decimal(request.POST.get("maliyet_override"))
-        ekstra_maliyet = to_decimal(request.POST.get("ekstra_maliyet"))
+        satis_fiyati = to_decimal(request.POST.get("satis_fiyati")) or Decimal("0")
+        maliyet_uygulanan = to_decimal(request.POST.get("maliyet_uygulanan")) or Decimal("0")
+        maliyet_override = to_decimal(request.POST.get("maliyet_override"))  # boşsa None kalsın
+        ekstra_maliyet = to_decimal(request.POST.get("ekstra_maliyet")) or Decimal("0")
 
-        para_birimi = request.POST.get("para_birimi") or None
-        maliyet_para_birimi = request.POST.get("maliyet_para_birimi") or None
+        para_birimi = request.POST.get("para_birimi") or "TRY"
+        maliyet_para_birimi = request.POST.get("maliyet_para_birimi") or "TRY"
+
+        # ✅ Eğer maliyet boşsa ProductCost tablosundan otomatik çek
+        if maliyet_uygulanan == 0 and urun_kodu:
+            pc = ProductCost.objects.filter(urun_kodu__iexact=urun_kodu).first()
+
+            if pc:
+                maliyet_uygulanan = pc.maliyet or Decimal("0")
+                maliyet_para_birimi = pc.para_birimi or "TRY"
+            else:
+                maliyet_uygulanan = Decimal("0")
+
+
+
 
 
 
@@ -2197,6 +2161,684 @@ def normalize(v):
 
 @login_required
 def order_print(request):
+    ids = request.GET.get("ids")
+    orders = Order.objects.filter(id__in=ids.split(",")) if ids else []
+    return render(request, "core/order_print.html", {"orders": orders})
+
+@login_required
+def order_label_print(request):
     ids = request.GET.getlist("ids")
     orders = Order.objects.filter(id__in=ids)
-    return render(request, "core/order_print.html", {"orders": orders})
+    return render(request, "orders/order_label_print.html", {"orders": orders})
+
+@login_required
+@require_POST
+def order_toggle_active(request, pk):
+    order = get_object_or_404(Order, pk=pk)
+    order.is_active = not order.is_active
+    order.save()
+
+    return JsonResponse({
+        "success": True,
+        "is_active": order.is_active
+    })
+
+from collections import Counter, defaultdict
+from decimal import Decimal
+import json
+from datetime import timedelta, datetime
+from django.utils import timezone
+from django.http import HttpResponseForbidden
+from django.contrib.auth.decorators import login_required
+from django.db.models import Count, Sum, F, Value, CharField, DecimalField, ExpressionWrapper
+from django.db.models.functions import Coalesce
+from django.db.models import Case, When
+
+from .models import Order, OrderEvent
+
+
+@login_required
+def dashboard_view(request):
+
+    # ✅ Yetki kontrolü (patron/müdür)
+    if not request.user.groups.filter(name__in=["patron", "mudur"]).exists():
+        return HttpResponseForbidden("Bu sayfaya erişim yetkiniz yok.")
+
+    # =========================================================
+    # 1) PERIOD (Bugün / Hafta / Ay)
+    # =========================================================
+    period = request.GET.get("period", "week")
+
+    today = timezone.now().date()
+
+    if period == "today":
+        start_date = today
+    elif period == "month":
+        start_date = today - timedelta(days=30)
+    else:
+        start_date = today - timedelta(days=7)
+
+    # =========================================================
+    # 2) GENEL SAYILAR (mevcut)
+    # =========================================================
+    toplam_siparis = Order.objects.count()
+    aktif_siparis = Order.objects.filter(is_active=True).count()
+    sevk_edilen = Order.objects.filter(sevkiyat_durum="gonderildi").count()
+    bekleyen = Order.objects.filter(sevkiyat_durum__in=["bekliyor", "hazirlaniyor"]).count()
+
+    # =========================================================
+    # 3) ÖZET (Seçilen period’e göre)
+    # =========================================================
+    son7_yeni = Order.objects.filter(siparis_tarihi__gte=start_date).count()
+
+    son7_sevk = Order.objects.filter(
+        sevkiyat_durum="gonderildi",
+        siparis_tarihi__gte=start_date
+    ).count()
+
+    son7_uretim = (
+        Order.objects
+        .filter(is_active=True, siparis_tarihi__gte=start_date)
+        .exclude(sevkiyat_durum="gonderildi")
+        .count()
+    )
+
+    # =========================================================
+    # 4) TOP MÜŞTERİLER / ÜRÜNLER
+    # =========================================================
+    top_musteriler = (
+        Order.objects
+        .filter(siparis_tarihi__gte=start_date, is_active=True)
+        .exclude(musteri__isnull=True)
+        .values("musteri__ad")
+        .annotate(total=Count("id"))
+        .order_by("-total")[:5]
+    )
+
+    top_urunler = (
+        Order.objects
+        .filter(siparis_tarihi__gte=start_date, is_active=True)
+        .exclude(urun_kodu__isnull=True)
+        .exclude(urun_kodu__exact="")
+        .values("urun_kodu")
+        .annotate(total=Count("id"))
+        .order_by("-total")[:5]
+    )
+
+    last_orders = (
+        Order.objects
+        .select_related("musteri")
+        .only("id", "siparis_numarasi", "siparis_tarihi", "urun_kodu", "renk", "beden", "musteri__ad")
+        .order_by("-id")[:10]
+    )
+
+    # =========================================================
+    # 5) TREND GRAFİKLERİ (SQLite-safe)
+    # =========================================================
+
+    # 5.1 Sipariş Trend (Gün Gün)  ✅ DateField ise __date KULLANMA
+    siparis_dates = (
+        Order.objects
+        .filter(siparis_tarihi__gte=start_date, is_active=True)  # ✅ düzeltildi
+        .values_list("siparis_tarihi", flat=True)
+    )
+
+    siparis_counts = Counter()
+    for dt in siparis_dates:
+        if not dt:
+            continue
+        # siparis_tarihi DateField ise dt zaten date'dir
+        d = dt.date() if hasattr(dt, "date") else dt
+        siparis_counts[d] += 1
+
+    siparis_trend_labels = []
+    siparis_trend_values = []
+
+    d = start_date
+    while d <= today:
+        siparis_trend_labels.append(d.strftime("%d.%m"))
+        siparis_trend_values.append(int(siparis_counts.get(d, 0)))
+        d += timedelta(days=1)
+
+    # ---------------------------------------------------------
+    # 5.2 Sevkiyat Trend (Gün Gün) ✅ Python ile gruplama
+    # ---------------------------------------------------------
+    sevk_counts = Counter()
+
+    # 1) Order.sevkiyat_tarihi dolu olanlar
+    sevkiyat_dates = (
+        Order.objects
+        .filter(
+            is_active=True,
+            sevkiyat_durum="gonderildi",
+            sevkiyat_tarihi__isnull=False,
+            sevkiyat_tarihi__date__gte=start_date
+        )
+        .values_list("sevkiyat_tarihi", flat=True)
+    )
+
+    for dt in sevkiyat_dates:
+        if not dt:
+            continue
+        d = dt.date() if hasattr(dt, "date") else dt
+        sevk_counts[d] += 1
+
+    # 2) sevkiyat_tarihi boş kalanlar için OrderEvent'ten türet
+    sevk_event_dates = (
+        OrderEvent.objects
+        .filter(stage="sevkiyat_durum", value="gonderildi", timestamp__date__gte=start_date)
+        .values_list("timestamp", flat=True)
+    )
+
+    for ts in sevk_event_dates:
+        if not ts:
+            continue
+        try:
+            ts_local = timezone.localtime(ts)
+        except Exception:
+            ts_local = ts
+        d = ts_local.date()
+        sevk_counts[d] += 1
+
+    sevkiyat_trend_labels = []
+    sevkiyat_trend_values = []
+    d = start_date
+    while d <= today:
+        sevkiyat_trend_labels.append(d.strftime("%d.%m"))
+        sevkiyat_trend_values.append(int(sevk_counts.get(d, 0)))
+        d += timedelta(days=1)
+
+    # 5.3 Kâr Trend ✅ DateField ise __date KULLANMA
+    kar_rows = (
+        Order.objects
+        .filter(siparis_tarihi__gte=start_date, is_active=True)  # ✅ düzeltildi
+        .values_list("siparis_tarihi", "satis_fiyati", "maliyet_uygulanan", "ekstra_maliyet")
+    )
+
+    kar_map = Counter()
+
+    for dt, satis, maliyet, ekstra in kar_rows:
+        if not dt:
+            continue
+
+        d = dt.date() if hasattr(dt, "date") else dt
+
+        satis = satis or 0
+        maliyet = maliyet or 0
+        ekstra = ekstra or 0
+
+        kar_map[d] += float(satis - (maliyet + ekstra))
+
+    kar_trend_labels = []
+    kar_trend_values = []
+
+    d = start_date
+    while d <= today:
+        kar_trend_labels.append(d.strftime("%d.%m"))
+        kar_trend_values.append(float(kar_map.get(d, 0)))
+        d += timedelta(days=1)
+
+    # =========================================================
+    # 6) PERSONEL PERFORMANSI (OrderEvent)
+    # =========================================================
+
+    # 6.1 Top 10 personel
+    top_personel_qs = (
+        OrderEvent.objects
+        .filter(timestamp__date__gte=start_date, event_type="stage")
+        .values("user")
+        .annotate(cnt=Count("id"))
+        .order_by("-cnt")[:10]
+    )
+    top_personel_labels = [x["user"] for x in top_personel_qs]
+    top_personel_values = [x["cnt"] for x in top_personel_qs]
+
+    # 6.2 Stacked bar (personel -> aşama)
+    stage_label = Case(
+        When(stage="kesim_durum", then=Value("Kesim")),
+        When(stage="dikim_durum", then=Value("Dikim")),
+        When(stage="susleme_durum", then=Value("Süsleme")),
+        When(stage="hazir_durum", then=Value("Hazır")),
+        When(stage="sevkiyat_durum", then=Value("Sevkiyat")),
+        default=Value("Diğer"),
+        output_field=CharField()
+    )
+
+    stack_qs = (
+        OrderEvent.objects
+        .filter(timestamp__date__gte=start_date, event_type="stage")
+        .annotate(stage_group=stage_label)
+        .values("user", "stage_group")
+        .annotate(cnt=Count("id"))
+    )
+
+    stack_users = sorted(set([x["user"] for x in stack_qs]))
+    stack_groups = ["Kesim", "Dikim", "Süsleme", "Hazır", "Sevkiyat", "Diğer"]
+
+    stack_series = []
+    for g in stack_groups:
+        data = []
+        for u in stack_users:
+            val = next((x["cnt"] for x in stack_qs if x["user"] == u and x["stage_group"] == g), 0)
+            data.append(val)
+        stack_series.append({"name": g, "data": data})
+
+    stack_labels = stack_users
+
+    # ---------------------------------------------------------
+    # 6.3 Heatmap (Gün / Saat) ✅ Python ile gruplama
+    # ---------------------------------------------------------
+    heat_events = (
+        OrderEvent.objects
+        .filter(timestamp__date__gte=start_date, event_type="stage")
+        .values_list("timestamp", flat=True)
+    )
+
+    heat_map = defaultdict(lambda: defaultdict(int))  # day_str -> hour_str -> count
+    for ts in heat_events:
+        if not ts:
+            continue
+        try:
+            ts_local = timezone.localtime(ts)
+        except Exception:
+            ts_local = ts
+
+        day_str = ts_local.date().strftime("%d.%m")
+        hour_str = f"{ts_local.hour:02d}:00"
+        heat_map[day_str][hour_str] += 1
+
+    heat_series = []
+    # day_str sıralama: day_str formatı dd.mm olduğu için safe sıralama yapıyoruz
+    def safe_sort_key(day_str):
+        # yıl bilgisi yok, ama aynı period içindeyiz. Yine de bug riskini azaltmak için:
+        return (int(day_str.split(".")[1]), int(day_str.split(".")[0]))
+
+    for day_str in sorted(heat_map.keys(), key=safe_sort_key):
+        data = []
+        for h in range(24):
+            hh = f"{h:02d}:00"
+            data.append({"x": hh, "y": heat_map[day_str].get(hh, 0)})
+        heat_series.append({"name": day_str, "data": data})
+
+    # =========================================================
+    # 7) MÜŞTERİ ANALİTİĞİ
+    # =========================================================
+    musteri_top_qs = (
+        Order.objects
+        .filter(siparis_tarihi__gte=start_date, is_active=True, musteri__isnull=False)
+        .values("musteri__ad")
+        .annotate(cnt=Count("id"))
+        .order_by("-cnt")[:5]
+    )
+    musteri_top_labels = [x["musteri__ad"] for x in musteri_top_qs]
+    musteri_top_values = [x["cnt"] for x in musteri_top_qs]
+
+    musteri_ciro_qs = (
+        Order.objects
+        .filter(siparis_tarihi__gte=start_date, is_active=True, musteri__isnull=False)
+        .values("musteri__ad")
+        .annotate(
+            ciro=Sum(
+                Coalesce(F("satis_fiyati"), ZERO, output_field=DEC),
+                output_field=DEC
+            )
+        )
+        .order_by("-ciro")[:5]
+    )
+
+    musteri_ciro_labels = [x["musteri__ad"] for x in musteri_ciro_qs]
+    musteri_ciro_values = [float(x["ciro"] or 0) for x in musteri_ciro_qs]
+
+    # =========================================================
+    # 8) ÜRÜN ANALİTİĞİ
+    # =========================================================
+    urun_top_qs = (
+        Order.objects
+        .filter(siparis_tarihi__gte=start_date, is_active=True)
+        .exclude(urun_kodu__isnull=True)
+        .exclude(urun_kodu__exact="")
+        .values("urun_kodu")
+        .annotate(cnt=Count("id"))
+        .order_by("-cnt")[:5]
+    )
+    urun_top_labels = [x["urun_kodu"] or "-" for x in urun_top_qs]
+    urun_top_values = [x["cnt"] for x in urun_top_qs]
+
+    # kar_expr sadece ürün kâr analitiğinde DB üzerinden hesaplanıyor (SQLite burada problem çıkarmaz)
+
+    kar_expr = ExpressionWrapper(
+        Coalesce(F("satis_fiyati"), ZERO)
+        - (Coalesce(F("maliyet_uygulanan"), ZERO) + Coalesce(F("ekstra_maliyet"), ZERO)),
+        output_field=DEC
+    )
+
+
+
+    urun_kar_qs = (
+        Order.objects
+        .filter(siparis_tarihi__gte=start_date, is_active=True)
+        .exclude(urun_kodu__isnull=True)
+        .exclude(urun_kodu__exact="")
+        .values("urun_kodu")
+        .annotate(total_kar=Sum(kar_expr, output_field=DEC))
+        .order_by("-total_kar")[:5]
+    )
+    urun_kar_labels = [x["urun_kodu"] or "-" for x in urun_kar_qs]
+    urun_kar_values = [float(x["total_kar"] or 0) for x in urun_kar_qs]
+
+    # =========================================================
+    # 9) CONTEXT (template için tüm JSON’lar)
+    # =========================================================
+    context = {
+        "period": period,
+
+        "toplam_siparis": toplam_siparis,
+        "aktif_siparis": aktif_siparis,
+        "sevk_edilen": sevk_edilen,
+        "bekleyen": bekleyen,
+
+        "son7_yeni": son7_yeni,
+        "son7_sevk": son7_sevk,
+        "son7_uretim": son7_uretim,
+
+        "top_musteriler": top_musteriler,
+        "top_urunler": top_urunler,
+        "last_orders": last_orders,
+
+        "siparis_trend_labels": json.dumps(siparis_trend_labels),
+        "siparis_trend_values": json.dumps(siparis_trend_values),
+
+        "sevkiyat_trend_labels": json.dumps(sevkiyat_trend_labels),
+        "sevkiyat_trend_values": json.dumps(sevkiyat_trend_values),
+
+        "kar_trend_labels": json.dumps(kar_trend_labels),
+        "kar_trend_values": json.dumps(kar_trend_values),
+
+        "top_personel_labels": json.dumps(top_personel_labels),
+        "top_personel_values": json.dumps(top_personel_values),
+
+        "stack_labels": json.dumps(stack_labels),
+        "stack_series": json.dumps(stack_series),
+
+        "heat_series": json.dumps(heat_series),
+
+        "musteri_top_labels": json.dumps(musteri_top_labels),
+        "musteri_top_values": json.dumps(musteri_top_values),
+
+        "musteri_ciro_labels": json.dumps(musteri_ciro_labels),
+        "musteri_ciro_values": json.dumps(musteri_ciro_values),
+
+        "urun_top_labels": json.dumps(urun_top_labels),
+        "urun_top_values": json.dumps(urun_top_values),
+
+        "urun_kar_labels": json.dumps(urun_kar_labels),
+        "urun_kar_values": json.dumps(urun_kar_values),
+    }
+
+    return render(request, "reports/dashboard.html", context)
+
+
+
+
+
+
+from django.contrib.auth.decorators import login_required
+from django.views.decorators.cache import never_cache
+from django.http import HttpResponseForbidden
+from django.shortcuts import render
+from django.db.models import OuterRef, Subquery, F, DecimalField, ExpressionWrapper, DateTimeField
+from django.db.models.functions import Coalesce
+from decimal import Decimal
+from datetime import datetime
+
+from core.models import Order, OrderEvent
+
+
+@login_required
+@never_cache
+def sevkiyat_finans_tablosu(request):
+    # ✅ Yetki kontrolü (patron/müdür)
+    if not request.user.groups.filter(name__in=["patron", "mudur"]).exists():
+        return HttpResponseForbidden("Bu sayfaya erişim yetkiniz yok.")
+
+    # ✅ Finans stage'leri son durum event’ini bozmasın
+    finance_stages = [
+        "satis_fiyati",
+        "ekstra_maliyet",
+        "maliyet_override",
+        "maliyet_uygulanan",
+    ]
+
+    # ✅ Her sipariş için en son event’i bul (finans eventlerini hariç tutarak)
+    latest_event = (
+        OrderEvent.objects
+        .filter(order=OuterRef("pk"))
+        .exclude(event_type="order_update")
+        .exclude(stage__in=finance_stages)
+        .order_by("-id")[:1]
+    )
+
+    # ✅ Order queryset
+    qs = (
+        Order.objects
+        .select_related("musteri")
+        .annotate(
+            latest_stage=Subquery(latest_event.values("stage")),
+            latest_value=Subquery(latest_event.values("value")),
+            last_status_date=Subquery(
+                latest_event.values("timestamp"),
+                output_field=DateTimeField()
+            ),
+        )
+        .filter(is_active=True)
+        .filter(latest_stage="sevkiyat_durum", latest_value="gonderildi")
+        .order_by("-id")
+    )
+
+    # ✅ Tarih filtresi (GET ile)
+    start = request.GET.get("start")
+    end = request.GET.get("end")
+
+    if start:
+        qs = qs.filter(last_status_date__date__gte=start)
+    if end:
+        qs = qs.filter(last_status_date__date__lte=end)
+
+    # ✅ maliyet hesabı
+    DEC = DecimalField(max_digits=12, decimal_places=2)
+    ZERO = Decimal("0.00")
+
+    toplam_maliyet_expr = ExpressionWrapper(
+        Coalesce(F("maliyet_override"), ZERO, output_field=DEC)
+        + Coalesce(F("maliyet_uygulanan"), ZERO, output_field=DEC)
+        + Coalesce(F("ekstra_maliyet"), ZERO, output_field=DEC),
+        output_field=DEC
+    )
+
+    qs = qs.annotate(
+        toplam_maliyet_calc=toplam_maliyet_expr,
+        kar_calc=ExpressionWrapper(
+            Coalesce(F("satis_fiyati"), ZERO, output_field=DEC) - toplam_maliyet_expr,
+            output_field=DEC
+        )
+    )
+
+    # ✅ toplamlar
+    total_ciro = sum([o.satis_fiyati or Decimal("0.00") for o in qs])
+    total_maliyet = sum([o.toplam_maliyet_calc or Decimal("0.00") for o in qs])
+    total_kar = total_ciro - total_maliyet
+
+    kar_yuzde = Decimal("0.00")
+    if total_ciro > 0:
+        kar_yuzde = (total_kar / total_ciro) * 100
+
+    context = {
+        "orders": qs,
+        "total_ciro": total_ciro,
+        "total_maliyet": total_maliyet,
+        "total_kar": total_kar,
+        "kar_yuzde": kar_yuzde,
+        "start": start,
+        "end": end,
+    }
+
+    return render(request, "reports/sevkiyat_finans_tablosu.html", context)
+
+from django.contrib.auth.decorators import login_required, user_passes_test
+from django.shortcuts import render
+from django.utils import timezone
+from datetime import datetime, timedelta
+from django.contrib.auth.models import User
+from core.models import OrderEvent  # senin model yolu neyse ona göre düzenle
+
+
+def is_manager(user):
+    return user.groups.filter(name__in=["patron", "mudur"]).exists()
+
+
+@login_required
+@user_passes_test(is_manager)
+def personel_raporu(request):
+    """
+    Personel + tarih filtresiyle:
+    hangi siparişte hangi üretim butonlarına basılmış raporu
+    """
+
+    # Filtreler
+    selected_user = request.GET.get("user", "")
+    start_date = request.GET.get("start_date", "")
+    end_date = request.GET.get("end_date", "")
+
+    # Varsayılan tarih: son 7 gün
+    today = timezone.now().date()
+    default_start = today - timedelta(days=7)
+
+    if not start_date:
+        start_date = default_start.strftime("%Y-%m-%d")
+    if not end_date:
+        end_date = today.strftime("%Y-%m-%d")
+
+    # Tarihleri datetime'a çevir
+    start_dt = datetime.strptime(start_date, "%Y-%m-%d")
+    end_dt = datetime.strptime(end_date, "%Y-%m-%d") + timedelta(days=1)
+
+    # Query
+    qs = OrderEvent.objects.filter(
+        event_type="stage",
+        timestamp__gte=start_dt,
+        timestamp__lt=end_dt,
+    ).select_related("order").order_by("-timestamp")
+
+    if selected_user:
+        qs = qs.filter(user=selected_user)
+
+    # Personel listesi (order_event.user üzerinden) ya da direkt User tablosu
+    # Eğer event.user = username ise User listesini böyle çekmek daha doğru:
+    users = User.objects.filter(is_active=True).order_by("username")
+
+    # Stage/value çeviri fonksiyonu
+    def format_action(e):
+        stage = e.stage
+        value = e.value
+
+        ACTION_MAP = {
+            "kesim_durum": {
+                "basladi": "KesimBaşladı",
+                "kismi_bitti": "Kısmi Keim yapıldı",
+                "bitti": "Kesildi",
+            },
+            "dikim_durum": {
+                "sıraya_alındı": "Dikim Sırasına Alındı",
+                "basladi": "Dikime Başladı",
+                "kismi_bitti": "Kısmi Dikim Bitti",
+                "bitti": "Dikildi",
+            },
+            "susleme_durum": {
+                "sıraya_alındı": "Süsleme Sırasına Alındı",
+                "basladi": "Süslemeye Başladı",
+                "kismi_bitti": "Kısmi Süslendi",
+                "bitti": "Süslendi",
+            },
+            "dikim_fason_durumu": {
+                "verildi": "Fason Dikime Verildi",
+                "alindi": "Fason Dkimden Alındı",
+            },
+            "susleme_fason_durumu": {
+                "verildi": "Fason Süslemeye Verildi",
+                "alindi": "Fason Süslemeden Alındı",
+            },
+            "nakis_durumu": {
+                "verildi": "Nakışa Verildi",
+                "alindi": "Nakıştan Alındı",
+            },
+            "sevkiyat_durum": {
+                "gonderildi": "Sevk Edildi",
+            },
+        }
+
+        return ACTION_MAP.get(stage, {}).get(value, f"{stage} → {value}")
+
+
+    # Listeyi template’te kolay göstermek için hazırla
+    raporlar = []
+    for e in qs:
+        raporlar.append({
+            "order_id": e.order.id,
+            "siparis_no": e.order.siparis_numarasi,
+            "musteri": e.order.musteri.ad if e.order.musteri else "-",
+            "urun_kodu": e.order.urun_kodu or "-",
+            "renk": e.order.renk or "-",
+            "beden": e.order.beden or "-",
+            "siparis_aciklama": e.order.aciklama or "-",
+            "personel": e.user,
+            "action": format_action(e),
+            "islem_aciklama": e.aciklama or "-",
+            "timestamp": e.timestamp,
+        })
+
+    return render(request, "reports/personel_raporu.html", {
+        "users": users,
+        "raporlar": raporlar,
+        "selected_user": selected_user,
+        "start_date": start_date,
+        "end_date": end_date,
+    })
+
+from django.contrib.auth.decorators import login_required
+from django.http import HttpResponse, HttpResponseForbidden
+from django.shortcuts import render
+from django.template.loader import render_to_string
+from django.db.models import OuterRef, Subquery
+
+from .models import Order, OrderEvent
+
+@login_required
+def live_shipped_orders(request):
+    # ✅ Yetki kontrolü (patron/müdür)
+    if not request.user.groups.filter(name__in=["patron", "mudur"]).exists():
+        return HttpResponseForbidden("Bu sayfaya erişim yetkiniz yok.")
+
+    # ✅ Sevkiyat_durum eventinin en güncel kaydı
+    latest_sevk_event = (
+        OrderEvent.objects
+        .filter(order=OuterRef("pk"), stage="sevkiyat_durum")
+        .order_by("-timestamp")
+    )
+
+    # ✅ orderlara annotate
+    orders = (
+        Order.objects.select_related("musteri")
+        .annotate(
+            sevk_value=Subquery(latest_sevk_event.values("value")[:1]),
+            sevk_time=Subquery(latest_sevk_event.values("timestamp")[:1]),
+        )
+        .filter(sevk_value="gonderildi")  # ✅ sadece sevkedildi olanlar
+        .order_by("-sevk_time")
+    )
+
+    # ✅ Eğer HTMX çağırdıysa sadece tablo döndür
+    if request.headers.get("HX-Request"):
+        html = render_to_string("reports/_live_shipped_table.html", {"orders": orders})
+        return HttpResponse(html)
+
+    return render(request, "reports/live_shipped_orders.html", {"orders": orders})

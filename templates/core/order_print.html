@@ -12,7 +12,6 @@
             color: #000;
         }
 
-        /* === A4 SAYFA === */
         .page {
             width: 210mm;
             height: 297mm;
@@ -55,7 +54,6 @@
             height: auto;
         }
 
-        /* === EK GÖRSEL SAYFASI === */
         .image-page {
             width: 210mm;
             height: 297mm;
@@ -90,9 +88,6 @@
 
 {% for order in orders %}
 
-<!-- ========================= -->
-<!-- 1️⃣ SİPARİŞ BİLGİ SAYFASI -->
-<!-- ========================= -->
 <div class="page">
 
     <h1>Sipariş Bilgileri</h1>
@@ -101,7 +96,7 @@
 
         <div class="info">
             <div><span class="label">Sipariş Tipi:</span> {{ order.siparis_tipi|default:"—" }}</div>
-            <div><span class="label">Müşteri:</span> {{ order.musteri.ad|default:"—" }}</div>
+            <div><span class="label">Müşteri:</span> {{ order.musteri|default:"—" }}</div>
             <div><span class="label">Ürün Kodu:</span> {{ order.urun_kodu }}</div>
             <div><span class="label">Müşteri Sipariş Referansı:</span> {{ order.musteri_referans|default:"—" }}</div>
             <div><span class="label">Renk:</span> {{ order.renk }}</div>
@@ -117,7 +112,7 @@
             </div>
             <div><span class="label">Açıklama:</span> {{ order.aciklama|default:"—" }}</div>
 
-            {% if order.orderimage_set.exists %}
+            {% if order.extra_images.exists %}
                 <div style="margin-top:20px; font-weight:bold;">
                     Ek sipariş görselleri vardır.
                 </div>
@@ -133,13 +128,10 @@
     </div>
 </div>
 
-<!-- ========================= -->
-<!-- 2️⃣ EK GÖRSELLER (HER BİRİ AYRI A4) -->
-<!-- ========================= -->
-{% for img in order.orderimage_set.all %}
-    {% if img.image %}
+{% for img in order.extra_images.all %}
+    {% if img.image_url %}
     <div class="image-page">
-        <img src="{{ img.image.url }}">
+        <img src="{{ img.image_url }}">
     </div>
     {% endif %}
 {% endfor %}

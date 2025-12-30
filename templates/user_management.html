@@ -1,135 +1,374 @@
 {% extends "base.html" %}
-{% load static %}
 {% load dict_extras %}
 
+{% block extra_css %}
+<style>
+
+/* === Sayfa Ana Container === */
+.page-wrap{
+  padding: 18px 8px;
+}
+
+/* === HEADER (Sipariş liste ile birebir) === */
+.modern-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #ffffffee;
+    backdrop-filter: blur(12px);
+    border-radius: 14px;
+    padding: 14px 20px;
+    margin: 18px 0 22px;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.06);
+}
+
+.back-btn {
+    font-size: 14px;
+    background: #f3f4ff;
+    padding: 8px 16px;
+    border-radius: 10px;
+    text-decoration: none;
+    color: #3b45d9;
+    font-weight: 700;
+    border: 1px solid #dfe3ff;
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+}
+
+.header-center { display: flex; gap: 12px; align-items:center; }
+
+.stat-badge {
+    background: linear-gradient(to bottom right, #eef1ff, #dce2ff);
+    padding: 8px 16px;
+    border-radius: 10px;
+    font-weight: 700;
+    color: #2c2f48;
+    display:flex;
+    align-items:center;
+    gap:8px;
+}
+
+.search-area { display: flex; gap: 10px; align-items:center; }
+.search-box {
+    height: 42px;
+    width: 260px;
+    padding: 0 14px;
+    border-radius: 22px;
+    border: 1px solid #e6e9f2;
+    outline:none;
+}
+
+/* === Kartlar === */
+.card-modern {
+    background: #ffffffee;
+    border-radius: 14px;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.06);
+    border: 1px solid #edf0fa;
+    overflow:hidden;
+    margin-bottom: 18px;
+}
+
+.card-modern .card-head {
+    padding: 14px 18px;
+    font-weight: 800;
+    color: #2c2f48;
+    background: #f7f8ff;
+    border-bottom: 1px solid #edf0fa;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+}
+
+.card-modern .card-body {
+    padding: 18px;
+}
+
+/* === Form input premium === */
+.form-control, .form-select {
+    height: 44px;
+    border-radius: 12px;
+    border: 1px solid #e6e9f2;
+    box-shadow: none !important;
+}
+
+.btn-soft-primary{
+    background: linear-gradient(to bottom right, #eef1ff, #dce2ff);
+    border: 1px solid #dfe3ff;
+    color: #2c2f48;
+    font-weight: 800;
+    border-radius: 12px;
+    height: 44px;
+    padding: 0 18px;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    transition:.2s ease;
+}
+.btn-soft-primary:hover{
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px rgba(0,0,0,0.08);
+}
+
+.btn-soft-success{
+    background: linear-gradient(to bottom right, #ecfff2, #d9ffe6);
+    border: 1px solid #bfffd4;
+    color: #0f5132;
+    font-weight: 900;
+    border-radius: 12px;
+    height: 44px;
+    padding: 0 18px;
+    transition:.2s ease;
+}
+.btn-soft-success:hover{
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px rgba(0,0,0,0.08);
+}
+
+.btn-soft-danger{
+    background: linear-gradient(to bottom right, #fff5f5, #ffe2e2);
+    border: 1px solid #ffd1d1;
+    color:#d53333;
+    font-weight: 900;
+    border-radius: 12px;
+    height: 40px;
+    padding: 0 14px;
+    transition:.2s ease;
+}
+.btn-soft-danger:hover{
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px rgba(0,0,0,0.08);
+}
+
+.btn-soft-warning{
+    background: linear-gradient(to bottom right, #fffbe6, #fff1b8);
+    border: 1px solid #ffe58f;
+    color:#664d03;
+    font-weight: 900;
+    border-radius: 12px;
+    height: 40px;
+    padding: 0 14px;
+    transition:.2s ease;
+}
+.btn-soft-warning:hover{
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px rgba(0,0,0,0.08);
+}
+
+/* === Tablo modern (sipariş listesiyle aynı hissiyat) === */
+.table-modern {
+    width: 100%;
+    border-collapse: separate !important;
+    border-spacing: 0 10px !important;
+}
+
+.table-modern thead th {
+    background: #f5f7fb;
+    color: #6b7280;
+    font-size: 12px;
+    font-weight: 800;
+    text-transform: uppercase;
+    padding: 14px 18px;
+    border: none !important;
+    text-align: left !important;
+}
+
+.table-modern tbody tr {
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+    transition: all .15s ease;
+}
+
+.table-modern tbody tr:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(0,0,0,0.1);
+}
+
+.table-modern tbody td {
+    padding: 16px 18px;
+    font-size: 14px;
+    border: none !important;
+    vertical-align: middle;
+}
+
+.table-modern tbody tr td:first-child {
+    border-top-left-radius: 12px;
+    border-bottom-left-radius: 12px;
+}
+.table-modern tbody tr td:last-child {
+    border-top-right-radius: 12px;
+    border-bottom-right-radius: 12px;
+}
+
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="container mt-4">
+<div class="container-fluid page-wrap">
 
-    <a href="/management/" class="btn btn-outline-primary btn-sm mb-3">← Geri Dön</a>
+    <!-- HEADER -->
+    <div class="modern-header">
+        <div class="header-center">
+            <div class="stat-badge">👥 Kullanıcılar: {{ users|length }}</div>
+        </div>
 
-    <h2 class="mb-4">👥 Kullanıcı Yönetimi</h2>
+        <div class="search-area">
+            <input type="text" id="userSearch" class="search-box" placeholder="Kullanıcı ara…">
+        </div>
+    </div>
 
     {% if messages %}
-    <div class="mb-3">
+      <div class="mb-3">
         {% for message in messages %}
-            <div class="alert alert-{{ message.tags }}">
-                {{ message }}
-            </div>
+          <div class="alert alert-{{ message.tags }} mb-2">{{ message }}</div>
         {% endfor %}
-    </div>
+      </div>
     {% endif %}
 
-    <!-- ➕ Yeni Kullanıcı Ekle -->
-    <div class="card mb-4">
-        <div class="card-header bg-primary text-white">Yeni Kullanıcı Ekle</div>
-        <div class="card-body">
-            <form method="post" action="{% url 'user_management' %}">
-                {% csrf_token %}
-                <input type="hidden" name="action" value="create_user">
-                <div class="row g-2">
-                    <div class="col-md-3">
-                        <input type="text" name="username" placeholder="Kullanıcı adı" class="form-control" required>
-                    </div>
-                    <div class="col-md-3">
-                        <input type="password" name="password" placeholder="Şifre" class="form-control" required>
-                    </div>
-                    <div class="col-md-2">
-                        <select name="role" class="form-control" required>
-                            <option value="">Rol Seçin</option>
-                            <option value="personel">Personel</option>
-                            <option value="mudur">Müdür</option>
-                            <option value="patron">Patron</option>
-                        </select>
-                    </div>
-                    <div class="col-md-2">
-                        <select name="gorev" class="form-control">
-                            <option value="yok">Görev: Yok</option>
-                            <option value="kesim">Kesim</option>
-                            <option value="dikim">Dikim</option>
-                            <option value="susleme">Süsleme</option>
-                            <option value="hazir">Hazır</option>
-                            <option value="sevkiyat">Sevkiyat</option>
-                            <option value="nakis">Nakış</option>
-                        </select>
-                    </div>
-                    <div class="col-md-2">
-                        <button type="submit" class="btn btn-success w-100">Ekle</button>
-                    </div>
+    <!-- YENİ KULLANICI EKLE -->
+    <div class="card-modern">
+      <div class="card-head">
+        <span>➕ Yeni Kullanıcı Ekle</span>
+      </div>
+
+      <div class="card-body">
+        <form method="post" action="{% url 'user_management' %}">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="create_user">
+
+          <div class="row g-2">
+            <div class="col-md-3">
+              <input type="text" name="username" placeholder="Kullanıcı adı" class="form-control" required>
+            </div>
+            <div class="col-md-3">
+              <input type="password" name="password" placeholder="Şifre" class="form-control" required>
+            </div>
+            <div class="col-md-2">
+              <select name="role" class="form-select" required>
+                <option value="">Rol Seçin</option>
+                <option value="personel">Personel</option>
+                <option value="mudur">Müdür</option>
+                <option value="patron">Patron</option>
+              </select>
+            </div>
+            <div class="col-md-2">
+              <select name="gorev" class="form-select">
+                <option value="yok">Görev: Yok</option>
+                <option value="kesim">Kesim</option>
+                <option value="dikim">Dikim</option>
+                <option value="susleme">Süsleme</option>
+                <option value="hazir">Hazır</option>
+                <option value="sevkiyat">Sevkiyat</option>
+                <option value="nakis">Nakış</option>
+              </select>
+            </div>
+            <div class="col-md-2">
+              <button type="submit" class="btn-soft-success w-100">Ekle</button>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- KULLANICI LİSTESİ -->
+    <div class="card-modern">
+      <div class="card-head">
+        <span>📋 Kullanıcılar</span>
+      </div>
+
+      <div class="card-body table-responsive">
+        <table class="table-modern" id="userTable">
+          <thead>
+            <tr>
+              <th style="width:60px;">#</th>
+              <th>Kullanıcı Adı</th>
+              <th>Rol</th>
+              <th>Görev</th>
+              <th style="width:420px;">İşlemler</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for u in users %}
+            <tr>
+              <td>{{ forloop.counter }}</td>
+              <td style="font-weight:900; color:#0f172a;">{{ u.username }}</td>
+              <td>
+                {% with u.groups.first as group %}
+                  {{ group.name|default:"-" }}
+                {% endwith %}
+              </td>
+              <td>
+                <form method="post" action="{% url 'user_management' %}" class="d-flex gap-2 align-items-center">
+                  {% csrf_token %}
+                  <input type="hidden" name="action" value="update_gorev">
+                  <input type="hidden" name="user_id" value="{{ u.id }}">
+
+                  <select name="gorev" class="form-select" style="width:180px; height:40px;">
+                    {% with profiles|get_item:u.id as prof %}
+                      {% with prof.gorev as current %}
+                        {% for val,label in GOREVLER %}
+                          <option value="{{ val }}" {% if current == val %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                      {% endwith %}
+                    {% endwith %}
+                  </select>
+
+                  <button type="submit" class="btn-soft-primary" style="height:40px;">Kaydet</button>
+                </form>
+              </td>
+              <td>
+                <div class="d-flex gap-2 flex-wrap">
+
+                  <!-- Şifre Sıfırlama -->
+                  <form method="post" action="{% url 'user_management' %}" class="d-flex gap-2 align-items-center">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="reset_password">
+                    <input type="hidden" name="user_id" value="{{ u.id }}">
+                    <input type="password" name="new_password" placeholder="Yeni şifre"
+                      class="form-control" style="width:160px; height:40px;" required>
+                    <button type="submit" class="btn-soft-warning">Sıfırla</button>
+                  </form>
+
+                  <!-- Silme -->
+                  <form method="post" action="{% url 'user_management' %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="delete_user">
+                    <input type="hidden" name="user_id" value="{{ u.id }}">
+                    <button type="submit" class="btn-soft-danger"
+                      onclick="return confirm('{{ u.username }} kullanıcısını silmek istediğinize emin misiniz?')">
+                      Sil
+                    </button>
+                  </form>
+
                 </div>
-            </form>
-        </div>
+              </td>
+            </tr>
+            {% empty %}
+            <tr>
+              <td colspan="5" class="text-center text-muted">Henüz kullanıcı yok.</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
     </div>
 
-    <!-- 📋 Kullanıcı Listesi -->
-    <div class="card">
-        <div class="card-header bg-dark text-white">Kullanıcılar</div>
-        <div class="card-body table-responsive">
-            <table class="table table-striped align-middle">
-                <thead>
-                    <tr>
-                        <th>#</th>
-                        <th>Kullanıcı Adı</th>
-                        <th>Rol</th>
-                        <th>Görev</th>
-                        <th>İşlemler</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for user in users %}
-                    <tr>
-                        <td>{{ forloop.counter }}</td>
-                        <td>{{ user.username }}</td>
-                        <td>
-                            {% with user.groups.first as group %}
-                                {{ group.name|default:"-" }}
-                            {% endwith %}
-                        </td>
-                        <td>
-                            <form method="post" action="{% url 'user_management' %}" class="d-flex gap-2 align-items-center">
-                                {% csrf_token %}
-                                <input type="hidden" name="action" value="update_gorev">
-                                <input type="hidden" name="user_id" value="{{ user.id }}">
-                                <select name="gorev" class="form-select form-select-sm" style="width:auto;">
-                                    {% with profiles|get_item:user.id as prof %}
-                                        {% with prof.gorev as current %}
-                                            {% for val,label in GOREVLER %}
-                                                <option value="{{ val }}" {% if current == val %}selected{% endif %}>{{ label }}</option>
-                                            {% endfor %}
-                                        {% endwith %}
-                                    {% endwith %}
-                                </select>
-                                <button type="submit" class="btn btn-sm btn-outline-primary">Kaydet</button>
-                            </form>
-                        </td>
-                        <td>
-                            <!-- 🔑 Şifre Sıfırlama -->
-                            <form method="post" action="{% url 'user_management' %}" class="d-inline-block me-2">
-                                {% csrf_token %}
-                                <input type="hidden" name="action" value="reset_password">
-                                <input type="hidden" name="user_id" value="{{ user.id }}">
-                                <input type="password" name="new_password" placeholder="Yeni şifre" class="form-control d-inline-block w-auto" required>
-                                <button type="submit" class="btn btn-warning btn-sm">Sıfırla</button>
-                            </form>
-
-                            <!-- 🗑️ Silme -->
-                            <form method="post" action="{% url 'user_management' %}" class="d-inline-block">
-                                {% csrf_token %}
-                                <input type="hidden" name="action" value="delete_user">
-                                <input type="hidden" name="user_id" value="{{ user.id }}">
-                                <button type="submit" class="btn btn-danger btn-sm"
-                                    onclick="return confirm('{{ user.username }} kullanıcısını silmek istediğinize emin misiniz?')">
-                                    Sil
-                                </button>
-                            </form>
-                        </td>
-                    </tr>
-                    {% empty %}
-                    <tr><td colspan="5" class="text-center text-muted">Henüz kullanıcı yok.</td></tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-    </div>
 </div>
+{% endblock %}
 
+{% block extra_js %}
+<script>
+document.addEventListener("DOMContentLoaded", function(){
+  const input = document.getElementById("userSearch");
+  if(!input) return;
+
+  input.addEventListener("keyup", function(){
+    const v = this.value.toLowerCase();
+    document.querySelectorAll("#userTable tbody tr").forEach(row=>{
+      row.style.display = row.innerText.toLowerCase().includes(v) ? "" : "none";
+    });
+  });
+});
+</script>
 {% endblock %}

@@ -5,6 +5,7 @@
 {% block extra_css %}
 <style>
 
+/* --- BUTONLAR --- */
 .filter-clear-btn {
     width: 42px;
     height: 42px;
@@ -16,25 +17,15 @@
     justify-content: center;
     cursor: pointer;
 }
+.filter-clear-btn i { font-size: 20px; color: #ff4b4b; }
+.filter-clear-btn:hover { background: #fff1f1; border-color: #ffcaca; }
 
-.filter-clear-btn i {
-    font-size: 20px;
-    color: #ff4b4b;
-}
-
-.filter-clear-btn:hover {
-    background: #fff1f1;
-    border-color: #ffcaca;
-}
-
-/* --- MODERN SAA S / FIGMA TARZI TABLO --- */
-
+/* --- TABLO --- */
 .table-modern {
     width: 100%;
     border-collapse: separate !important;
-    border-spacing: 0 10px !important; /* Satırlar arasında boşluk */
+    border-spacing: 0 10px !important;
 }
-
 .table-modern thead th {
     background: #f5f7fb;
     color: #6b7280;
@@ -42,30 +33,25 @@
     font-weight: 600;
     text-transform: uppercase;
     padding: 14px 18px;
-    padding-left: 22px !important; 
+    padding-left: 22px !important;
     border: none !important;
     text-align: left !important;
 }
-
 .table-modern tbody tr {
     background: #fff;
     border-radius: 12px;
     box-shadow: 0 2px 6px rgba(0,0,0,0.05);
     transition: all .15s ease;
 }
-
 .table-modern tbody tr:hover {
     transform: translateY(-2px);
     box-shadow: 0 6px 16px rgba(0,0,0,0.1);
 }
-
 .table-modern tbody td {
     padding: 16px 18px;
     font-size: 14px;
     border: none !important;
 }
-
-/* Yuvarlatılmış kart efekti */
 .table-modern tbody tr td:first-child {
     border-top-left-radius: 12px;
     border-bottom-left-radius: 12px;
@@ -75,49 +61,7 @@
     border-bottom-right-radius: 12px;
 }
 
-/* Modern Badge (durum renkleri) */
-.status-badge {
-    padding: 4px 10px;
-    border-radius: 20px;
-    font-size: 12px;
-    font-weight: 600;
-    display: inline-block;
-}
-
-.status-badge {
-    padding: 6px 12px;
-    border-radius: 8px;
-    font-size: 13px;
-    font-weight: 600;
-    display: inline-block;
-    white-space: nowrap;
-}
-
-.status-green { background: #d1fae5; color: #065f46; }
-.status-blue  { background: #dbeafe; color: #1e40af; }
-.status-yellow{ background: #fef3c7; color: #b45309; }
-.status-gray  { background: #e5e7eb; color: #374151; }
-
-
-.status-ok { background: #d1fae5; color: #065f46; }
-.status-warn { background: #fef3c7; color: #b45309; }
-.status-info { background: #dbeafe; color: #1e40af; }
-
-/* Yazdır butonu modern */
-.btn-modern {
-    padding: 6px 14px;
-    background: #eef1ff;
-    border-radius: 8px;
-    border: none;
-    color: #3949ff;
-    transition: .15s;
-}
-.btn-modern:hover {
-    background: #dce2ff;
-    transform: translateY(-1px);
-}
-
-
+/* --- HEADER --- */
 .modern-header {
     display: flex;
     justify-content: space-between;
@@ -129,7 +73,6 @@
     margin: 22px 0;
     box-shadow: 0 4px 14px rgba(0,0,0,0.06);
 }
-
 .back-btn {
     font-size: 14px;
     background: #f3f4ff;
@@ -140,9 +83,7 @@
     font-weight: 600;
     border: 1px solid #dfe3ff;
 }
-
 .header-center { display: flex; gap: 12px; }
-
 .stat-badge {
     background: linear-gradient(to bottom right, #eef1ff, #dce2ff);
     padding: 8px 16px;
@@ -150,9 +91,7 @@
     font-weight: 600;
     color: #2c2f48;
 }
-
 .search-area { display: flex; gap: 10px; }
-
 .search-box {
     height: 42px;
     width: 240px;
@@ -160,7 +99,6 @@
     border-radius: 22px;
     border: 1px solid #e6e9f2;
 }
-
 .filter-btn {
     width: 42px;
     height: 42px;
@@ -173,7 +111,7 @@
 }
 .filter-btn i { font-size: 20px; color: #395bff; }
 
-/* QR Fix */
+/* QR */
 .qr-box {
     width: 50px;
     height: 50px;
@@ -185,8 +123,7 @@
     object-fit: contain;
 }
 
-/* === SELECTİON BAR MODERN TASARIM === */
-
+/* ACTION BAR */
 .action-bar {
     position: fixed;
     bottom: 20px;
@@ -203,27 +140,14 @@
     justify-content: space-between;
     align-items: center;
     z-index: 9999999;
-    pointer-events: auto;
-    opacity: 1;
     transition: .25s ease;
 }
-
 .action-bar.hidden {
     opacity: 0;
     pointer-events: none;
     bottom: 0;
 }
-
-.action-left {
-    font-size: 15px;
-    font-weight: 500;
-}
-
-.action-buttons {
-    display: flex;
-    gap: 12px;
-}
-
+.action-buttons { display: flex; gap: 12px; }
 .action-btn {
     background: #fff;
     color: #1e2030;
@@ -234,41 +158,19 @@
     font-weight: 500;
     transition: 0.2s;
 }
+.action-btn:hover { background: #e9e9e9; }
+#btnMakePassive, #btnMakeActive { display: none; }
+.delete-btn { background: #ff4b4b; color: #fff; }
+.delete-btn:hover { background: #d63d3d; }
 
-.action-btn:hover {
-    background: #e9e9e9;
-}
-
-.delete-btn {
-    background: #ff4b4b;
-    color: #fff;
-}
-
-.delete-btn:hover {
-    background: #d63d3d;
-}
-
-/* === BACKDROP TIKLAMA BLOKE ETMESİN === */
-#filterBackdrop.hidden{
-  pointer-events: none !important;
-  opacity: 0 !important;
-  visibility: hidden !important;
-}
-
-#filterBackdrop.show{
-  pointer-events: auto !important;
-  opacity: 1 !important;
-  visibility: visible !important;
-}
-
-/* Action bar her durumda tıklanabilir olsun */
-.action-bar{
-  pointer-events: auto !important;
+/* ✅ Highlight */
+tr.selected-row {
+    background: #f3f6ff !important;
+    box-shadow: 0 0 0 2px rgba(74, 99, 255, 0.35);
 }
 
 </style>
 {% endblock %}
-
 
 
 {% block content %}
@@ -277,17 +179,18 @@
     <!-- HEADER -->
     <div class="modern-header">
 
-        <a href="/management/" class="back-btn">← Geri Dön</a>
-
         <div class="header-center">
             <div class="stat-badge">📦 Toplam: {{ total_count }}</div>
+            <div class="stat-badge">✅ Aktif: {{ aktif_count }}</div>
+            <div class="stat-badge">🚫 Pasif: {{ pasif_count }}</div>
+            <div class="stat-badge">🚚 Sevkedilen: {{ sevke_count }}</div>
             <div class="stat-badge">🎯 Filtrelenmiş: {{ filtered_count }}</div>
         </div>
 
         <div class="search-area">
             <input type="text" id="searchInput" class="search-box" placeholder="Siparişlerde ara…">
 
-            <button class="filter-btn" title="Gelişmiş Filtre">
+            <button class="filter-btn" title="Gelişmiş Filtre" type="button">
                 <i class="bi bi-sliders"></i>
             </button>
 
@@ -295,57 +198,47 @@
                 <i class="bi bi-x-circle"></i>
             </button>
         </div>
-
-
     </div>
 
     {% include "core/_filter_panel.html" %}
 
     <!-- TABLE -->
     <div class="table-responsive shadow-sm rounded">
-
         <table class="table-modern" id="orderTable">
-
-    <thead>
-        <tr>
-            <th style="width:40px;"><input type="checkbox" id="selectAll"></th>
-            <th>Sipariş No</th>
-            <th>Müşteri</th>
-            <th>Ürün Kodu</th>
-            <th>Müşteri Ref</th>
-            <th>Adet</th>
-            <th>Renk</th>
-            <th>Beden</th>
-            <th>Açıklama</th>
-            <th>Teslim Tarihi</th>
-            <th>Son Durum</th>
-            <th>QR Kod</th>
-        </tr>
-    </thead>
-
+            <thead>
+                <tr>
+                    <th style="width:40px;"></th>
+                    <th>Sipariş No</th>
+                    <th>Müşteri</th>
+                    <th>Ürün Kodu</th>
+                    <th>Müşteri Ref</th>
+                    <th>Adet</th>
+                    <th>Renk</th>
+                    <th>Beden</th>
+                    <th>Açıklama</th>
+                    <th>Teslim Tarihi</th>
+                    <th>Son Durum</th>
+                    <th>Son Durum Tarihi</th>
+                    <th>QR Kod</th>
+                </tr>
+            </thead>
 
             <tbody>
             {% for order in orders %}
                 <tr>
-                    <td><input type="checkbox"
-         class="row-checkbox"
-         data-id="{{ order.id }}"
-         data-qr="{{ order.qr_code_url|default_if_none:'' }}"
-         data-siparis-no="{{ order.siparis_numarasi|escape }}"
-         data-siparis-tipi="{{ order.siparis_tipi|default_if_none:''|escape }}"
-         data-musteri="{{ order.musteri|default_if_none:''|escape }}"
-         data-urun-kodu="{{ order.urun_kodu|escape }}"
-         data-renk="{{ order.renk|escape }}"
-         data-beden="{{ order.beden|escape }}"
-         data-musteri-ref="{{ order.musteri_referans|default_if_none:''|escape }}"
-         data-aciklama="{{ order.aciklama|default_if_none:''|escape }}"
-  >
-</td>
                     <td>
-    <a href="{% url 'order_detail' order.pk %}" class="order-link">
-        {{ order.siparis_numarasi }}
-    </a>
-</td>
+                        <input type="checkbox"
+                            class="row-checkbox"
+                            data-id="{{ order.id }}"
+                            data-is-active="{{ order.is_active|yesno:'1,0' }}"
+                            data-printed="{{ order.cikti_alindi|yesno:'1,0' }}"
+                            data-toggle-url="{% url 'order_toggle_active' order.pk %}"
+                            data-detail-url="{% url 'order_detail' order.pk %}"
+                            data-edit-url="{% url 'order_edit' order.pk %}"
+                            data-delete-url="{% url 'order_delete' order.pk %}">
+                    </td>
+
+                    <td><a href="{% url 'order_detail' order.pk %}">{{ order.siparis_numarasi }}</a></td>
                     <td>{{ order.musteri|default:"-" }}</td>
                     <td>{{ order.urun_kodu }}</td>
                     <td>{{ order.musteri_referans|default:"-" }}</td>
@@ -356,12 +249,19 @@
                     <td>{{ order.teslim_tarihi|date:"d.m.Y" }}</td>
 
                     <td style="text-align:center;">
-    {% if order.formatted_status %}
-        {% include "core/_status_badge.html" with status=order.formatted_status %}
-    {% else %}
-        -
-    {% endif %}
-</td>
+                        {% if order.formatted_status %}
+                            {% include "core/_status_badge.html" with status=order.formatted_status %}
+                        {% else %}-{% endif %}
+                    </td>
+
+                    <td>
+                        {% if order.last_status_date %}
+                            {{ order.last_status_date|date:"d.m.Y" }}
+                        {% else %}
+                            -
+                        {% endif %}
+                    </td>
+
 
                     <td>
                         <div class="qr-box">
@@ -373,97 +273,74 @@
                 </tr>
             {% endfor %}
             </tbody>
-
         </table>
-
     </div>
 
-    <!-- ========================= -->
-<!-- PAGINATION (SAYFALAMA) -->
-<!-- ========================= -->
-{% if orders.has_other_pages %}
-<div class="d-flex justify-content-center my-4">
-    <ul class="pagination">
+    <!-- PAGINATION -->
+    {% if orders.has_other_pages %}
+    <div class="d-flex justify-content-center my-4">
+        <ul class="pagination">
 
-        {% if orders.has_previous %}
-        <li class="page-item">
-            <a class="page-link"
-               href="?{{ request.GET.urlencode|cut:'page=' }}&page={{ orders.previous_page_number }}">
-                ← Önceki
-            </a>
-        </li>
-        {% endif %}
-
-        {% for num in orders.paginator.page_range %}
-            {% if num == orders.number %}
-                <li class="page-item active">
-                    <span class="page-link">{{ num }}</span>
-                </li>
-            {% elif num > orders.number|add:"-3" and num < orders.number|add:"3" %}
-                <li class="page-item">
-                    <a class="page-link"
-                       href="?{{ request.GET.urlencode|cut:'page=' }}&page={{ num }}">
-                        {{ num }}
-                    </a>
-                </li>
+            {% if orders.has_previous %}
+            <li class="page-item">
+                <a class="page-link"
+                   href="?{{ request.GET.urlencode|cut:'page=' }}&page={{ orders.previous_page_number }}">
+                    ← Önceki
+                </a>
+            </li>
             {% endif %}
-        {% endfor %}
 
-        {% if orders.has_next %}
-        <li class="page-item">
-            <a class="page-link"
-               href="?{{ request.GET.urlencode|cut:'page=' }}&page={{ orders.next_page_number }}">
-                Sonraki →
-            </a>
-        </li>
-        {% endif %}
+            {% for num in orders.paginator.page_range %}
+                {% if num == orders.number %}
+                    <li class="page-item active">
+                        <span class="page-link">{{ num }}</span>
+                    </li>
+                {% elif num > orders.number|add:"-3" and num < orders.number|add:"3" %}
+                    <li class="page-item">
+                        <a class="page-link"
+                           href="?{{ request.GET.urlencode|cut:'page=' }}&page={{ num }}">
+                            {{ num }}
+                        </a>
+                    </li>
+                {% endif %}
+            {% endfor %}
 
-    </ul>
-</div>
-{% endif %}
+            {% if orders.has_next %}
+            <li class="page-item">
+                <a class="page-link"
+                   href="?{{ request.GET.urlencode|cut:'page=' }}&page={{ orders.next_page_number }}">
+                    Sonraki →
+                </a>
+            </li>
+            {% endif %}
 
-</div>
-
-<div id="actionBar" class="action-bar hidden no-print">
-    <div class="action-left">
-        <span id="selectedCount">0</span> sipariş seçildi
+        </ul>
     </div>
+    {% endif %}
 
+</div>
+
+<!-- ACTION BAR -->
+<div id="actionBar" class="action-bar hidden no-print">
+    <div class="action-left"><span id="selectedCount">0</span> sipariş seçildi</div>
     <div class="action-buttons">
-        <div class="action-buttons">
-
-    <button class="action-btn" id="btnLabelPrint">
-        🏷️ Etiket Yazdır
-    </button>
-
-    <button class="action-btn" id="btnPrintOrder">
-        🖨️ Sipariş Yazdır
-    </button>
-
-    <button class="action-btn" id="btnEdit">
-        ✏️ Düzenle
-    </button>
-
-    <button class="action-btn">
-        🔗 Paylaş
-    </button>
-
-    <button class="action-btn delete-btn" id="btnDelete">
-        🗑️ Sil
-    </button>
+        <button class="action-btn" id="btnLabelPrint">🏷️ Etiket Yazdır</button>
+        <button class="action-btn" id="btnPrintOrder" disabled>🖨️ Yazdırıldı olarak işaretle</button>
+        <button class="action-btn" id="btnEdit">✏️ Düzenle</button>
+        <button class="action-btn" id="btnShare">🔗 Paylaş</button>
+        <button class="action-btn" id="btnMakePassive">🚫 Pasif Et</button>
+        <button class="action-btn" id="btnMakeActive">✅ Aktif Et</button>
+        <button class="action-btn delete-btn" id="btnDelete">🗑️ Sil</button>
     </div>
 </div>
 {% endblock %}
-
 
 
 {% block extra_js %}
 <script>
 document.addEventListener("DOMContentLoaded", function () {
 
-    // ===============================
-    // Select2 Ayarları
-    // ===============================
+    // ✅ Select2
     $(".filter-select").select2({
         width: "100%",
         placeholder: "Seçiniz",
@@ -471,9 +348,7 @@ document.addEventListener("DOMContentLoaded", function () {
         closeOnSelect: true
     });
 
-    // =============================
-    // CSRF TOKEN
-    // =============================
+    // ✅ CSRF
     function getCookie(name) {
         let cookieValue = null;
         if (document.cookie && document.cookie !== "") {
@@ -489,13 +364,30 @@ document.addEventListener("DOMContentLoaded", function () {
         return cookieValue;
     }
 
-    // =============================
-    // SEÇİM BAR
-    // =============================
+    // ✅ DOM
     const checkboxes = document.querySelectorAll(".row-checkbox");
-    const selectAll = document.getElementById("selectAll");
     const actionBar = document.getElementById("actionBar");
     const selectedCount = document.getElementById("selectedCount");
+
+    const btnMakePassive = document.getElementById("btnMakePassive");
+    const btnMakeActive  = document.getElementById("btnMakeActive");
+
+    const btnLabelPrint = document.getElementById("btnLabelPrint");
+    const btnPrintOrder = document.getElementById("btnPrintOrder");
+    const btnEdit = document.getElementById("btnEdit");
+    const btnDelete = document.getElementById("btnDelete");
+    const btnShare = document.getElementById("btnShare");
+
+    // ✅ Filtre Panel DOM (include içinden geliyor)
+    const filterBtn = document.querySelector(".filter-btn");
+    const filterPanel = document.getElementById("filterPanel");
+    const filterBackdrop = document.getElementById("filterBackdrop");
+    const closeFilterBtn = document.getElementById("closeFilter");
+
+    // ✅ Seçili checkbox
+    function getSelectedCheckbox() {
+        return document.querySelector(".row-checkbox:checked");
+    }
 
     function updateSelection() {
         const selected = document.querySelectorAll(".row-checkbox:checked").length;
@@ -507,18 +399,55 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     }
 
-    checkboxes.forEach(cb => cb.addEventListener("change", updateSelection));
+    function syncPrintButton() {
+        const cb = getSelectedCheckbox();
+        if (!cb) {
+            btnPrintOrder.disabled = true;
+            btnPrintOrder.innerText = "🖨️ Yazdırıldı olarak işaretle";
+            return;
+        }
 
-    if (selectAll) {
-        selectAll.addEventListener("change", function () {
-            checkboxes.forEach(cb => cb.checked = selectAll.checked);
-            updateSelection();
-        });
+        const printed = cb.dataset.printed === "1";
+
+        if (printed) {
+            btnPrintOrder.disabled = true;
+            btnPrintOrder.innerText = "✅ Yazdırıldı";
+        } else {
+            btnPrintOrder.disabled = false;
+            btnPrintOrder.innerText = "🖨️ Yazdırıldı olarak işaretle";
+        }
     }
 
-    // =============================
-    // ARAMA
-    // =============================
+    // ✅ Checkbox tek seçim + highlight + aktif/pasif buton
+    checkboxes.forEach(cb => {
+        cb.addEventListener("click", function (e) {
+            e.stopPropagation();
+
+            document.querySelectorAll("#orderTable tbody tr").forEach(row => {
+                row.classList.remove("selected-row");
+            });
+
+            checkboxes.forEach(other => {
+                if (other !== this) other.checked = false;
+            });
+
+            if (this.checked) {
+                this.closest("tr").classList.add("selected-row");
+
+                const isActive = this.dataset.isActive === "1";
+                btnMakePassive.style.display = isActive ? "inline-block" : "none";
+                btnMakeActive.style.display  = isActive ? "none" : "inline-block";
+            } else {
+                btnMakePassive.style.display = "none";
+                btnMakeActive.style.display  = "none";
+            }
+
+            updateSelection();
+            syncPrintButton();
+        });
+    });
+
+    // ✅ Search
     const searchInput = document.getElementById("searchInput");
     if (searchInput) {
         searchInput.addEventListener("keyup", function () {
@@ -529,26 +458,38 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     }
 
-    // =============================
-    // FİLTRE PANEL
-    // =============================
-    const filterBtn = document.querySelector(".filter-btn");
-    const filterPanel = document.getElementById("filterPanel");
-    const filterBackdrop = document.getElementById("filterBackdrop");
-    const closeFilterBtn = document.getElementById("closeFilter");
-
+    // ✅ Filtre Panel Open/Close
     function openFilterPanel() {
+        if (!filterPanel || !filterBackdrop) return;
         filterPanel.classList.remove("hidden");
         filterBackdrop.classList.remove("hidden");
+
         setTimeout(() => {
             filterPanel.classList.add("show");
             filterBackdrop.classList.add("show");
-        }, 10);
-    }
+
+            // ✅ SELECT2: panel açılınca yeniden init + dropdownParent ayarla
+            $("#filterPanel .filter-select").each(function () {
+                if ($(this).hasClass("select2-hidden-accessible")) {
+                    $(this).select2("destroy");
+                }
+                $(this).select2({
+                    width: "100%",
+                    placeholder: "Seçiniz",
+                    allowClear: true,
+                    closeOnSelect: true,
+                    dropdownParent: $("#filterPanel")   // ✅ kritik
+                });
+            });
+
+    }, 10);
+}
 
     function closeFilterPanel() {
+        if (!filterPanel || !filterBackdrop) return;
         filterPanel.classList.remove("show");
         filterBackdrop.classList.remove("show");
+
         setTimeout(() => {
             filterPanel.classList.add("hidden");
             filterBackdrop.classList.add("hidden");
@@ -559,45 +500,40 @@ document.addEventListener("DOMContentLoaded", function () {
     if (closeFilterBtn) closeFilterBtn.addEventListener("click", closeFilterPanel);
     if (filterBackdrop) filterBackdrop.addEventListener("click", closeFilterPanel);
 
-    // =============================
-    // FİLTRELERİ TEMİZLE
-    // =============================
-    document.addEventListener("click", function (e) {
-    if (!e.target.closest("#clearFilters")) return;
+    // ✅ Filtreleri Temizle
+    const clearBtn = document.getElementById("clearFilters");
+    if (clearBtn) {
+        clearBtn.addEventListener("click", function () {
+            window.location.href = window.location.pathname;
+        });
+    }
 
-    // TÜM FİLTRELERİ GERÇEKTEN TEMİZLE
-    window.location.href = window.location.pathname;
-});
+    // ✅ Apply Filter
+    const applyBtn = document.getElementById("applyFilter");
+    if (applyBtn) {
+        applyBtn.addEventListener("click", function () {
+            let params = [];
 
-    // =============================
-// FİLTRELERİ UYGULA
-// =============================
-const applyBtn = document.getElementById("applyFilter");
-if (applyBtn) {
-    applyBtn.addEventListener("click", function () {
-        let params = [];
-
-        function collect(id, key) {
-            let values = $(`#${id}`).val();
-            if (values && values.length > 0) {
-                values.forEach(v => params.push(`${key}=${encodeURIComponent(v)}`));
+            function collect(id, key) {
+                let values = $(`#${id}`).val();
+                if (values && values.length > 0) {
+                    values.forEach(v => params.push(`${key}=${encodeURIComponent(v)}`));
+                }
             }
-        }
 
-        collect("f_siparis_no", "siparis_no");
-        collect("f_musteri", "musteri");
-        collect("f_urun", "urun_kodu");
-        collect("f_renk", "renk");
-        collect("f_beden", "beden");
-        collect("f_status", "status");
+            collect("f_active", "active");
+            collect("f_siparis_no", "siparis_no");
+            collect("f_musteri", "musteri");
+            collect("f_urun", "urun_kodu");
+            collect("f_renk", "renk");
+            collect("f_beden", "beden");
+            collect("f_status", "status");
 
-        window.location.href = "?" + params.join("&");
-    });
-}
+            window.location.href = "?" + params.join("&");
+        });
+    }
 
-    // =============================
-    // URL → SELECT2 GERİ YÜKLEME
-    // =============================
+    // ✅ Restore Filter from URL
     const urlParams = new URLSearchParams(window.location.search);
 
     function restoreSelect(id, key) {
@@ -608,6 +544,7 @@ if (applyBtn) {
         }
     }
 
+    restoreSelect("f_active", "active");
     restoreSelect("f_siparis_no", "siparis_no");
     restoreSelect("f_musteri", "musteri");
     restoreSelect("f_urun", "urun_kodu");
@@ -615,76 +552,126 @@ if (applyBtn) {
     restoreSelect("f_beden", "beden");
     restoreSelect("f_status", "status");
 
-        // =============================
-    // ACTION BAR BUTONLARI
-    // =============================
+    // ✅ Toggle Active
+    async function toggleActive() {
+        const cb = getSelectedCheckbox();
+        if (!cb) return alert("Sipariş seçilmedi");
 
-    const btnLabelPrint = document.getElementById("btnLabelPrint");
-    const btnPrintOrder = document.getElementById("btnPrintOrder");
-    const btnEdit = document.getElementById("btnEdit");
-    const btnDelete = document.getElementById("btnDelete");
+        const toggleUrl = cb.dataset.toggleUrl;
+        if (!toggleUrl) return alert("Toggle URL yok");
 
-    function getSelectedOrders() {
-        return Array.from(document.querySelectorAll(".row-checkbox:checked"))
-            .map(cb => cb.dataset.id);
+        try {
+            const res = await fetch(toggleUrl, {
+                method: "POST",
+                headers: { "X-CSRFToken": getCookie("csrftoken") }
+            });
+
+            const data = await res.json();
+            if (data.success) window.location.reload();
+            else alert("İşlem başarısız ❌");
+
+        } catch (e) {
+            alert("Hata oluştu ❌");
+        }
     }
 
-    if (btnLabelPrint) {
-        btnLabelPrint.addEventListener("click", function () {
-            const ids = getSelectedOrders();
-            if (!ids.length) {
-                alert("Sipariş seçilmedi");
+    // ✅ Aktif/Pasif
+    btnMakePassive.addEventListener("click", () => {
+        if (!confirm("Sipariş pasif yapılsın mı?")) return;
+        toggleActive();
+    });
+
+    btnMakeActive.addEventListener("click", () => {
+        if (!confirm("Sipariş aktif yapılsın mı?")) return;
+        toggleActive();
+    });
+
+    // ✅ Print
+    btnLabelPrint.addEventListener("click", () => {
+        const cb = getSelectedCheckbox();
+        if (!cb) return alert("Sipariş seçilmedi");
+        window.open(`/orders/label/print/?ids=${cb.dataset.id}`, "_blank");
+    });
+
+    btnPrintOrder.addEventListener("click", async () => {
+        const cb = getSelectedCheckbox();
+        if (!cb) return alert("Sipariş seçilmedi");
+
+        // Zaten yazdırıldıysa işlem yapma
+        if (cb.dataset.printed === "1") {
+            return window.location.href = cb.dataset.detailUrl;
+        }
+
+        const actionUrl = `/order/${cb.dataset.id}/cikti-alindi/`;
+
+        try {
+            const res = await fetch(actionUrl, {
+                method: "POST",
+                headers: { "X-CSRFToken": getCookie("csrftoken") }
+            });
+
+            if (!res.ok) {
+                alert("Yazdırıldı işaretlenemedi ❌");
                 return;
             }
-            alert("Etiket yazdırılacak sipariş ID’leri: " + ids.join(", "));
-        });
-    }
 
-    if (btnPrintOrder) {
-        btnPrintOrder.addEventListener("click", function () {
-            const ids = getSelectedOrders();
-            if (!ids.length) {
-                alert("Sipariş seçilmedi");
-                return;
-            }
+            // UI: o satırı hemen printed yap
+            cb.dataset.printed = "1";
+            syncPrintButton();
 
-            window.open(
-                "/orders/print/?ids=" + ids.join("&ids="),
-                "_blank"
-            );
-        });
-    }
+            // Detail'e git
+            window.location.href = cb.dataset.detailUrl;
+
+        } catch (e) {
+            alert("Hata oluştu ❌");
+        }
+    });
 
 
-    if (btnEdit) {
-        btnEdit.addEventListener("click", function () {
-            const ids = getSelectedOrders();
-            if (ids.length !== 1) {
-                alert("Düzenlemek için 1 sipariş seçmelisin");
-                return;
-            }
-            window.location.href = `/orders/${ids[0]}/edit/`;
-        });
-    }
+    // ✅ Edit
+    btnEdit.addEventListener("click", () => {
+        const cb = getSelectedCheckbox();
+        if (!cb) return alert("Sipariş seçilmedi");
+        window.location.href = cb.dataset.editUrl;
+    });
 
-    if (btnDelete) {
-        btnDelete.addEventListener("click", function () {
-            const ids = getSelectedOrders();
-            if (!ids.length) {
-                alert("Sipariş seçilmedi");
-                return;
-            }
+    // ✅ Delete
+    btnDelete.addEventListener("click", async () => {
+        const cb = getSelectedCheckbox();
+        if (!cb) return alert("Sipariş seçilmedi");
 
-            if (!confirm(ids.length + " sipariş silinsin mi?")) return;
+        if (!confirm("Bu sipariş silinsin mi?")) return;
 
-            alert("Silinecek sipariş ID’leri: " + ids.join(", "));
-            // Buraya AJAX delete gelecek
-        });
-    }
+        try {
+            const res = await fetch(cb.dataset.deleteUrl, {
+                method: "POST",
+                headers: { "X-CSRFToken": getCookie("csrftoken") }
+            });
 
+            if (res.ok) window.location.reload();
+            else alert("Silinemedi ❌");
 
+        } catch {
+            alert("Hata oluştu ❌");
+        }
+    });
 
+    // ✅ Share
+    btnShare.addEventListener("click", async () => {
+        const cb = getSelectedCheckbox();
+        if (!cb) return alert("Sipariş seçilmedi");
+
+        const link = window.location.origin + cb.dataset.detailUrl;
+        try {
+            await navigator.clipboard.writeText(link);
+            alert("Link kopyalandı ✅");
+        } catch {
+            prompt("Linki kopyalayın:", link);
+        }
+    });
+
+    syncPrintButton();
+    
 });
 </script>
 {% endblock %}
-
