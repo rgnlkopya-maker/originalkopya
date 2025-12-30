@@ -618,6 +618,8 @@ def depo_ozet(request):
     return render(request, 'depolar/ozet.html', {'depolar': depo_ozetleri})
 
 # 🔐 Özel Login (hızlı ve güvenli)
+from django.shortcuts import redirect
+
 @csrf_exempt
 def custom_login(request):
     if request.method == "POST":
@@ -627,13 +629,14 @@ def custom_login(request):
         user = authenticate(request, username=username, password=password)
         if user is not None:
             login(request, user)
-            user_groups = list(user.groups.values_list("name", flat=True))
-            next_url = request.GET.get("next", "/")
 
-        else:
-            return render(request, "registration/custom_login.html", {"error": True})
+            next_url = request.GET.get("next") or "/"
+            return redirect(next_url)   # ✅ BUNU EKLE
+
+        return render(request, "registration/custom_login.html", {"error": True})
 
     return render(request, "registration/custom_login.html")
+
 
 
 
