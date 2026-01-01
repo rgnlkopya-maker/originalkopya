@@ -2845,3 +2845,10 @@ def live_shipped_orders(request):
         return HttpResponse(html)
 
     return render(request, "reports/live_shipped_orders.html", {"orders": orders})
+
+from django.http import JsonResponse
+
+def health_check(request):
+    return JsonResponse({"status": "ok"})
+
+

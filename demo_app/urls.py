@@ -8,6 +8,8 @@ from core import views
 from core.views import notification_list
 from django.contrib import admin
 from django.urls import path, include
+from core.views import health_check
+
 
 
 def logout_view(request):
@@ -74,6 +76,7 @@ urlpatterns = [
     path("reports/shipped-live/", views.live_shipped_orders, name="live_shipped_orders"),
     path("reports/sevkiyat-finans/", views.sevkiyat_finans_tablosu, name="sevkiyat_finans_tablosu"),
     path("reports/personel/", views.personel_raporu, name="personel_raporu"),
+    path("health/", health_check),
 ]
 
 if settings.DEBUG:

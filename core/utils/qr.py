@@ -17,7 +17,9 @@ def ensure_order_qr(order):
 
     # ✅ BURAYI EKLEMEK ZORUNDASIN
     supabase = get_supabase()
-
+    if not supabase:
+        return None
+        
     qr_data = f"{settings.BASE_URL.rstrip('/')}/orders/{order.id}/"
 
     qr = qrcode.make(qr_data)
