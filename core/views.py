@@ -30,6 +30,8 @@ from decimal import Decimal
 from django.db.models import DateTimeField
 from decimal import Decimal
 from django.db.models import DecimalField, Value
+from django.contrib.auth.decorators import login_required, user_passes_test
+
 
 DEC = DecimalField(max_digits=12, decimal_places=2)
 ZERO = Value(Decimal("0.00"), output_field=DEC)
@@ -2201,6 +2203,7 @@ from .models import Order, OrderEvent
 
 
 @login_required
+@user_passes_test(is_admin)
 def dashboard_view(request):
 
     # ✅ Yetki kontrolü (patron/müdür)
@@ -2845,6 +2848,8 @@ def live_shipped_orders(request):
         return HttpResponse(html)
 
     return render(request, "reports/live_shipped_orders.html", {"orders": orders})
+
+
 
 from django.http import JsonResponse
 
