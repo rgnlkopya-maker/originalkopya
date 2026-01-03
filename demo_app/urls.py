@@ -88,7 +88,4 @@ from django.http import HttpResponse
 def health(request):
     return HttpResponse("ok")
 
-urlpatterns += [
-    path("health/", health),
-]
 

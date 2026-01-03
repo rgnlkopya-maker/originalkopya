@@ -44,6 +44,9 @@ from .models import (
 )
 from .forms import OrderForm, MusteriForm
 
+from .utils import ensure_order_qr
+
+
 
 
 
@@ -1930,6 +1933,8 @@ def order_multi_create(request):
                         maliyet_override=maliyet_override,
                         ekstra_maliyet=ekstra_maliyet,
                     )
+
+                    ensure_order_qr(order)
 
                     created_orders.append(order)
 
