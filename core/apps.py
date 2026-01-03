@@ -5,5 +5,4 @@ class CoreConfig(AppConfig):
     name = "core"
 
     def ready(self):
-        from .admin_init import ensure_admin
-        ensure_admin()
+        import core.signals

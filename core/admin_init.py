@@ -10,13 +10,16 @@ def ensure_admin():
 
     user, created = User.objects.get_or_create(username=settings.ADMIN_USERNAME)
 
+    if created:
+        user.set_password(settings.ADMIN_PASSWORD)
+
     user.is_staff = True
     user.is_superuser = True
     user.email = settings.ADMIN_EMAIL
-    user.set_password(settings.ADMIN_PASSWORD)
     user.save()
 
     group, _ = Group.objects.get_or_create(name="patron")
     user.groups.add(group)
 
     print("✅ Admin ensured (staff+superuser+group patron)")
+
