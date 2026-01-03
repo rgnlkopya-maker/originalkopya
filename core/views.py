@@ -1,3 +1,5 @@
+from .utils import ensure_order_qr
+
 # ========================
 # ✅ Python
 # ========================
@@ -43,8 +45,6 @@ from .models import (
     UserProfile, Renk, Beden, UrunKod, MesaiKayit
 )
 from .forms import OrderForm, MusteriForm
-
-from .utils import ensure_order_qr
 
 
 

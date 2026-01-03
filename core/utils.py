@@ -29,9 +29,12 @@ def ensure_order_qr(order):
     bucket.upload(
         filename,
         buffer.getvalue(),
-        file_options={"content-type": "image/png"},
-        upsert="true"
+        file_options={
+            "content-type": "image/png",
+            "upsert": "true"
+        }
     )
+
 
     # ✅ Public URL al
     public_url = bucket.get_public_url(filename)
