@@ -3,7 +3,6 @@ import time
 import json
 import requests
 from datetime import datetime, timedelta
-from core.utils.qr import ensure_order_qr
 from django.http import JsonResponse
 from django.views.decorators.http import require_POST
 from django.contrib.auth.decorators import login_required
