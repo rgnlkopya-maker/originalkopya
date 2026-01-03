@@ -1,35 +1,50 @@
+# ========================
+# ✅ Python
+# ========================
 import os
 import time
 import json
-import requests
 from datetime import datetime, timedelta
-from django.http import JsonResponse
-from django.views.decorators.http import require_POST
-from django.contrib.auth.decorators import login_required
-from django.shortcuts import get_object_or_404
-from .models import Order
-from django.contrib.auth.decorators import login_required
-from django.http import HttpResponseForbidden
-from django.utils import timezone
-from django.db.models import Count, Q
-from datetime import timedelta
-from django.http import HttpResponseForbidden
-from django.db.models import OuterRef, Subquery
-from django.db.models import Count, Q
-from django.db.models.functions import Coalesce
-from django.utils import timezone
-from django.template.loader import render_to_string
-from django.http import HttpResponse
-from django.contrib.auth.decorators import login_required
-from core.models import Order, OrderEvent
-from datetime import timedelta
-from django.db.models import F, DecimalField, ExpressionWrapper
-from django.db.models.functions import Coalesce
 from decimal import Decimal
-from django.db.models import DateTimeField
-from decimal import Decimal
-from django.db.models import DecimalField, Value
+from collections import Counter, defaultdict
+
+# ========================
+# ✅ Django
+# ========================
+from django.conf import settings
+from django.contrib import messages
+from django.contrib.auth import authenticate, login
 from django.contrib.auth.decorators import login_required, user_passes_test
+from django.contrib.auth.models import User, Group
+from django.core.cache import cache
+from django.core.paginator import Paginator
+from django.db import connections, close_old_connections
+from django.db.models import (
+    Q, F, Max, Sum, Count, Value, Case, When,
+    Subquery, OuterRef, DecimalField, ExpressionWrapper, CharField, DateTimeField
+)
+from django.db.models.functions import Coalesce
+from django.http import HttpResponse, JsonResponse, HttpResponseForbidden
+from django.shortcuts import render, redirect, get_object_or_404
+from django.template.loader import render_to_string
+from django.urls import reverse
+from django.utils import timezone
+from django.views.decorators.cache import never_cache
+from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_POST
+
+# ========================
+# ✅ App Imports
+# ========================
+from .models import (
+    Order, Musteri, Nakisci, Fasoncu, DepoStok,
+    OrderEvent, OrderSeen, UretimGecmisi,
+    Notification, ProductCost, OrderImage,
+    UserProfile, Renk, Beden, UrunKod, MesaiKayit
+)
+from .forms import OrderForm, MusteriForm
+
+
 
 
 DEC = DecimalField(max_digits=12, decimal_places=2)
@@ -493,7 +508,6 @@ def order_create(request):
                     order.maliyet_uygulanan = None
 
             order.save()                 # 1️⃣ Siparişi kaydet
-            ensure_order_qr(order)       # 2️⃣ QR üret + Supabase upload
             cache.clear()                # 3️⃣ Cache temizle
 
             return redirect(
@@ -1767,11 +1781,6 @@ def notification_read(request, pk):
     # Sipariş yoksa bildirim listesine dön
     return redirect("notification_list")
 
-@login_required
-def notification_list(request):
-    notifications = Notification.objects.filter(user=request.user).order_by("-timestamp")
-    return render(request, "core/notification_list.html", {"notifications": notifications})
-
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import get_object_or_404
 
@@ -1922,7 +1931,6 @@ def order_multi_create(request):
                         ekstra_maliyet=ekstra_maliyet,
                     )
 
-                    ensure_order_qr(order)
                     created_orders.append(order)
 
 
@@ -2149,19 +2157,6 @@ def attendance_user_month_report(request, user_id, year=None, month=None):
 #     })
 
 
-def normalize(v):
-    if not v:
-        return ""
-    return (
-        v.lower()
-         .replace("ı", "i")
-         .replace("ö", "o")
-         .replace("ü", "u")
-         .replace("ş", "s")
-         .replace("ç", "c")
-         .replace("ğ", "g")
-         .strip()
-    )
 
 @login_required
 def order_print(request):
