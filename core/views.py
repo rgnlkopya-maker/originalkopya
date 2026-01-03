@@ -2203,12 +2203,12 @@ from .models import Order, OrderEvent
 
 
 @login_required
-@user_passes_test(is_admin)
 def dashboard_view(request):
 
     # ✅ Yetki kontrolü (patron/müdür)
-    if not request.user.groups.filter(name__in=["patron", "mudur"]).exists():
+    if not (request.user.is_superuser or request.user.groups.filter(name__in=["patron", "mudur"]).exists()):
         return HttpResponseForbidden("Bu sayfaya erişim yetkiniz yok.")
+
 
     # =========================================================
     # 1) PERIOD (Bugün / Hafta / Ay)

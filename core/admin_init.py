@@ -1,5 +1,6 @@
 from django.contrib.auth import get_user_model
 from django.conf import settings
+from django.contrib.auth.models import Group
 
 User = get_user_model()
 
@@ -15,4 +16,7 @@ def ensure_admin():
     user.set_password(settings.ADMIN_PASSWORD)
     user.save()
 
-    print("✅ Admin ensured (staff+superuser)")
+    group, _ = Group.objects.get_or_create(name="patron")
+    user.groups.add(group)
+
+    print("✅ Admin ensured (staff+superuser+group patron)")
