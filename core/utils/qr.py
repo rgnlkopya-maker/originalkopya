@@ -1,17 +1,11 @@
-# core/utils.py
 import qrcode
 import io
 from supabase import create_client
 from django.conf import settings
 
 def ensure_order_qr(order):
-    """
-    Order için QR yoksa üretir ve Supabase'e yükler.
-    Sonrasında order.qr_code_url alanını set eder.
-    """
-
     if order.qr_code_url:
-        return  # ✅ zaten var
+        return
 
     qr_data = f"https://originalkopya.onrender.com/order/{order.id}/"
     qr = qrcode.make(qr_data)
@@ -20,12 +14,11 @@ def ensure_order_qr(order):
     qr.save(buffer, format="PNG")
     buffer.seek(0)
 
-    filename = f"qr_{order.id}.png"
+    filename = f"orders/qr_{order.id}.png"
 
-    supabase = create_client(settings.SUPABASE_URL, settings.SUPABASE_ANON_KEY)
-    bucket = supabase.storage.from_(settings.SUPABASE_BUCKET_NAME)
+    supabase = create_client(settings.SUPABASE_URL, settings.SUPABASE_SERVICE_ROLE_KEY)
+    bucket = supabase.storage.from_(settings.SUPABASE_BUCKET_NAME)  # burada order-qr olacak
 
-    # ✅ UPLOAD (upsert parametresini STRING veriyoruz ki header bool hatası olmasın)
     bucket.upload(
         filename,
         buffer.getvalue(),
@@ -35,9 +28,6 @@ def ensure_order_qr(order):
         }
     )
 
-
-
-    # ✅ Public URL al
     public_url = bucket.get_public_url(filename)
 
     order.qr_code_url = public_url

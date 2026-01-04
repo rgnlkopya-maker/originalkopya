@@ -1,5 +1,3 @@
-from .utils import ensure_order_qr
-
 # ========================
 # ✅ Python
 # ========================
@@ -45,6 +43,9 @@ from .models import (
     UserProfile, Renk, Beden, UrunKod, MesaiKayit
 )
 from .forms import OrderForm, MusteriForm
+
+# ✅ QR util (buraya koy)
+from .utils.qr import ensure_order_qr
 
 
 
@@ -199,7 +200,6 @@ from django.db import close_old_connections  # ⬅️ En üste import ekle
 @login_required
 def order_list(request):
     close_old_connections()
-    connections["default"].close()
 
     # -----------------------------------------
     # 📌 1) TÜM SİPARİŞLERİ AL ve yeni/okunmamış hesapla
@@ -287,11 +287,6 @@ def order_list(request):
     # -----------------------------------------
     qs = (
         Order.objects.select_related("musteri")
-        .only(
-            "id", "siparis_numarasi", "siparis_tipi", "urun_kodu", "renk",
-            "beden", "adet", "siparis_tarihi", "teslim_tarihi",
-            "aciklama", "musteri__ad", "qr_code_url"
-        )
         .annotate(
             latest_stage=Subquery(latest_event.values("stage")),
             latest_value=Subquery(latest_event.values("value")),

@@ -5,8 +5,8 @@ Django settings for demo_app project.
 from pathlib import Path
 import os
 import dj_database_url
-
 from dotenv import load_dotenv
+
 load_dotenv()
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -18,7 +18,7 @@ SECRET_KEY = os.getenv(
     "dev-secret-key-1234567890123456789012345678901234567890"
 )
 
-# ✅ DEBUG env ile kontrol (localde True olsun istiyorsan .env veya terminalden DEBUG=True ver)
+# ✅ DEBUG env ile kontrol (localde True)
 DEBUG = os.getenv("DEBUG", "True") == "True"
 
 ALLOWED_HOSTS = os.getenv(
@@ -48,7 +48,6 @@ MIDDLEWARE = [
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
 
-
 ROOT_URLCONF = "demo_app.urls"
 
 TEMPLATES = [
@@ -68,9 +67,8 @@ TEMPLATES = [
 
 WSGI_APPLICATION = "demo_app.wsgi.application"
 
-import dj_database_url
-import os
 
+# ✅ Database (Render PostgreSQL varsa onu kullanır, yoksa sqlite)
 DATABASE_URL = os.getenv("DATABASE_URL")
 
 if DATABASE_URL and DATABASE_URL.startswith("postgres"):
@@ -89,18 +87,12 @@ else:
     }
 
 
-
-
-
-
-
 AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
     {"NAME": "django.contrib.auth.password_validation.MinimumLengthValidator"},
     {"NAME": "django.contrib.auth.password_validation.CommonPasswordValidator"},
     {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
 ]
-
 
 LANGUAGE_CODE = "en-us"
 TIME_ZONE = "UTC"
@@ -117,17 +109,19 @@ LOGIN_URL = "/login/"
 LOGIN_REDIRECT_URL = "/"
 LOGOUT_REDIRECT_URL = "/login/"
 
-# QR Kod için temel URL
+
+# ✅ QR Kod için temel URL
 BASE_URL = os.getenv("BASE_URL", "http://127.0.0.1:8000")
 
 
-# Supabase
-SUPABASE_URL = os.environ.get("SUPABASE_URL")
-SUPABASE_SERVICE_ROLE_KEY = os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
+# ✅ Admin oluşturma ayarları (ENV üzerinden)
+CREATE_ADMIN = os.getenv("CREATE_ADMIN", "0") == "1"
+ADMIN_USERNAME = os.getenv("ADMIN_USERNAME", "patron")
+ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "patron19")
+ADMIN_EMAIL = os.getenv("ADMIN_EMAIL", "admin@example.com")
 
-import os
 
-CREATE_ADMIN = os.environ.get("CREATE_ADMIN") == "1"
-ADMIN_USERNAME = os.environ.get("ADMIN_USERNAME", "patron")
-ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "patron19")
-ADMIN_EMAIL = os.environ.get("ADMIN_EMAIL", "admin@example.com")
+# ✅ Supabase (ENV'den alınır)
+SUPABASE_URL = os.getenv("SUPABASE_URL")
+SUPABASE_SERVICE_ROLE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
+SUPABASE_BUCKET_NAME = os.getenv("SUPABASE_BUCKET_NAME", "order-qr")
