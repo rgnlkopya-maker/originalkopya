@@ -59,13 +59,13 @@ def ensure_order_qr(order):
     filename = f"orders/order_{order.id}.png"
 
     try:
-        # 4) Upload (upsert True => asla patlamasın)
+        # Supabase Storage bu değeri HTTP header'a yazar; string olmalıdır.
         supabase.storage.from_(bucket).upload(
             filename,
             buffer.getvalue(),
             file_options={
                 "content-type": "image/png",
-                "upsert": True
+                "upsert": "true"
             }
         )
 
