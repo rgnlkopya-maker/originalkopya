@@ -1,8 +1,10 @@
 from unittest.mock import Mock, patch
 
 from django.test import TestCase, override_settings
+from django.contrib.auth import get_user_model
+from django.contrib.auth.models import Group
 
-from .models import Order
+from .models import Musteri, Order
 from .qr import ensure_order_qr
 
 
@@ -46,5 +48,35 @@ class OrderQrTests(TestCase):
         supabase.storage.from_.assert_called_with("custom-order-qr")
         uploaded_bytes = bucket.upload.call_args.args[1]
         self.assertTrue(uploaded_bytes.startswith(b"\x89PNG"))
+
+
+class MultiOrderCreateTests(TestCase):
+    @patch("core.signals_qr.ensure_order_qr")
+    def test_multi_order_create_does_not_call_a_second_qr_implementation(
+        self, ensure_order_qr
+    ):
+        user = get_user_model().objects.create_user("manager", password="test")
+        patron, _ = Group.objects.get_or_create(name="patron")
+        user.groups.add(patron)
+        self.client.force_login(user)
+        musteri = Musteri.objects.create(ad="Test Müşteri")
+
+        response = self.client.post(
+            "/orders/multi-create/",
+            {
+                "siparis_tipi": "SERI",
+                "musteri": str(musteri.pk),
+                "urun_kodu": "TEST-01",
+                "renk_row_0": "BEYAZ",
+                "beden_row_0[]": ["38"],
+                "adet_row_0": "2",
+                "para_birimi": "TRY",
+                "maliyet_para_birimi": "TRY",
+            },
+        )
+
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(Order.objects.count(), 2)
+        self.assertEqual(ensure_order_qr.call_count, 2)
 
 # Create your tests here.

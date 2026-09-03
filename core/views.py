@@ -45,11 +45,6 @@ from .models import (
 from .forms import OrderForm, MusteriForm
 
 # ✅ QR util (buraya koy)
-from .utils.qr import ensure_order_qr
-
-
-
-
 
 DEC = DecimalField(max_digits=12, decimal_places=2)
 ZERO = Value(Decimal("0.00"), output_field=DEC)
@@ -1929,8 +1924,6 @@ def order_multi_create(request):
                         ekstra_maliyet=ekstra_maliyet,
                     )
 
-                    ensure_order_qr(order)
-
                     created_orders.append(order)
 
 
@@ -2849,5 +2842,4 @@ from django.http import JsonResponse
 
 def health_check(request):
     return JsonResponse({"status": "ok"})
-
 
