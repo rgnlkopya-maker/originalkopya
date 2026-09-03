@@ -18,8 +18,8 @@ SECRET_KEY = os.getenv(
     "dev-secret-key-1234567890123456789012345678901234567890"
 )
 
-# ✅ DEBUG env ile kontrol (localde True)
-DEBUG = os.getenv("DEBUG", "True") == "True"
+# Canlı ortam güvenli varsayılanla başlar; yerelde gerekirse DEBUG=True verilir.
+DEBUG = os.getenv("DEBUG", "False").lower() == "true"
 
 ALLOWED_HOSTS = os.getenv(
     "ALLOWED_HOSTS",
@@ -94,8 +94,8 @@ AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
 ]
 
-LANGUAGE_CODE = "en-us"
-TIME_ZONE = "UTC"
+LANGUAGE_CODE = "tr-tr"
+TIME_ZONE = "Europe/Istanbul"
 USE_I18N = True
 USE_TZ = True
 
@@ -117,7 +117,7 @@ BASE_URL = os.getenv("BASE_URL", "http://127.0.0.1:8000")
 # ✅ Admin oluşturma ayarları (ENV üzerinden)
 CREATE_ADMIN = os.getenv("CREATE_ADMIN", "0") == "1"
 ADMIN_USERNAME = os.getenv("ADMIN_USERNAME", "patron")
-ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "patron19")
+ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "")
 ADMIN_EMAIL = os.getenv("ADMIN_EMAIL", "admin@example.com")
 
 

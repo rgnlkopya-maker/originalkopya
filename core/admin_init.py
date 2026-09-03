@@ -1,6 +1,7 @@
 from django.contrib.auth import get_user_model
 from django.conf import settings
 from django.contrib.auth.models import Group
+from django.core.exceptions import ImproperlyConfigured
 
 User = get_user_model()
 
@@ -11,6 +12,10 @@ def ensure_admin():
     user, created = User.objects.get_or_create(username=settings.ADMIN_USERNAME)
 
     if created:
+        if not settings.ADMIN_PASSWORD:
+            raise ImproperlyConfigured(
+                "CREATE_ADMIN=1 iken ADMIN_PASSWORD ortam değişkeni zorunludur."
+            )
         user.set_password(settings.ADMIN_PASSWORD)
 
     user.is_staff = True
@@ -22,4 +27,3 @@ def ensure_admin():
     user.groups.add(group)
 
     print("✅ Admin ensured (staff+superuser+group patron)")
-

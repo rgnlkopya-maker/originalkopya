@@ -5,9 +5,6 @@ from django.conf.urls.static import static
 from django.contrib.auth import logout
 from django.shortcuts import redirect
 from core import views
-from core.views import notification_list
-from django.contrib import admin
-from django.urls import path, include
 from core.views import health_check
 
 
@@ -82,10 +79,3 @@ urlpatterns = [
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
     urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
-
-from django.http import HttpResponse
-
-def health(request):
-    return HttpResponse("ok")
-
-

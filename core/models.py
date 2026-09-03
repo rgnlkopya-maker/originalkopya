@@ -1,19 +1,10 @@
 from django.db import models
 from django.utils import timezone
-from django.urls import reverse
-from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.db.models.signals import post_save
 from django.dispatch import receiver
-from django.contrib.auth.models import User
-from django.db.models.signals import post_save
-from django.dispatch import receiver
-from django.utils import timezone
-from django.contrib.auth import get_user_model
 from decimal import Decimal
 
-
-User = get_user_model()
 
 User = get_user_model()
 
@@ -209,7 +200,7 @@ class Order(models.Model):
 
     @property
     def is_ozel_siparis(self) -> bool:
-        return self.siparis_tipi == 'ÖZEL'
+        return self.siparis_tipi == 'OZEL'
 
     @property
     def is_seri_siparis(self) -> bool:
@@ -278,12 +269,13 @@ class Order(models.Model):
         if creating and not self.siparis_numarasi:
 
             # ⭐ ÖZEL siparişler düzeltme
-            if self.siparis_tipi.upper() == "OZEL":
+            siparis_tipi = (self.siparis_tipi or "").upper()
+            if siparis_tipi == "OZEL":
                 prefix = "OZEL"
                 real_type_list = ["OZEL"]
             else:
-                prefix = self.siparis_tipi or "SP"
-                real_type_list = [self.siparis_tipi]
+                prefix = siparis_tipi or "SP"
+                real_type_list = [self.siparis_tipi] if self.siparis_tipi else []
 
             # ⭐ En son numarayı doğru bul
             last_order = Order.objects.filter(
@@ -304,9 +296,6 @@ class Order(models.Model):
         super().save(*args, **kwargs)
 
         
-from django.db import models
-from django.contrib.auth.models import User
-
 class MesaiKayit(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     giris_zamani = models.DateTimeField(null=True, blank=True)
@@ -435,7 +424,6 @@ class OrderSeen(models.Model):
 
     def __str__(self):
         return f"{self.user} → {self.order}"
-
 
 
 
