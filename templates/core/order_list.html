@@ -211,6 +211,7 @@ tr.selected-row {
                     <th>Sipariş No</th>
                     <th>Müşteri</th>
                     <th>Ürün Kodu</th>
+                    <th>Ürün Tipi</th>
                     <th>Müşteri Ref</th>
                     <th>Adet</th>
                     <th>Renk</th>
@@ -241,6 +242,7 @@ tr.selected-row {
                     <td><a href="{% url 'order_detail' order.pk %}">{{ order.siparis_numarasi }}</a></td>
                     <td>{{ order.musteri|default:"-" }}</td>
                     <td>{{ order.urun_kodu }}</td>
+                    <td>{{ order.get_urun_tipi_display|default:"-" }}</td>
                     <td>{{ order.musteri_referans|default:"-" }}</td>
                     <td>{{ order.adet }}</td>
                     <td>{{ order.renk }}</td>
