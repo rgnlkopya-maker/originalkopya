@@ -149,27 +149,70 @@ function bedenPasifYap() {
 /* ----------------- ÜRÜN KODU ----------------- */
 function urunKodKaydet() {
     const kod = document.getElementById("modal_urun_kod").value.trim();
+    const urunTipi = document.getElementById("modal_urun_tipi").value;
     if (!kod) { alert("Ürün kodu boş olamaz!"); return; }
+    if (!urunTipi) { alert("Lütfen ürün tipi seçin!"); return; }
 
     fetch("/ajax/urun-kod/ekle/", {
         method: "POST",
         headers: { "X-CSRFToken": getCSRFToken() },
-        body: new URLSearchParams({ "kod": kod })
+        body: new URLSearchParams({ "kod": kod, "urun_tipi": urunTipi })
     })
     .then(res => res.json())
     .then(data => {
         if (data.success) {
             const select = document.getElementById("urun_kodu_select");
             const opt = new Option(data.kod, data.kod, true, true);
+            opt.dataset.urunTipi = data.urun_tipi;
             select.add(opt);
             $("#urun_kodu_select").trigger("change");
 
             const modalSelect = document.getElementById("modal_urun_kod_listesi");
             modalSelect.add(new Option(data.kod, data.id));
 
+            const tipModalSelect = document.getElementById("modal_urun_kod_tipi_listesi");
+            const tipOption = new Option(data.kod, data.id);
+            tipOption.dataset.kod = data.kod;
+            tipOption.dataset.urunTipi = data.urun_tipi;
+            tipModalSelect.add(tipOption);
+
             document.getElementById("modal_urun_kod").value = "";
+            document.getElementById("modal_urun_tipi").value = "";
             bootstrap.Modal.getInstance(document.getElementById("urunKodModal")).hide();
         } else { alert(data.message || "Hata oluştu."); }
+    });
+}
+
+function urunKodTipiniFormaGetir() {
+    const select = document.getElementById("modal_urun_kod_tipi_listesi");
+    const option = select.options[select.selectedIndex];
+    document.getElementById("modal_mevcut_urun_tipi").value = option ? (option.dataset.urunTipi || "") : "";
+}
+
+function urunKodTipiGuncelle() {
+    const kodSelect = document.getElementById("modal_urun_kod_tipi_listesi");
+    const urunId = kodSelect.value;
+    const urunTipi = document.getElementById("modal_mevcut_urun_tipi").value;
+    if (!urunId || !urunTipi) { alert("Ürün kodu ve ürün tipi seçin!"); return; }
+
+    fetch("/ajax/urun-kod/tip-guncelle/", {
+        method: "POST",
+        headers: { "X-CSRFToken": getCSRFToken() },
+        body: new URLSearchParams({ "id": urunId, "urun_tipi": urunTipi })
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (!data.success) { alert(data.message || "Hata oluştu."); return; }
+
+        const modalOption = kodSelect.options[kodSelect.selectedIndex];
+        modalOption.dataset.urunTipi = data.urun_tipi;
+        const orderOption = Array.from(document.getElementById("urun_kodu_select").options)
+            .find(option => option.value === data.kod);
+        if (orderOption) orderOption.dataset.urunTipi = data.urun_tipi;
+        if ($("#urun_kodu_select").val() === data.kod) {
+            $("#urun_tipi_select").val(data.urun_tipi).trigger("change");
+        }
+        alert("Ürün tipi kaydedildi.");
     });
 }
 

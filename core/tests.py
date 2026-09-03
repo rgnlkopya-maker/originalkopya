@@ -4,7 +4,7 @@ from django.test import TestCase, override_settings
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
 
-from .models import Musteri, Order
+from .models import Musteri, Order, UrunKod
 from .qr import ensure_order_qr
 
 
@@ -16,6 +16,18 @@ class OrderModelTests(TestCase):
     def test_empty_order_type_can_generate_fallback_number(self):
         order = Order.objects.create(siparis_tipi=None)
         self.assertEqual(order.siparis_numarasi, "SP0001")
+
+    def test_order_uses_product_code_default_type_when_empty(self):
+        UrunKod.objects.create(kod="7119", urun_tipi="BALIK")
+        order = Order.objects.create(siparis_tipi="SERI", urun_kodu="7119")
+        self.assertEqual(order.urun_tipi, "BALIK")
+
+    def test_manual_order_type_overrides_product_code_default(self):
+        UrunKod.objects.create(kod="7119", urun_tipi="BALIK")
+        order = Order.objects.create(
+            siparis_tipi="SERI", urun_kodu="7119", urun_tipi="HELEN"
+        )
+        self.assertEqual(order.urun_tipi, "HELEN")
 
 
 class OrderQrTests(TestCase):
@@ -67,6 +79,7 @@ class MultiOrderCreateTests(TestCase):
                 "siparis_tipi": "SERI",
                 "musteri": str(musteri.pk),
                 "urun_kodu": "TEST-01",
+                "urun_tipi": "ETEKLI_BALIK",
                 "renk_row_0": "BEYAZ",
                 "beden_row_0[]": ["38"],
                 "adet_row_0": "2",
@@ -77,6 +90,7 @@ class MultiOrderCreateTests(TestCase):
 
         self.assertEqual(response.status_code, 302)
         self.assertEqual(Order.objects.count(), 2)
+        self.assertFalse(Order.objects.exclude(urun_tipi="ETEKLI_BALIK").exists())
         self.assertEqual(ensure_order_qr.call_count, 2)
 
 # Create your tests here.
