@@ -85,7 +85,19 @@
                 <td>{{ order.adet }}</td>
                 <td>{{ order.siparis_tarihi|date:"d.m.Y" }}</td>
                 <td>{{ order.teslim_tarihi|date:"d.m.Y" }}</td>
-                <td class="aciklama-cell">{{ order.aciklama }}</td>
+                <td class="aciklama-cell">
+                    {% if order.aciklama %}
+                        <button type="button"
+                                class="description-preview"
+                                data-bs-toggle="popover"
+                                data-bs-trigger="focus"
+                                data-bs-placement="top"
+                                data-bs-title="Açıklama"
+                                data-bs-content="{{ order.aciklama }}">
+                            {{ order.aciklama|slice:":10" }}{% if order.aciklama|length > 10 %}…{% endif %}
+                        </button>
+                    {% else %}-{% endif %}
+                </td>
 
                 <!-- 🧱 Üretim Aşamaları -->
                 <td class="stage-info">

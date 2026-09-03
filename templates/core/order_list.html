@@ -169,6 +169,19 @@ tr.selected-row {
     box-shadow: 0 0 0 2px rgba(74, 99, 255, 0.35);
 }
 
+.description-preview {
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: inherit;
+    text-align: left;
+    cursor: pointer;
+}
+.popover-body {
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}
+
 </style>
 {% endblock %}
 
@@ -247,7 +260,19 @@ tr.selected-row {
                     <td>{{ order.adet }}</td>
                     <td>{{ order.renk }}</td>
                     <td>{{ order.beden }}</td>
-                    <td>{{ order.aciklama|default:"-" }}</td>
+                    <td>
+                        {% if order.aciklama %}
+                            <button type="button"
+                                    class="description-preview"
+                                    data-bs-toggle="popover"
+                                    data-bs-trigger="focus"
+                                    data-bs-placement="top"
+                                    data-bs-title="Açıklama"
+                                    data-bs-content="{{ order.aciklama }}">
+                                {{ order.aciklama|slice:":10" }}{% if order.aciklama|length > 10 %}…{% endif %}
+                            </button>
+                        {% else %}-{% endif %}
+                    </td>
                     <td>{{ order.teslim_tarihi|date:"d.m.Y" }}</td>
 
                     <td style="text-align:center;">
@@ -341,6 +366,10 @@ tr.selected-row {
 {% block extra_js %}
 <script>
 document.addEventListener("DOMContentLoaded", function () {
+
+    document.querySelectorAll('[data-bs-toggle="popover"]').forEach(function (element) {
+        new bootstrap.Popover(element);
+    });
 
     // ✅ Select2
     $(".filter-select").select2({

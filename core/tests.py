@@ -93,4 +93,21 @@ class MultiOrderCreateTests(TestCase):
         self.assertFalse(Order.objects.exclude(urun_tipi="ETEKLI_BALIK").exists())
         self.assertEqual(ensure_order_qr.call_count, 2)
 
+
+class OrderListDescriptionTests(TestCase):
+    @patch("core.signals_qr.ensure_order_qr")
+    def test_long_description_is_shortened_and_available_in_popover(self, _qr):
+        user = get_user_model().objects.create_user("list-user", password="test")
+        self.client.force_login(user)
+        Order.objects.create(
+            siparis_tipi="SERI",
+            aciklama="Kutusunda özel etiket kullanılacak",
+        )
+
+        response = self.client.get("/")
+
+        self.assertContains(response, "Kutusunda …")
+        self.assertContains(response, 'data-bs-title="Açıklama"')
+        self.assertContains(response, "Kutusunda özel etiket kullanılacak")
+
 # Create your tests here.
