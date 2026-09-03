@@ -40,6 +40,13 @@ $(document).ready(function () {
     // Sayfa açılır açılmaz tüm Select2’leri başlat
     initSelect2(document);
 
+    // Ürün kodunun varsayılan tipini siparişe getir; kullanıcı isterse değiştirebilir.
+    $("#urun_kodu_select").on("change", function () {
+        const selected = this.options[this.selectedIndex];
+        const urunTipi = selected ? selected.dataset.urunTipi : "";
+        $("#urun_tipi_select").val(urunTipi || "").trigger("change");
+    });
+
 
     /* ============================================================
        2) MODAL İÇİNDE SELECT2 FIX

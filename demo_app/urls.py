@@ -63,6 +63,7 @@ urlpatterns = [
     path("ajax/beden/ekle/", views.beden_ekle_ajax, name="beden_ekle_ajax"),
     path("ajax/beden/pasif-yap/", views.beden_pasif_yap_ajax, name="beden_pasif_yap_ajax"),
     path("ajax/urun-kod/ekle/", views.urun_kod_ekle_ajax, name="urun_kod_ekle_ajax"),
+    path("ajax/urun-kod/tip-guncelle/", views.urun_kod_tipi_guncelle_ajax, name="urun_kod_tipi_guncelle_ajax"),
     path("ajax/urun-kod/pasif-yap/", views.urun_kod_pasif_yap_ajax, name="urun_kod_pasif_yap_ajax"),
     path("ajax/renk/ekle/", views.renk_ekle_ajax, name="renk_ekle_ajax"),
     path("ajax/renk/pasif-yap/", views.renk_pasif_yap_ajax, name="renk_pasif_yap_ajax"),

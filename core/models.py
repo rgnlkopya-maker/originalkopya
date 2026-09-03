@@ -50,6 +50,16 @@ CURRENCY_CHOICES = (
     ("EUR", "EUR"),
 )
 
+URUN_TIPI_CHOICES = (
+    ("BALIK", "Balık"),
+    ("HELEN", "Helen"),
+    ("ETEKLI_BALIK", "Etekli Balık"),
+    ("TESETTUR_BALIK", "Tesettür Balık"),
+    ("TESETTUR_ETEKLI_BALIK", "Tesettür Etekli Balık"),
+    ("TESETTUR_HELEN", "Tesettür Helen"),
+    ("DIGER", "Diğer"),
+)
+
 
 # 💵 Ürün Maliyeti Modeli
 class ProductCost(models.Model):
@@ -109,6 +119,9 @@ class Beden(models.Model):
 
 class UrunKod(models.Model):
     kod = models.CharField(max_length=100, unique=True)
+    urun_tipi = models.CharField(
+        max_length=30, choices=URUN_TIPI_CHOICES, blank=True, default=""
+    )
     aktif = models.BooleanField(default=True)
 
     def __str__(self):
@@ -130,6 +143,9 @@ class Order(models.Model):
 
     siparis_tarihi = models.DateField(default=timezone.now, null=True, blank=True, db_index=True)
     urun_kodu = models.CharField(max_length=100, null=True, blank=True, db_index=True)
+    urun_tipi = models.CharField(
+        max_length=30, choices=URUN_TIPI_CHOICES, blank=True, default="", db_index=True
+    )
     adet = models.PositiveIntegerField(null=True, blank=True)
     renk = models.CharField(max_length=50, null=True, blank=True, db_index=True)
     beden = models.CharField(max_length=50, null=True, blank=True, db_index=True)
@@ -265,6 +281,12 @@ class Order(models.Model):
 
     def save(self, *args, **kwargs):
         creating = self._state.adding
+
+        # Ürün tipi elle seçilmediyse ürün kodunun varsayılan tipini kullan.
+        if self.urun_kodu and not self.urun_tipi:
+            urun = UrunKod.objects.filter(kod__iexact=self.urun_kodu).first()
+            if urun:
+                self.urun_tipi = urun.urun_tipi
 
         if creating and not self.siparis_numarasi:
 
@@ -424,8 +446,6 @@ class OrderSeen(models.Model):
 
     def __str__(self):
         return f"{self.user} → {self.order}"
-
-
 
 
 

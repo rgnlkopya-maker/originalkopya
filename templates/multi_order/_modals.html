@@ -129,7 +129,30 @@
       <div class="modal-body">
         <h6 class="fw-bold mb-2">➕ Yeni Ürün Kodu Ekle</h6>
         <input type="text" id="modal_urun_kod" class="form-control mb-3" placeholder="Örn: 7058 / VS01">
+        <select id="modal_urun_tipi" class="form-select mb-3">
+            <option value="">Ürün tipi seçin...</option>
+            {% for value, label in urun_tipi_secenekleri %}
+                <option value="{{ value }}">{{ label }}</option>
+            {% endfor %}
+        </select>
         <button class="btn btn-primary w-100 mb-4" onclick="urunKodKaydet()">➕ Kaydet</button>
+
+        <hr>
+
+        <h6 class="fw-bold mb-2">✏️ Mevcut Ürün Tipini Belirle</h6>
+        <select id="modal_urun_kod_tipi_listesi" class="form-select mb-2" onchange="urunKodTipiniFormaGetir()">
+            <option value="">Ürün kodu seçin...</option>
+            {% for u in aktif_urun_kodlari %}
+                <option value="{{ u.id }}" data-kod="{{ u.kod }}" data-urun-tipi="{{ u.urun_tipi }}">{{ u.kod }}</option>
+            {% endfor %}
+        </select>
+        <select id="modal_mevcut_urun_tipi" class="form-select mb-2">
+            <option value="">Ürün tipi seçin...</option>
+            {% for value, label in urun_tipi_secenekleri %}
+                <option value="{{ value }}">{{ label }}</option>
+            {% endfor %}
+        </select>
+        <button class="btn btn-success w-100 mb-4" onclick="urunKodTipiGuncelle()">💾 Ürün Tipini Kaydet</button>
 
         <hr>
 

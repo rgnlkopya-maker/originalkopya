@@ -27,9 +27,20 @@
             <select id="urun_kodu_select" name="urun_kodu" class="form-select select2" required>
                 <option></option>
                 {% for u in urun_kodlari %}
-                    <option value="{{ u.kod }}">{{ u.kod }}</option>
+                    <option value="{{ u.kod }}" data-urun-tipi="{{ u.urun_tipi }}">{{ u.kod }}</option>
                 {% endfor %}
             </select>
+        </div>
+
+        <div class="col-md-4 mt-3">
+            <label class="form-label">Ürün Tipi</label>
+            <select id="urun_tipi_select" name="urun_tipi" class="form-select" required>
+                <option value="">Seçiniz</option>
+                {% for value, label in urun_tipi_secenekleri %}
+                    <option value="{{ value }}">{{ label }}</option>
+                {% endfor %}
+            </select>
+            <div class="form-text">Ürün kodundan otomatik gelir; bu sipariş için değiştirebilirsiniz.</div>
         </div>
     </div>
 
