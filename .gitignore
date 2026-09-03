@@ -7,6 +7,7 @@ __pycache__/
 
 # Virtual environment
 venv/
+.venv/
 
 # Local database
 db.sqlite3

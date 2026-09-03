@@ -3,6 +3,7 @@ import io
 import qrcode
 from supabase import create_client
 from django.conf import settings
+from django.urls import reverse
 
 
 def get_supabase():
@@ -46,7 +47,7 @@ def ensure_order_qr(order):
     if not base_url:
         base_url = "https://originalkopya.onrender.com"
 
-    qr_data = f"{base_url}/orders/{order.id}/"
+    qr_data = f"{base_url}{reverse('order_detail', kwargs={'pk': order.pk})}"
 
     # 3) QR üret
     qr = qrcode.make(qr_data)
@@ -54,7 +55,7 @@ def ensure_order_qr(order):
     qr.save(buffer, format="PNG")
     buffer.seek(0)
 
-    bucket = "order-qr"
+    bucket = settings.SUPABASE_BUCKET_NAME
     filename = f"orders/order_{order.id}.png"
 
     try:

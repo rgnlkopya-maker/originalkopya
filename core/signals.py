@@ -4,4 +4,7 @@ from .admin_init import ensure_admin
 
 @receiver(post_migrate)
 def run_ensure_admin(sender, **kwargs):
-    ensure_admin()
+    # post_migrate her kurulu uygulama için tetiklenir. Yöneticiyi yalnızca
+    # core migration'ları tamamlandığında kontrol et.
+    if sender.name == "core":
+        ensure_admin()
