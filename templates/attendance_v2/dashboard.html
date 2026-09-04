@@ -50,23 +50,27 @@
             </td>
             {% for cell in row.cells %}
             <td class="p-0">
-              <button type="button"
-                      class="attendance-cell btn w-100 h-100 text-start rounded-0 p-3 border-0"
-                      data-user-id="{{ cell.user.id }}"
-                      data-user-name="{{ cell.user.get_full_name|default:cell.user.username }}"
-                      data-date="{{ row.date|date:'Y-m-d' }}"
-                      data-check-in="{% if cell.record.check_in %}{{ cell.record.check_in|date:'H:i' }}{% endif %}"
-                      data-check-out="{% if cell.record.check_out %}{{ cell.record.check_out|date:'H:i' }}{% endif %}"
-                      {% if not can_edit %}disabled{% endif %}>
-                {% if cell.record %}
-                  <div><span class="text-muted small">Mesaiye başladı:</span> <strong>{% if cell.record.check_in %}{{ cell.record.check_in|date:"H:i" }}{% else %}—{% endif %}</strong></div>
-                  <div class="mt-1"><span class="text-muted small">Mesaiyi bitirdi:</span> <strong>{% if cell.record.check_out %}{{ cell.record.check_out|date:"H:i" }}{% else %}—{% endif %}</strong></div>
-                  {% if cell.record.late_minutes %}<div class="small text-danger mt-2">Geç: {{ cell.record.late_minutes }} dk</div>{% endif %}
-                  {% if cell.record.overtime_minutes %}<div class="small text-success">Fazla mesai: {{ cell.record.overtime_minutes }} dk</div>{% endif %}
-                {% else %}
-                  <div class="text-muted small">Kayıt yok</div>
-                {% endif %}
-              </button>
+              {% if row.is_weekend %}
+                <div class="w-100 h-100 p-3 text-center text-muted fw-semibold">Hafta Sonu Tatili</div>
+              {% else %}
+                <button type="button"
+                        class="attendance-cell btn w-100 h-100 text-start rounded-0 p-3 border-0"
+                        data-user-id="{{ cell.user.id }}"
+                        data-user-name="{{ cell.user.get_full_name|default:cell.user.username }}"
+                        data-date="{{ row.date|date:'Y-m-d' }}"
+                        data-check-in="{% if cell.record.check_in %}{{ cell.record.check_in|date:'H:i' }}{% endif %}"
+                        data-check-out="{% if cell.record.check_out %}{{ cell.record.check_out|date:'H:i' }}{% endif %}"
+                        {% if not can_edit %}disabled{% endif %}>
+                  {% if cell.record %}
+                    <div><span class="text-muted small">Mesaiye başladı:</span> <strong>{% if cell.record.check_in %}{{ cell.record.check_in|date:"H:i" }}{% else %}—{% endif %}</strong></div>
+                    <div class="mt-1"><span class="text-muted small">Mesaiyi bitirdi:</span> <strong>{% if cell.record.check_out %}{{ cell.record.check_out|date:"H:i" }}{% else %}—{% endif %}</strong></div>
+                    {% if cell.record.late_minutes %}<div class="small text-danger mt-2">Geç: {{ cell.record.late_minutes }} dk</div>{% endif %}
+                    {% if cell.record.overtime_minutes %}<div class="small text-success">Fazla mesai: {{ cell.record.overtime_minutes }} dk</div>{% endif %}
+                  {% else %}
+                    <div class="text-muted small">Kayıt yok</div>
+                  {% endif %}
+                </button>
+              {% endif %}
             </td>
             {% endfor %}
           </tr>
@@ -75,7 +79,7 @@
       </table>
     </div>
   </div>
-  {% if can_edit %}<div class="text-muted small mt-2">Patron kullanıcı: Düzenlemek için herhangi bir hücreye tıklayın.</div>{% endif %}
+  {% if can_edit %}<div class="text-muted small mt-2">Patron kullanıcı: Hafta içi bir hücreye tıklayarak giriş ve çıkış saatlerini düzenleyebilirsiniz.</div>{% endif %}
 </div>
 
 <div class="modal fade" id="editAttendanceModal" tabindex="-1" aria-hidden="true">
@@ -102,38 +106,66 @@
 </div>
 
 <script>
-const saveBtn=document.getElementById('saveLocation');
-if(saveBtn){saveBtn.addEventListener('click',()=>{const s=document.getElementById('locationStatus');s.textContent='Konum alınıyor…';saveBtn.disabled=true;navigator.geolocation.getCurrentPosition(p=>{document.getElementById('lat').value=p.coords.latitude;document.getElementById('lon').value=p.coords.longitude;document.getElementById('locationForm').submit();},()=>{s.textContent='Konum alınamadı. Tarayıcı konum iznini kontrol edin.';saveBtn.disabled=false;},{enableHighAccuracy:true,timeout:12000,maximumAge:0});});}
-
-{% if can_edit %}
-const editModal = new bootstrap.Modal(document.getElementById('editAttendanceModal'));
-document.querySelectorAll('.attendance-cell').forEach(cell => {
-  cell.addEventListener('click', () => {
-    document.getElementById('editUserId').value = cell.dataset.userId;
-    document.getElementById('editWorkDate').value = cell.dataset.date;
-    document.getElementById('editCheckIn').value = cell.dataset.checkIn || '';
-    document.getElementById('editCheckOut').value = cell.dataset.checkOut || '';
-    document.getElementById('editTitle').textContent = cell.dataset.userName;
-    document.getElementById('editDate').textContent = cell.dataset.date;
-    document.getElementById('editError').textContent = '';
-    editModal.show();
-  });
-});
-
-document.getElementById('editAttendanceForm').addEventListener('submit', async (e) => {
-  e.preventDefault();
-  const form = new FormData(e.target);
-  const error = document.getElementById('editError');
-  error.textContent = '';
-  try {
-    const response = await fetch('{% url "attendance_edit_record" %}', {method:'POST', body:form});
-    const data = await response.json();
-    if(!data.ok){ error.textContent = data.message || 'Kayıt güncellenemedi.'; return; }
-    window.location.reload();
-  } catch(err) {
-    error.textContent = 'Bağlantı hatası oluştu.';
+window.addEventListener('load', () => {
+  const saveBtn = document.getElementById('saveLocation');
+  if (saveBtn) {
+    saveBtn.addEventListener('click', () => {
+      const s = document.getElementById('locationStatus');
+      s.textContent = 'Konum alınıyor…';
+      saveBtn.disabled = true;
+      navigator.geolocation.getCurrentPosition(
+        p => {
+          document.getElementById('lat').value = p.coords.latitude;
+          document.getElementById('lon').value = p.coords.longitude;
+          document.getElementById('locationForm').submit();
+        },
+        () => {
+          s.textContent = 'Konum alınamadı. Tarayıcı konum iznini kontrol edin.';
+          saveBtn.disabled = false;
+        },
+        {enableHighAccuracy:true, timeout:12000, maximumAge:0}
+      );
+    });
   }
+
+  {% if can_edit %}
+  const modalElement = document.getElementById('editAttendanceModal');
+  const editModal = bootstrap.Modal.getOrCreateInstance(modalElement);
+
+  document.querySelectorAll('.attendance-cell').forEach(cell => {
+    cell.addEventListener('click', () => {
+      document.getElementById('editUserId').value = cell.dataset.userId;
+      document.getElementById('editWorkDate').value = cell.dataset.date;
+      document.getElementById('editCheckIn').value = cell.dataset.checkIn || '';
+      document.getElementById('editCheckOut').value = cell.dataset.checkOut || '';
+      document.getElementById('editTitle').textContent = cell.dataset.userName;
+      document.getElementById('editDate').textContent = cell.dataset.date;
+      document.getElementById('editError').textContent = '';
+      editModal.show();
+    });
+  });
+
+  const editForm = document.getElementById('editAttendanceForm');
+  if (editForm) {
+    editForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const form = new FormData(e.target);
+      const error = document.getElementById('editError');
+      error.textContent = '';
+      try {
+        const response = await fetch('{% url "attendance_edit_record" %}', {method:'POST', body:form});
+        const data = await response.json();
+        if (!data.ok) {
+          error.textContent = data.message || 'Kayıt güncellenemedi.';
+          return;
+        }
+        window.location.reload();
+      } catch (err) {
+        error.textContent = 'Bağlantı hatası oluştu.';
+      }
+    });
+  }
+  {% endif %}
 });
-{% endif %}
 </script>
 {% endblock %}
