@@ -39,12 +39,22 @@ class ProductCard(models.Model):
     urun = models.OneToOneField(UrunKod, on_delete=models.CASCADE, related_name="product_card")
     aciklama = models.TextField(blank=True, default="")
     image_url = models.URLField(blank=True, default="")
-    iscilik_maliyeti = models.DecimalField(max_digits=14, decimal_places=2, default=0)
-    iscilik_para_birimi = models.CharField(max_length=3, choices=CURRENCY_CHOICES, default="TRY")
+
+    finansman_maliyeti = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    finansman_para_birimi = models.CharField(max_length=3, choices=CURRENCY_CHOICES, default="TRY")
+    nakis_maliyeti = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    nakis_para_birimi = models.CharField(max_length=3, choices=CURRENCY_CHOICES, default="TRY")
     genel_gider = models.DecimalField(max_digits=14, decimal_places=2, default=0)
     genel_gider_para_birimi = models.CharField(max_length=3, choices=CURRENCY_CHOICES, default="TRY")
+    iscilik_maliyeti = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    iscilik_para_birimi = models.CharField(max_length=3, choices=CURRENCY_CHOICES, default="TRY")
+    paketleme_maliyeti = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    paketleme_para_birimi = models.CharField(max_length=3, choices=CURRENCY_CHOICES, default="TRY")
+
+    # Eski kayitlarla uyumluluk icin tutuluyor; yeni maliyet ekraninda kullanilmiyor.
     diger_maliyet = models.DecimalField(max_digits=14, decimal_places=2, default=0)
     diger_maliyet_para_birimi = models.CharField(max_length=3, choices=CURRENCY_CHOICES, default="TRY")
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -56,20 +66,35 @@ class ProductCard(models.Model):
         return total
 
     @property
-    def iscilik_maliyeti_tl(self):
-        return to_try(self.iscilik_maliyeti, self.iscilik_para_birimi)
+    def finansman_maliyeti_tl(self):
+        return to_try(self.finansman_maliyeti, self.finansman_para_birimi)
+
+    @property
+    def nakis_maliyeti_tl(self):
+        return to_try(self.nakis_maliyeti, self.nakis_para_birimi)
 
     @property
     def genel_gider_tl(self):
         return to_try(self.genel_gider, self.genel_gider_para_birimi)
 
     @property
-    def diger_maliyet_tl(self):
-        return to_try(self.diger_maliyet, self.diger_maliyet_para_birimi)
+    def iscilik_maliyeti_tl(self):
+        return to_try(self.iscilik_maliyeti, self.iscilik_para_birimi)
+
+    @property
+    def paketleme_maliyeti_tl(self):
+        return to_try(self.paketleme_maliyeti, self.paketleme_para_birimi)
 
     @property
     def toplam_maliyet(self):
-        return self.malzeme_maliyeti + self.iscilik_maliyeti_tl + self.genel_gider_tl + self.diger_maliyet_tl
+        return (
+            self.malzeme_maliyeti
+            + self.finansman_maliyeti_tl
+            + self.nakis_maliyeti_tl
+            + self.genel_gider_tl
+            + self.iscilik_maliyeti_tl
+            + self.paketleme_maliyeti_tl
+        )
 
     def __str__(self):
         return f"Ürün Kartı - {self.urun.kod}"
