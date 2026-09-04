@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Moli Puantaj QR</title>
+  <style>
+    body{font-family:Arial,sans-serif;background:#f3f4f6;margin:0;padding:30px;color:#111827}
+    .sheet{max-width:720px;margin:0 auto;background:#fff;border-radius:24px;padding:42px;text-align:center;box-shadow:0 12px 40px rgba(0,0,0,.08)}
+    img{width:360px;max-width:85%;height:auto}
+    h1{margin:0 0 8px;font-size:34px}
+    p{font-size:18px;line-height:1.5;color:#4b5563}
+    .url{font-size:12px;color:#9ca3af;word-break:break-all;margin-top:16px}
+    .actions{margin-top:26px}
+    button{border:0;border-radius:14px;padding:14px 24px;font-size:16px;font-weight:700;cursor:pointer}
+    @media print{body{background:#fff;padding:0}.sheet{box-shadow:none;max-width:none;border-radius:0;padding:20mm}.actions{display:none}}
+  </style>
+</head>
+<body>
+  <div class="sheet">
+    <div style="font-size:14px;letter-spacing:2px;color:#6b7280;margin-bottom:10px">MOLI TEKSTIL</div>
+    <h1>Puantaj Giriş / Çıkış</h1>
+    <p>Mesaiye başlarken ve mesaiyi bitirirken bu QR kodu okutun.</p>
+    <img src="{% url 'attendance_qr_image' %}" alt="Moli Puantaj QR">
+    <p><strong>QR kod sabittir.</strong><br>İşlem sırasında konum doğrulaması yapılır.</p>
+    <div class="url">{{ target_url }}</div>
+    <div class="actions"><button onclick="window.print()">Yazdır</button></div>
+  </div>
+</body>
+</html>
