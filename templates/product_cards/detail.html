@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container py-4">
+  <div class="d-flex justify-content-between align-items-center mb-4 gap-3 flex-wrap">
+    <div>
+      <div class="text-muted small">ÜRÜN KARTI</div>
+      <h2 class="fw-bold mb-1">{{ card.urun.kod }}</h2>
+      <div class="text-muted">Bu bilgiler daha sonra istediğin zaman değiştirilebilir.</div>
+    </div>
+    <a href="{% url 'product_card_list' %}" class="btn btn-outline-secondary">← Ürün Kartları</a>
+  </div>
+
+  {% for message in messages %}<div class="alert alert-info">{{ message }}</div>{% endfor %}
+
+  <div class="card border-0 shadow-sm rounded-4 mb-4">
+    <div class="card-body p-4">
+      <h5 class="fw-bold mb-3">Genel Bilgiler</h5>
+      <form method="post">
+        {% csrf_token %}<input type="hidden" name="action" value="save_card">
+        <div class="row g-3">
+          <div class="col-md-4"><label class="form-label">Ürün Kodu</label><input class="form-control" value="{{ card.urun.kod }}" disabled></div>
+          <div class="col-md-4"><label class="form-label">Ürün Tipi</label><select name="urun_tipi" class="form-select"><option value="">Seçiniz</option>{% for value,label in urun_tipi_choices %}<option value="{{ value }}" {% if card.urun.urun_tipi == value %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></div>
+          <div class="col-12"><label class="form-label">Açıklama / Not</label><textarea name="aciklama" rows="3" class="form-control">{{ card.aciklama }}</textarea></div>
+          <div class="col-12"><button class="btn btn-dark">Kartı Kaydet</button></div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="card border-0 shadow-sm rounded-4">
+    <div class="card-body p-4">
+      <h5 class="fw-bold mb-1">Malzeme Reçetesi</h5>
+      <div class="text-muted small mb-3">Bir adet {{ card.urun.kod }} için kullanılan malzeme miktarlarını gir.</div>
+
+      <form method="post" class="row g-2 align-items-end mb-4">
+        {% csrf_token %}<input type="hidden" name="action" value="add_material">
+        <div class="col-md-5"><label class="form-label">Malzeme</label><select name="material_id" class="form-select" required><option value="">Seçiniz</option>{% for material in materials %}<option value="{{ material.id }}">{{ material.kod }} - {{ material.ad }} ({{ material.get_birim_display }})</option>{% endfor %}</select></div>
+        <div class="col-md-3"><label class="form-label">Sarfiyat / 1 ürün</label><input name="miktar" type="number" step="0.001" min="0.001" class="form-control" required></div>
+        <div class="col-md-3"><label class="form-label">Not</label><input name="notlar" class="form-control" placeholder="Opsiyonel"></div>
+        <div class="col-md-1"><button class="btn btn-dark w-100">+</button></div>
+      </form>
+
+      {% if not materials %}<div class="alert alert-warning">Önce <a href="{% url 'material_list' %}">Malzeme Kartları</a> ekranından malzeme oluştur.</div>{% endif %}
+
+      <div class="table-responsive"><table class="table align-middle"><thead><tr><th>Malzeme</th><th>Sarfiyat</th><th>Not</th><th></th></tr></thead><tbody>
+      {% for usage in usages %}<tr><td><strong>{{ usage.material.ad }}</strong><br><span class="text-muted small">{{ usage.material.kod }}</span></td><td>{{ usage.miktar }} {{ usage.material.get_birim_display }}</td><td>{{ usage.notlar|default:"—" }}</td><td class="text-end"><form method="post">{% csrf_token %}<input type="hidden" name="action" value="remove_material"><input type="hidden" name="usage_id" value="{{ usage.id }}"><button class="btn btn-sm btn-outline-danger">Sil</button></form></td></tr>{% empty %}<tr><td colspan="4" class="text-center text-muted py-4">Henüz reçete girilmedi.</td></tr>{% endfor %}
+      </tbody></table></div>
+    </div>
+  </div>
+</div>
+{% endblock %}
