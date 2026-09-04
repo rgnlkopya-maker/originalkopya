@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container py-4">
+  <a href="{% url 'attendance_dashboard' %}" class="btn btn-sm btn-outline-secondary mb-3">← Puantaj Paneli</a>
+  <h2 class="fw-bold">{{ target_user.get_full_name|default:target_user.username }}</h2>
+  <div class="text-muted mb-4">{{ month }}/{{ year }} aylık puantaj</div>
+  <div class="row g-3 mb-4">
+    <div class="col-md-3"><div class="card border-0 shadow-sm rounded-4"><div class="card-body"><small class="text-muted">İş Günü</small><div class="fs-2 fw-bold">{{ workday_count }}</div></div></div></div>
+    <div class="col-md-3"><div class="card border-0 shadow-sm rounded-4"><div class="card-body"><small class="text-muted">Gelmedi</small><div class="fs-2 fw-bold">{{ absent_count }}</div></div></div></div>
+    <div class="col-md-3"><div class="card border-0 shadow-sm rounded-4"><div class="card-body"><small class="text-muted">Geç Kalma</small><div class="fs-2 fw-bold">{{ total_late }} <span class="fs-6">dk</span></div></div></div></div>
+    <div class="col-md-3"><div class="card border-0 shadow-sm rounded-4"><div class="card-body"><small class="text-muted">Fazla Mesai</small><div class="fs-2 fw-bold">{{ total_overtime }} <span class="fs-6">dk</span></div></div></div></div>
+  </div>
+  <div class="card border-0 shadow-sm rounded-4 overflow-hidden"><div class="table-responsive"><table class="table align-middle mb-0">
+    <thead class="table-light"><tr><th class="ps-4">Tarih</th><th>Giriş</th><th>Çıkış</th><th>Çalışma</th><th>Geç</th><th>Mesai</th></tr></thead>
+    <tbody>{% for row in days %}<tr><td class="ps-4">{{ row.date|date:"d.m.Y l" }}</td><td>{% if row.record.check_in %}{{ row.record.check_in|date:"H:i" }}{% else %}—{% endif %}</td><td>{% if row.record.check_out %}{{ row.record.check_out|date:"H:i" }}{% else %}—{% endif %}</td><td>{% if row.record %}{{ row.record.work_minutes }} dk{% else %}—{% endif %}</td><td>{% if row.record.late_minutes %}{{ row.record.late_minutes }} dk{% else %}—{% endif %}</td><td>{% if row.record.overtime_minutes %}{{ row.record.overtime_minutes }} dk{% else %}—{% endif %}</td></tr>{% endfor %}</tbody>
+  </table></div></div>
+</div>
+{% endblock %}

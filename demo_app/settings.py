@@ -11,21 +11,12 @@ load_dotenv()
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-
-# ✅ SECRET_KEY zorunlu (Render'da ENV'den alır, localde default verir)
 SECRET_KEY = os.getenv(
     "SECRET_KEY",
     "dev-secret-key-1234567890123456789012345678901234567890"
 )
-
-# Canlı ortam güvenli varsayılanla başlar; yerelde gerekirse DEBUG=True verilir.
 DEBUG = os.getenv("DEBUG", "False").lower() == "true"
-
-ALLOWED_HOSTS = os.getenv(
-    "ALLOWED_HOSTS",
-    "localhost,127.0.0.1,.onrender.com"
-).split(",")
-
+ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "localhost,127.0.0.1,.onrender.com").split(",")
 
 INSTALLED_APPS = [
     "django.contrib.admin",
@@ -35,6 +26,7 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "core.apps.CoreConfig",
+    "attendance.apps.AttendanceConfig",
 ]
 
 MIDDLEWARE = [
@@ -47,45 +39,24 @@ MIDDLEWARE = [
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
-
 ROOT_URLCONF = "demo_app.urls"
-
-TEMPLATES = [
-    {
-        "BACKEND": "django.template.backends.django.DjangoTemplates",
-        "DIRS": [BASE_DIR / "templates"],
-        "APP_DIRS": True,
-        "OPTIONS": {
-            "context_processors": [
-                "django.template.context_processors.request",
-                "django.contrib.auth.context_processors.auth",
-                "django.contrib.messages.context_processors.messages",
-            ],
-        },
-    },
-]
-
+TEMPLATES = [{
+    "BACKEND": "django.template.backends.django.DjangoTemplates",
+    "DIRS": [BASE_DIR / "templates"],
+    "APP_DIRS": True,
+    "OPTIONS": {"context_processors": [
+        "django.template.context_processors.request",
+        "django.contrib.auth.context_processors.auth",
+        "django.contrib.messages.context_processors.messages",
+    ]},
+}]
 WSGI_APPLICATION = "demo_app.wsgi.application"
 
-
-# ✅ Database (Render PostgreSQL varsa onu kullanır, yoksa sqlite)
 DATABASE_URL = os.getenv("DATABASE_URL")
-
 if DATABASE_URL and DATABASE_URL.startswith("postgres"):
-    DATABASES = {
-        "default": dj_database_url.parse(
-            DATABASE_URL,
-            conn_max_age=600
-        )
-    }
+    DATABASES = {"default": dj_database_url.parse(DATABASE_URL, conn_max_age=600)}
 else:
-    DATABASES = {
-        "default": {
-            "ENGINE": "django.db.backends.sqlite3",
-            "NAME": BASE_DIR / "db.sqlite3",
-        }
-    }
-
+    DATABASES = {"default": {"ENGINE": "django.db.backends.sqlite3", "NAME": BASE_DIR / "db.sqlite3"}}
 
 AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
@@ -93,35 +64,20 @@ AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.CommonPasswordValidator"},
     {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
 ]
-
 LANGUAGE_CODE = "tr-tr"
 TIME_ZONE = "Europe/Istanbul"
 USE_I18N = True
 USE_TZ = True
-
-
-# ✅ Static
 STATIC_URL = "/static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
-
-
 LOGIN_URL = "/login/"
 LOGIN_REDIRECT_URL = "/"
 LOGOUT_REDIRECT_URL = "/login/"
-
-
-# ✅ QR Kod için temel URL
 BASE_URL = os.getenv("BASE_URL", "http://127.0.0.1:8000")
-
-
-# ✅ Admin oluşturma ayarları (ENV üzerinden)
 CREATE_ADMIN = os.getenv("CREATE_ADMIN", "0") == "1"
 ADMIN_USERNAME = os.getenv("ADMIN_USERNAME", "patron")
 ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "")
 ADMIN_EMAIL = os.getenv("ADMIN_EMAIL", "admin@example.com")
-
-
-# ✅ Supabase (ENV'den alınır)
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_SERVICE_ROLE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
 SUPABASE_BUCKET_NAME = os.getenv("SUPABASE_BUCKET_NAME", "order-qr")

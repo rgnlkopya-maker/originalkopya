@@ -1,12 +1,11 @@
 from django.contrib import admin
-from django.urls import path
+from django.urls import include, path
 from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib.auth import logout
 from django.shortcuts import redirect
 from core import views
 from core.views import health_check
-
 
 
 def logout_view(request):
@@ -20,6 +19,7 @@ urlpatterns = [
     path("login/", views.custom_login, name="login"),
     path("custom-login/", views.custom_login, name="custom_login"),
     path("logout/", logout_view, name="logout"),
+    path("attendance/", include("attendance.urls")),
     path("", views.order_list, name="order_list"),
     path("order/new/", views.order_create, name="order_create"),
     path("order/<int:pk>/", views.order_detail, name="order_detail"),
@@ -39,11 +39,6 @@ urlpatterns = [
     path("staff-reports/", views.staff_reports_view, name="staff_reports"),
     path("reports/giden-urunler/", views.giden_urunler_raporu, name="giden_urunler_raporu"),
     path("reports/home/", views.reports_home, name="reports_home"),
-    path(
-        "attendance/report/<int:user_id>/<int:year>/<int:month>/",
-        views.attendance_user_month_report,
-        name="attendance_user_month_report"
-    ),
     path("reports/fasoncu/", views.fasoncu_raporu, name="fasoncu_raporu"),
     path("reports/nakisci/", views.nakisci_raporu, name="nakisci_raporu"),
     path("product-costs/", views.product_cost_list, name="product_cost_list"),
