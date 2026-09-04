@@ -5,6 +5,7 @@ from core.models import UrunKod
 class ProductCard(models.Model):
     urun = models.OneToOneField(UrunKod, on_delete=models.CASCADE, related_name="product_card")
     aciklama = models.TextField(blank=True, default="")
+    image_url = models.URLField(blank=True, default="")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
