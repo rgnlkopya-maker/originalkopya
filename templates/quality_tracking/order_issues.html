@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container py-4">
+  <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+    <div>
+      <h3 class="mb-1">⚠️ Hata / Müşteri Şikayeti</h3>
+      <div class="text-muted">{{ order.siparis_numarasi }} · {{ order.musteri.ad|default:"-" }} · {{ order.urun_kodu|default:"-" }}</div>
+    </div>
+    <div class="d-flex gap-2">
+      <a href="{% url 'quality_tracking:issue_report' %}" class="btn btn-outline-danger">Hatalı Siparişler</a>
+      <a href="{% url 'order_detail' order.id %}" class="btn btn-outline-secondary">Siparişe Dön</a>
+    </div>
+  </div>
+
+  <div class="alert alert-light border">
+    Bu kayıtlar siparişin üretim / sevkiyat <strong>Son Durum</strong> bilgisini değiştirmez.
+  </div>
+
+  <div class="card shadow-sm mb-4">
+    <div class="card-header fw-bold">Yeni Hata / Şikayet Kaydı</div>
+    <div class="card-body">
+      <form method="post" class="row g-3">
+        {% csrf_token %}
+        <div class="col-md-5">
+          <label class="form-label">Hata Konusu</label>
+          <input type="text" name="konu" class="form-control" placeholder="Örn: Fermuar hatası / ölçü problemi" required>
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">Aşama</label>
+          <select name="asama" class="form-select">
+            {% for value, label in stage_choices %}<option value="{{ value }}">{{ label }}</option>{% endfor %}
+          </select>
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">Sorumlu Personel</label>
+          <select name="personeller" class="form-select" multiple size="4">
+            {% for u in users %}<option value="{{ u.id }}">{{ u.get_full_name|default:u.username }} ({{ u.username }})</option>{% endfor %}
+          </select>
+          <div class="form-text">Birden fazla personel seçilebilir.</div>
+        </div>
+        <div class="col-12">
+          <label class="form-label">Müşteri Şikayeti / Hata Açıklaması</label>
+          <textarea name="aciklama" class="form-control" rows="3" required placeholder="Sorunu mümkün olduğunca net yazın."></textarea>
+        </div>
+        <div class="col-12">
+          <button class="btn btn-danger">Kaydı Ekle</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="card shadow-sm">
+    <div class="card-header fw-bold">Bu Siparişin Hata Geçmişi</div>
+    <div class="table-responsive">
+      <table class="table align-middle mb-0">
+        <thead><tr><th>Tarih</th><th>Konu</th><th>Aşama</th><th>Personel</th><th>Açıklama</th><th>Durum</th><th>İşlem</th></tr></thead>
+        <tbody>
+          {% for issue in issues %}
+          <tr>
+            <td>{{ issue.created_at|date:"d.m.Y H:i" }}</td>
+            <td class="fw-bold">{{ issue.konu }}</td>
+            <td>{{ issue.get_asama_display }}</td>
+            <td>
+              {% for u in issue.sorumlu_personeller.all %}
+                <span class="badge text-bg-light border">{{ u.get_full_name|default:u.username }}</span>
+              {% empty %}<span class="text-muted">Belirtilmedi</span>{% endfor %}
+            </td>
+            <td>{{ issue.aciklama }}</td>
+            <td>
+              {% if issue.durum == "ACIK" %}<span class="badge text-bg-warning">Açık</span>{% else %}<span class="badge text-bg-success">Çözüldü</span>{% endif %}
+              {% if issue.cozum_notu %}<div class="small text-muted mt-1">{{ issue.cozum_notu }}</div>{% endif %}
+            </td>
+            <td style="min-width:180px;">
+              {% if issue.durum == "ACIK" %}
+              <form method="post" action="{% url 'quality_tracking:resolve_issue' issue.id %}" class="d-flex gap-1">
+                {% csrf_token %}
+                <input type="text" name="cozum_notu" class="form-control form-control-sm" placeholder="Çözüm notu">
+                <button class="btn btn-sm btn-success">Çöz</button>
+              </form>
+              {% else %}
+              <form method="post" action="{% url 'quality_tracking:reopen_issue' issue.id %}">{% csrf_token %}<button class="btn btn-sm btn-outline-warning">Tekrar Aç</button></form>
+              {% endif %}
+            </td>
+          </tr>
+          {% empty %}<tr><td colspan="7" class="text-center text-muted py-4">Bu siparişte kayıtlı hata / şikayet yok.</td></tr>{% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}
