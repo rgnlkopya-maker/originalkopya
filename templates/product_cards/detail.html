@@ -15,13 +15,36 @@
   <div class="card border-0 shadow-sm rounded-4 mb-4">
     <div class="card-body p-4">
       <h5 class="fw-bold mb-3">Genel Bilgiler</h5>
-      <form method="post">
+      <form method="post" enctype="multipart/form-data">
         {% csrf_token %}<input type="hidden" name="action" value="save_card">
-        <div class="row g-3">
-          <div class="col-md-4"><label class="form-label">Ürün Kodu</label><input class="form-control" value="{{ card.urun.kod }}" disabled></div>
-          <div class="col-md-4"><label class="form-label">Ürün Tipi</label><select name="urun_tipi" class="form-select"><option value="">Seçiniz</option>{% for value,label in urun_tipi_choices %}<option value="{{ value }}" {% if card.urun.urun_tipi == value %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></div>
-          <div class="col-12"><label class="form-label">Açıklama / Not</label><textarea name="aciklama" rows="3" class="form-control">{{ card.aciklama }}</textarea></div>
-          <div class="col-12"><button class="btn btn-dark">Kartı Kaydet</button></div>
+        <div class="row g-4 align-items-start">
+          <div class="col-md-4">
+            <label class="form-label fw-semibold">Ürün Görseli</label>
+            {% if card.image_url %}
+              <div class="mb-3">
+                <img src="{{ card.image_url }}" alt="{{ card.urun.kod }}" class="img-fluid rounded-4 border" style="width:100%;max-height:420px;object-fit:contain;background:#f8f9fa;">
+              </div>
+              <div class="form-check mb-2">
+                <input class="form-check-input" type="checkbox" value="1" name="remove_image" id="removeImage">
+                <label class="form-check-label" for="removeImage">Mevcut resmi kaldır</label>
+              </div>
+            {% else %}
+              <div class="border rounded-4 d-flex align-items-center justify-content-center text-muted mb-3" style="height:280px;background:#f8f9fa;">
+                Henüz ürün resmi yok
+              </div>
+            {% endif %}
+            <input type="file" name="product_image" class="form-control" accept="image/*">
+            <div class="form-text">Yeni bir resim seçersen mevcut resmin yerine kaydedilir.</div>
+          </div>
+
+          <div class="col-md-8">
+            <div class="row g-3">
+              <div class="col-md-6"><label class="form-label">Ürün Kodu</label><input class="form-control" value="{{ card.urun.kod }}" disabled></div>
+              <div class="col-md-6"><label class="form-label">Ürün Tipi</label><select name="urun_tipi" class="form-select"><option value="">Seçiniz</option>{% for value,label in urun_tipi_choices %}<option value="{{ value }}" {% if card.urun.urun_tipi == value %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></div>
+              <div class="col-12"><label class="form-label">Açıklama / Not</label><textarea name="aciklama" rows="5" class="form-control">{{ card.aciklama }}</textarea></div>
+              <div class="col-12"><button class="btn btn-dark">Kartı Kaydet</button></div>
+            </div>
+          </div>
         </div>
       </form>
     </div>
