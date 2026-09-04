@@ -62,6 +62,13 @@
       </div>
 
       <div class="filter-field">
+        <label class="filter-label">Müşteri</label>
+        <select id="f_musteri" class="filter-select" multiple>
+          {% for m in musteri_options %}<option value="{{ m }}">{{ m }}</option>{% endfor %}
+        </select>
+      </div>
+
+      <div class="filter-field">
         <label class="filter-label">Son Durum</label>
         <select id="f_status" class="filter-select" multiple>
           {% for s in status_options %}<option value="{{ s }}">{{ s }}</option>{% endfor %}
@@ -69,10 +76,8 @@
       </div>
 
       <div class="filter-field">
-        <label class="filter-label">Müşteri</label>
-        <select id="f_musteri" class="filter-select" multiple>
-          {% for m in musteri_options %}<option value="{{ m }}">{{ m }}</option>{% endfor %}
-        </select>
+        <label class="filter-label">Son Durum Tarihi</label>
+        <div class="date-pair"><input id="f_son_durum_baslangic" class="date-input" type="date" title="Başlangıç"><input id="f_son_durum_bitis" class="date-input" type="date" title="Bitiş"></div>
       </div>
 
       <div class="filter-field">
@@ -118,11 +123,6 @@
       <div class="filter-field">
         <label class="filter-label">Planlanan Teslim Tarihi</label>
         <div class="date-pair"><input id="f_teslim_baslangic" class="date-input" type="date" title="Başlangıç"><input id="f_teslim_bitis" class="date-input" type="date" title="Bitiş"></div>
-      </div>
-
-      <div class="filter-field full">
-        <label class="filter-label">Son Durum Tarihi</label>
-        <div class="date-pair"><input id="f_son_durum_baslangic" class="date-input" type="date" title="Başlangıç"><input id="f_son_durum_bitis" class="date-input" type="date" title="Bitiş"></div>
       </div>
 
       <div class="filter-field full">
@@ -177,7 +177,6 @@ document.addEventListener("DOMContentLoaded", function () {
     if(kalite) kalite.value="";
   });
 
-  // Order List tablosundaki mevcut başlığı da görünümü bozmadan güncelle.
   document.querySelectorAll("#orderTable thead th").forEach(function(th) {
     if ((th.textContent || "").trim().toLocaleUpperCase('tr-TR') === "TESLİM TARİHİ") {
       th.textContent = "Planlanan Teslim Tarihi";
