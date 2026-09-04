@@ -37,48 +37,44 @@ def _upload_image(uploaded_file, folder, code):
         return ""
     if not settings.SUPABASE_URL or not settings.SUPABASE_SERVICE_ROLE_KEY:
         raise RuntimeError("Supabase ayarları eksik.")
-
     ext = os.path.splitext(uploaded_file.name)[1].lower() or ".jpg"
     safe_code = "".join(ch for ch in code if ch.isalnum() or ch in ("-", "_")) or "kart"
     path = f"{folder}/{safe_code}/{uuid.uuid4().hex}{ext}"
-
     client = create_client(settings.SUPABASE_URL, settings.SUPABASE_SERVICE_ROLE_KEY)
     bucket = client.storage.from_(settings.SUPABASE_BUCKET_NAME)
-    bucket.upload(
-        path,
-        uploaded_file.read(),
-        file_options={
-            "content-type": uploaded_file.content_type or "application/octet-stream",
-            "upsert": "false",
-        },
-    )
+    bucket.upload(path, uploaded_file.read(), file_options={"content-type": uploaded_file.content_type or "application/octet-stream", "upsert": "false"})
     return bucket.get_public_url(path)
 
 
+def recalculate_approved_product_costs():
+    approved_codes = set(ProductCost.objects.filter(is_active=True).values_list("urun_kodu", flat=True))
+    if not approved_codes:
+        return 0
+    cards = ProductCard.objects.select_related("urun").prefetch_related("materials__material").filter(urun__kod__in=approved_codes)
+    updated = 0
+    for card in cards:
+        total = card.toplam_maliyet.quantize(Decimal("0.01"))
+        ProductCost.objects.filter(urun_kodu=card.urun.kod, is_active=True).update(maliyet=total, para_birimi="TRY")
+        updated += 1
+    return updated
+
+
 def fetch_tcmb_usd_rate():
-    request = urllib.request.Request(
-        "https://www.tcmb.gov.tr/kurlar/today.xml",
-        headers={"User-Agent": "MoliApp/1.0"},
-    )
+    request = urllib.request.Request("https://www.tcmb.gov.tr/kurlar/today.xml", headers={"User-Agent": "MoliApp/1.0"})
     with urllib.request.urlopen(request, timeout=12) as response:
         xml_data = response.read()
-
     root = ET.fromstring(xml_data)
     usd_node = root.find(".//Currency[@CurrencyCode='USD']")
     if usd_node is None:
         raise RuntimeError("TCMB verisinde USD bulunamadı.")
-
     selling_text = usd_node.findtext("ForexSelling") or usd_node.findtext("BanknoteSelling")
     if not selling_text:
         raise RuntimeError("TCMB USD satış kuru alınamadı.")
-
     usd_try = Decimal(selling_text.strip().replace(",", "."))
     source_date = root.attrib.get("Date", "")
     today = timezone.localdate()
-    rate, _ = ExchangeRate.objects.update_or_create(
-        rate_date=today,
-        defaults={"usd_try": usd_try, "source_date": source_date},
-    )
+    rate, _ = ExchangeRate.objects.update_or_create(rate_date=today, defaults={"usd_try": usd_try, "source_date": source_date})
+    recalculate_approved_product_costs()
     return rate
 
 
@@ -100,7 +96,7 @@ def refresh_exchange_rate(request):
         return HttpResponseForbidden("Bu işlem için yetkiniz yok.")
     try:
         rate = fetch_tcmb_usd_rate()
-        messages.success(request, f"TCMB USD satış kuru güncellendi: 1 USD = {rate.usd_try} TL")
+        messages.success(request, f"TCMB USD satış kuru güncellendi: 1 USD = {rate.usd_try} TL. Onaylı ürün maliyetleri de yenilendi.")
     except Exception as exc:
         messages.error(request, f"Kur güncellenemedi: {exc}")
     return redirect(request.POST.get("next") or "product_card_list")
@@ -110,7 +106,6 @@ def refresh_exchange_rate(request):
 def product_card_list(request):
     if not _can_manage(request.user):
         return HttpResponseForbidden("Bu sayfaya erişim yetkiniz yok.")
-
     current_rate, rate_error = ensure_daily_rate()
     cards = ProductCard.objects.select_related("urun").prefetch_related("materials").order_by("urun__kod")
     q = (request.GET.get("q") or "").strip()
@@ -123,20 +118,17 @@ def product_card_list(request):
 def product_card_detail(request, card_id):
     if not _can_manage(request.user):
         return HttpResponseForbidden("Bu sayfaya erişim yetkiniz yok.")
-
     current_rate, rate_error = ensure_daily_rate()
     card = get_object_or_404(ProductCard.objects.select_related("urun"), pk=card_id)
 
     if request.method == "POST":
         action = request.POST.get("action")
-
         if action == "save_card":
             card.aciklama = (request.POST.get("aciklama") or "").strip()
             urun_tipi = (request.POST.get("urun_tipi") or "").strip()
             if urun_tipi:
                 card.urun.urun_tipi = urun_tipi
                 card.urun.save(update_fields=["urun_tipi"])
-
             uploaded_image = request.FILES.get("product_image")
             if uploaded_image:
                 try:
@@ -144,10 +136,8 @@ def product_card_detail(request, card_id):
                 except Exception as exc:
                     messages.error(request, f"Ürün resmi yüklenemedi: {exc}")
                     return redirect("product_card_detail", card_id=card.id)
-
             if request.POST.get("remove_image") == "1":
                 card.image_url = ""
-
             card.save()
             messages.success(request, "Ürün kartı güncellendi.")
 
@@ -161,21 +151,17 @@ def product_card_detail(request, card_id):
             except (InvalidOperation, ValueError):
                 messages.error(request, "Geçerli bir sarfiyat miktarı girin.")
                 return redirect("product_card_detail", card_id=card.id)
-
             material = get_object_or_404(Material, pk=material_id, aktif=True)
-            ProductMaterial.objects.update_or_create(
-                product_card=card,
-                material=material,
-                defaults={
-                    "miktar": miktar,
-                    "notlar": (request.POST.get("notlar") or "").strip(),
-                },
-            )
+            ProductMaterial.objects.update_or_create(product_card=card, material=material, defaults={"miktar": miktar, "notlar": (request.POST.get("notlar") or "").strip()})
+            if ProductCost.objects.filter(urun_kodu=card.urun.kod, is_active=True).exists():
+                recalculate_approved_product_costs()
             messages.success(request, "Malzeme reçeteye eklendi/güncellendi.")
 
         elif action == "remove_material":
             usage = get_object_or_404(ProductMaterial, pk=request.POST.get("usage_id"), product_card=card)
             usage.delete()
+            if ProductCost.objects.filter(urun_kodu=card.urun.kod, is_active=True).exists():
+                recalculate_approved_product_costs()
             messages.success(request, "Malzeme reçeteden kaldırıldı.")
 
         elif action in {"save_costs", "approve_cost"}:
@@ -186,56 +172,33 @@ def product_card_detail(request, card_id):
             except ValueError as exc:
                 messages.error(request, str(exc))
                 return redirect("product_card_detail", card_id=card.id)
-
             valid_currencies = {choice[0] for choice in CURRENCY_CHOICES}
             card.iscilik_para_birimi = request.POST.get("iscilik_para_birimi") if request.POST.get("iscilik_para_birimi") in valid_currencies else "TRY"
             card.genel_gider_para_birimi = request.POST.get("genel_gider_para_birimi") if request.POST.get("genel_gider_para_birimi") in valid_currencies else "TRY"
             card.diger_maliyet_para_birimi = request.POST.get("diger_maliyet_para_birimi") if request.POST.get("diger_maliyet_para_birimi") in valid_currencies else "TRY"
-            card.save(update_fields=[
-                "iscilik_maliyeti", "iscilik_para_birimi",
-                "genel_gider", "genel_gider_para_birimi",
-                "diger_maliyet", "diger_maliyet_para_birimi", "updated_at",
-            ])
-
+            card.save(update_fields=["iscilik_maliyeti", "iscilik_para_birimi", "genel_gider", "genel_gider_para_birimi", "diger_maliyet", "diger_maliyet_para_birimi", "updated_at"])
             if action == "save_costs":
+                if ProductCost.objects.filter(urun_kodu=card.urun.kod, is_active=True).exists():
+                    recalculate_approved_product_costs()
                 messages.success(request, "Ek maliyetler kaydedildi. Güncel kurla toplam yeniden hesaplandı.")
             else:
                 total = card.toplam_maliyet.quantize(Decimal("0.01"))
-                ProductCost.objects.update_or_create(
-                    urun_kodu=card.urun.kod,
-                    defaults={"maliyet": total, "para_birimi": "TRY", "is_active": True},
-                )
+                ProductCost.objects.update_or_create(urun_kodu=card.urun.kod, defaults={"maliyet": total, "para_birimi": "TRY", "is_active": True})
                 messages.success(request, f"{card.urun.kod} maliyeti güncel kurla {total} TL olarak Ürün Maliyetleri listesine kaydedildi.")
-
         return redirect("product_card_detail", card_id=card.id)
 
     materials = Material.objects.filter(aktif=True).order_by("ad")
     usages = list(card.materials.select_related("material").all())
     material_total = sum((usage.satir_maliyeti for usage in usages), Decimal("0"))
-    calculated_total = card.toplam_maliyet
     current_product_cost = ProductCost.objects.filter(urun_kodu=card.urun.kod, is_active=True).first()
-
-    return render(request, "product_cards/detail.html", {
-        "card": card,
-        "materials": materials,
-        "usages": usages,
-        "material_total": material_total,
-        "calculated_total": calculated_total,
-        "current_product_cost": current_product_cost,
-        "current_rate": current_rate,
-        "rate_error": rate_error,
-        "currency_choices": CURRENCY_CHOICES,
-        "urun_tipi_choices": UrunKod._meta.get_field("urun_tipi").choices,
-    })
+    return render(request, "product_cards/detail.html", {"card": card, "materials": materials, "usages": usages, "material_total": material_total, "calculated_total": card.toplam_maliyet, "current_product_cost": current_product_cost, "current_rate": current_rate, "rate_error": rate_error, "currency_choices": CURRENCY_CHOICES, "urun_tipi_choices": UrunKod._meta.get_field("urun_tipi").choices})
 
 
 @login_required
 def material_list(request):
     if not _can_manage(request.user):
         return HttpResponseForbidden("Bu sayfaya erişim yetkiniz yok.")
-
     current_rate, rate_error = ensure_daily_rate()
-
     if request.method == "POST":
         action = request.POST.get("action")
         if action == "add":
@@ -251,19 +214,8 @@ def material_list(request):
             except ValueError as exc:
                 messages.error(request, str(exc))
                 return redirect("material_list")
-
             if kod and ad:
-                material, _ = Material.objects.update_or_create(
-                    kod=kod,
-                    defaults={
-                        "ad": ad,
-                        "birim": birim,
-                        "stok_miktari": stok,
-                        "birim_maliyet": birim_maliyet,
-                        "birim_maliyet_para_birimi": para_birimi,
-                        "aktif": True,
-                    },
-                )
+                material, _ = Material.objects.update_or_create(kod=kod, defaults={"ad": ad, "birim": birim, "stok_miktari": stok, "birim_maliyet": birim_maliyet, "birim_maliyet_para_birimi": para_birimi, "aktif": True})
                 uploaded_image = request.FILES.get("material_image")
                 if uploaded_image:
                     try:
@@ -272,6 +224,7 @@ def material_list(request):
                     except Exception as exc:
                         messages.error(request, f"Malzeme resmi yüklenemedi: {exc}")
                         return redirect("material_list")
+                recalculate_approved_product_costs()
                 messages.success(request, "Malzeme kartı kaydedildi.")
 
         elif action == "update_cost":
@@ -284,7 +237,8 @@ def material_list(request):
             para_birimi = request.POST.get("birim_maliyet_para_birimi") or "TRY"
             material.birim_maliyet_para_birimi = para_birimi if para_birimi in {"TRY", "USD"} else "TRY"
             material.save(update_fields=["birim_maliyet", "birim_maliyet_para_birimi", "updated_at"])
-            messages.success(request, "Malzeme birim maliyeti güncellendi.")
+            recalculate_approved_product_costs()
+            messages.success(request, "Malzeme birim maliyeti güncellendi; bağlı onaylı ürün maliyetleri de yenilendi.")
 
         elif action == "update_image":
             material = get_object_or_404(Material, pk=request.POST.get("id"), aktif=True)
@@ -309,8 +263,4 @@ def material_list(request):
         return redirect("material_list")
 
     materials = Material.objects.filter(aktif=True).order_by("ad")
-    return render(request, "product_cards/material_list.html", {
-        "materials": materials,
-        "current_rate": current_rate,
-        "rate_error": rate_error,
-    })
+    return render(request, "product_cards/material_list.html", {"materials": materials, "current_rate": current_rate, "rate_error": rate_error})
