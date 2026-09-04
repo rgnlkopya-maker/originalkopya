@@ -34,6 +34,7 @@ class AttendanceRecord(models.Model):
     STATUS_CHOICES = [
         ("worked", "Çalıştı"),
         ("leave", "İzinli"),
+        ("annual_leave", "Yıllık İzin"),
         ("sick", "Raporlu"),
         ("other", "Diğer"),
     ]
