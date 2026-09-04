@@ -1,0 +1,118 @@
+{% extends "base.html" %}
+
+{% block extra_css %}
+<style>
+body { background:#f5f7fb; }
+.person-header { display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; background:#fff; padding:16px 18px; border-radius:16px; box-shadow:0 4px 14px rgba(0,0,0,.06); margin:22px 0 16px; }
+.person-title { font-size:20px; font-weight:800; color:#111827; }
+.person-sub { font-size:13px; color:#6b7280; }
+.filter-bar { display:flex; gap:8px; flex-wrap:wrap; align-items:end; }
+.filter-bar label { font-size:12px; color:#6b7280; font-weight:600; }
+.filter-bar input { height:38px; border:1px solid #e5e7eb; border-radius:10px; padding:0 10px; }
+.summary-grid { display:grid; grid-template-columns:repeat(6,minmax(130px,1fr)); gap:10px; margin-bottom:16px; }
+.summary-card { background:#fff; border-radius:14px; padding:14px; box-shadow:0 2px 8px rgba(15,23,42,.06); }
+.summary-label { font-size:11px; color:#6b7280; text-transform:uppercase; font-weight:700; }
+.summary-value { font-size:24px; font-weight:800; color:#111827; margin-top:4px; }
+.timeline-card { background:#fff; border-radius:16px; box-shadow:0 2px 10px rgba(15,23,42,.07); overflow:hidden; }
+.timeline-head { padding:14px 18px; border-bottom:1px solid #eef0f4; display:flex; justify-content:space-between; align-items:center; }
+.timeline-item { display:grid; grid-template-columns:130px 32px 1fr; gap:10px; padding:14px 18px; border-bottom:1px solid #f1f3f7; }
+.timeline-time { color:#6b7280; font-size:12px; font-weight:600; }
+.timeline-dot { width:12px; height:12px; border-radius:50%; margin-top:4px; background:#64748b; box-shadow:0 0 0 5px #f1f5f9; }
+.timeline-dot.production { background:#395bff; box-shadow:0 0 0 5px #eef2ff; }
+.timeline-dot.issue { background:#dc2626; box-shadow:0 0 0 5px #fee2e2; }
+.timeline-dot.attendance_in { background:#16a34a; box-shadow:0 0 0 5px #dcfce7; }
+.timeline-dot.attendance_out { background:#7c3aed; box-shadow:0 0 0 5px #ede9fe; }
+.timeline-title { font-weight:750; color:#111827; }
+.timeline-detail { margin-top:3px; font-size:13px; color:#6b7280; }
+.order-link { color:#395bff; font-weight:700; text-decoration:none; }
+.order-link:hover { text-decoration:underline; }
+.issue-table { margin-top:16px; background:#fff; border-radius:16px; padding:16px; box-shadow:0 2px 10px rgba(15,23,42,.07); }
+@media(max-width:1000px){ .summary-grid { grid-template-columns:repeat(2,1fr); } }
+@media(max-width:700px){ .timeline-item { grid-template-columns:92px 24px 1fr; padding:12px; } .summary-grid { grid-template-columns:1fr 1fr; } }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-2">
+  <div class="person-header">
+    <div>
+      <div class="person-title">👤 {{ target_user.get_full_name|default:target_user.username }}</div>
+      <div class="person-sub">Personel iş geçmişi, puantaj hareketleri ve hata kayıtları</div>
+    </div>
+    <div class="d-flex gap-2 flex-wrap">
+      <a href="{% url 'personel_raporu' %}?user={{ target_user.username|urlencode }}" class="btn btn-outline-secondary btn-sm">← Personel Raporu</a>
+      <a href="{% url 'quality_tracking:issue_report' %}?personel={{ target_user.username|urlencode }}" class="btn btn-outline-danger btn-sm">⚠️ Hata Kayıtları</a>
+    </div>
+  </div>
+
+  <form method="get" class="filter-bar mb-3">
+    <div><label>Başlangıç</label><br><input type="date" name="start_date" value="{{ start_date }}"></div>
+    <div><label>Bitiş</label><br><input type="date" name="end_date" value="{{ end_date }}"></div>
+    <button class="btn btn-primary" type="submit">Göster</button>
+    <a class="btn btn-outline-secondary" href="{% url 'quality_tracking:personnel_detail' target_user.id %}">Bu Ay</a>
+  </form>
+
+  <div class="summary-grid">
+    <div class="summary-card"><div class="summary-label">Üretim İşlemi</div><div class="summary-value">{{ production_count }}</div></div>
+    <div class="summary-card"><div class="summary-label">Sipariş</div><div class="summary-value">{{ order_count }}</div></div>
+    <div class="summary-card"><div class="summary-label">Çalışılan Gün</div><div class="summary-value">{{ attendance_count }}</div></div>
+    <div class="summary-card"><div class="summary-label">Fazla Mesai</div><div class="summary-value">{{ overtime_minutes }} dk</div></div>
+    <div class="summary-card"><div class="summary-label">Geç Kalma</div><div class="summary-value">{{ late_minutes }} dk</div></div>
+    <div class="summary-card"><div class="summary-label">Hata Kaydı</div><div class="summary-value">{{ issue_count }}{% if open_issue_count %}<span style="font-size:12px;color:#dc2626;"> / {{ open_issue_count }} açık</span>{% endif %}</div></div>
+  </div>
+
+  <div class="timeline-card">
+    <div class="timeline-head">
+      <div class="fw-bold">📅 Kronolojik İş Geçmişi</div>
+      <div class="text-muted small">{{ start_date }} – {{ end_date }}</div>
+    </div>
+    {% for item in timeline %}
+      <div class="timeline-item">
+        <div class="timeline-time">{{ item.timestamp|date:"d.m.Y H:i" }}</div>
+        <div><div class="timeline-dot {{ item.kind }}"></div></div>
+        <div>
+          <div class="timeline-title">{{ item.title }}</div>
+          {% if item.order %}
+            <div class="mt-1">
+              <a class="order-link" href="{% url 'order_detail' item.order.id %}">{{ item.order.siparis_numarasi }}</a>
+              · {{ item.order.musteri|default:"—" }} · {{ item.order.urun_kodu|default:"—" }} · {{ item.order.get_siparis_tipi_display|default:item.order.siparis_tipi }}
+            </div>
+          {% endif %}
+          {% if item.detail %}<div class="timeline-detail">{{ item.detail }}</div>{% endif %}
+          {% if item.kind == 'issue' %}
+            <div class="mt-1"><span class="badge {% if item.issue.durum == 'ACIK' %}text-bg-danger{% else %}text-bg-success{% endif %}">{{ item.issue.get_durum_display }}</span> · {{ item.issue.get_asama_display }}</div>
+          {% elif item.kind == 'production' and item.shared %}
+            <div class="mt-1"><span class="badge text-bg-light border">Ortak çalışan</span></div>
+          {% endif %}
+        </div>
+      </div>
+    {% empty %}
+      <div class="p-4 text-center text-muted">Bu tarih aralığında kayıt bulunamadı.</div>
+    {% endfor %}
+  </div>
+
+  <div class="issue-table">
+    <div class="d-flex justify-content-between align-items-center mb-2">
+      <h5 class="mb-0">⚠️ Bu Personele Bağlanan Hatalar</h5>
+      <a href="{% url 'quality_tracking:issue_report' %}?personel={{ target_user.username|urlencode }}" class="btn btn-sm btn-outline-danger">Tümünü Aç</a>
+    </div>
+    <div class="table-responsive">
+      <table class="table table-sm align-middle mb-0">
+        <thead><tr><th>Tarih</th><th>Sipariş</th><th>Konu</th><th>Müşteri</th><th>Ürün</th><th>Durum</th></tr></thead>
+        <tbody>
+          {% for issue in issues %}
+          <tr>
+            <td>{{ issue.created_at|date:"d.m.Y" }}</td>
+            <td><a class="order-link" href="{% url 'order_detail' issue.order.id %}">{{ issue.order.siparis_numarasi }}</a></td>
+            <td>{{ issue.konu }}</td>
+            <td>{{ issue.order.musteri|default:"—" }}</td>
+            <td>{{ issue.order.urun_kodu|default:"—" }}</td>
+            <td>{% if issue.durum == 'ACIK' %}<span class="badge text-bg-danger">Açık</span>{% else %}<span class="badge text-bg-success">Çözüldü</span>{% endif %}</td>
+          </tr>
+          {% empty %}<tr><td colspan="6" class="text-muted text-center py-3">Bu tarih aralığında hata kaydı yok.</td></tr>{% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}
