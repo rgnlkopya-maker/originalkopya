@@ -942,8 +942,17 @@ def delete_order_event(request, event_id):
     if not request.user.groups.filter(name__in=["patron", "mudur"]).exists():
         return HttpResponseForbidden("Bu işlemi yapma yetkiniz yok.")
 
-    order_id = event.order.id
+    order = event.order
+    order_id = order.id
+    deleted_stage = event.stage if event.event_type == "stage" else None
     event.delete()
+
+    if deleted_stage:
+        from .services.order_status import sync_order_stage_from_events
+
+        sync_order_stage_from_events(order, deleted_stage)
+
+    cache.clear()
 
     messages.success(request, "Üretim geçmişi kaydı silindi.")
     return redirect("order_detail", pk=order_id)

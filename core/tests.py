@@ -4,7 +4,7 @@ from django.test import TestCase, override_settings
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
 
-from .models import Musteri, Order, UrunKod
+from .models import Musteri, Order, OrderEvent, UrunKod
 from .qr import ensure_order_qr
 
 
@@ -114,5 +114,52 @@ class OrderListDescriptionTests(TestCase):
         self.assertContains(response, "Kutusunda …")
         self.assertContains(response, 'data-bs-title="Açıklama"')
         self.assertContains(response, "Kutusunda özel etiket kullanılacak")
+
+
+class DeleteOrderEventTests(TestCase):
+    def setUp(self):
+        self.user = get_user_model().objects.create_user("patron-test", password="test")
+        patron, _ = Group.objects.get_or_create(name="patron")
+        self.user.groups.add(patron)
+        self.client.force_login(self.user)
+
+    @patch("core.signals_qr.ensure_order_qr")
+    def test_deleting_shipped_event_restores_previous_shipping_state(self, _qr):
+        order = Order.objects.create(siparis_tipi="SERI", sevkiyat_durum="gonderildi")
+        OrderEvent.objects.create(
+            order=order,
+            user=self.user.username,
+            stage="sevkiyat_durum",
+            value="hazirlaniyor",
+        )
+        shipped = OrderEvent.objects.create(
+            order=order,
+            user=self.user.username,
+            stage="sevkiyat_durum",
+            value="gonderildi",
+        )
+
+        response = self.client.post(f"/events/{shipped.id}/delete/")
+
+        self.assertEqual(response.status_code, 302)
+        order.refresh_from_db()
+        self.assertEqual(order.sevkiyat_durum, "hazirlaniyor")
+        list_response = self.client.get("/")
+        self.assertEqual(list_response.context["sevke_count"], 0)
+
+    @patch("core.signals_qr.ensure_order_qr")
+    def test_deleting_only_shipping_event_restores_default_state(self, _qr):
+        order = Order.objects.create(siparis_tipi="SERI", sevkiyat_durum="gonderildi")
+        shipped = OrderEvent.objects.create(
+            order=order,
+            user=self.user.username,
+            stage="sevkiyat_durum",
+            value="gonderildi",
+        )
+
+        self.client.post(f"/events/{shipped.id}/delete/")
+
+        order.refresh_from_db()
+        self.assertEqual(order.sevkiyat_durum, "bekliyor")
 
 # Create your tests here.
