@@ -53,7 +53,10 @@
                       data-check-out="{% if cell.record.check_out %}{{ cell.record.check_out|date:'H:i' }}{% endif %}"
                       {% if not can_edit %}disabled{% endif %}>
                 {% if cell.record %}
-                  {% if cell.record.status == 'leave' %}<div class="fw-bold text-warning-emphasis">İzinli</div>
+                  {% if cell.record.status == 'leave' %}
+                    <div class="fw-bold text-warning-emphasis">İzinli</div>
+                    {% if cell.record.check_in %}<div class="small mt-1">Mesaiye başladı: <strong>{{ cell.record.check_in|date:"H:i" }}</strong></div>{% endif %}
+                    {% if cell.record.check_out %}<div class="small mt-1">İzne çıktı: <strong>{{ cell.record.check_out|date:"H:i" }}</strong></div>{% endif %}
                   {% elif cell.record.status == 'annual_leave' %}<div class="fw-bold text-info-emphasis">Yıllık İzin</div>
                   {% elif cell.record.status == 'sick' %}<div class="fw-bold text-danger">Raporlu</div>
                   {% elif cell.record.status == 'other' %}<div class="fw-bold text-secondary">Diğer</div>
@@ -99,8 +102,8 @@
           {% csrf_token %}<input type="hidden" name="user_id" id="editUserId"><input type="hidden" name="work_date" id="editWorkDate">
           <div class="mb-3"><label class="form-label fw-semibold">Durum</label><select class="form-select form-select-lg" name="status" id="editStatus"><option value="worked">Çalıştı</option><option value="leave">İzinli</option><option value="annual_leave">Yıllık İzin</option><option value="sick">Raporlu</option><option value="other">Diğer</option></select></div>
           <div id="timeFields">
-            <div class="mb-3"><label class="form-label fw-semibold">Mesaiye başladı</label><input type="time" class="form-control form-control-lg" name="check_in" id="editCheckIn"></div>
-            <div class="mb-3"><label class="form-label fw-semibold">Mesaiyi bitirdi</label><input type="time" class="form-control form-control-lg" name="check_out" id="editCheckOut"></div>
+            <div class="mb-3"><label class="form-label fw-semibold" id="checkInLabel">Mesaiye başladı</label><input type="time" class="form-control form-control-lg" name="check_in" id="editCheckIn"></div>
+            <div class="mb-3"><label class="form-label fw-semibold" id="checkOutLabel">Mesaiyi bitirdi</label><input type="time" class="form-control form-control-lg" name="check_out" id="editCheckOut"></div>
           </div>
           <div class="mb-3"><label class="form-label fw-semibold">Açıklama</label><textarea class="form-control" rows="3" name="note" id="editNote" placeholder="Bu alan durumdan bağımsızdır; her kayıt için açıklama yazabilirsiniz."></textarea></div>
           <div class="mb-3"><label class="form-label fw-semibold">Rapor görseli</label><input type="file" class="form-control" name="report_image" id="editReportImage" accept="image/*,application/pdf"><div id="existingReport" class="small mt-2"></div><div class="form-check mt-2"><input class="form-check-input" type="checkbox" value="1" name="remove_report_image" id="removeReport"><label class="form-check-label" for="removeReport">Mevcut rapor görselini kaldır</label></div></div>
@@ -117,7 +120,18 @@ window.addEventListener('load', () => {
   {% if can_edit %}
   const modal=bootstrap.Modal.getOrCreateInstance(document.getElementById('editAttendanceModal'));
   const status=document.getElementById('editStatus'); const timeFields=document.getElementById('timeFields');
-  function syncFields(){timeFields.style.display=status.value==='worked'?'block':'none';}
+  const checkInLabel=document.getElementById('checkInLabel'); const checkOutLabel=document.getElementById('checkOutLabel');
+  function syncFields(){
+    const showTimes=status.value==='worked'||status.value==='leave';
+    timeFields.style.display=showTimes?'block':'none';
+    if(status.value==='leave'){
+      checkInLabel.textContent='Mesaiye başladı';
+      checkOutLabel.textContent='İzne çıktı';
+    }else{
+      checkInLabel.textContent='Mesaiye başladı';
+      checkOutLabel.textContent='Mesaiyi bitirdi';
+    }
+  }
   status.addEventListener('change',syncFields);
   document.querySelectorAll('.attendance-cell').forEach(cell=>cell.addEventListener('click',()=>{
     document.getElementById('editUserId').value=cell.dataset.userId; document.getElementById('editWorkDate').value=cell.dataset.date;
