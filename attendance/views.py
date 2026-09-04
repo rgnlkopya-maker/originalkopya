@@ -1,15 +1,18 @@
+import io
 import math
 import os
 import uuid
 from calendar import monthrange
 from datetime import date, datetime
 
+import qrcode
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib.auth.models import User
-from django.http import JsonResponse
+from django.http import HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
 from django.utils import timezone
 from django.views.decorators.http import require_POST
 from supabase import create_client
@@ -87,6 +90,26 @@ def scan(request):
     today = timezone.localdate()
     record = AttendanceRecord.objects.filter(user=request.user, work_date=today).first()
     return render(request, "attendance_v2/scan.html", {"workplace": workplace, "record": record})
+
+
+@login_required
+@user_passes_test(is_patron)
+def attendance_qr_image(request):
+    target_url = request.build_absolute_uri(reverse("attendance_scan"))
+    qr = qrcode.QRCode(version=None, box_size=12, border=4)
+    qr.add_data(target_url)
+    qr.make(fit=True)
+    image = qr.make_image(fill_color="black", back_color="white")
+    buffer = io.BytesIO()
+    image.save(buffer, format="PNG")
+    return HttpResponse(buffer.getvalue(), content_type="image/png")
+
+
+@login_required
+@user_passes_test(is_patron)
+def attendance_qr_print(request):
+    target_url = request.build_absolute_uri(reverse("attendance_scan"))
+    return render(request, "attendance_v2/qr_print.html", {"target_url": target_url})
 
 
 @login_required
