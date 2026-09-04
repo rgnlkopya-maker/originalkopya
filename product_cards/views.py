@@ -1,9 +1,13 @@
 from decimal import Decimal, InvalidOperation
+import os
+import uuid
 
+from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponseForbidden
 from django.shortcuts import get_object_or_404, redirect, render
+from supabase import create_client
 
 from core.models import UrunKod
 from .models import Material, ProductCard, ProductMaterial
@@ -11,6 +15,29 @@ from .models import Material, ProductCard, ProductMaterial
 
 def _can_manage(user):
     return user.is_superuser or user.groups.filter(name__in=["patron", "mudur"]).exists()
+
+
+def _upload_product_image(uploaded_file, product_code):
+    if not uploaded_file:
+        return ""
+    if not settings.SUPABASE_URL or not settings.SUPABASE_SERVICE_ROLE_KEY:
+        raise RuntimeError("Supabase ayarları eksik.")
+
+    ext = os.path.splitext(uploaded_file.name)[1].lower() or ".jpg"
+    safe_code = "".join(ch for ch in product_code if ch.isalnum() or ch in ("-", "_")) or "urun"
+    path = f"product-cards/{safe_code}/{uuid.uuid4().hex}{ext}"
+
+    client = create_client(settings.SUPABASE_URL, settings.SUPABASE_SERVICE_ROLE_KEY)
+    bucket = client.storage.from_(settings.SUPABASE_BUCKET_NAME)
+    bucket.upload(
+        path,
+        uploaded_file.read(),
+        file_options={
+            "content-type": uploaded_file.content_type or "application/octet-stream",
+            "upsert": "false",
+        },
+    )
+    return bucket.get_public_url(path)
 
 
 @login_required
@@ -41,6 +68,18 @@ def product_card_detail(request, card_id):
             if urun_tipi:
                 card.urun.urun_tipi = urun_tipi
                 card.urun.save(update_fields=["urun_tipi"])
+
+            uploaded_image = request.FILES.get("product_image")
+            if uploaded_image:
+                try:
+                    card.image_url = _upload_product_image(uploaded_image, card.urun.kod)
+                except Exception as exc:
+                    messages.error(request, f"Ürün resmi yüklenemedi: {exc}")
+                    return redirect("product_card_detail", card_id=card.id)
+
+            if request.POST.get("remove_image") == "1":
+                card.image_url = ""
+
             card.save()
             messages.success(request, "Ürün kartı güncellendi.")
 
