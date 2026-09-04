@@ -4,9 +4,7 @@
 
   const OPS = [
     { value: 'kargodan_geri_geldi', label: '📦 Kargodan Geri Geldi', cls: 'btn-soft-warning', confirm: 'Ürünün kargodan geri geldiğini kaydetmek istiyor musunuz?' },
-    { value: 'iade_geldi', label: '↩️ İade Geldi', cls: 'btn-soft-warning', confirm: 'Müşteri iadesini kaydetmek istiyor musunuz?' },
-    { value: 'yanlis_sevkiyat', label: '⚠️ Yanlış Sevkiyat', cls: 'btn-soft-warning', confirm: 'Bu sevkiyatı yanlış sevkiyat olarak işaretlemek istiyor musunuz?' },
-    { value: 'tekrar_gonderildi', label: '🚚 Tekrar Gönderildi', cls: 'btn-soft-dark', confirm: 'Ürünün tekrar gönderildiğini kaydetmek istiyor musunuz?' }
+    { value: 'iade_geldi', label: '↩️ İade Geldi', cls: 'btn-soft-warning', confirm: 'Müşteri iadesini kaydetmek istiyor musunuz?' }
   ];
 
   function findShippingCard() {
