@@ -6,15 +6,47 @@
     <a href="{% url 'product_card_list' %}" class="btn btn-outline-secondary">← Ürün Kartları</a>
   </div>
   {% for message in messages %}<div class="alert alert-info">{{ message }}</div>{% endfor %}
+
   <div class="card border-0 shadow-sm rounded-4 mb-4"><div class="card-body p-4">
-    <form method="post" class="row g-3 align-items-end">{% csrf_token %}<input type="hidden" name="action" value="add">
+    <form method="post" enctype="multipart/form-data" class="row g-3 align-items-end">{% csrf_token %}<input type="hidden" name="action" value="add">
       <div class="col-md-2"><label class="form-label">Kod</label><input name="kod" class="form-control" placeholder="DT-01" required></div>
-      <div class="col-md-4"><label class="form-label">Malzeme adı</label><input name="ad" class="form-control" placeholder="Simli Tül" required></div>
+      <div class="col-md-3"><label class="form-label">Malzeme adı</label><input name="ad" class="form-control" placeholder="Simli Tül" required></div>
       <div class="col-md-2"><label class="form-label">Birim</label><select name="birim" class="form-select"><option value="M">Metre</option><option value="ADET">Adet</option><option value="KG">Kilogram</option><option value="GR">Gram</option></select></div>
       <div class="col-md-2"><label class="form-label">Başlangıç stok</label><input name="stok_miktari" type="number" step="0.001" class="form-control" value="0"></div>
-      <div class="col-md-2"><button class="btn btn-dark w-100">Kaydet</button></div>
+      <div class="col-md-2"><label class="form-label">Görsel</label><input name="material_image" type="file" accept="image/*" class="form-control"></div>
+      <div class="col-md-1"><button class="btn btn-dark w-100">Kaydet</button></div>
     </form>
   </div></div>
-  <div class="card border-0 shadow-sm rounded-4 overflow-hidden"><div class="table-responsive"><table class="table align-middle mb-0"><thead class="table-light"><tr><th>Kod</th><th>Malzeme</th><th>Birim</th><th>Stok</th><th></th></tr></thead><tbody>{% for material in materials %}<tr><td class="fw-bold">{{ material.kod }}</td><td>{{ material.ad }}</td><td>{{ material.get_birim_display }}</td><td>{{ material.stok_miktari }}</td><td class="text-end"><form method="post">{% csrf_token %}<input type="hidden" name="action" value="deactivate"><input type="hidden" name="id" value="{{ material.id }}"><button class="btn btn-sm btn-outline-danger">Pasife Al</button></form></td></tr>{% empty %}<tr><td colspan="5" class="text-center text-muted py-5">Henüz malzeme kartı yok.</td></tr>{% endfor %}</tbody></table></div></div>
+
+  <div class="card border-0 shadow-sm rounded-4 overflow-hidden"><div class="table-responsive"><table class="table align-middle mb-0"><thead class="table-light"><tr><th>Görsel</th><th>Kod</th><th>Malzeme</th><th>Birim</th><th>Stok</th><th>Görsel İşlemi</th><th></th></tr></thead><tbody>
+  {% for material in materials %}
+    <tr>
+      <td style="width:90px;">
+        {% if material.image_url %}
+          <img src="{{ material.image_url }}" alt="{{ material.ad }}" style="width:72px;height:72px;object-fit:cover;border-radius:12px;border:1px solid #e5e7eb;">
+        {% else %}
+          <div class="d-flex align-items-center justify-content-center text-muted small" style="width:72px;height:72px;border-radius:12px;border:1px dashed #cbd5e1;background:#f8fafc;">Görsel yok</div>
+        {% endif %}
+      </td>
+      <td class="fw-bold">{{ material.kod }}</td>
+      <td>{{ material.ad }}</td>
+      <td>{{ material.get_birim_display }}</td>
+      <td>{{ material.stok_miktari }}</td>
+      <td style="min-width:280px;">
+        <form method="post" enctype="multipart/form-data" class="d-flex gap-2 align-items-center flex-wrap">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="update_image">
+          <input type="hidden" name="id" value="{{ material.id }}">
+          <input name="material_image" type="file" accept="image/*" class="form-control form-control-sm" style="max-width:180px;">
+          <button class="btn btn-sm btn-outline-dark">Güncelle</button>
+          {% if material.image_url %}
+            <button name="remove_image" value="1" class="btn btn-sm btn-outline-secondary">Kaldır</button>
+          {% endif %}
+        </form>
+      </td>
+      <td class="text-end"><form method="post">{% csrf_token %}<input type="hidden" name="action" value="deactivate"><input type="hidden" name="id" value="{{ material.id }}"><button class="btn btn-sm btn-outline-danger">Pasife Al</button></form></td>
+    </tr>
+  {% empty %}<tr><td colspan="7" class="text-center text-muted py-5">Henüz malzeme kartı yok.</td></tr>{% endfor %}
+  </tbody></table></div></div>
 </div>
 {% endblock %}
