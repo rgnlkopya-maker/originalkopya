@@ -150,6 +150,7 @@ def dashboard(request):
         "mustafa kanyış",
         "osman kanyış",
         "mehmet şener",
+        "mehmet",
         "mihriban",
         "patron",
     }
