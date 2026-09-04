@@ -6,6 +6,10 @@ body { background:#f5f7fb; }
 .person-header { display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; background:#fff; padding:16px 18px; border-radius:16px; box-shadow:0 4px 14px rgba(0,0,0,.06); margin:22px 0 16px; }
 .person-title { font-size:20px; font-weight:800; color:#111827; }
 .person-sub { font-size:13px; color:#6b7280; }
+.filter-wrap { background:#fff; border-radius:14px; padding:12px 14px; box-shadow:0 2px 8px rgba(15,23,42,.05); margin-bottom:14px; }
+.quick-filters { display:flex; gap:7px; flex-wrap:wrap; margin-bottom:10px; }
+.quick-btn { border:1px solid #dbe1ea; background:#fff; color:#374151; border-radius:999px; padding:6px 12px; font-size:12px; font-weight:700; cursor:pointer; }
+.quick-btn:hover { background:#eef2ff; border-color:#c7d2fe; color:#3730a3; }
 .filter-bar { display:flex; gap:8px; flex-wrap:wrap; align-items:end; }
 .filter-bar label { font-size:12px; color:#6b7280; font-weight:600; }
 .filter-bar input { height:38px; border:1px solid #e5e7eb; border-radius:10px; padding:0 10px; }
@@ -14,8 +18,17 @@ body { background:#f5f7fb; }
 .summary-label { font-size:11px; color:#6b7280; text-transform:uppercase; font-weight:700; }
 .summary-value { font-size:24px; font-weight:800; color:#111827; margin-top:4px; }
 .timeline-card { background:#fff; border-radius:16px; box-shadow:0 2px 10px rgba(15,23,42,.07); overflow:hidden; }
-.timeline-head { padding:14px 18px; border-bottom:1px solid #eef0f4; display:flex; justify-content:space-between; align-items:center; }
+.timeline-head { padding:14px 18px; border-bottom:1px solid #eef0f4; display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; }
+.legend { display:flex; gap:7px; flex-wrap:wrap; }
+.legend span, .type-badge { display:inline-flex; align-items:center; gap:5px; border-radius:999px; padding:4px 8px; font-size:11px; font-weight:700; }
+.badge-production { background:#eef2ff; color:#3730a3; }
+.badge-issue { background:#fee2e2; color:#b91c1c; }
+.badge-in { background:#dcfce7; color:#166534; }
+.badge-out { background:#ede9fe; color:#6d28d9; }
 .timeline-item { display:grid; grid-template-columns:130px 32px 1fr; gap:10px; padding:14px 18px; border-bottom:1px solid #f1f3f7; }
+.timeline-item.production-row { background:linear-gradient(90deg,#f8f9ff 0,#fff 22%); }
+.timeline-item.issue-row { background:linear-gradient(90deg,#fff5f5 0,#fff 22%); }
+.timeline-item.attendance-row { background:linear-gradient(90deg,#f7fff9 0,#fff 22%); }
 .timeline-time { color:#6b7280; font-size:12px; font-weight:600; }
 .timeline-dot { width:12px; height:12px; border-radius:50%; margin-top:4px; background:#64748b; box-shadow:0 0 0 5px #f1f5f9; }
 .timeline-dot.production { background:#395bff; box-shadow:0 0 0 5px #eef2ff; }
@@ -45,12 +58,18 @@ body { background:#f5f7fb; }
     </div>
   </div>
 
-  <form method="get" class="filter-bar mb-3">
-    <div><label>Başlangıç</label><br><input type="date" name="start_date" value="{{ start_date }}"></div>
-    <div><label>Bitiş</label><br><input type="date" name="end_date" value="{{ end_date }}"></div>
-    <button class="btn btn-primary" type="submit">Göster</button>
-    <a class="btn btn-outline-secondary" href="{% url 'quality_tracking:personnel_detail' target_user.id %}">Bu Ay</a>
-  </form>
+  <div class="filter-wrap">
+    <div class="quick-filters">
+      <button type="button" class="quick-btn" data-range="today">Bugün</button>
+      <button type="button" class="quick-btn" data-range="week">Son 7 Gün</button>
+      <button type="button" class="quick-btn" data-range="month">Bu Ay</button>
+    </div>
+    <form method="get" class="filter-bar" id="dateFilterForm">
+      <div><label>Başlangıç</label><br><input id="startDate" type="date" name="start_date" value="{{ start_date }}"></div>
+      <div><label>Bitiş</label><br><input id="endDate" type="date" name="end_date" value="{{ end_date }}"></div>
+      <button class="btn btn-primary" type="submit">Göster</button>
+    </form>
+  </div>
 
   <div class="summary-grid">
     <div class="summary-card"><div class="summary-label">Üretim İşlemi</div><div class="summary-value">{{ production_count }}</div></div>
@@ -63,14 +82,28 @@ body { background:#f5f7fb; }
 
   <div class="timeline-card">
     <div class="timeline-head">
-      <div class="fw-bold">📅 Kronolojik İş Geçmişi</div>
-      <div class="text-muted small">{{ start_date }} – {{ end_date }}</div>
+      <div>
+        <div class="fw-bold">📅 Kronolojik İş Geçmişi</div>
+        <div class="text-muted small mt-1">{{ start_date }} – {{ end_date }}</div>
+      </div>
+      <div class="legend">
+        <span class="badge-production">🔧 Üretim</span>
+        <span class="badge-in">🟢 Giriş</span>
+        <span class="badge-out">🟣 Çıkış</span>
+        <span class="badge-issue">⚠️ Hata</span>
+      </div>
     </div>
     {% for item in timeline %}
-      <div class="timeline-item">
+      <div class="timeline-item {% if item.kind == 'production' %}production-row{% elif item.kind == 'issue' %}issue-row{% else %}attendance-row{% endif %}">
         <div class="timeline-time">{{ item.timestamp|date:"d.m.Y H:i" }}</div>
         <div><div class="timeline-dot {{ item.kind }}"></div></div>
         <div>
+          <div class="mb-1">
+            {% if item.kind == 'production' %}<span class="type-badge badge-production">🔧 Üretim</span>
+            {% elif item.kind == 'issue' %}<span class="type-badge badge-issue">⚠️ Hata / Şikayet</span>
+            {% elif item.kind == 'attendance_in' %}<span class="type-badge badge-in">🟢 İşe Giriş</span>
+            {% elif item.kind == 'attendance_out' %}<span class="type-badge badge-out">🟣 İşten Çıkış</span>{% endif %}
+          </div>
           <div class="timeline-title">{{ item.title }}</div>
           {% if item.order %}
             <div class="mt-1">
@@ -115,4 +148,24 @@ body { background:#f5f7fb; }
     </div>
   </div>
 </div>
+
+<script>
+(function(){
+  function fmt(d){
+    const y=d.getFullYear(), m=String(d.getMonth()+1).padStart(2,'0'), day=String(d.getDate()).padStart(2,'0');
+    return `${y}-${m}-${day}`;
+  }
+  document.querySelectorAll('.quick-btn').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      const now=new Date();
+      let start=new Date(now), end=new Date(now);
+      if(this.dataset.range==='week') start.setDate(now.getDate()-6);
+      if(this.dataset.range==='month') start=new Date(now.getFullYear(), now.getMonth(), 1);
+      document.getElementById('startDate').value=fmt(start);
+      document.getElementById('endDate').value=fmt(end);
+      document.getElementById('dateFilterForm').submit();
+    });
+  });
+})();
+</script>
 {% endblock %}
