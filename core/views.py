@@ -2225,6 +2225,140 @@ def order_label_print(request):
     orders = Order.objects.filter(id__in=ids)
     return render(request, "orders/order_label_print.html", {"orders": orders})
 
+
+@login_required
+def order_excel_export(request):
+    """Seçili siparişleri veya mevcut liste filtresinin tamamını Excel'e aktarır."""
+    from io import BytesIO
+
+    from openpyxl import Workbook
+    from openpyxl.styles import Alignment, Font, PatternFill
+    from openpyxl.utils import get_column_letter
+
+    from .services.order_status import STATUS_LABELS
+
+    financial_stages = [
+        "satis_fiyati",
+        "ekstra_maliyet",
+        "maliyet_override",
+        "maliyet_uygulanan",
+    ]
+    latest_event = (
+        OrderEvent.objects.filter(order=OuterRef("pk"))
+        .exclude(event_type="order_update")
+        .exclude(stage__in=financial_stages)
+        .order_by("-timestamp", "-id")[:1]
+    )
+    orders = Order.objects.select_related("musteri").annotate(
+        latest_stage=Subquery(latest_event.values("stage")),
+        latest_value=Subquery(latest_event.values("value")),
+        last_status_date=Subquery(
+            latest_event.values("timestamp"), output_field=DateTimeField()
+        ),
+    )
+
+    selected_ids = [value for value in request.GET.getlist("ids") if value.isdigit()]
+    if selected_ids:
+        orders = orders.filter(id__in=selected_ids)
+    else:
+        active_values = request.GET.getlist("active") or ["1"]
+        if "all" not in active_values and not (
+            "1" in active_values and "0" in active_values
+        ):
+            if "1" in active_values:
+                orders = orders.filter(is_active=True)
+            elif "0" in active_values:
+                orders = orders.filter(is_active=False)
+
+        list_filters = {
+            "siparis_numarasi__in": request.GET.getlist("siparis_no"),
+            "musteri__ad__in": request.GET.getlist("musteri"),
+            "urun_kodu__in": request.GET.getlist("urun_kodu"),
+            "renk__in": request.GET.getlist("renk"),
+            "beden__in": request.GET.getlist("beden"),
+            "siparis_tipi__in": request.GET.getlist("siparis_tipi"),
+            "musteri_referans__in": request.GET.getlist("musteri_referans"),
+        }
+        for field, values in list_filters.items():
+            if values:
+                orders = orders.filter(**{field: values})
+
+        status_values = request.GET.getlist("status")
+        if status_values:
+            status_query = Q()
+            for (stage, value), label in STATUS_LABELS.items():
+                if label in status_values:
+                    status_query |= Q(latest_stage=stage, latest_value=value)
+            orders = orders.filter(status_query)
+
+        start = request.GET.get("teslim_tarihi_baslangic")
+        end = request.GET.get("teslim_tarihi_bitis")
+        if start:
+            orders = orders.filter(teslim_tarihi__gte=start)
+        if end:
+            orders = orders.filter(teslim_tarihi__lte=end)
+
+    workbook = Workbook()
+    sheet = workbook.active
+    sheet.title = "Siparişler"
+    headers = [
+        "Sipariş No", "Müşteri", "Ürün Kodu", "Ürün Tipi", "Müşteri Ref",
+        "Adet", "Renk", "Beden", "Açıklama", "Teslim Tarihi",
+        "Son Durum", "Son Durum Tarihi",
+    ]
+    sheet.append(headers)
+
+    header_fill = PatternFill("solid", fgColor="4458E8")
+    for cell in sheet[1]:
+        cell.fill = header_fill
+        cell.font = Font(color="FFFFFF", bold=True)
+        cell.alignment = Alignment(horizontal="center", vertical="center")
+
+    product_type_labels = dict(URUN_TIPI_CHOICES)
+    for order in orders.order_by("-id"):
+        status = STATUS_LABELS.get((order.latest_stage, order.latest_value))
+        if not status and order.latest_stage and order.latest_value:
+            status = (
+                order.latest_stage.replace("_durum", "").replace("_", " ").title()
+                + " → "
+                + order.latest_value.replace("_", " ").title()
+            )
+        sheet.append([
+            order.siparis_numarasi or "",
+            order.musteri.ad if order.musteri else "",
+            order.urun_kodu or "",
+            product_type_labels.get(order.urun_tipi, order.urun_tipi or ""),
+            order.musteri_referans or "",
+            order.adet or 0,
+            order.renk or "",
+            order.beden or "",
+            order.aciklama or "",
+            order.teslim_tarihi,
+            status or "-",
+            order.last_status_date.date() if order.last_status_date else None,
+        ])
+
+    widths = [16, 24, 20, 22, 28, 10, 16, 12, 40, 16, 24, 18]
+    for index, width in enumerate(widths, start=1):
+        sheet.column_dimensions[get_column_letter(index)].width = width
+    sheet.freeze_panes = "A2"
+    sheet.auto_filter.ref = sheet.dimensions
+    for row in sheet.iter_rows(min_row=2):
+        for cell in row:
+            cell.alignment = Alignment(vertical="top", wrap_text=True)
+
+    output = BytesIO()
+    workbook.save(output)
+    output.seek(0)
+    response = HttpResponse(
+        output.getvalue(),
+        content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    )
+    response["Content-Disposition"] = (
+        f'attachment; filename="siparisler-{timezone.localdate():%Y-%m-%d}.xlsx"'
+    )
+    return response
+
 @login_required
 @require_POST
 def order_toggle_active(request, pk):

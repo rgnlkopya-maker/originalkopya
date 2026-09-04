@@ -110,6 +110,24 @@
     justify-content: center;
 }
 .filter-btn i { font-size: 20px; color: #395bff; }
+.excel-download-btn {
+    width: 42px;
+    height: 42px;
+    border-radius: 22px;
+    border: 1px solid #ccebd8;
+    background: #f1fff6;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: .2s ease;
+}
+.excel-download-btn i { font-size: 20px; color: #168447; }
+.excel-download-btn:hover {
+    background: #ddf8e8;
+    border-color: #9cddb6;
+    transform: translateY(-1px);
+}
 
 /* QR */
 .qr-box {
@@ -205,6 +223,11 @@ tr.selected-row {
 
             <button class="filter-btn" title="Gelişmiş Filtre" type="button">
                 <i class="bi bi-sliders"></i>
+            </button>
+
+            <button class="excel-download-btn" id="downloadExcel" title="Excel İndir" type="button"
+                    data-export-url="{% url 'order_excel_export' %}">
+                <i class="bi bi-file-earmark-excel"></i>
             </button>
 
             <button class="filter-clear-btn" id="clearFilters" title="Filtreleri Temizle">
@@ -408,6 +431,7 @@ document.addEventListener("DOMContentLoaded", function () {
     const btnEdit = document.getElementById("btnEdit");
     const btnDelete = document.getElementById("btnDelete");
     const btnShare = document.getElementById("btnShare");
+    const downloadExcel = document.getElementById("downloadExcel");
 
     // ✅ Filtre Panel DOM (include içinden geliyor)
     const filterBtn = document.querySelector(".filter-btn");
@@ -418,6 +442,22 @@ document.addEventListener("DOMContentLoaded", function () {
     // ✅ Seçili checkbox
     function getSelectedCheckbox() {
         return document.querySelector(".row-checkbox:checked");
+    }
+
+    // Seçim varsa seçilenleri, yoksa mevcut filtre sonucunu Excel'e aktar.
+    if (downloadExcel) {
+        downloadExcel.addEventListener("click", function () {
+            const params = new URLSearchParams(window.location.search);
+            params.delete("page");
+            params.delete("ids");
+
+            document.querySelectorAll(".row-checkbox:checked").forEach(function (checkbox) {
+                params.append("ids", checkbox.dataset.id);
+            });
+
+            const query = params.toString();
+            window.location.href = this.dataset.exportUrl + (query ? "?" + query : "");
+        });
     }
 
     function updateSelection() {

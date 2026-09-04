@@ -69,6 +69,7 @@ urlpatterns = [
     path("ajax/renk/pasif-yap/", views.renk_pasif_yap_ajax, name="renk_pasif_yap_ajax"),
     path("orders/print/", views.order_print, name="order_print"),
     path("orders/label/print/", views.order_label_print, name="order_label_print"),
+    path("orders/export/excel/", views.order_excel_export, name="order_excel_export"),
     path("order/<int:pk>/toggle-active/", views.order_toggle_active, name="order_toggle_active"),
     path("reports/dashboard/", views.dashboard_view, name="dashboard"),
     path("reports/shipped-live/", views.live_shipped_orders, name="live_shipped_orders"),
