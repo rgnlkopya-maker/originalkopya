@@ -34,42 +34,40 @@
     <div class="table-responsive">
       <table class="table table-bordered align-middle mb-0" style="min-width:1100px">
         <thead class="table-light sticky-top">
-          <tr>
-            <th style="min-width:115px">Tarih</th>
-            {% for user in users %}
-              <th class="text-center" style="min-width:180px">{{ user.get_full_name|default:user.username }}</th>
-            {% endfor %}
-          </tr>
+          <tr><th style="min-width:115px">Tarih</th>{% for user in users %}<th class="text-center" style="min-width:190px">{{ user.get_full_name|default:user.username }}</th>{% endfor %}</tr>
         </thead>
         <tbody>
           {% for row in matrix_rows %}
           <tr class="{% if row.is_weekend %}table-secondary{% endif %}">
-            <td class="fw-semibold">
-              {{ row.date|date:"d.m.Y" }}<br>
-              <span class="text-muted small">{{ row.date|date:"l" }}</span>
-            </td>
+            <td class="fw-semibold">{{ row.date|date:"d.m.Y" }}<br><span class="text-muted small">{{ row.date|date:"l" }}</span></td>
             {% for cell in row.cells %}
             <td class="p-0">
-              <button type="button"
-                      class="attendance-cell btn w-100 h-100 text-start rounded-0 p-3 border-0"
+              <button type="button" class="attendance-cell btn w-100 h-100 text-start rounded-0 p-3 border-0"
                       data-user-id="{{ cell.user.id }}"
                       data-user-name="{{ cell.user.get_full_name|default:cell.user.username }}"
                       data-date="{{ row.date|date:'Y-m-d' }}"
+                      data-status="{% if cell.record %}{{ cell.record.status }}{% else %}worked{% endif %}"
+                      data-note="{% if cell.record %}{{ cell.record.note|escape }}{% endif %}"
+                      data-report-url="{% if cell.record %}{{ cell.record.report_image_url }}{% endif %}"
                       data-check-in="{% if cell.record.check_in %}{{ cell.record.check_in|date:'H:i' }}{% endif %}"
                       data-check-out="{% if cell.record.check_out %}{{ cell.record.check_out|date:'H:i' }}{% endif %}"
                       {% if not can_edit %}disabled{% endif %}>
                 {% if cell.record %}
-                  {% if row.is_weekend %}<div class="small text-primary fw-semibold mb-2">Hafta Sonu Çalışması</div>{% endif %}
-                  <div><span class="text-muted small">Mesaiye başladı:</span> <strong>{% if cell.record.check_in %}{{ cell.record.check_in|date:"H:i" }}{% else %}—{% endif %}</strong></div>
-                  <div class="mt-1"><span class="text-muted small">Mesaiyi bitirdi:</span> <strong>{% if cell.record.check_out %}{{ cell.record.check_out|date:"H:i" }}{% else %}—{% endif %}</strong></div>
-                  {% if cell.record.late_minutes %}<div class="small text-danger mt-2">Geç: {{ cell.record.late_minutes }} dk</div>{% endif %}
-                  {% if cell.record.overtime_minutes %}<div class="small text-success">Fazla mesai: {{ cell.record.overtime_minutes }} dk</div>{% endif %}
-                {% else %}
-                  {% if row.is_weekend %}
-                    <div class="text-muted small fw-semibold">Hafta Sonu Tatili</div>
+                  {% if cell.record.status == 'leave' %}<div class="fw-bold text-warning-emphasis">İzinli</div>
+                  {% elif cell.record.status == 'annual_leave' %}<div class="fw-bold text-info-emphasis">Yıllık İzin</div>
+                  {% elif cell.record.status == 'sick' %}<div class="fw-bold text-danger">Raporlu</div>
+                  {% elif cell.record.status == 'other' %}<div class="fw-bold text-secondary">Diğer</div>
                   {% else %}
-                    <div class="text-muted small">Kayıt yok</div>
+                    {% if row.is_weekend %}<div class="small text-primary fw-semibold mb-2">Hafta Sonu Çalışması</div>{% endif %}
+                    <div><span class="text-muted small">Mesaiye başladı:</span> <strong>{% if cell.record.check_in %}{{ cell.record.check_in|date:"H:i" }}{% else %}—{% endif %}</strong></div>
+                    <div class="mt-1"><span class="text-muted small">Mesaiyi bitirdi:</span> <strong>{% if cell.record.check_out %}{{ cell.record.check_out|date:"H:i" }}{% else %}—{% endif %}</strong></div>
+                    {% if cell.record.late_minutes %}<div class="small text-danger mt-2">Geç: {{ cell.record.late_minutes }} dk</div>{% endif %}
+                    {% if cell.record.overtime_minutes %}<div class="small text-success">Fazla mesai: {{ cell.record.overtime_minutes }} dk</div>{% endif %}
                   {% endif %}
+                  {% if cell.record.note %}<div class="small mt-2 text-muted">📝 {{ cell.record.note|truncatechars:60 }}</div>{% endif %}
+                  {% if cell.record.report_image_url %}<div class="small mt-1 text-primary">📎 Rapor görseli mevcut</div>{% endif %}
+                {% else %}
+                  {% if row.is_weekend %}<div class="text-muted small fw-semibold">Hafta Sonu Tatili</div>{% else %}<div class="text-muted small">Kayıt yok</div>{% endif %}
                 {% endif %}
               </button>
             </td>
@@ -78,41 +76,35 @@
           {% endfor %}
         </tbody>
         <tfoot>
-          <tr class="table-dark">
-            <th class="align-middle">AYLIK TOPLAM</th>
-            {% for total in monthly_totals %}
-              <th class="text-start p-3">
-                <div class="small text-white-50">Toplam geç kalma</div>
-                <div class="fw-bold">{{ total.total_late }} dk</div>
-                <div class="small text-white-50 mt-2">Toplam fazla mesai</div>
-                <div class="fw-bold">{{ total.total_overtime }} dk</div>
-              </th>
-            {% endfor %}
-          </tr>
+          <tr class="table-dark"><th>AYLIK TOPLAM</th>{% for total in monthly_totals %}<th class="text-start p-3">
+            <div class="small text-white-50">Geç kalma</div><div class="fw-bold">{{ total.total_late }} dk</div>
+            <div class="small text-white-50 mt-2">Fazla mesai</div><div class="fw-bold">{{ total.total_overtime }} dk</div>
+            <div class="small text-white-50 mt-2">İzin</div><div class="fw-bold">{{ total.leave_days }} gün</div>
+            <div class="small text-white-50 mt-2">Yıllık izin</div><div class="fw-bold">{{ total.annual_leave_days }} gün</div>
+            <div class="small text-white-50 mt-2">Rapor</div><div class="fw-bold">{{ total.sick_days }} gün</div>
+          </th>{% endfor %}</tr>
         </tfoot>
       </table>
     </div>
   </div>
-  {% if can_edit %}<div class="text-muted small mt-2">Patron kullanıcı: Hafta içi veya hafta sonu herhangi bir hücreye tıklayarak giriş ve çıkış saatlerini düzenleyebilirsiniz.</div>{% endif %}
+  {% if can_edit %}<div class="text-muted small mt-2">Patron kullanıcı: Herhangi bir hücreye tıklayarak saat, durum, açıklama ve rapor görselini düzenleyebilirsiniz.</div>{% endif %}
 </div>
 
 <div class="modal fade" id="editAttendanceModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content rounded-4 border-0 shadow">
-      <div class="modal-header border-0 pb-0">
-        <div><h5 class="modal-title fw-bold" id="editTitle">Puantaj Düzenle</h5><div class="text-muted small" id="editDate"></div></div>
-        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-      </div>
+      <div class="modal-header border-0 pb-0"><div><h5 class="modal-title fw-bold" id="editTitle">Puantaj Düzenle</h5><div class="text-muted small" id="editDate"></div></div><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
       <div class="modal-body p-4">
-        <form id="editAttendanceForm">
-          {% csrf_token %}
-          <input type="hidden" name="user_id" id="editUserId">
-          <input type="hidden" name="work_date" id="editWorkDate">
-          <div class="mb-3"><label class="form-label fw-semibold">Mesaiye başladı</label><input type="time" class="form-control form-control-lg" name="check_in" id="editCheckIn"></div>
-          <div class="mb-3"><label class="form-label fw-semibold">Mesaiyi bitirdi</label><input type="time" class="form-control form-control-lg" name="check_out" id="editCheckOut"></div>
-          <div class="text-muted small mb-3">Hafta içi fazla mesai yalnızca 19:00 sonrası hesaplanır. Hafta sonu çalışmasında giriş ile çıkış arasındaki sürenin tamamı fazla mesai sayılır. İki saati de boş kaydederseniz kayıt silinir.</div>
-          <div id="editError" class="text-danger small mb-2"></div>
-          <button type="submit" class="btn btn-dark w-100 py-2">Kaydet</button>
+        <form id="editAttendanceForm" enctype="multipart/form-data">
+          {% csrf_token %}<input type="hidden" name="user_id" id="editUserId"><input type="hidden" name="work_date" id="editWorkDate">
+          <div class="mb-3"><label class="form-label fw-semibold">Durum</label><select class="form-select form-select-lg" name="status" id="editStatus"><option value="worked">Çalıştı</option><option value="leave">İzinli</option><option value="annual_leave">Yıllık İzin</option><option value="sick">Raporlu</option><option value="other">Diğer</option></select></div>
+          <div id="timeFields">
+            <div class="mb-3"><label class="form-label fw-semibold">Mesaiye başladı</label><input type="time" class="form-control form-control-lg" name="check_in" id="editCheckIn"></div>
+            <div class="mb-3"><label class="form-label fw-semibold">Mesaiyi bitirdi</label><input type="time" class="form-control form-control-lg" name="check_out" id="editCheckOut"></div>
+          </div>
+          <div class="mb-3"><label class="form-label fw-semibold">Açıklama</label><textarea class="form-control" rows="3" name="note" id="editNote" placeholder="Bu alan durumdan bağımsızdır; her kayıt için açıklama yazabilirsiniz."></textarea></div>
+          <div class="mb-3"><label class="form-label fw-semibold">Rapor görseli</label><input type="file" class="form-control" name="report_image" id="editReportImage" accept="image/*,application/pdf"><div id="existingReport" class="small mt-2"></div><div class="form-check mt-2"><input class="form-check-input" type="checkbox" value="1" name="remove_report_image" id="removeReport"><label class="form-check-label" for="removeReport">Mevcut rapor görselini kaldır</label></div></div>
+          <div id="editError" class="text-danger small mb-2"></div><button type="submit" class="btn btn-dark w-100 py-2">Kaydet</button>
         </form>
       </div>
     </div>
@@ -121,64 +113,21 @@
 
 <script>
 window.addEventListener('load', () => {
-  const saveBtn = document.getElementById('saveLocation');
-  if (saveBtn) {
-    saveBtn.addEventListener('click', () => {
-      const s = document.getElementById('locationStatus');
-      s.textContent = 'Konum alınıyor…';
-      saveBtn.disabled = true;
-      navigator.geolocation.getCurrentPosition(
-        p => {
-          document.getElementById('lat').value = p.coords.latitude;
-          document.getElementById('lon').value = p.coords.longitude;
-          document.getElementById('locationForm').submit();
-        },
-        () => {
-          s.textContent = 'Konum alınamadı. Tarayıcı konum iznini kontrol edin.';
-          saveBtn.disabled = false;
-        },
-        {enableHighAccuracy:true, timeout:12000, maximumAge:0}
-      );
-    });
-  }
-
+  const saveBtn=document.getElementById('saveLocation'); if(saveBtn){saveBtn.addEventListener('click',()=>{const s=document.getElementById('locationStatus');s.textContent='Konum alınıyor…';saveBtn.disabled=true;navigator.geolocation.getCurrentPosition(p=>{document.getElementById('lat').value=p.coords.latitude;document.getElementById('lon').value=p.coords.longitude;document.getElementById('locationForm').submit();},()=>{s.textContent='Konum alınamadı.';saveBtn.disabled=false;},{enableHighAccuracy:true,timeout:12000,maximumAge:0});});}
   {% if can_edit %}
-  const modalElement = document.getElementById('editAttendanceModal');
-  const editModal = bootstrap.Modal.getOrCreateInstance(modalElement);
-
-  document.querySelectorAll('.attendance-cell').forEach(cell => {
-    cell.addEventListener('click', () => {
-      document.getElementById('editUserId').value = cell.dataset.userId;
-      document.getElementById('editWorkDate').value = cell.dataset.date;
-      document.getElementById('editCheckIn').value = cell.dataset.checkIn || '';
-      document.getElementById('editCheckOut').value = cell.dataset.checkOut || '';
-      document.getElementById('editTitle').textContent = cell.dataset.userName;
-      document.getElementById('editDate').textContent = cell.dataset.date;
-      document.getElementById('editError').textContent = '';
-      editModal.show();
-    });
-  });
-
-  const editForm = document.getElementById('editAttendanceForm');
-  if (editForm) {
-    editForm.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const form = new FormData(e.target);
-      const error = document.getElementById('editError');
-      error.textContent = '';
-      try {
-        const response = await fetch('{% url "attendance_edit_record" %}', {method:'POST', body:form});
-        const data = await response.json();
-        if (!data.ok) {
-          error.textContent = data.message || 'Kayıt güncellenemedi.';
-          return;
-        }
-        window.location.reload();
-      } catch (err) {
-        error.textContent = 'Bağlantı hatası oluştu.';
-      }
-    });
-  }
+  const modal=bootstrap.Modal.getOrCreateInstance(document.getElementById('editAttendanceModal'));
+  const status=document.getElementById('editStatus'); const timeFields=document.getElementById('timeFields');
+  function syncFields(){timeFields.style.display=status.value==='worked'?'block':'none';}
+  status.addEventListener('change',syncFields);
+  document.querySelectorAll('.attendance-cell').forEach(cell=>cell.addEventListener('click',()=>{
+    document.getElementById('editUserId').value=cell.dataset.userId; document.getElementById('editWorkDate').value=cell.dataset.date;
+    document.getElementById('editTitle').textContent=cell.dataset.userName; document.getElementById('editDate').textContent=cell.dataset.date;
+    status.value=cell.dataset.status||'worked'; document.getElementById('editCheckIn').value=cell.dataset.checkIn||''; document.getElementById('editCheckOut').value=cell.dataset.checkOut||'';
+    document.getElementById('editNote').value=cell.dataset.note||''; document.getElementById('editReportImage').value=''; document.getElementById('removeReport').checked=false;
+    const existing=document.getElementById('existingReport'); existing.innerHTML=cell.dataset.reportUrl?`<a href="${cell.dataset.reportUrl}" target="_blank">Mevcut rapor görselini aç</a>`:'Rapor görseli yok';
+    document.getElementById('editError').textContent=''; syncFields(); modal.show();
+  }));
+  document.getElementById('editAttendanceForm').addEventListener('submit',async e=>{e.preventDefault();const error=document.getElementById('editError');error.textContent='';try{const response=await fetch('{% url "attendance_edit_record" %}',{method:'POST',body:new FormData(e.target)});const data=await response.json();if(!data.ok){error.textContent=data.message||'Kayıt güncellenemedi.';return;}window.location.reload();}catch(err){error.textContent='Bağlantı hatası oluştu.';}});
   {% endif %}
 });
 </script>
