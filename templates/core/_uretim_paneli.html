@@ -279,7 +279,15 @@
                                         {% comment %}
                                             Ham stage/value’ları Türkçeye çeviriyoruz
                                         {% endcomment %}
-                                        {% if e.stage == 'dikim_durum' and e.value == 'sıraya_alındı' %}
+                                        {% if e.stage == 'malzeme_durum' and e.value == 'kesildi' %}
+                                            Malzemesi Kesildi
+                                        {% elif e.stage == 'malzeme_durum' and e.value == 'boyandi' %}
+                                            Malzemesi Boyandı
+                                        {% elif e.stage == 'malzeme_durum' and e.value == 'eksik' %}
+                                            Malzemesi Eksik
+                                        {% elif e.stage == 'kesim_durum' and e.value == 'siraya_alindi' %}
+                                            Kesim Sırasına Alındı
+                                        {% elif e.stage == 'dikim_durum' and e.value == 'sıraya_alındı' %}
                                             Dikime Alındı
                                         {% elif e.stage == 'susleme_durum' and e.value == 'sıraya_alındı' %}
                                             Süsleme Sırasına Alındı
@@ -360,6 +368,36 @@
     {# SAĞ: Aşama Kartları #}
     <div class="stage-column">
 
+        {# 🧶 MALZEME #}
+        <div class="stage-card">
+            <div class="stage-card-header">
+                <div class="stage-card-title">
+                    <span class="icon">🧶</span> <span>Malzeme</span>
+                </div>
+                <div class="stage-card-sub">Kesim öncesi malzeme işlemleri</div>
+            </div>
+            <div class="stage-actions">
+                <button class="soft-btn btn-soft-primary"
+                        hx-get="{% url 'update_stage' order.id %}"
+                        hx-vals='{"stage": "malzeme_durum", "value": "kesildi"}'
+                        hx-target="#uretim-paneli" hx-swap="innerHTML">
+                    Malzemesi Kesildi
+                </button>
+
+                <button class="soft-btn btn-soft-success"
+                        hx-get="{% url 'update_stage' order.id %}"
+                        hx-vals='{"stage": "malzeme_durum", "value": "boyandi"}'
+                        hx-target="#uretim-paneli" hx-swap="innerHTML">
+                    Malzemesi Boyandı
+                </button>
+
+                <button class="soft-btn btn-soft-warning"
+                        onclick="return malzemeEksik(this);">
+                    Malzemesi Eksik
+                </button>
+            </div>
+        </div>
+
         {# ✂️ KESİM #}
         <div class="stage-card">
             <div class="stage-card-header">
@@ -369,6 +407,13 @@
                 <div class="stage-card-sub">Kesim süreç adımları</div>
             </div>
             <div class="stage-actions">
+                <button class="soft-btn btn-soft-secondary"
+                        hx-get="{% url 'update_stage' order.id %}"
+                        hx-vals='{"stage": "kesim_durum", "value": "siraya_alindi"}'
+                        hx-target="#uretim-paneli" hx-swap="innerHTML">
+                    Kesim Sırasına Alındı
+                </button>
+
                 <button class="soft-btn btn-soft-primary"
                         hx-get="{% url 'update_stage' order.id %}"
                         hx-vals='{"stage": "kesim_durum", "value": "basladi"}'
@@ -581,6 +626,22 @@
 </div>
 
 <script>
+function malzemeEksik(button) {
+    const text = prompt("Eksik malzemeyi açıklayınız:");
+    if (!text || !text.trim()) return false;
+
+    htmx.ajax('GET', "{% url 'update_stage' order.id %}", {
+        target: '#uretim-paneli',
+        swap: 'innerHTML',
+        values: {
+            stage: 'malzeme_durum',
+            value: 'eksik',
+            aciklama: text.trim()
+        }
+    });
+    return false;
+}
+
 function kismiIslem(button, stage, value) {
     const text = prompt("Kısmi işlemi belirtiniz (ör: Kol, Etek, Yaka)");
     if (!text) return false;

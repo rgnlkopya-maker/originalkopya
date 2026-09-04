@@ -161,4 +161,49 @@ class DeleteOrderEventTests(TestCase):
         detail_response = self.client.get(f"/order/{order.id}/")
         self.assertEqual(detail_response.context["current_status"], "Süslendi")
 
+
+class MaterialStageTests(TestCase):
+    def setUp(self):
+        self.user = get_user_model().objects.create_user("material-user", password="test")
+        self.client.force_login(self.user)
+        self.order = Order.objects.create(siparis_tipi="SERI")
+
+    @patch("core.signals_qr.ensure_order_qr")
+    def test_missing_material_is_saved_with_description_and_becomes_latest_status(self, _qr):
+        response = self.client.get(
+            f"/orders/{self.order.id}/update/",
+            {
+                "stage": "malzeme_durum",
+                "value": "eksik",
+                "aciklama": "İki metre astar eksik",
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        event = OrderEvent.objects.get(order=self.order)
+        self.assertEqual(event.stage, "malzeme_durum")
+        self.assertEqual(event.value, "eksik")
+        self.assertEqual(event.aciklama, "İki metre astar eksik")
+
+        list_response = self.client.get("/")
+        self.assertEqual(
+            list_response.context["orders"][0].formatted_status,
+            "Malzemesi Eksik",
+        )
+
+    @patch("core.signals_qr.ensure_order_qr")
+    def test_cutting_queue_is_saved_to_history(self, _qr):
+        self.client.get(
+            f"/orders/{self.order.id}/update/",
+            {"stage": "kesim_durum", "value": "siraya_alindi"},
+        )
+
+        self.assertTrue(
+            OrderEvent.objects.filter(
+                order=self.order,
+                stage="kesim_durum",
+                value="siraya_alindi",
+            ).exists()
+        )
+
 # Create your tests here.
