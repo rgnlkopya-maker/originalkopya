@@ -116,8 +116,13 @@
       </div>
 
       <div class="filter-field">
-        <label class="filter-label">Teslim Tarihi</label>
+        <label class="filter-label">Planlanan Teslim Tarihi</label>
         <div class="date-pair"><input id="f_teslim_baslangic" class="date-input" type="date" title="Başlangıç"><input id="f_teslim_bitis" class="date-input" type="date" title="Bitiş"></div>
+      </div>
+
+      <div class="filter-field full">
+        <label class="filter-label">Son Durum Tarihi</label>
+        <div class="date-pair"><input id="f_son_durum_baslangic" class="date-input" type="date" title="Başlangıç"><input id="f_son_durum_bitis" class="date-input" type="date" title="Bitiş"></div>
       </div>
 
       <div class="filter-field full">
@@ -148,7 +153,8 @@ document.addEventListener("DOMContentLoaded", function () {
   ];
   const dates = [
     ["f_siparis_baslangic","siparis_tarihi_baslangic"],["f_siparis_bitis","siparis_tarihi_bitis"],
-    ["f_teslim_baslangic","teslim_tarihi_baslangic"],["f_teslim_bitis","teslim_tarihi_bitis"]
+    ["f_teslim_baslangic","teslim_tarihi_baslangic"],["f_teslim_bitis","teslim_tarihi_bitis"],
+    ["f_son_durum_baslangic","son_durum_tarihi_baslangic"],["f_son_durum_bitis","son_durum_tarihi_bitis"]
   ];
   const current = new URLSearchParams(window.location.search);
 
@@ -169,6 +175,13 @@ document.addEventListener("DOMContentLoaded", function () {
     mappings.forEach(([id]) => $("#"+id).val(null).trigger("change"));
     dates.forEach(([id]) => { const el=document.getElementById(id); if(el) el.value=""; });
     if(kalite) kalite.value="";
+  });
+
+  // Order List tablosundaki mevcut başlığı da görünümü bozmadan güncelle.
+  document.querySelectorAll("#orderTable thead th").forEach(function(th) {
+    if ((th.textContent || "").trim().toLocaleUpperCase('tr-TR') === "TESLİM TARİHİ") {
+      th.textContent = "Planlanan Teslim Tarihi";
+    }
   });
 });
 </script>
