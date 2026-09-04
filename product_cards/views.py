@@ -166,21 +166,35 @@ def product_card_detail(request, card_id):
 
         elif action in {"save_costs", "approve_cost"}:
             try:
-                card.iscilik_maliyeti = _decimal_from_post(request.POST.get("iscilik_maliyeti"))
+                card.finansman_maliyeti = _decimal_from_post(request.POST.get("finansman_maliyeti"))
+                card.nakis_maliyeti = _decimal_from_post(request.POST.get("nakis_maliyeti"))
                 card.genel_gider = _decimal_from_post(request.POST.get("genel_gider"))
-                card.diger_maliyet = _decimal_from_post(request.POST.get("diger_maliyet"))
+                card.iscilik_maliyeti = _decimal_from_post(request.POST.get("iscilik_maliyeti"))
+                card.paketleme_maliyeti = _decimal_from_post(request.POST.get("paketleme_maliyeti"))
             except ValueError as exc:
                 messages.error(request, str(exc))
                 return redirect("product_card_detail", card_id=card.id)
+
             valid_currencies = {choice[0] for choice in CURRENCY_CHOICES}
-            card.iscilik_para_birimi = request.POST.get("iscilik_para_birimi") if request.POST.get("iscilik_para_birimi") in valid_currencies else "TRY"
+            card.finansman_para_birimi = request.POST.get("finansman_para_birimi") if request.POST.get("finansman_para_birimi") in valid_currencies else "TRY"
+            card.nakis_para_birimi = request.POST.get("nakis_para_birimi") if request.POST.get("nakis_para_birimi") in valid_currencies else "TRY"
             card.genel_gider_para_birimi = request.POST.get("genel_gider_para_birimi") if request.POST.get("genel_gider_para_birimi") in valid_currencies else "TRY"
-            card.diger_maliyet_para_birimi = request.POST.get("diger_maliyet_para_birimi") if request.POST.get("diger_maliyet_para_birimi") in valid_currencies else "TRY"
-            card.save(update_fields=["iscilik_maliyeti", "iscilik_para_birimi", "genel_gider", "genel_gider_para_birimi", "diger_maliyet", "diger_maliyet_para_birimi", "updated_at"])
+            card.iscilik_para_birimi = request.POST.get("iscilik_para_birimi") if request.POST.get("iscilik_para_birimi") in valid_currencies else "TRY"
+            card.paketleme_para_birimi = request.POST.get("paketleme_para_birimi") if request.POST.get("paketleme_para_birimi") in valid_currencies else "TRY"
+
+            card.save(update_fields=[
+                "finansman_maliyeti", "finansman_para_birimi",
+                "nakis_maliyeti", "nakis_para_birimi",
+                "genel_gider", "genel_gider_para_birimi",
+                "iscilik_maliyeti", "iscilik_para_birimi",
+                "paketleme_maliyeti", "paketleme_para_birimi",
+                "updated_at",
+            ])
+
             if action == "save_costs":
                 if ProductCost.objects.filter(urun_kodu=card.urun.kod, is_active=True).exists():
                     recalculate_approved_product_costs()
-                messages.success(request, "Ek maliyetler kaydedildi. Güncel kurla toplam yeniden hesaplandı.")
+                messages.success(request, "Maliyet kalemleri kaydedildi. Güncel kurla toplam yeniden hesaplandı.")
             else:
                 total = card.toplam_maliyet.quantize(Decimal("0.01"))
                 ProductCost.objects.update_or_create(urun_kodu=card.urun.kod, defaults={"maliyet": total, "para_birimi": "TRY", "is_active": True})
