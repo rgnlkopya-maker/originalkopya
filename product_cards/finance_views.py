@@ -13,11 +13,16 @@ from .models import ExchangeRate
 
 FINANCE_STAGE = "finans_hareketi"
 
-MOVEMENT_LABELS = {
+# Yalnizca patron/mudur tarafinda gorunen parasal hareketler.
+FINANCIAL_MOVEMENT_LABELS = {
     "INDIRIM": "İndirim",
     "EK_UCRET": "Ek ücret / fiyat artışı",
     "FIYAT_DUZELT": "Nihai satış fiyatını düzelt",
     "EK_MALIYET": "Ek maliyet",
+}
+
+# Eski kayitlari okuyabilmek icin onceki operasyon kodlari korunur; yeni ekranda gosterilmez.
+LEGACY_OPERATION_LABELS = {
     "KISMI_IADE": "Kısmi iade / iskonto",
     "IADE": "Tam iade",
     "KARGO_GERI": "Kargodan geri geldi",
@@ -25,7 +30,8 @@ MOVEMENT_LABELS = {
     "TEKRAR_SEVK": "Tekrar sevk edildi",
 }
 
-AMOUNT_REQUIRED = {"INDIRIM", "EK_UCRET", "FIYAT_DUZELT", "EK_MALIYET", "KISMI_IADE"}
+MOVEMENT_LABELS = {**FINANCIAL_MOVEMENT_LABELS, **LEGACY_OPERATION_LABELS}
+AMOUNT_REQUIRED = set(FINANCIAL_MOVEMENT_LABELS.keys())
 
 
 def _can_manage(user):
@@ -64,14 +70,7 @@ def _movement_payload(event):
 
 
 def calculate_finance_result(order):
-    """
-    Sevkiyat snapshot + sonraki finans hareketleri + normal sevkiyat hareketlerinden
-    güncel finansal sonucu üretir.
-
-    Böylece Tam İade / Kargo Geri / Yanlış Sevkiyat sonrasında sipariş normal
-    üretim panelinden yeniden 'Gönderildi' yapılırsa finans raporu da tekrar sevk
-    durumuna döner.
-    """
+    """Sevkiyat snapshot + parasal hareketler + operasyonel sevkiyat durumunu birlestirir."""
     snapshot = getattr(order, "shipment_financial_snapshot", None)
     if not snapshot:
         return {
@@ -94,7 +93,6 @@ def calculate_finance_result(order):
     is_final = True
     sale_before_return = snapshot_sale
 
-    # Finans hareketleri ile gerçek sevkiyat hareketlerini tek kronolojik akışta oku.
     events = (
         order.events.filter(stage__in=[FINANCE_STAGE, "sevkiyat_durum"])
         .order_by("timestamp", "id")
@@ -102,24 +100,46 @@ def calculate_finance_result(order):
     movements = []
 
     for event in events:
-        # Normal sevkiyat panelinden yeniden gönderim.
         if event.stage == "sevkiyat_durum":
+            # Operasyonel hareketler Order List / uretim gecmisini yonetir.
             if event.value == "gonderildi":
-                # İlk sevk zaten snapshot'ın başlangıç durumudur. Ancak bir iade/
-                # geri dönüş/yanlış sevkiyat sonrasında gelen yeni gönderim finans
-                # sonucunu tekrar aktif eder.
                 if status in {"IADE", "KARGO_GERI", "YANLIS_SEVKIYAT"}:
                     if satis_tl == 0:
                         satis_tl = sale_before_return or snapshot_sale
                     status = "SEVKEDILDI"
                     status_label = "Tekrar sevk edildi"
                     is_final = True
+            elif event.value in {"kargo_geri", "kargodan_geri_geldi"}:
+                sale_before_return = satis_tl
+                status = "KARGO_GERI"
+                status_label = "Kargodan geri geldi — yeniden sevk bekleniyor"
+                is_final = False
+            elif event.value in {"iade", "iade_geldi"}:
+                sale_before_return = satis_tl
+                satis_tl = Decimal("0")
+                status = "IADE"
+                status_label = "İade geldi"
+                is_final = True
+            elif event.value == "yanlis_sevkiyat":
+                sale_before_return = satis_tl
+                status = "YANLIS_SEVKIYAT"
+                status_label = "Yanlış sevkiyat — işlem bekleniyor"
+                is_final = False
+            elif event.value in {"tekrar_sevk", "tekrar_gonderildi"}:
+                if satis_tl == 0:
+                    satis_tl = sale_before_return or snapshot_sale
+                status = "SEVKEDILDI"
+                status_label = "Tekrar sevk edildi"
+                is_final = True
             continue
 
         data = _movement_payload(event)
-        movements.append(data)
         movement_type = event.value
         tl_amount = Decimal(str(data.get("tl_amount") or "0"))
+
+        # Finans ekraninda sadece parasal hareketler listelensin.
+        if movement_type in FINANCIAL_MOVEMENT_LABELS:
+            movements.append(data)
 
         if movement_type == "INDIRIM":
             satis_tl = max(Decimal("0"), satis_tl - tl_amount)
@@ -129,16 +149,15 @@ def calculate_finance_result(order):
             satis_tl = max(Decimal("0"), tl_amount)
         elif movement_type == "EK_MALIYET":
             maliyet_tl += tl_amount
+
+        # Eski sistemde finans_hareketi olarak kaydedilmis operasyonlari geriye donuk oku.
         elif movement_type == "KISMI_IADE":
             satis_tl = max(Decimal("0"), satis_tl - tl_amount)
         elif movement_type == "IADE":
-            # İade öncesi kesinleşmiş satış değerini sakla; ürün tekrar gönderilirse
-            # bu tutar geri yüklenebilir. Sonradan fiyat düzeltmesi yapılırsa o değer
-            # zaten akışta tekrar uygulanır.
             sale_before_return = satis_tl
             satis_tl = Decimal("0")
             status = "IADE"
-            status_label = "Tam iade"
+            status_label = "İade geldi"
             is_final = True
         elif movement_type == "KARGO_GERI":
             sale_before_return = satis_tl
@@ -148,7 +167,7 @@ def calculate_finance_result(order):
         elif movement_type == "YANLIS_SEVKIYAT":
             sale_before_return = satis_tl
             status = "YANLIS_SEVKIYAT"
-            status_label = "Yanlış sevkiyat işlemi — finans sonucu beklemede"
+            status_label = "Yanlış sevkiyat — işlem bekleniyor"
             is_final = False
         elif movement_type == "TEKRAR_SEVK":
             if satis_tl == 0:
@@ -183,7 +202,7 @@ def order_finance_movements(request, order_id):
     return render(request, "product_cards/order_finance_movements.html", {
         "order": order,
         "result": result,
-        "movement_labels": MOVEMENT_LABELS,
+        "movement_labels": FINANCIAL_MOVEMENT_LABELS,
     })
 
 
@@ -195,7 +214,7 @@ def add_order_finance_movement(request, order_id):
 
     order = get_object_or_404(Order, pk=order_id)
     movement_type = (request.POST.get("movement_type") or "").strip()
-    if movement_type not in MOVEMENT_LABELS:
+    if movement_type not in FINANCIAL_MOVEMENT_LABELS:
         messages.error(request, "Geçersiz finans hareketi.")
         return redirect("order_finance_movements", order_id=order.id)
 
@@ -225,6 +244,7 @@ def add_order_finance_movement(request, order_id):
         "note": (request.POST.get("note") or "").strip(),
     }
 
+    # order_update olarak tutulur: Order List'teki operasyonel Son Durum'u DEGISTIRMEZ.
     OrderEvent.objects.create(
         order=order,
         user=request.user.username,
@@ -232,9 +252,9 @@ def add_order_finance_movement(request, order_id):
         stage=FINANCE_STAGE,
         value=movement_type,
         aciklama=payload["note"],
-        event_type="stage",
+        event_type="order_update",
         new_value=json.dumps(payload, ensure_ascii=False),
     )
 
-    messages.success(request, f"{MOVEMENT_LABELS[movement_type]} kaydedildi. Önceki finans kayıtları değiştirilmedi.")
+    messages.success(request, f"{FINANCIAL_MOVEMENT_LABELS[movement_type]} kaydedildi. Sevkiyat durumu değiştirilmedi.")
     return redirect("order_finance_movements", order_id=order.id)
