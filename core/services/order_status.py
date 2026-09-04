@@ -30,6 +30,17 @@ STATUS_LABELS = {
     ("susleme_durum", "kismi_bitti"): "Kısmi Süsleme Yapıldı",
     ("susleme_durum", "bitti"): "Süslendi",
     ("sevkiyat_durum", "gonderildi"): "Sevkiyat Gönderildi",
+
+    # Sevkiyat sonrası finans / iade hareketleri
+    ("finans_hareketi", "INDIRIM"): "İndirim Yapıldı",
+    ("finans_hareketi", "EK_UCRET"): "Ek Ücret Eklendi",
+    ("finans_hareketi", "FIYAT_DUZELT"): "Satış Fiyatı Güncellendi",
+    ("finans_hareketi", "EK_MALIYET"): "Ek Maliyet Eklendi",
+    ("finans_hareketi", "KISMI_IADE"): "Kısmi İade Geldi",
+    ("finans_hareketi", "IADE"): "İade Geldi",
+    ("finans_hareketi", "KARGO_GERI"): "Kargodan Geri Geldi",
+    ("finans_hareketi", "YANLIS_SEVKIYAT"): "Yanlış Sevkiyat",
+    ("finans_hareketi", "TEKRAR_SEVK"): "Tekrar Sevk Edildi",
 }
 
 
