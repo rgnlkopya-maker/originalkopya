@@ -1,7 +1,10 @@
 import math
+import os
+import uuid
 from calendar import monthrange
-from datetime import date, datetime, timedelta
+from datetime import date, datetime
 
+from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib.auth.models import User
@@ -9,6 +12,7 @@ from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.views.decorators.http import require_POST
+from supabase import create_client
 
 from .models import AttendanceRecord, WorkplaceSettings
 
@@ -36,20 +40,45 @@ def _local_dt(day, clock):
 
 
 def _recalculate(record, workplace):
-    work_start = _local_dt(record.work_date, workplace.work_start)
-    work_end = _local_dt(record.work_date, workplace.work_end)
     record.late_minutes = 0
     record.overtime_minutes = 0
+
+    if record.status != "worked":
+        return
 
     if record.work_date.weekday() >= 5:
         if record.check_in and record.check_out and record.check_out >= record.check_in:
             record.overtime_minutes = max(0, int((record.check_out - record.check_in).total_seconds() // 60))
         return
 
+    work_start = _local_dt(record.work_date, workplace.work_start)
+    work_end = _local_dt(record.work_date, workplace.work_end)
+
     if record.check_in and record.check_in > work_start:
         record.late_minutes = max(0, int((record.check_in - work_start).total_seconds() // 60))
     if record.check_out and record.check_out > work_end:
         record.overtime_minutes = max(0, int((record.check_out - work_end).total_seconds() // 60))
+
+
+def _upload_report_image(uploaded_file, user_id, work_date):
+    if not uploaded_file:
+        return ""
+    if not settings.SUPABASE_URL or not settings.SUPABASE_SERVICE_ROLE_KEY:
+        raise RuntimeError("Supabase ayarları eksik.")
+
+    ext = os.path.splitext(uploaded_file.name)[1].lower() or ".jpg"
+    path = f"attendance/reports/{user_id}/{work_date.isoformat()}_{uuid.uuid4().hex}{ext}"
+    client = create_client(settings.SUPABASE_URL, settings.SUPABASE_SERVICE_ROLE_KEY)
+    bucket = client.storage.from_(settings.SUPABASE_BUCKET_NAME)
+    bucket.upload(
+        path,
+        uploaded_file.read(),
+        file_options={
+            "content-type": uploaded_file.content_type or "application/octet-stream",
+            "upsert": "false",
+        },
+    )
+    return bucket.get_public_url(path)
 
 
 @login_required
@@ -78,6 +107,11 @@ def punch(request):
     today = timezone.localdate()
     is_weekend = today.weekday() >= 5
     record, _ = AttendanceRecord.objects.get_or_create(user=request.user, work_date=today)
+
+    if record.status in {"leave", "annual_leave", "sick"}:
+        return JsonResponse({"ok": False, "message": "Bugün için izin/rapor kaydı var. Patron kullanıcı değiştirebilir."}, status=400)
+
+    record.status = "worked"
 
     if not record.check_in:
         allowed_radius = workplace.overtime_radius_m if is_weekend else workplace.normal_radius_m
@@ -137,12 +171,13 @@ def dashboard(request):
     monthly_totals = []
     for user in users:
         user_records = [r for r in records_qs if r.user_id == user.id]
-        total_late = sum(r.late_minutes or 0 for r in user_records)
-        total_overtime = sum(r.overtime_minutes or 0 for r in user_records)
         monthly_totals.append({
             "user": user,
-            "total_late": total_late,
-            "total_overtime": total_overtime,
+            "total_late": sum(r.late_minutes or 0 for r in user_records),
+            "total_overtime": sum(r.overtime_minutes or 0 for r in user_records),
+            "leave_days": sum(1 for r in user_records if r.status == "leave"),
+            "annual_leave_days": sum(1 for r in user_records if r.status == "annual_leave"),
+            "sick_days": sum(1 for r in user_records if r.status == "sick"),
         })
 
     if month == 1:
@@ -181,45 +216,50 @@ def edit_record(request):
     except ValueError:
         return JsonResponse({"ok": False, "message": "Geçersiz tarih."}, status=400)
 
+    status = (request.POST.get("status") or "worked").strip()
+    valid_statuses = {choice[0] for choice in AttendanceRecord.STATUS_CHOICES}
+    if status not in valid_statuses:
+        return JsonResponse({"ok": False, "message": "Geçersiz durum."}, status=400)
+
     check_in_text = (request.POST.get("check_in") or "").strip()
     check_out_text = (request.POST.get("check_out") or "").strip()
+    note = (request.POST.get("note") or "").strip()
+    uploaded_report = request.FILES.get("report_image")
     record = AttendanceRecord.objects.filter(user=target_user, work_date=work_date).first()
 
-    if not check_in_text and not check_out_text:
-        if record:
-            record.delete()
-        return JsonResponse({"ok": True, "message": "Puantaj kaydı kaldırıldı."})
+    if not check_in_text and not check_out_text and status == "worked" and not note and not uploaded_report and not record:
+        return JsonResponse({"ok": True, "message": "Değişiklik yok."})
 
     record, _ = AttendanceRecord.objects.get_or_create(user=target_user, work_date=work_date)
+    record.status = status
+    record.note = note
 
-    try:
-        if check_in_text:
-            check_in_clock = datetime.strptime(check_in_text, "%H:%M").time()
-            record.check_in = _local_dt(work_date, check_in_clock)
-        else:
-            record.check_in = None
+    if status == "worked":
+        try:
+            record.check_in = _local_dt(work_date, datetime.strptime(check_in_text, "%H:%M").time()) if check_in_text else None
+            record.check_out = _local_dt(work_date, datetime.strptime(check_out_text, "%H:%M").time()) if check_out_text else None
+        except ValueError:
+            return JsonResponse({"ok": False, "message": "Saat formatı geçersiz."}, status=400)
 
-        if check_out_text:
-            check_out_clock = datetime.strptime(check_out_text, "%H:%M").time()
-            record.check_out = _local_dt(work_date, check_out_clock)
-        else:
-            record.check_out = None
-    except ValueError:
-        return JsonResponse({"ok": False, "message": "Saat formatı geçersiz."}, status=400)
+        if record.check_in and record.check_out and record.check_out < record.check_in:
+            return JsonResponse({"ok": False, "message": "Çıkış saati giriş saatinden önce olamaz."}, status=400)
+    else:
+        record.check_in = None
+        record.check_out = None
 
-    if record.check_in and record.check_out and record.check_out < record.check_in:
-        return JsonResponse({"ok": False, "message": "Çıkış saati giriş saatinden önce olamaz."}, status=400)
+    if uploaded_report:
+        try:
+            record.report_image_url = _upload_report_image(uploaded_report, target_user.id, work_date)
+        except Exception as exc:
+            return JsonResponse({"ok": False, "message": f"Rapor görseli yüklenemedi: {exc}"}, status=400)
+
+    if request.POST.get("remove_report_image") == "1":
+        record.report_image_url = ""
 
     _recalculate(record, workplace)
     record.save()
-    return JsonResponse({
-        "ok": True,
-        "message": "Puantaj kaydı güncellendi.",
-        "check_in": timezone.localtime(record.check_in).strftime("%H:%M") if record.check_in else "",
-        "check_out": timezone.localtime(record.check_out).strftime("%H:%M") if record.check_out else "",
-        "late_minutes": record.late_minutes,
-        "overtime_minutes": record.overtime_minutes,
-    })
+
+    return JsonResponse({"ok": True, "message": "Puantaj kaydı güncellendi."})
 
 
 @login_required
@@ -263,7 +303,12 @@ def month_report(request, user_id, year=None, month=None):
             total_overtime += record.overtime_minutes
         days.append({"date": d, "record": record, "is_weekend": d.weekday() >= 5})
     return render(request, "attendance_v2/month_report.html", {
-        "target_user": target_user, "year": year, "month": month, "days": days,
-        "workday_count": workday_count, "absent_count": absent_count,
-        "total_late": total_late, "total_overtime": total_overtime,
+        "target_user": target_user,
+        "year": year,
+        "month": month,
+        "days": days,
+        "workday_count": workday_count,
+        "absent_count": absent_count,
+        "total_late": total_late,
+        "total_overtime": total_overtime,
     })
