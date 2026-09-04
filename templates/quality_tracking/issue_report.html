@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-fluid px-3 py-4">
+  <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+    <div>
+      <h3 class="mb-1">🧾 Hatalı Siparişler</h3>
+      <div class="text-muted">Müşteri şikayetleri ve üretim hata kayıtları</div>
+    </div>
+    <a href="{% url 'personel_raporu' %}" class="btn btn-outline-primary">Personel Raporu</a>
+  </div>
+
+  <form method="get" class="card card-body shadow-sm mb-3">
+    <div class="row g-2 align-items-end">
+      <div class="col-md-4">
+        <label class="form-label">Ara</label>
+        <input type="text" name="q" value="{{ q }}" class="form-control" placeholder="Sipariş no, müşteri, ürün kodu, hata konusu...">
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">Personel</label>
+        <select name="personel" class="form-select">
+          <option value="">Tümü</option>
+          {% for u in users %}<option value="{{ u.username }}" {% if selected_personel == u.username %}selected{% endif %}>{{ u.get_full_name|default:u.username }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="col-md-2">
+        <label class="form-label">Durum</label>
+        <select name="durum" class="form-select">
+          <option value="">Tümü</option>
+          <option value="ACIK" {% if selected_durum == 'ACIK' %}selected{% endif %}>Açık</option>
+          <option value="COZULDU" {% if selected_durum == 'COZULDU' %}selected{% endif %}>Çözüldü</option>
+        </select>
+      </div>
+      <div class="col-md-3 d-flex gap-2">
+        <button class="btn btn-primary">Filtrele</button>
+        <a href="{% url 'quality_tracking:issue_report' %}" class="btn btn-outline-secondary">Temizle</a>
+      </div>
+    </div>
+  </form>
+
+  <div class="table-responsive shadow-sm rounded bg-white">
+    <table class="table table-hover align-middle mb-0">
+      <thead class="table-light">
+        <tr>
+          <th>Sipariş No</th>
+          <th>Hata Konusu</th>
+          <th>Müşteri</th>
+          <th>Ürün Kodu</th>
+          <th>Sipariş Tipi</th>
+          <th>Aşama</th>
+          <th>Sorumlu Personel</th>
+          <th>Tarih</th>
+          <th>Durum</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for issue in issues %}
+        <tr>
+          <td><a class="fw-bold text-decoration-none" href="{% url 'order_detail' issue.order.id %}">{{ issue.order.siparis_numarasi }}</a></td>
+          <td><a class="text-decoration-none" href="{% url 'quality_tracking:order_issues' issue.order.id %}">{{ issue.konu }}</a></td>
+          <td>{{ issue.order.musteri.ad|default:"-" }}</td>
+          <td>{{ issue.order.urun_kodu|default:"-" }}</td>
+          <td>{{ issue.order.get_siparis_tipi_display|default:issue.order.siparis_tipi }}</td>
+          <td>{{ issue.get_asama_display }}</td>
+          <td>{% for u in issue.sorumlu_personeller.all %}<span class="badge text-bg-light border">{{ u.get_full_name|default:u.username }}</span>{% empty %}-{% endfor %}</td>
+          <td>{{ issue.created_at|date:"d.m.Y H:i" }}</td>
+          <td>{% if issue.durum == 'ACIK' %}<span class="badge text-bg-warning">Açık</span>{% else %}<span class="badge text-bg-success">Çözüldü</span>{% endif %}</td>
+        </tr>
+        {% empty %}<tr><td colspan="9" class="text-center text-muted py-4">Kayıt bulunamadı.</td></tr>{% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
