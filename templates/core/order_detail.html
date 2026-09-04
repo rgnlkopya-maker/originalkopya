@@ -150,6 +150,10 @@ body { background: #f5f7fb; }
             <div class="text-muted small">
                 <span class="label">Sipariş No:</span> {{ order.siparis_numarasi }}
             </div>
+            <div>
+                <span class="label">Son Durum:</span>
+                {% include "core/_status_badge.html" with status=current_status %}
+            </div>
         </div>
 
         <hr>
