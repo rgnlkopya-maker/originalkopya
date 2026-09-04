@@ -19,7 +19,7 @@
         <div class="col-md-3"><div class="text-muted small">Güncel Kâr</div><div class="fw-bold">{{ result.kar_tl|floatformat:2 }} TL{% if result.kar_orani is not None %} · %{{ result.kar_orani|floatformat:2 }}{% endif %}</div></div>
       </div>
       <hr>
-      <div><strong>Durum:</strong> {{ result.status_label }}</div>
+      <div><strong>Sevkiyat Durumu:</strong> {{ result.status_label }}</div>
       {% if not result.is_final %}<div class="alert alert-warning mt-3 mb-0">Bu siparişin finansal sonucu henüz kesinleşmiş sayılmıyor.</div>{% endif %}
     </div>
   </div>
@@ -57,12 +57,12 @@
           <button class="btn btn-primary">Hareketi Kaydet</button>
         </div>
       </form>
-      <div class="small text-muted mt-3">İndirim, ek ücret, nihai fiyat düzeltme, ek maliyet ve kısmi iade için tutar zorunludur. Tam iade, kargo geri, yanlış sevkiyat ve tekrar sevk için tutar boş bırakılabilir.</div>
+      <div class="small text-muted mt-3">Bu bölüm yalnızca parasal işlemler içindir: indirim, ek ücret, nihai satış fiyatı düzeltmesi ve ek maliyet. İade, kargo dönüşü ve tekrar sevk işlemleri Sipariş Detayı → Hazır & Sevkiyat bölümünden yapılır.</div>
     </div>
   </div>
 
   <div class="card shadow-sm">
-    <div class="card-header fw-bold">Hareket Geçmişi</div>
+    <div class="card-header fw-bold">Finans Hareket Geçmişi</div>
     <div class="table-responsive">
       <table class="table mb-0 align-middle">
         <thead><tr><th>Tarih</th><th>İşlem</th><th>Tutar</th><th>Kur</th><th>TL Karşılığı</th><th>Açıklama</th><th>Kullanıcı</th></tr></thead>
