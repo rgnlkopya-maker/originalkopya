@@ -82,6 +82,10 @@
     <span class="status-badge status-gray">{{ status }}</span>
 {% endif %}
 
+{% if is_manager and order and request.resolver_match.url_name == 'order_detail' %}
+    <a href="{% url 'quality_tracking:order_issues' order.id %}" class="btn btn-outline-danger btn-sm ms-2 no-print" style="border-radius:999px;">⚠️ Hata / Şikayet</a>
+{% endif %}
+
 <script src="{% static 'core/shipping_operations.js' %}"></script>
 
 {% if is_manager %}
