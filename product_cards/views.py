@@ -17,15 +17,15 @@ def _can_manage(user):
     return user.is_superuser or user.groups.filter(name__in=["patron", "mudur"]).exists()
 
 
-def _upload_product_image(uploaded_file, product_code):
+def _upload_image(uploaded_file, folder, code):
     if not uploaded_file:
         return ""
     if not settings.SUPABASE_URL or not settings.SUPABASE_SERVICE_ROLE_KEY:
         raise RuntimeError("Supabase ayarları eksik.")
 
     ext = os.path.splitext(uploaded_file.name)[1].lower() or ".jpg"
-    safe_code = "".join(ch for ch in product_code if ch.isalnum() or ch in ("-", "_")) or "urun"
-    path = f"product-cards/{safe_code}/{uuid.uuid4().hex}{ext}"
+    safe_code = "".join(ch for ch in code if ch.isalnum() or ch in ("-", "_")) or "kart"
+    path = f"{folder}/{safe_code}/{uuid.uuid4().hex}{ext}"
 
     client = create_client(settings.SUPABASE_URL, settings.SUPABASE_SERVICE_ROLE_KEY)
     bucket = client.storage.from_(settings.SUPABASE_BUCKET_NAME)
@@ -72,7 +72,7 @@ def product_card_detail(request, card_id):
             uploaded_image = request.FILES.get("product_image")
             if uploaded_image:
                 try:
-                    card.image_url = _upload_product_image(uploaded_image, card.urun.kod)
+                    card.image_url = _upload_image(uploaded_image, "product-cards", card.urun.kod)
                 except Exception as exc:
                     messages.error(request, f"Ürün resmi yüklenemedi: {exc}")
                     return redirect("product_card_detail", card_id=card.id)
@@ -138,12 +138,37 @@ def material_list(request):
                 stok = Decimal(stok_text)
             except (InvalidOperation, ValueError):
                 stok = Decimal("0")
+
             if kod and ad:
-                Material.objects.update_or_create(
+                material, _ = Material.objects.update_or_create(
                     kod=kod,
                     defaults={"ad": ad, "birim": birim, "stok_miktari": stok, "aktif": True},
                 )
+                uploaded_image = request.FILES.get("material_image")
+                if uploaded_image:
+                    try:
+                        material.image_url = _upload_image(uploaded_image, "material-cards", material.kod)
+                        material.save(update_fields=["image_url"])
+                    except Exception as exc:
+                        messages.error(request, f"Malzeme resmi yüklenemedi: {exc}")
+                        return redirect("material_list")
                 messages.success(request, "Malzeme kartı kaydedildi.")
+
+        elif action == "update_image":
+            material = get_object_or_404(Material, pk=request.POST.get("id"), aktif=True)
+            uploaded_image = request.FILES.get("material_image")
+            if uploaded_image:
+                try:
+                    material.image_url = _upload_image(uploaded_image, "material-cards", material.kod)
+                    material.save(update_fields=["image_url"])
+                    messages.success(request, "Malzeme görseli güncellendi.")
+                except Exception as exc:
+                    messages.error(request, f"Malzeme resmi yüklenemedi: {exc}")
+            elif request.POST.get("remove_image") == "1":
+                material.image_url = ""
+                material.save(update_fields=["image_url"])
+                messages.success(request, "Malzeme görseli kaldırıldı.")
+
         elif action == "deactivate":
             material = get_object_or_404(Material, pk=request.POST.get("id"))
             material.aktif = False
