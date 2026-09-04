@@ -20,7 +20,7 @@
   <tr class="live-cost-row"><td class="fw-semibold">Genel Gider</td><td><input name="genel_gider" type="number" step="0.01" min="0" class="form-control live-cost-input" value="{{ card.genel_gider }}"></td><td><select name="genel_gider_para_birimi" class="form-select live-currency"><option value="TRY" {% if card.genel_gider_para_birimi == 'TRY' %}selected{% endif %}>TL</option><option value="USD" {% if card.genel_gider_para_birimi == 'USD' %}selected{% endif %}>USD</option></select></td><td class="text-end fw-semibold live-tl-value">{{ card.genel_gider_tl|floatformat:2 }} TL</td></tr>
   <tr class="live-cost-row"><td class="fw-semibold">İşçilik</td><td><input name="iscilik_maliyeti" type="number" step="0.01" min="0" class="form-control live-cost-input" value="{{ card.iscilik_maliyeti }}"></td><td><select name="iscilik_para_birimi" class="form-select live-currency"><option value="TRY" {% if card.iscilik_para_birimi == 'TRY' %}selected{% endif %}>TL</option><option value="USD" {% if card.iscilik_para_birimi == 'USD' %}selected{% endif %}>USD</option></select></td><td class="text-end fw-semibold live-tl-value">{{ card.iscilik_maliyeti_tl|floatformat:2 }} TL</td></tr>
   <tr class="live-cost-row"><td class="fw-semibold">Paketleme</td><td><input name="paketleme_maliyeti" type="number" step="0.01" min="0" class="form-control live-cost-input" value="{{ card.paketleme_maliyeti }}"></td><td><select name="paketleme_para_birimi" class="form-select live-currency"><option value="TRY" {% if card.paketleme_para_birimi == 'TRY' %}selected{% endif %}>TL</option><option value="USD" {% if card.paketleme_para_birimi == 'USD' %}selected{% endif %}>USD</option></select></td><td class="text-end fw-semibold live-tl-value">{{ card.paketleme_maliyeti_tl|floatformat:2 }} TL</td></tr>
-  </tbody><tfoot><tr class="table-primary"><th colspan="3" class="text-end fs-5">Genel Toplam</th><th class="text-end fs-4 text-primary" id="liveGrandTotal">{{ calculated_total|floatformat:2 }} TL</th></tr></tfoot></table></div><div class="d-flex gap-2 flex-wrap justify-content-end"><button name="action" value="save_costs" class="btn btn-outline-primary">Hesabı Kaydet / Yenile</button><button name="action" value="approve_cost" class="btn btn-primary" onclick="return confirm('Hesaplanan toplam maliyet Ürün Maliyetleri listesine kaydedilsin mi?');">Onayla ve Ürün Maliyetlerine Kaydet</button></div></form>
+  </tbody><tfoot><tr class="table-primary"><th colspan="3" class="text-end fs-5">Genel Toplam</th><th class="text-end fs-4 text-primary" id="liveGrandTotal">{{ calculated_total|floatformat:2 }} TL</th></tr></tfoot></table></div><div class="d-flex justify-content-end"><button name="action" value="approve_cost" class="btn btn-primary" onclick="return confirm('Hesaplanan toplam maliyet Ürün Maliyetleri listesine kaydedilsin mi?');">Onayla ve Ürün Maliyetlerine Kaydet</button></div></form>
   </div></div>
 </div>
 
@@ -32,7 +32,6 @@ document.addEventListener('DOMContentLoaded', function () {
     const raw = (row.dataset.tlCost || '0').replace(',', '.');
     return sum + (parseFloat(raw) || 0);
   }, 0);
-
   function recalcCosts() {
     let total = materialTotal;
     document.querySelectorAll('.live-cost-row').forEach(function (row) {
@@ -46,13 +45,8 @@ document.addEventListener('DOMContentLoaded', function () {
     });
     document.getElementById('liveGrandTotal').textContent = moneyFmt.format(total) + ' TL';
   }
-
-  document.querySelectorAll('.live-cost-input').forEach(function (el) {
-    el.addEventListener('input', recalcCosts);
-  });
-  document.querySelectorAll('.live-currency').forEach(function (el) {
-    el.addEventListener('change', recalcCosts);
-  });
+  document.querySelectorAll('.live-cost-input').forEach(function (el) { el.addEventListener('input', recalcCosts); });
+  document.querySelectorAll('.live-currency').forEach(function (el) { el.addEventListener('change', recalcCosts); });
   recalcCosts();
 });
 </script>
