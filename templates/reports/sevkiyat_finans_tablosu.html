@@ -4,286 +4,98 @@
 
 {% block extra_css %}
 <style>
-
-/* --- TABLO --- */
-.table-modern {
-    width: 100%;
-    border-collapse: separate !important;
-    border-spacing: 0 10px !important;
-}
-.table-modern thead th {
-    background: #f5f7fb;
-    color: #6b7280;
-    font-size: 12px;
-    font-weight: 600;
-    text-transform: uppercase;
-    padding: 14px 18px;
-    padding-left: 22px !important;
-    border: none !important;
-    text-align: left !important;
-}
-.table-modern tbody tr {
-    background: #fff;
-    border-radius: 12px;
-    box-shadow: 0 2px 6px rgba(0,0,0,0.05);
-    transition: all .15s ease;
-}
-.table-modern tbody tr:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 16px rgba(0,0,0,0.1);
-}
-.table-modern tbody td {
-    padding: 16px 18px;
-    font-size: 14px;
-    border: none !important;
-}
-.table-modern tbody tr td:first-child {
-    border-top-left-radius: 12px;
-    border-bottom-left-radius: 12px;
-}
-.table-modern tbody tr td:last-child {
-    border-top-right-radius: 12px;
-    border-bottom-right-radius: 12px;
-}
-
-/* --- HEADER --- */
-.modern-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    background: #ffffffee;
-    backdrop-filter: blur(12px);
-    border-radius: 14px;
-    padding: 14px 20px;
-    margin: 22px 0;
-    box-shadow: 0 4px 14px rgba(0,0,0,0.06);
-}
-.back-btn {
-    font-size: 14px;
-    background: #f3f4ff;
-    padding: 6px 14px;
-    border-radius: 8px;
-    text-decoration: none;
-    color: #3b45d9;
-    font-weight: 600;
-    border: 1px solid #dfe3ff;
-}
-.header-center { 
-    display: flex; 
-    gap: 12px; 
-    flex-wrap: wrap; 
-    justify-content: center;
-}
-
-.stat-badge {
-    background: linear-gradient(to bottom right, #eef1ff, #dce2ff);
-    padding: 8px 16px;
-    border-radius: 10px;
-    font-weight: 600;
-    color: #2c2f48;
-}
-
-/* --- Search --- */
+.table-modern { width: 100%; border-collapse: separate !important; border-spacing: 0 10px !important; }
+.table-modern thead th { background: #f5f7fb; color: #6b7280; font-size: 12px; font-weight: 600; text-transform: uppercase; padding: 14px 18px; padding-left: 22px !important; border: none !important; text-align: left !important; }
+.table-modern tbody tr { background: #fff; border-radius: 12px; box-shadow: 0 2px 6px rgba(0,0,0,0.05); transition: all .15s ease; }
+.table-modern tbody tr:hover { transform: translateY(-2px); box-shadow: 0 6px 16px rgba(0,0,0,0.1); }
+.table-modern tbody td { padding: 16px 18px; font-size: 14px; border: none !important; }
+.table-modern tbody tr td:first-child { border-top-left-radius: 12px; border-bottom-left-radius: 12px; }
+.table-modern tbody tr td:last-child { border-top-right-radius: 12px; border-bottom-right-radius: 12px; }
+.modern-header { display: flex; justify-content: space-between; align-items: center; background: #ffffffee; backdrop-filter: blur(12px); border-radius: 14px; padding: 14px 20px; margin: 22px 0; box-shadow: 0 4px 14px rgba(0,0,0,0.06); gap: 12px; flex-wrap: wrap; }
+.header-center { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; }
+.stat-badge { background: linear-gradient(to bottom right, #eef1ff, #dce2ff); padding: 8px 16px; border-radius: 10px; font-weight: 600; color: #2c2f48; }
 .search-area { display: flex; gap: 10px; align-items: center; }
-.search-box {
-    height: 42px;
-    width: 260px;
-    padding: 0 14px;
-    border-radius: 22px;
-    border: 1px solid #e6e9f2;
-}
-
-/* --- Link --- */
-.order-link {
-    font-weight: 700;
-    color: #2f5bff;
-    text-decoration: none;
-}
-.order-link:hover {
-    text-decoration: underline;
-}
-
-/* --- Numeric --- */
+.search-box { height: 42px; width: 260px; padding: 0 14px; border-radius: 22px; border: 1px solid #e6e9f2; }
+.order-link { font-weight: 700; color: #2f5bff; text-decoration: none; }
+.order-link:hover { text-decoration: underline; }
 .text-end { text-align: right !important; }
-
-/* ✅ Kar renk */
 .kar-positive { color: #16a34a; font-weight: 700; }
 .kar-negative { color: #dc2626; font-weight: 700; }
-
-/* --- ICON BUTTONS (ORDER LIST İLE AYNI) --- */
-.filter-btn {
-    width: 42px;
-    height: 42px;
-    border-radius: 22px;
-    border: 1px solid #e6e9f2;
-    background: white;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    padding: 0;
-}
-.filter-btn i { 
-    font-size: 20px; 
-    color: #395bff; 
-}
-.filter-btn:hover { 
-    background: #f4f6ff; 
-    border-color: #cfd7ff; 
-}
-
-.filter-clear-btn {
-    width: 42px;
-    height: 42px;
-    border-radius: 22px;
-    border: 1px solid #e6e9f2;
-    background: white;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    text-decoration: none;
-}
-.filter-clear-btn i { 
-    font-size: 20px; 
-    color: #ff4b4b; 
-}
-.filter-clear-btn:hover { 
-    background: #fff1f1; 
-    border-color: #ffcaca; 
-}
-
-
+.filter-btn, .filter-clear-btn { width: 42px; height: 42px; border-radius: 22px; border: 1px solid #e6e9f2; background: white; display: flex; align-items: center; justify-content: center; cursor: pointer; padding: 0; text-decoration: none; }
+.filter-btn i { font-size: 20px; color: #395bff; }
+.filter-clear-btn i { font-size: 20px; color: #ff4b4b; }
+.finance-action { display: inline-flex; align-items: center; gap: 6px; border: 1px solid #cfd7ff; color: #395bff; background: #f4f6ff; border-radius: 9px; padding: 7px 10px; text-decoration: none; font-weight: 600; white-space: nowrap; }
+.finance-action:hover { background: #e9edff; }
+.status-pill { display: inline-block; padding: 5px 9px; border-radius: 999px; font-size: 12px; font-weight: 600; background: #eef1ff; color: #334155; }
+.status-pending { background: #fff7ed; color: #9a3412; }
 </style>
 {% endblock %}
 
-
 {% block content %}
 <div class="container-fluid px-2">
-
-    <!-- HEADER -->
-    <div class="modern-header">
-
-    <!-- ✅ Ortadaki istatistikler -->
+  <div class="modern-header">
     <div class="header-center">
-        <div class="stat-badge">💰 Ciro: {{ total_ciro|floatformat:2 }}</div>
-        <div class="stat-badge">📌 Maliyet: {{ total_maliyet|floatformat:2 }}</div>
-        <div class="stat-badge">✅ Kâr: {{ total_kar|floatformat:2 }}</div>
-        <div class="stat-badge">📊 %{{ kar_yuzde|floatformat:2 }}</div>
+      <div class="stat-badge">💰 Kesinleşen Ciro: <span id="finalCiro">0,00</span> TL</div>
+      <div class="stat-badge">📌 Kesinleşen Maliyet: <span id="finalMaliyet">0,00</span> TL</div>
+      <div class="stat-badge">✅ Kesinleşen Kâr: <span id="finalKar">0,00</span> TL</div>
+      <div class="stat-badge">📊 <span id="finalKarYuzde">%0,00</span></div>
     </div>
-
-    <!-- ✅ Tarih filtresi -->
     <form method="get" class="search-area">
-        <input type="date"
-               name="start"
-               class="search-box"
-               style="width:160px;"
-               value="{{ start|default:'' }}">
-
-        <input type="date"
-               name="end"
-               class="search-box"
-               style="width:160px;"
-               value="{{ end|default:'' }}">
-
-        <button type="submit" class="filter-btn" title="Filtrele">
-            <i class="bi bi-search"></i>
-        </button>
-
-        <a href="{% url 'sevkiyat_finans_tablosu' %}" class="filter-clear-btn" title="Temizle">
-            <i class="bi bi-x-circle"></i>
-        </a>
+      <input type="date" name="start" class="search-box" style="width:160px;" value="{{ start|default:'' }}">
+      <input type="date" name="end" class="search-box" style="width:160px;" value="{{ end|default:'' }}">
+      <button type="submit" class="filter-btn" title="Filtrele"><i class="bi bi-search"></i></button>
+      <a href="{% url 'sevkiyat_finans_tablosu' %}" class="filter-clear-btn" title="Temizle"><i class="bi bi-x-circle"></i></a>
     </form>
-</div>
+  </div>
 
-
-    <!-- TABLE -->
-    <div class="table-responsive shadow-sm rounded">
-        <table class="table-modern" id="financeTable">
-            <thead>
-                <tr>
-                    <th>Sipariş No</th>
-                    <th>Müşteri</th>
-                    <th>Ürün Kodu</th>
-                    <th>Müşteri Ref</th>
-                    <th>Adet</th>
-                    <th>Renk</th>
-                    <th>Beden</th>
-                    <th>Açıklama</th>
-                    <th>Sevkedildiği Tarih</th>
-                    <th class="text-end">Satış</th>
-                    <th class="text-end">Maliyet</th>
-                    <th class="text-end">Kâr</th>
-                </tr>
-            </thead>
-
-            <tbody>
-            {% for o in orders %}
-                <tr>
-                    <!-- ✅ Sipariş No tıklanabilir -->
-                    <td>
-                        <a class="order-link" href="{% url 'order_detail' o.id %}">
-                            {{ o.siparis_numarasi }}
-                        </a>
-                    </td>
-
-                    <td>{{ o.musteri.ad|default:"-" }}</td>
-                    <td>{{ o.urun_kodu|default:"-" }}</td>
-                    <td>{{ o.musteri_referans|default:"-" }}</td>
-                    <td>{{ o.adet|default:"-" }}</td>
-                    <td>{{ o.renk|default:"-" }}</td>
-                    <td>{{ o.beden|default:"-" }}</td>
-                    <td>{{ o.aciklama|default:"-" }}</td>
-
-                    <!-- ✅ Sevkedildiği Tarih -->
-                    <td>
-                        {% if o.last_status_date %}
-                            {{ o.last_status_date|date:"d.m.Y" }}
-                        {% else %}
-                            -
-                        {% endif %}
-                    </td>
-
-                    <td class="text-end">{{ o.satis_fiyati|default:"0" }}</td>
-                    <td class="text-end">{{ o.toplam_maliyet_calc|default:"0" }}</td>
-
-                    <td class="text-end">
-                        {% if o.kar_calc < 0 %}
-                            <span class="kar-negative">{{ o.kar_calc }}</span>
-                        {% else %}
-                            <span class="kar-positive">{{ o.kar_calc }}</span>
-                        {% endif %}
-                    </td>
-                </tr>
-            {% empty %}
-                <tr>
-                    <td colspan="12" class="text-center text-muted">Veri yok</td>
-                </tr>
-            {% endfor %}
-            </tbody>
-
-        </table>
-    </div>
-
+  <div class="table-responsive shadow-sm rounded">
+    <table class="table-modern" id="financeTable">
+      <thead>
+        <tr>
+          <th>Sipariş No</th><th>Müşteri</th><th>Ürün Kodu</th><th>Adet</th><th>Sevk Tarihi</th>
+          <th class="text-end">Sevk Satışı</th><th class="text-end">Kesinleşen Satış</th><th class="text-end">Kesinleşen Maliyet</th><th class="text-end">Kâr</th><th>Durum</th><th>İşlem</th>
+        </tr>
+      </thead>
+      <tbody>
+      {% for o in orders %}
+        {% finance_result o as fr %}
+        <tr class="finance-row" data-final="{% if fr.is_final %}1{% else %}0{% endif %}" data-sale="{{ fr.satis_tl|default:0 }}" data-cost="{{ fr.maliyet_tl|default:0 }}" data-profit="{{ fr.kar_tl|default:0 }}">
+          <td><a class="order-link" href="{% url 'order_detail' o.id %}">{{ o.siparis_numarasi }}</a></td>
+          <td>{{ o.musteri.ad|default:"-" }}</td>
+          <td>{{ o.urun_kodu|default:"-" }}</td>
+          <td>{{ o.adet|default:"-" }}</td>
+          <td>{% if o.last_status_date %}{{ o.last_status_date|date:"d.m.Y" }}{% else %}-{% endif %}</td>
+          <td class="text-end">{% if fr.snapshot %}{{ fr.snapshot.satis_tl|floatformat:2 }} TL{% else %}-{% endif %}</td>
+          <td class="text-end">{% if fr.satis_tl is not None %}{{ fr.satis_tl|floatformat:2 }} TL{% else %}-{% endif %}</td>
+          <td class="text-end">{% if fr.maliyet_tl is not None %}{{ fr.maliyet_tl|floatformat:2 }} TL{% else %}-{% endif %}</td>
+          <td class="text-end">{% if fr.kar_tl is not None %}<span class="{% if fr.kar_tl < 0 %}kar-negative{% else %}kar-positive{% endif %}">{{ fr.kar_tl|floatformat:2 }} TL</span>{% else %}-{% endif %}</td>
+          <td><span class="status-pill {% if not fr.is_final %}status-pending{% endif %}">{{ fr.status_label }}</span></td>
+          <td><a class="finance-action" href="{% url 'order_finance_movements' o.id %}"><i class="bi bi-cash-coin"></i> Finans Hareketleri</a></td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="11" class="text-center text-muted">Veri yok</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
 </div>
 {% endblock %}
-
 
 {% block extra_js %}
 <script>
 document.addEventListener("DOMContentLoaded", function () {
-
-    // ✅ Search
-    const searchInput = document.getElementById("searchInput");
-    if (searchInput) {
-        searchInput.addEventListener("keyup", function () {
-            let v = this.value.toLowerCase();
-            document.querySelectorAll("#financeTable tbody tr").forEach(row => {
-                row.style.display = row.innerText.toLowerCase().includes(v) ? "" : "none";
-            });
-        });
-    }
-
+  let ciro = 0, maliyet = 0, kar = 0;
+  document.querySelectorAll(".finance-row").forEach(row => {
+    if (row.dataset.final !== "1") return;
+    ciro += parseFloat((row.dataset.sale || "0").replace(",", ".")) || 0;
+    maliyet += parseFloat((row.dataset.cost || "0").replace(",", ".")) || 0;
+    kar += parseFloat((row.dataset.profit || "0").replace(",", ".")) || 0;
+  });
+  const fmt = n => n.toLocaleString("tr-TR", {minimumFractionDigits: 2, maximumFractionDigits: 2});
+  document.getElementById("finalCiro").textContent = fmt(ciro);
+  document.getElementById("finalMaliyet").textContent = fmt(maliyet);
+  document.getElementById("finalKar").textContent = fmt(kar);
+  document.getElementById("finalKarYuzde").textContent = ciro ? "%" + fmt((kar / ciro) * 100) : "%0,00";
 });
 </script>
 {% endblock %}
