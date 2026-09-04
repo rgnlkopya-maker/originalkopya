@@ -234,7 +234,7 @@ def edit_record(request):
     record.status = status
     record.note = note
 
-    if status == "worked":
+    if status in {"worked", "leave"}:
         try:
             record.check_in = _local_dt(work_date, datetime.strptime(check_in_text, "%H:%M").time()) if check_in_text else None
             record.check_out = _local_dt(work_date, datetime.strptime(check_out_text, "%H:%M").time()) if check_out_text else None
@@ -242,7 +242,7 @@ def edit_record(request):
             return JsonResponse({"ok": False, "message": "Saat formatı geçersiz."}, status=400)
 
         if record.check_in and record.check_out and record.check_out < record.check_in:
-            return JsonResponse({"ok": False, "message": "Çıkış saati giriş saatinden önce olamaz."}, status=400)
+            return JsonResponse({"ok": False, "message": "İzin/çıkış saati giriş saatinden önce olamaz."}, status=400)
     else:
         record.check_in = None
         record.check_out = None
