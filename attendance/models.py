@@ -10,7 +10,7 @@ class WorkplaceSettings(models.Model):
     overtime_radius_m = models.PositiveIntegerField(default=100)
     work_start = models.TimeField(default="08:30")
     work_end = models.TimeField(default="19:00")
-    late_tolerance_minutes = models.PositiveIntegerField(default=10)
+    late_tolerance_minutes = models.PositiveIntegerField(default=0)
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
