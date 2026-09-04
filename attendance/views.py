@@ -40,6 +40,12 @@ def _recalculate(record, workplace):
     work_end = _local_dt(record.work_date, workplace.work_end)
     record.late_minutes = 0
     record.overtime_minutes = 0
+
+    if record.work_date.weekday() >= 5:
+        if record.check_in and record.check_out and record.check_out >= record.check_in:
+            record.overtime_minutes = max(0, int((record.check_out - record.check_in).total_seconds() // 60))
+        return
+
     if record.check_in and record.check_in > work_start:
         record.late_minutes = max(0, int((record.check_in - work_start).total_seconds() // 60))
     if record.check_out and record.check_out > work_end:
@@ -61,9 +67,6 @@ def punch(request):
     if not workplace.location_ready:
         return JsonResponse({"ok": False, "message": "İşyeri konumu henüz yönetici tarafından tanımlanmadı."}, status=400)
 
-    if timezone.localdate().weekday() >= 5:
-        return JsonResponse({"ok": False, "message": "Cumartesi ve pazar normal çalışma günü değildir."}, status=400)
-
     try:
         lat = float(request.POST.get("latitude"))
         lon = float(request.POST.get("longitude"))
@@ -73,11 +76,13 @@ def punch(request):
     distance = _distance_m(lat, lon, workplace.latitude, workplace.longitude)
     now = timezone.now()
     today = timezone.localdate()
+    is_weekend = today.weekday() >= 5
     record, _ = AttendanceRecord.objects.get_or_create(user=request.user, work_date=today)
 
     if not record.check_in:
-        if distance > workplace.normal_radius_m:
-            return JsonResponse({"ok": False, "message": f"Giriş için işyerine en fazla {workplace.normal_radius_m} metre uzakta olmalısınız. Şu an yaklaşık {distance} m."}, status=400)
+        allowed_radius = workplace.overtime_radius_m if is_weekend else workplace.normal_radius_m
+        if distance > allowed_radius:
+            return JsonResponse({"ok": False, "message": f"Giriş için izin verilen alan {allowed_radius} metre. Şu an yaklaşık {distance} m."}, status=400)
         record.check_in = now
         record.check_in_latitude = lat
         record.check_in_longitude = lon
@@ -90,7 +95,7 @@ def punch(request):
         return JsonResponse({"ok": False, "message": "Bugünkü giriş ve çıkışınız zaten tamamlandı."}, status=400)
 
     work_end = _local_dt(today, workplace.work_end)
-    allowed_radius = workplace.overtime_radius_m if now >= work_end else workplace.normal_radius_m
+    allowed_radius = workplace.overtime_radius_m if is_weekend or now >= work_end else workplace.normal_radius_m
     if distance > allowed_radius:
         return JsonResponse({"ok": False, "message": f"Çıkış için izin verilen alan {allowed_radius} metre. Şu an yaklaşık {distance} m."}, status=400)
 
@@ -238,16 +243,15 @@ def month_report(request, user_id, year=None, month=None):
     total_late = total_overtime = absent_count = workday_count = 0
     for day_number in range(1, last_day + 1):
         d = date(year, month, day_number)
-        if d.weekday() >= 5:
-            continue
-        workday_count += 1
         record = records.get(d)
-        if not record and d <= today:
-            absent_count += 1
+        if d.weekday() < 5:
+            workday_count += 1
+            if not record and d <= today:
+                absent_count += 1
         if record:
             total_late += record.late_minutes
             total_overtime += record.overtime_minutes
-        days.append({"date": d, "record": record})
+        days.append({"date": d, "record": record, "is_weekend": d.weekday() >= 5})
     return render(request, "attendance_v2/month_report.html", {
         "target_user": target_user, "year": year, "month": month, "days": days,
         "workday_count": workday_count, "absent_count": absent_count,
