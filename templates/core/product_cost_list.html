@@ -11,7 +11,10 @@
 <div class="container-fluid px-2"><div class="page-wrap"><div class="soft-card">
   <div class="soft-card-header">
     <div class="soft-card-title"><span>💰</span><span>Ürün Maliyetleri</span><span class="badge-soft">ProductCost</span></div>
-    <a href="{% url 'product_card_list' %}" class="btn btn-dark btn-sm">Ürün Kartları / Reçeteler</a>
+    <div class="d-flex gap-2 flex-wrap">
+      <a href="{% url 'product_card_list' %}" class="btn btn-dark btn-sm">Ürün Kartları / Reçeteler</a>
+      <a href="{% url 'material_list' %}" class="btn btn-outline-dark btn-sm">Malzeme Kartları</a>
+    </div>
   </div>
   <div class="soft-card-body">
     <form method="POST" class="row g-3 align-items-end mb-4">{% csrf_token %}<input type="hidden" name="action" value="add">
