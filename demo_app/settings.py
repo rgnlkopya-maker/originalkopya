@@ -28,6 +28,7 @@ INSTALLED_APPS = [
     "core.apps.CoreConfig",
     "attendance.apps.AttendanceConfig",
     "product_cards.apps.ProductCardsConfig",
+    "quality_tracking.apps.QualityTrackingConfig",
 ]
 
 MIDDLEWARE = [
