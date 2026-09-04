@@ -225,7 +225,13 @@ def order_list(request):
     # 📌 2) TÜRKÇE DURUM SÖZLÜĞÜ
     # -----------------------------------------
     STAGE_TRANSLATIONS = {
+    # --- Malzeme ---
+    ("malzeme_durum", "kesildi"): "Malzemesi Kesildi",
+    ("malzeme_durum", "boyandi"): "Malzemesi Boyandı",
+    ("malzeme_durum", "eksik"): "Malzemesi Eksik",
+
     # --- Kesim ---
+    ("kesim_durum", "siraya_alindi"): "Kesim Sırasına Alındı",
     ("kesim_durum", "basladi"): "Kesim Başladı",
     ("kesim_durum", "kismi"): "Kısmi Kesim yapıldı",
     ("kesim_durum", "bitti"): "Kesildi",
@@ -672,9 +678,16 @@ def update_stage(request, pk):
     # ---------------------------------------------------------
     # 1) ORDER ÜZERİNDE AŞAMA GÜNCELLE
     # ---------------------------------------------------------
+    # Bazı aşamalar (ör. malzeme) yalnızca işlem geçmişinde tutulur.
+    # Order modelinde gerçek bir alan varsa ayrıca o alanı güncelle.
+    order_field_names = {field.name for field in order._meta.concrete_fields}
     try:
+        if stage not in order_field_names:
+            raise AttributeError
         setattr(order, stage, value)
         order.save(update_fields=[stage])
+    except AttributeError:
+        pass
     except Exception as e:
         print("Aşama güncelleme hatası:", e)
 

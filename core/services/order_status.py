@@ -12,6 +12,10 @@ FINANCIAL_STAGES = {
 }
 
 STATUS_LABELS = {
+    ("malzeme_durum", "kesildi"): "Malzemesi Kesildi",
+    ("malzeme_durum", "boyandi"): "Malzemesi Boyandı",
+    ("malzeme_durum", "eksik"): "Malzemesi Eksik",
+    ("kesim_durum", "siraya_alindi"): "Kesim Sırasına Alındı",
     ("kesim_durum", "basladi"): "Kesim Başladı",
     ("kesim_durum", "kismi_bitti"): "Kısmi Kesim Yapıldı",
     ("kesim_durum", "bitti"): "Kesildi",
