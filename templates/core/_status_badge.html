@@ -68,6 +68,26 @@
 {% elif status == "Gönderildi" %}
     <span class="status-badge status-green">Sevk Edildi</span>
 
+{% comment %} SEVKİYAT / FİNANS HAREKETLERİ {% endcomment %}
+{% elif status == "Finans Hareketi → Indirim" %}
+    <span class="status-badge status-yellow">İndirim Yapıldı</span>
+{% elif status == "Finans Hareketi → Ek Ucret" %}
+    <span class="status-badge status-blue">Ek Ücret Eklendi</span>
+{% elif status == "Finans Hareketi → Fiyat Duzelt" %}
+    <span class="status-badge status-blue">Satış Fiyatı Güncellendi</span>
+{% elif status == "Finans Hareketi → Ek Maliyet" %}
+    <span class="status-badge status-yellow">Ek Maliyet Eklendi</span>
+{% elif status == "Finans Hareketi → Kismi Iade" %}
+    <span class="status-badge status-yellow">Kısmi İade Geldi</span>
+{% elif status == "Finans Hareketi → Iade" %}
+    <span class="status-badge status-yellow">İade Geldi</span>
+{% elif status == "Finans Hareketi → Kargo Geri" %}
+    <span class="status-badge status-yellow">Kargodan Geri Geldi</span>
+{% elif status == "Finans Hareketi → Yanlis Sevkiyat" %}
+    <span class="status-badge status-yellow">Yanlış Sevkiyat</span>
+{% elif status == "Finans Hareketi → Tekrar Sevk" %}
+    <span class="status-badge status-green">Tekrar Sevk Edildi</span>
+
 
 {% else %}
     <span class="status-badge status-gray">{{ status }}</span>
