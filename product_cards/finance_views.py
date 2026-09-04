@@ -64,7 +64,14 @@ def _movement_payload(event):
 
 
 def calculate_finance_result(order):
-    """Sevkiyat snapshot + sonraki hareketlerden güncel finansal sonucu üretir."""
+    """
+    Sevkiyat snapshot + sonraki finans hareketleri + normal sevkiyat hareketlerinden
+    güncel finansal sonucu üretir.
+
+    Böylece Tam İade / Kargo Geri / Yanlış Sevkiyat sonrasında sipariş normal
+    üretim panelinden yeniden 'Gönderildi' yapılırsa finans raporu da tekrar sevk
+    durumuna döner.
+    """
     snapshot = getattr(order, "shipment_financial_snapshot", None)
     if not snapshot:
         return {
@@ -79,16 +86,36 @@ def calculate_finance_result(order):
             "movements": [],
         }
 
-    satis_tl = Decimal(snapshot.satis_tl or 0)
+    snapshot_sale = Decimal(snapshot.satis_tl or 0)
+    satis_tl = snapshot_sale
     maliyet_tl = Decimal(snapshot.toplam_maliyet_tl or 0)
     status = "SEVKEDILDI"
     status_label = "Sevk edildi"
     is_final = True
+    sale_before_return = snapshot_sale
 
-    events = order.events.filter(stage=FINANCE_STAGE).order_by("timestamp", "id")
+    # Finans hareketleri ile gerçek sevkiyat hareketlerini tek kronolojik akışta oku.
+    events = (
+        order.events.filter(stage__in=[FINANCE_STAGE, "sevkiyat_durum"])
+        .order_by("timestamp", "id")
+    )
     movements = []
 
     for event in events:
+        # Normal sevkiyat panelinden yeniden gönderim.
+        if event.stage == "sevkiyat_durum":
+            if event.value == "gonderildi":
+                # İlk sevk zaten snapshot'ın başlangıç durumudur. Ancak bir iade/
+                # geri dönüş/yanlış sevkiyat sonrasında gelen yeni gönderim finans
+                # sonucunu tekrar aktif eder.
+                if status in {"IADE", "KARGO_GERI", "YANLIS_SEVKIYAT"}:
+                    if satis_tl == 0:
+                        satis_tl = sale_before_return or snapshot_sale
+                    status = "SEVKEDILDI"
+                    status_label = "Tekrar sevk edildi"
+                    is_final = True
+            continue
+
         data = _movement_payload(event)
         movements.append(data)
         movement_type = event.value
@@ -105,19 +132,27 @@ def calculate_finance_result(order):
         elif movement_type == "KISMI_IADE":
             satis_tl = max(Decimal("0"), satis_tl - tl_amount)
         elif movement_type == "IADE":
+            # İade öncesi kesinleşmiş satış değerini sakla; ürün tekrar gönderilirse
+            # bu tutar geri yüklenebilir. Sonradan fiyat düzeltmesi yapılırsa o değer
+            # zaten akışta tekrar uygulanır.
+            sale_before_return = satis_tl
             satis_tl = Decimal("0")
             status = "IADE"
             status_label = "Tam iade"
             is_final = True
         elif movement_type == "KARGO_GERI":
+            sale_before_return = satis_tl
             status = "KARGO_GERI"
             status_label = "Kargodan geri geldi — yeniden sevk bekleniyor"
             is_final = False
         elif movement_type == "YANLIS_SEVKIYAT":
+            sale_before_return = satis_tl
             status = "YANLIS_SEVKIYAT"
             status_label = "Yanlış sevkiyat işlemi — finans sonucu beklemede"
             is_final = False
         elif movement_type == "TEKRAR_SEVK":
+            if satis_tl == 0:
+                satis_tl = sale_before_return or snapshot_sale
             status = "SEVKEDILDI"
             status_label = "Tekrar sevk edildi"
             is_final = True
