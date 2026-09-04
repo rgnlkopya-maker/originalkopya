@@ -1,7 +1,9 @@
 from decimal import Decimal
 
 from django.db import models
-from core.models import UrunKod
+from django.db.models.signals import post_save
+from django.dispatch import receiver
+from core.models import Order, ProductCost, UrunKod
 
 
 CURRENCY_CHOICES = [
@@ -33,6 +35,90 @@ def to_try(amount, currency):
     if currency == "USD":
         return amount * ExchangeRate.latest_usd_try()
     return amount
+
+
+class OrderFinancialSnapshot(models.Model):
+    """Siparis olusturuldugu andaki finansal fotografin degismeyen kaydi."""
+
+    order = models.OneToOneField(
+        Order,
+        on_delete=models.CASCADE,
+        related_name="financial_snapshot",
+    )
+    usd_try = models.DecimalField(max_digits=12, decimal_places=6, null=True, blank=True)
+    satis_fiyati = models.DecimalField(max_digits=14, decimal_places=2, null=True, blank=True)
+    satis_para_birimi = models.CharField(max_length=3, default="TRY")
+    satis_tl = models.DecimalField(max_digits=16, decimal_places=2, null=True, blank=True)
+    maliyet_tl = models.DecimalField(max_digits=16, decimal_places=2, null=True, blank=True)
+    beklenen_kar_tl = models.DecimalField(max_digits=16, decimal_places=2, null=True, blank=True)
+    beklenen_kar_orani = models.DecimalField(max_digits=8, decimal_places=2, null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.order.siparis_numarasi} - siparis gunu finans"
+
+
+@receiver(post_save, sender=Order)
+def create_order_financial_snapshot(sender, instance, created, **kwargs):
+    """Yeni sipariste o anki kur, satis ve maliyeti sabitler; sonraki kur degisimlerinden etkilenmez."""
+    if not created:
+        return
+
+    rate_obj = ExchangeRate.objects.order_by("-rate_date", "-fetched_at").first()
+    usd_try = rate_obj.usd_try if rate_obj else None
+
+    satis = instance.satis_fiyati
+    satis_currency = instance.para_birimi or "TRY"
+    satis_tl = None
+    if satis is not None:
+        satis = Decimal(satis)
+        if satis_currency == "TRY":
+            satis_tl = satis
+        elif satis_currency == "USD" and usd_try:
+            satis_tl = satis * usd_try
+
+    # Sipariste elle override varsa onu; yoksa siparise cekilen ProductCost degerini kullan.
+    cost_available = instance.maliyet_override is not None
+    effective_cost = Decimal(instance.maliyet_override) if instance.maliyet_override is not None else None
+
+    if effective_cost is None and instance.maliyet_uygulanan is not None:
+        pc_exists = ProductCost.objects.filter(
+            urun_kodu__iexact=instance.urun_kodu or "",
+            is_active=True,
+        ).exists()
+        if pc_exists or Decimal(instance.maliyet_uygulanan or 0) != 0:
+            effective_cost = Decimal(instance.maliyet_uygulanan or 0)
+            cost_available = True
+
+    maliyet_tl = None
+    if cost_available and effective_cost is not None:
+        ekstra = Decimal(instance.ekstra_maliyet or 0)
+        total_cost = effective_cost + ekstra
+        cost_currency = instance.maliyet_para_birimi or "TRY"
+        if cost_currency == "TRY":
+            maliyet_tl = total_cost
+        elif cost_currency == "USD" and usd_try:
+            maliyet_tl = total_cost * usd_try
+
+    kar_tl = None
+    kar_orani = None
+    if satis_tl is not None and maliyet_tl is not None:
+        kar_tl = satis_tl - maliyet_tl
+        if satis_tl != 0:
+            kar_orani = (kar_tl / satis_tl) * Decimal("100")
+
+    OrderFinancialSnapshot.objects.get_or_create(
+        order=instance,
+        defaults={
+            "usd_try": usd_try,
+            "satis_fiyati": satis,
+            "satis_para_birimi": satis_currency,
+            "satis_tl": satis_tl.quantize(Decimal("0.01")) if satis_tl is not None else None,
+            "maliyet_tl": maliyet_tl.quantize(Decimal("0.01")) if maliyet_tl is not None else None,
+            "beklenen_kar_tl": kar_tl.quantize(Decimal("0.01")) if kar_tl is not None else None,
+            "beklenen_kar_orani": kar_orani.quantize(Decimal("0.01")) if kar_orani is not None else None,
+        },
+    )
 
 
 class ProductCard(models.Model):
