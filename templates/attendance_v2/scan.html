@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container py-4" style="max-width:720px">
+  <div class="card border-0 shadow-sm rounded-4">
+    <div class="card-body p-4 p-md-5 text-center">
+      <div class="text-muted small mb-2">MOLI • PUANTAJ</div>
+      <h2 class="fw-bold mb-1">Giriş / Çıkış</h2>
+      <p class="text-muted mb-4">{{ request.user.get_full_name|default:request.user.username }}</p>
+
+      {% if record and record.check_in %}
+        <div class="alert alert-success">Giriş: <strong>{{ record.check_in|date:"H:i" }}</strong></div>
+      {% endif %}
+      {% if record and record.check_out %}
+        <div class="alert alert-secondary">Çıkış: <strong>{{ record.check_out|date:"H:i" }}</strong></div>
+      {% endif %}
+
+      {% if not workplace.location_ready %}
+        <div class="alert alert-warning">İşyeri konumu henüz tanımlanmadı. Yönetici panelinden konumu kaydedin.</div>
+      {% elif record and record.check_out %}
+        <div class="fs-5 fw-semibold">Bugünkü puantajınız tamamlandı ✓</div>
+      {% else %}
+        <button id="punchBtn" class="btn btn-dark btn-lg rounded-pill px-5 py-3">
+          {% if record and record.check_in %}Çıkış Yap{% else %}Giriş Yap{% endif %}
+        </button>
+        <div id="status" class="text-muted small mt-3">Konum doğrulaması butona bastığınızda yapılır.</div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<script>
+const btn = document.getElementById('punchBtn');
+if (btn) {
+  btn.addEventListener('click', () => {
+    const status = document.getElementById('status');
+    btn.disabled = true;
+    status.textContent = 'Konum alınıyor…';
+    if (!navigator.geolocation) {
+      status.textContent = 'Bu cihaz konum özelliğini desteklemiyor.';
+      btn.disabled = false;
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(async (pos) => {
+      const body = new FormData();
+      body.append('latitude', pos.coords.latitude);
+      body.append('longitude', pos.coords.longitude);
+      body.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+      try {
+        const response = await fetch('{% url "attendance_punch" %}', {method:'POST', body});
+        const data = await response.json();
+        status.textContent = data.message;
+        if (data.ok) setTimeout(() => window.location.reload(), 800);
+        else btn.disabled = false;
+      } catch (e) {
+        status.textContent = 'İşlem sırasında bağlantı hatası oluştu.';
+        btn.disabled = false;
+      }
+    }, () => {
+      status.textContent = 'Konum izni verilmedi veya konum alınamadı.';
+      btn.disabled = false;
+    }, {enableHighAccuracy:true, timeout:12000, maximumAge:0});
+  });
+}
+</script>
+{% endblock %}
