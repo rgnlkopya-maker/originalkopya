@@ -77,6 +77,19 @@
           </tr>
           {% endfor %}
         </tbody>
+        <tfoot>
+          <tr class="table-dark">
+            <th class="align-middle">AYLIK TOPLAM</th>
+            {% for total in monthly_totals %}
+              <th class="text-start p-3">
+                <div class="small text-white-50">Toplam geç kalma</div>
+                <div class="fw-bold">{{ total.total_late }} dk</div>
+                <div class="small text-white-50 mt-2">Toplam fazla mesai</div>
+                <div class="fw-bold">{{ total.total_overtime }} dk</div>
+              </th>
+            {% endfor %}
+          </tr>
+        </tfoot>
       </table>
     </div>
   </div>
