@@ -17,6 +17,10 @@ def is_manager(user):
     return user.is_staff or user.is_superuser or user.groups.filter(name__in=["patron", "mudur"]).exists()
 
 
+def is_patron(user):
+    return user.is_superuser or user.username.lower() == "patron" or user.groups.filter(name="patron").exists()
+
+
 def _distance_m(lat1, lon1, lat2, lon2):
     radius = 6371000
     p1 = math.radians(float(lat1))
@@ -29,6 +33,17 @@ def _distance_m(lat1, lon1, lat2, lon2):
 
 def _local_dt(day, clock):
     return timezone.make_aware(datetime.combine(day, clock), timezone.get_current_timezone())
+
+
+def _recalculate(record, workplace):
+    work_start = _local_dt(record.work_date, workplace.work_start)
+    work_end = _local_dt(record.work_date, workplace.work_end)
+    record.late_minutes = 0
+    record.overtime_minutes = 0
+    if record.check_in and record.check_in > work_start:
+        record.late_minutes = max(0, int((record.check_in - work_start).total_seconds() // 60))
+    if record.check_out and record.check_out > work_end:
+        record.overtime_minutes = max(0, int((record.check_out - work_end).total_seconds() // 60))
 
 
 @login_required
@@ -67,8 +82,7 @@ def punch(request):
         record.check_in_latitude = lat
         record.check_in_longitude = lon
         record.check_in_distance_m = distance
-        late_limit = _local_dt(today, workplace.work_start) + timedelta(minutes=workplace.late_tolerance_minutes)
-        record.late_minutes = max(0, int((now - late_limit).total_seconds() // 60)) if now > late_limit else 0
+        _recalculate(record, workplace)
         record.save()
         return JsonResponse({"ok": True, "action": "in", "message": f"Giriş kaydedildi: {timezone.localtime(now).strftime('%H:%M')}"})
 
@@ -84,7 +98,7 @@ def punch(request):
     record.check_out_latitude = lat
     record.check_out_longitude = lon
     record.check_out_distance_m = distance
-    record.overtime_minutes = max(0, int((now - work_end).total_seconds() // 60)) if now > work_end else 0
+    _recalculate(record, workplace)
     record.save()
     return JsonResponse({"ok": True, "action": "out", "message": f"Çıkış kaydedildi: {timezone.localtime(now).strftime('%H:%M')}"})
 
@@ -94,10 +108,103 @@ def punch(request):
 def dashboard(request):
     workplace = WorkplaceSettings.get_solo()
     today = timezone.localdate()
-    users = User.objects.filter(is_active=True).order_by("first_name", "username")
-    records = {r.user_id: r for r in AttendanceRecord.objects.filter(work_date=today).select_related("user")}
-    rows = [{"user": user, "record": records.get(user.id)} for user in users]
-    return render(request, "attendance_v2/dashboard.html", {"workplace": workplace, "rows": rows, "today": today})
+    try:
+        year = int(request.GET.get("year", today.year))
+        month = int(request.GET.get("month", today.month))
+        if month < 1 or month > 12:
+            raise ValueError
+    except (TypeError, ValueError):
+        year, month = today.year, today.month
+
+    users = list(User.objects.filter(is_active=True).order_by("first_name", "username"))
+    last_day = monthrange(year, month)[1]
+    start = date(year, month, 1)
+    end = date(year, month, last_day)
+    records = {
+        (r.user_id, r.work_date): r
+        for r in AttendanceRecord.objects.filter(work_date__range=(start, end)).select_related("user")
+    }
+
+    matrix_rows = []
+    for day_number in range(1, last_day + 1):
+        d = date(year, month, day_number)
+        cells = [{"user": user, "record": records.get((user.id, d))} for user in users]
+        matrix_rows.append({"date": d, "is_weekend": d.weekday() >= 5, "cells": cells})
+
+    if month == 1:
+        prev_year, prev_month = year - 1, 12
+    else:
+        prev_year, prev_month = year, month - 1
+    if month == 12:
+        next_year, next_month = year + 1, 1
+    else:
+        next_year, next_month = year, month + 1
+
+    return render(request, "attendance_v2/dashboard.html", {
+        "workplace": workplace,
+        "users": users,
+        "matrix_rows": matrix_rows,
+        "today": today,
+        "year": year,
+        "month": month,
+        "prev_year": prev_year,
+        "prev_month": prev_month,
+        "next_year": next_year,
+        "next_month": next_month,
+        "can_edit": is_patron(request.user),
+    })
+
+
+@login_required
+@user_passes_test(is_patron)
+@require_POST
+def edit_record(request):
+    workplace = WorkplaceSettings.get_solo()
+    target_user = get_object_or_404(User, pk=request.POST.get("user_id"))
+    try:
+        work_date = date.fromisoformat(request.POST.get("work_date", ""))
+    except ValueError:
+        return JsonResponse({"ok": False, "message": "Geçersiz tarih."}, status=400)
+
+    check_in_text = (request.POST.get("check_in") or "").strip()
+    check_out_text = (request.POST.get("check_out") or "").strip()
+    record = AttendanceRecord.objects.filter(user=target_user, work_date=work_date).first()
+
+    if not check_in_text and not check_out_text:
+        if record:
+            record.delete()
+        return JsonResponse({"ok": True, "message": "Puantaj kaydı kaldırıldı."})
+
+    record, _ = AttendanceRecord.objects.get_or_create(user=target_user, work_date=work_date)
+
+    try:
+        if check_in_text:
+            check_in_clock = datetime.strptime(check_in_text, "%H:%M").time()
+            record.check_in = _local_dt(work_date, check_in_clock)
+        else:
+            record.check_in = None
+
+        if check_out_text:
+            check_out_clock = datetime.strptime(check_out_text, "%H:%M").time()
+            record.check_out = _local_dt(work_date, check_out_clock)
+        else:
+            record.check_out = None
+    except ValueError:
+        return JsonResponse({"ok": False, "message": "Saat formatı geçersiz."}, status=400)
+
+    if record.check_in and record.check_out and record.check_out < record.check_in:
+        return JsonResponse({"ok": False, "message": "Çıkış saati giriş saatinden önce olamaz."}, status=400)
+
+    _recalculate(record, workplace)
+    record.save()
+    return JsonResponse({
+        "ok": True,
+        "message": "Puantaj kaydı güncellendi.",
+        "check_in": timezone.localtime(record.check_in).strftime("%H:%M") if record.check_in else "",
+        "check_out": timezone.localtime(record.check_out).strftime("%H:%M") if record.check_out else "",
+        "late_minutes": record.late_minutes,
+        "overtime_minutes": record.overtime_minutes,
+    })
 
 
 @login_required
