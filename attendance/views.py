@@ -144,7 +144,6 @@ def dashboard(request):
     except (TypeError, ValueError):
         year, month = today.year, today.month
 
-    # Bu hesaplar MoliApp'te aktif kalir; yalnizca Puantaj & Mesai tablosunda gosterilmez.
     hidden_attendance_names = {
         "emine kanyış",
         "oğuzhan kanyış",
@@ -152,6 +151,7 @@ def dashboard(request):
         "osman kanyış",
         "mehmet şener",
         "mihriban",
+        "patron",
     }
     active_users = User.objects.filter(is_active=True).order_by("first_name", "username")
     users = []
@@ -160,7 +160,7 @@ def dashboard(request):
         username = user.username.strip().casefold()
         if full_name in hidden_attendance_names or username in hidden_attendance_names:
             continue
-        if any(name == "mihriban" and (full_name == name or full_name.startswith(name + " ")) for name in hidden_attendance_names):
+        if "mihriban" in hidden_attendance_names and (full_name == "mihriban" or full_name.startswith("mihriban ")):
             continue
         users.append(user)
 
