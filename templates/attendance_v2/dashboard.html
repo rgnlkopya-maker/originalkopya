@@ -7,7 +7,8 @@
       <h2 class="fw-bold mb-1">Puantaj & Mesai Takvimi</h2>
       <div class="text-muted">08:30–19:00 • tolerans yok • sabah erken giriş fazla mesai sayılmaz</div>
     </div>
-    <div class="d-flex align-items-center gap-2">
+    <div class="d-flex align-items-center gap-2 flex-wrap justify-content-end">
+      {% if can_edit %}<a class="btn btn-dark" href="{% url 'attendance_qr_print' %}" target="_blank">QR Göster / Yazdır</a>{% endif %}
       <a class="btn btn-outline-secondary" href="?year={{ prev_year }}&month={{ prev_month }}">←</a>
       <div class="fw-bold px-2">{{ month|stringformat:"02d" }}/{{ year }}</div>
       <a class="btn btn-outline-secondary" href="?year={{ next_year }}&month={{ next_month }}">→</a>
