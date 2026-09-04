@@ -29,6 +29,11 @@ class OrderModelTests(TestCase):
         )
         self.assertEqual(order.urun_tipi, "HELEN")
 
+    def test_tekli_order_generates_tekli_number(self):
+        order = Order.objects.create(siparis_tipi="TEKLI")
+        self.assertTrue(order.is_tekli_siparis)
+        self.assertEqual(order.siparis_numarasi, "TEKLI0001")
+
 
 class OrderQrTests(TestCase):
     @override_settings(
