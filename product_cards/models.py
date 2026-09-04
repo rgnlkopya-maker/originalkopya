@@ -3,7 +3,7 @@ from decimal import Decimal
 from django.db import models
 from django.db.models.signals import post_save
 from django.dispatch import receiver
-from core.models import Order, ProductCost, UrunKod
+from core.models import Order, OrderEvent, ProductCost, UrunKod
 
 
 CURRENCY_CHOICES = [
@@ -37,6 +37,16 @@ def to_try(amount, currency):
     return amount
 
 
+def amount_to_try(amount, currency, usd_try):
+    """Snapshot hesabinda verilen sabit kuru kullanarak TL karsiligini dondurur."""
+    if amount is None:
+        return None
+    amount = Decimal(amount)
+    if currency == "USD":
+        return amount * usd_try if usd_try else None
+    return amount
+
+
 class OrderFinancialSnapshot(models.Model):
     """Siparis olusturuldugu andaki finansal fotografin degismeyen kaydi."""
 
@@ -56,6 +66,30 @@ class OrderFinancialSnapshot(models.Model):
 
     def __str__(self):
         return f"{self.order.siparis_numarasi} - siparis gunu finans"
+
+
+class ShipmentFinancialSnapshot(models.Model):
+    """Urun sevk edildigi andaki gercek finansal sonucu degismeden saklar."""
+
+    order = models.OneToOneField(
+        Order,
+        on_delete=models.CASCADE,
+        related_name="shipment_financial_snapshot",
+    )
+    usd_try = models.DecimalField(max_digits=12, decimal_places=6, null=True, blank=True)
+    satis_fiyati = models.DecimalField(max_digits=14, decimal_places=2, null=True, blank=True)
+    satis_para_birimi = models.CharField(max_length=3, default="TRY")
+    satis_tl = models.DecimalField(max_digits=16, decimal_places=2, null=True, blank=True)
+    urun_maliyeti_tl = models.DecimalField(max_digits=16, decimal_places=2, null=True, blank=True)
+    sevkiyat_ekstra_maliyet_tl = models.DecimalField(max_digits=16, decimal_places=2, default=0)
+    toplam_maliyet_tl = models.DecimalField(max_digits=16, decimal_places=2, null=True, blank=True)
+    gerceklesen_kar_tl = models.DecimalField(max_digits=16, decimal_places=2, null=True, blank=True)
+    gerceklesen_kar_orani = models.DecimalField(max_digits=8, decimal_places=2, null=True, blank=True)
+    notlar = models.TextField(blank=True, default="")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.order.siparis_numarasi} - sevkiyat gunu finans"
 
 
 @receiver(post_save, sender=Order)
@@ -118,6 +152,77 @@ def create_order_financial_snapshot(sender, instance, created, **kwargs):
             "beklenen_kar_tl": kar_tl.quantize(Decimal("0.01")) if kar_tl is not None else None,
             "beklenen_kar_orani": kar_orani.quantize(Decimal("0.01")) if kar_orani is not None else None,
         },
+    )
+
+
+@receiver(post_save, sender=OrderEvent)
+def create_shipment_financial_snapshot(sender, instance, created, **kwargs):
+    """Sevkedildi eventi ilk kez olustugunda sevkiyat gunu finans sonucunu dondurur."""
+    if not created or instance.stage != "sevkiyat_durum" or instance.value != "gonderildi":
+        return
+
+    order = instance.order
+
+    # Ayni siparis tekrar sevkedildi olarak isaretlense bile ilk gercek sevkiyat kaydi degismez.
+    if ShipmentFinancialSnapshot.objects.filter(order=order).exists():
+        return
+
+    rate_obj = ExchangeRate.objects.order_by("-rate_date", "-fetched_at").first()
+    usd_try = rate_obj.usd_try if rate_obj else None
+
+    # Nihai satis fiyati: sevkiyat aninda Order uzerinde hangi fiyat varsa odur.
+    satis = Decimal(order.satis_fiyati) if order.satis_fiyati is not None else None
+    satis_currency = order.para_birimi or "TRY"
+    satis_tl = amount_to_try(satis, satis_currency, usd_try)
+
+    # Sevkiyat gunu urun maliyeti: siparis gunundeki eski maliyet yerine guncel ProductCost kullanilir.
+    # Elle maliyet override girilmisse bu bilincli tercih oldugu icin onceliklidir.
+    urun_maliyeti = None
+    cost_currency = "TRY"
+    if order.maliyet_override is not None:
+        urun_maliyeti = Decimal(order.maliyet_override)
+        cost_currency = order.maliyet_para_birimi or "TRY"
+    else:
+        product_cost = ProductCost.objects.filter(
+            urun_kodu__iexact=order.urun_kodu or "",
+            is_active=True,
+        ).first()
+        if product_cost:
+            urun_maliyeti = Decimal(product_cost.maliyet)
+            cost_currency = product_cost.para_birimi or "TRY"
+        elif order.maliyet_uygulanan is not None:
+            # Eski/eksik urun kartlarinda finans kaydi tamamen bos kalmasin.
+            urun_maliyeti = Decimal(order.maliyet_uygulanan)
+            cost_currency = order.maliyet_para_birimi or "TRY"
+
+    urun_maliyeti_tl = amount_to_try(urun_maliyeti, cost_currency, usd_try)
+
+    # Musterinin sonradan istedigi ek isler icin Order.ekstra_maliyet sevkiyat aninda dahil edilir.
+    ekstra = Decimal(order.ekstra_maliyet or 0)
+    ekstra_tl = amount_to_try(ekstra, cost_currency, usd_try) or Decimal("0")
+
+    toplam_maliyet_tl = None
+    if urun_maliyeti_tl is not None:
+        toplam_maliyet_tl = urun_maliyeti_tl + ekstra_tl
+
+    kar_tl = None
+    kar_orani = None
+    if satis_tl is not None and toplam_maliyet_tl is not None:
+        kar_tl = satis_tl - toplam_maliyet_tl
+        if satis_tl != 0:
+            kar_orani = (kar_tl / satis_tl) * Decimal("100")
+
+    ShipmentFinancialSnapshot.objects.create(
+        order=order,
+        usd_try=usd_try,
+        satis_fiyati=satis,
+        satis_para_birimi=satis_currency,
+        satis_tl=satis_tl.quantize(Decimal("0.01")) if satis_tl is not None else None,
+        urun_maliyeti_tl=urun_maliyeti_tl.quantize(Decimal("0.01")) if urun_maliyeti_tl is not None else None,
+        sevkiyat_ekstra_maliyet_tl=ekstra_tl.quantize(Decimal("0.01")),
+        toplam_maliyet_tl=toplam_maliyet_tl.quantize(Decimal("0.01")) if toplam_maliyet_tl is not None else None,
+        gerceklesen_kar_tl=kar_tl.quantize(Decimal("0.01")) if kar_tl is not None else None,
+        gerceklesen_kar_orani=kar_orani.quantize(Decimal("0.01")) if kar_orani is not None else None,
     )
 
 
