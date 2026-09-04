@@ -133,6 +133,7 @@ class Order(models.Model):
     SIPARIS_TIPLERI = [
         ('OZEL', 'Özel'),
         ('SERI', 'Seri'),
+        ('TEKLI', 'Tekli Sipariş'),
         ('STOK', 'Stoğa Üretim')  # 👈 Hazır üretim / depoya üretim tipi
     ]
 
@@ -221,6 +222,10 @@ class Order(models.Model):
     @property
     def is_seri_siparis(self) -> bool:
         return self.siparis_tipi == 'SERI'
+
+    @property
+    def is_tekli_siparis(self) -> bool:
+        return self.siparis_tipi == 'TEKLI'
 
 
     
@@ -446,7 +451,6 @@ class OrderSeen(models.Model):
 
     def __str__(self):
         return f"{self.user} → {self.order}"
-
 
 
 
