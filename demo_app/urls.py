@@ -6,6 +6,7 @@ from django.contrib.auth import logout
 from django.shortcuts import redirect
 from core import views
 from core.views import health_check
+from core.order_list_enhanced import order_list as enhanced_order_list
 
 
 def logout_view(request):
@@ -22,7 +23,7 @@ urlpatterns = [
     path("attendance/", include("attendance.urls")),
     path("urun-kartlari/", include("product_cards.urls")),
     path("kalite/", include("quality_tracking.urls")),
-    path("", views.order_list, name="order_list"),
+    path("", enhanced_order_list, name="order_list"),
     path("order/new/", views.order_create, name="order_create"),
     path("order/<int:pk>/", views.order_detail, name="order_detail"),
     path("order/<int:pk>/edit/", views.order_edit, name="order_edit"),
