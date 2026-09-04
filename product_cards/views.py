@@ -1,16 +1,20 @@
 from decimal import Decimal, InvalidOperation
 import os
+import urllib.request
 import uuid
+import xml.etree.ElementTree as ET
 
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponseForbidden
 from django.shortcuts import get_object_or_404, redirect, render
+from django.utils import timezone
+from django.views.decorators.http import require_POST
 from supabase import create_client
 
 from core.models import ProductCost, UrunKod
-from .models import Material, ProductCard, ProductMaterial
+from .models import CURRENCY_CHOICES, ExchangeRate, Material, ProductCard, ProductMaterial
 
 
 def _can_manage(user):
@@ -51,16 +55,68 @@ def _upload_image(uploaded_file, folder, code):
     return bucket.get_public_url(path)
 
 
+def fetch_tcmb_usd_rate():
+    request = urllib.request.Request(
+        "https://www.tcmb.gov.tr/kurlar/today.xml",
+        headers={"User-Agent": "MoliApp/1.0"},
+    )
+    with urllib.request.urlopen(request, timeout=12) as response:
+        xml_data = response.read()
+
+    root = ET.fromstring(xml_data)
+    usd_node = root.find(".//Currency[@CurrencyCode='USD']")
+    if usd_node is None:
+        raise RuntimeError("TCMB verisinde USD bulunamadı.")
+
+    selling_text = usd_node.findtext("ForexSelling") or usd_node.findtext("BanknoteSelling")
+    if not selling_text:
+        raise RuntimeError("TCMB USD satış kuru alınamadı.")
+
+    usd_try = Decimal(selling_text.strip().replace(",", "."))
+    source_date = root.attrib.get("Date", "")
+    today = timezone.localdate()
+    rate, _ = ExchangeRate.objects.update_or_create(
+        rate_date=today,
+        defaults={"usd_try": usd_try, "source_date": source_date},
+    )
+    return rate
+
+
+def ensure_daily_rate():
+    today = timezone.localdate()
+    rate = ExchangeRate.objects.filter(rate_date=today).first()
+    if rate:
+        return rate, None
+    try:
+        return fetch_tcmb_usd_rate(), None
+    except Exception as exc:
+        return ExchangeRate.objects.order_by("-rate_date").first(), str(exc)
+
+
+@login_required
+@require_POST
+def refresh_exchange_rate(request):
+    if not _can_manage(request.user):
+        return HttpResponseForbidden("Bu işlem için yetkiniz yok.")
+    try:
+        rate = fetch_tcmb_usd_rate()
+        messages.success(request, f"TCMB USD satış kuru güncellendi: 1 USD = {rate.usd_try} TL")
+    except Exception as exc:
+        messages.error(request, f"Kur güncellenemedi: {exc}")
+    return redirect(request.POST.get("next") or "product_card_list")
+
+
 @login_required
 def product_card_list(request):
     if not _can_manage(request.user):
         return HttpResponseForbidden("Bu sayfaya erişim yetkiniz yok.")
 
+    current_rate, rate_error = ensure_daily_rate()
     cards = ProductCard.objects.select_related("urun").prefetch_related("materials").order_by("urun__kod")
     q = (request.GET.get("q") or "").strip()
     if q:
         cards = cards.filter(urun__kod__icontains=q)
-    return render(request, "product_cards/list.html", {"cards": cards, "q": q})
+    return render(request, "product_cards/list.html", {"cards": cards, "q": q, "current_rate": current_rate, "rate_error": rate_error})
 
 
 @login_required
@@ -68,6 +124,7 @@ def product_card_detail(request, card_id):
     if not _can_manage(request.user):
         return HttpResponseForbidden("Bu sayfaya erişim yetkiniz yok.")
 
+    current_rate, rate_error = ensure_daily_rate()
     card = get_object_or_404(ProductCard.objects.select_related("urun"), pk=card_id)
 
     if request.method == "POST":
@@ -121,7 +178,7 @@ def product_card_detail(request, card_id):
             usage.delete()
             messages.success(request, "Malzeme reçeteden kaldırıldı.")
 
-        elif action == "save_costs":
+        elif action in {"save_costs", "approve_cost"}:
             try:
                 card.iscilik_maliyeti = _decimal_from_post(request.POST.get("iscilik_maliyeti"))
                 card.genel_gider = _decimal_from_post(request.POST.get("genel_gider"))
@@ -129,36 +186,33 @@ def product_card_detail(request, card_id):
             except ValueError as exc:
                 messages.error(request, str(exc))
                 return redirect("product_card_detail", card_id=card.id)
-            card.save(update_fields=["iscilik_maliyeti", "genel_gider", "diger_maliyet", "updated_at"])
-            messages.success(request, "Ek maliyetler kaydedildi. Toplam maliyet yeniden hesaplandı.")
 
-        elif action == "approve_cost":
-            try:
-                card.iscilik_maliyeti = _decimal_from_post(request.POST.get("iscilik_maliyeti"))
-                card.genel_gider = _decimal_from_post(request.POST.get("genel_gider"))
-                card.diger_maliyet = _decimal_from_post(request.POST.get("diger_maliyet"))
-            except ValueError as exc:
-                messages.error(request, str(exc))
-                return redirect("product_card_detail", card_id=card.id)
-            card.save(update_fields=["iscilik_maliyeti", "genel_gider", "diger_maliyet", "updated_at"])
+            valid_currencies = {choice[0] for choice in CURRENCY_CHOICES}
+            card.iscilik_para_birimi = request.POST.get("iscilik_para_birimi") if request.POST.get("iscilik_para_birimi") in valid_currencies else "TRY"
+            card.genel_gider_para_birimi = request.POST.get("genel_gider_para_birimi") if request.POST.get("genel_gider_para_birimi") in valid_currencies else "TRY"
+            card.diger_maliyet_para_birimi = request.POST.get("diger_maliyet_para_birimi") if request.POST.get("diger_maliyet_para_birimi") in valid_currencies else "TRY"
+            card.save(update_fields=[
+                "iscilik_maliyeti", "iscilik_para_birimi",
+                "genel_gider", "genel_gider_para_birimi",
+                "diger_maliyet", "diger_maliyet_para_birimi", "updated_at",
+            ])
 
-            total = card.toplam_maliyet.quantize(Decimal("0.01"))
-            ProductCost.objects.update_or_create(
-                urun_kodu=card.urun.kod,
-                defaults={
-                    "maliyet": total,
-                    "para_birimi": "TRY",
-                    "is_active": True,
-                },
-            )
-            messages.success(request, f"{card.urun.kod} maliyeti {total} TL olarak Ürün Maliyetleri listesine kaydedildi.")
+            if action == "save_costs":
+                messages.success(request, "Ek maliyetler kaydedildi. Güncel kurla toplam yeniden hesaplandı.")
+            else:
+                total = card.toplam_maliyet.quantize(Decimal("0.01"))
+                ProductCost.objects.update_or_create(
+                    urun_kodu=card.urun.kod,
+                    defaults={"maliyet": total, "para_birimi": "TRY", "is_active": True},
+                )
+                messages.success(request, f"{card.urun.kod} maliyeti güncel kurla {total} TL olarak Ürün Maliyetleri listesine kaydedildi.")
 
         return redirect("product_card_detail", card_id=card.id)
 
     materials = Material.objects.filter(aktif=True).order_by("ad")
     usages = list(card.materials.select_related("material").all())
     material_total = sum((usage.satir_maliyeti for usage in usages), Decimal("0"))
-    calculated_total = material_total + card.iscilik_maliyeti + card.genel_gider + card.diger_maliyet
+    calculated_total = card.toplam_maliyet
     current_product_cost = ProductCost.objects.filter(urun_kodu=card.urun.kod, is_active=True).first()
 
     return render(request, "product_cards/detail.html", {
@@ -168,6 +222,9 @@ def product_card_detail(request, card_id):
         "material_total": material_total,
         "calculated_total": calculated_total,
         "current_product_cost": current_product_cost,
+        "current_rate": current_rate,
+        "rate_error": rate_error,
+        "currency_choices": CURRENCY_CHOICES,
         "urun_tipi_choices": UrunKod._meta.get_field("urun_tipi").choices,
     })
 
@@ -177,21 +234,22 @@ def material_list(request):
     if not _can_manage(request.user):
         return HttpResponseForbidden("Bu sayfaya erişim yetkiniz yok.")
 
+    current_rate, rate_error = ensure_daily_rate()
+
     if request.method == "POST":
         action = request.POST.get("action")
         if action == "add":
             kod = (request.POST.get("kod") or "").strip().upper()
             ad = (request.POST.get("ad") or "").strip()
             birim = (request.POST.get("birim") or "M").strip()
-            stok_text = (request.POST.get("stok_miktari") or "0").replace(",", ".")
-            birim_maliyet_text = (request.POST.get("birim_maliyet") or "0").replace(",", ".")
+            para_birimi = (request.POST.get("birim_maliyet_para_birimi") or "TRY").strip()
+            if para_birimi not in {"TRY", "USD"}:
+                para_birimi = "TRY"
             try:
-                stok = Decimal(stok_text)
-                birim_maliyet = Decimal(birim_maliyet_text)
-                if stok < 0 or birim_maliyet < 0:
-                    raise InvalidOperation
-            except (InvalidOperation, ValueError):
-                messages.error(request, "Stok ve birim maliyet için geçerli pozitif değerler girin.")
+                stok = _decimal_from_post(request.POST.get("stok_miktari"))
+                birim_maliyet = _decimal_from_post(request.POST.get("birim_maliyet"))
+            except ValueError as exc:
+                messages.error(request, str(exc))
                 return redirect("material_list")
 
             if kod and ad:
@@ -202,6 +260,7 @@ def material_list(request):
                         "birim": birim,
                         "stok_miktari": stok,
                         "birim_maliyet": birim_maliyet,
+                        "birim_maliyet_para_birimi": para_birimi,
                         "aktif": True,
                     },
                 )
@@ -214,6 +273,18 @@ def material_list(request):
                         messages.error(request, f"Malzeme resmi yüklenemedi: {exc}")
                         return redirect("material_list")
                 messages.success(request, "Malzeme kartı kaydedildi.")
+
+        elif action == "update_cost":
+            material = get_object_or_404(Material, pk=request.POST.get("id"), aktif=True)
+            try:
+                material.birim_maliyet = _decimal_from_post(request.POST.get("birim_maliyet"))
+            except ValueError as exc:
+                messages.error(request, str(exc))
+                return redirect("material_list")
+            para_birimi = request.POST.get("birim_maliyet_para_birimi") or "TRY"
+            material.birim_maliyet_para_birimi = para_birimi if para_birimi in {"TRY", "USD"} else "TRY"
+            material.save(update_fields=["birim_maliyet", "birim_maliyet_para_birimi", "updated_at"])
+            messages.success(request, "Malzeme birim maliyeti güncellendi.")
 
         elif action == "update_image":
             material = get_object_or_404(Material, pk=request.POST.get("id"), aktif=True)
@@ -238,4 +309,8 @@ def material_list(request):
         return redirect("material_list")
 
     materials = Material.objects.filter(aktif=True).order_by("ad")
-    return render(request, "product_cards/material_list.html", {"materials": materials})
+    return render(request, "product_cards/material_list.html", {
+        "materials": materials,
+        "current_rate": current_rate,
+        "rate_error": rate_error,
+    })
