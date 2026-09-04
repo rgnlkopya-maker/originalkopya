@@ -31,8 +31,18 @@ class WorkplaceSettings(models.Model):
 
 
 class AttendanceRecord(models.Model):
+    STATUS_CHOICES = [
+        ("worked", "Çalıştı"),
+        ("leave", "İzinli"),
+        ("sick", "Raporlu"),
+        ("other", "Diğer"),
+    ]
+
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="attendance_records")
     work_date = models.DateField(db_index=True)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="worked")
+    note = models.TextField(blank=True, default="")
+    report_image_url = models.URLField(blank=True, default="")
     check_in = models.DateTimeField(null=True, blank=True)
     check_out = models.DateTimeField(null=True, blank=True)
     check_in_latitude = models.DecimalField(max_digits=10, decimal_places=7, null=True, blank=True)
