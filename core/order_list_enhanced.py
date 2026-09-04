@@ -122,6 +122,9 @@ def order_list(request):
     siparis_bitis = request.GET.get("siparis_tarihi_bitis", "").strip()
     teslim_baslangic = request.GET.get("teslim_tarihi_baslangic", "").strip()
     teslim_bitis = request.GET.get("teslim_tarihi_bitis", "").strip()
+    son_durum_baslangic = request.GET.get("son_durum_tarihi_baslangic", "").strip()
+    son_durum_bitis = request.GET.get("son_durum_tarihi_bitis", "").strip()
+
     if siparis_baslangic:
         qs = qs.filter(siparis_tarihi__gte=siparis_baslangic)
     if siparis_bitis:
@@ -130,6 +133,10 @@ def order_list(request):
         qs = qs.filter(teslim_tarihi__gte=teslim_baslangic)
     if teslim_bitis:
         qs = qs.filter(teslim_tarihi__lte=teslim_bitis)
+    if son_durum_baslangic:
+        qs = qs.filter(last_status_date__date__gte=son_durum_baslangic)
+    if son_durum_bitis:
+        qs = qs.filter(last_status_date__date__lte=son_durum_bitis)
 
     kalite = request.GET.get("kalite", "").strip()
     if kalite == "acik":
