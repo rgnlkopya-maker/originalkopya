@@ -125,16 +125,25 @@ def dashboard(request):
     last_day = monthrange(year, month)[1]
     start = date(year, month, 1)
     end = date(year, month, last_day)
-    records = {
-        (r.user_id, r.work_date): r
-        for r in AttendanceRecord.objects.filter(work_date__range=(start, end)).select_related("user")
-    }
+    records_qs = list(AttendanceRecord.objects.filter(work_date__range=(start, end)).select_related("user"))
+    records = {(r.user_id, r.work_date): r for r in records_qs}
 
     matrix_rows = []
     for day_number in range(1, last_day + 1):
         d = date(year, month, day_number)
         cells = [{"user": user, "record": records.get((user.id, d))} for user in users]
         matrix_rows.append({"date": d, "is_weekend": d.weekday() >= 5, "cells": cells})
+
+    monthly_totals = []
+    for user in users:
+        user_records = [r for r in records_qs if r.user_id == user.id]
+        total_late = sum(r.late_minutes or 0 for r in user_records)
+        total_overtime = sum(r.overtime_minutes or 0 for r in user_records)
+        monthly_totals.append({
+            "user": user,
+            "total_late": total_late,
+            "total_overtime": total_overtime,
+        })
 
     if month == 1:
         prev_year, prev_month = year - 1, 12
@@ -149,6 +158,7 @@ def dashboard(request):
         "workplace": workplace,
         "users": users,
         "matrix_rows": matrix_rows,
+        "monthly_totals": monthly_totals,
         "today": today,
         "year": year,
         "month": month,
