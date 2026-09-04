@@ -124,13 +124,25 @@ class DeleteOrderEventTests(TestCase):
         self.client.force_login(self.user)
 
     @patch("core.signals_qr.ensure_order_qr")
-    def test_deleting_shipped_event_restores_previous_shipping_state(self, _qr):
+    def test_deleting_shipped_event_shows_previous_overall_stage(self, _qr):
         order = Order.objects.create(siparis_tipi="SERI", sevkiyat_durum="gonderildi")
         OrderEvent.objects.create(
             order=order,
             user=self.user.username,
-            stage="sevkiyat_durum",
-            value="hazirlaniyor",
+            stage="kesim_durum",
+            value="bitti",
+        )
+        OrderEvent.objects.create(
+            order=order,
+            user=self.user.username,
+            stage="dikim_durum",
+            value="bitti",
+        )
+        OrderEvent.objects.create(
+            order=order,
+            user=self.user.username,
+            stage="susleme_durum",
+            value="bitti",
         )
         shipped = OrderEvent.objects.create(
             order=order,
@@ -142,24 +154,11 @@ class DeleteOrderEventTests(TestCase):
         response = self.client.post(f"/events/{shipped.id}/delete/")
 
         self.assertEqual(response.status_code, 302)
-        order.refresh_from_db()
-        self.assertEqual(order.sevkiyat_durum, "hazirlaniyor")
         list_response = self.client.get("/")
         self.assertEqual(list_response.context["sevke_count"], 0)
+        self.assertEqual(list_response.context["orders"][0].formatted_status, "Süslendi")
 
-    @patch("core.signals_qr.ensure_order_qr")
-    def test_deleting_only_shipping_event_restores_default_state(self, _qr):
-        order = Order.objects.create(siparis_tipi="SERI", sevkiyat_durum="gonderildi")
-        shipped = OrderEvent.objects.create(
-            order=order,
-            user=self.user.username,
-            stage="sevkiyat_durum",
-            value="gonderildi",
-        )
-
-        self.client.post(f"/events/{shipped.id}/delete/")
-
-        order.refresh_from_db()
-        self.assertEqual(order.sevkiyat_durum, "bekliyor")
+        detail_response = self.client.get(f"/order/{order.id}/")
+        self.assertEqual(detail_response.context["current_status"], "Süslendi")
 
 # Create your tests here.

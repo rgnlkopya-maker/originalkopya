@@ -273,7 +273,7 @@ def order_list(request):
             "maliyet_override",
             "maliyet_uygulanan",
         ])
-        .order_by("-id")[:1]
+        .order_by("-timestamp", "-id")[:1]
 )
 
 
@@ -563,6 +563,10 @@ def order_detail(request, pk):
     events = OrderEvent.objects.filter(order=order).order_by("-timestamp")
     update_events = events.filter(event_type="order_update")
 
+    # Silme sonrası ekranda, geçmişte gerçekten kalan son aşamayı göster.
+    from .services.order_status import latest_status_event, status_label
+    current_status = status_label(latest_status_event(order))
+
     # 🔒 Personel fiyat değişikliklerini görmesin
     if not request.user.groups.filter(name__in=["patron", "mudur"]).exists():
         gizli_alanlar = [
@@ -603,6 +607,7 @@ def order_detail(request, pk):
             "is_manager": is_manager,
             "uretim_kayitlari": uretim_kayitlari,
             "back_url": return_url,
+            "current_status": current_status,
         },
     )
 
