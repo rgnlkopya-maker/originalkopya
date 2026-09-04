@@ -27,6 +27,7 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "core.apps.CoreConfig",
     "attendance.apps.AttendanceConfig",
+    "product_cards.apps.ProductCardsConfig",
 ]
 
 MIDDLEWARE = [
