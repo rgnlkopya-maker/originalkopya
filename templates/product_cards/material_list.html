@@ -3,9 +3,17 @@
 <div class="container py-4">
   <div class="d-flex justify-content-between align-items-center mb-4 gap-3 flex-wrap">
     <div><div class="text-muted small">MALZEME YÖNETİMİ</div><h2 class="fw-bold mb-1">Malzeme Kartları</h2><div class="text-muted">Dantel, tül, astar, taş ve diğer sarf malzemelerini burada tanımla.</div></div>
-    <a href="{% url 'product_card_list' %}" class="btn btn-outline-secondary">← Ürün Kartları</a>
+    <div class="d-flex gap-2 flex-wrap">
+      <a href="{% url 'product_card_list' %}" class="btn btn-outline-secondary">← Ürün Kartları</a>
+      <form method="post" action="{% url 'refresh_exchange_rate' %}">{% csrf_token %}<input type="hidden" name="next" value="{% url 'material_list' %}"><button class="btn btn-outline-primary">Kuru Güncelle</button></form>
+    </div>
   </div>
   {% for message in messages %}<div class="alert alert-info">{{ message }}</div>{% endfor %}
+
+  <div class="alert {% if rate_error %}alert-warning{% else %}alert-primary{% endif %} d-flex justify-content-between align-items-center flex-wrap gap-2">
+    <div>{% if current_rate %}<strong>TCMB USD satış kuru:</strong> 1 USD = {{ current_rate.usd_try|floatformat:4 }} TL <span class="text-muted small">(TCMB tarih: {{ current_rate.source_date|default:"—" }})</span>{% else %}<strong>USD kuru bulunamadı.</strong>{% endif %}</div>
+    {% if rate_error %}<div class="small">Bugünkü kur alınamadı; son kayıt kullanılıyor. {{ rate_error }}</div>{% endif %}
+  </div>
 
   <div class="card border-0 shadow-sm rounded-4 mb-4"><div class="card-body p-4">
     <form method="post" enctype="multipart/form-data" class="row g-3 align-items-end">{% csrf_token %}<input type="hidden" name="action" value="add">
@@ -13,42 +21,29 @@
       <div class="col-md-3"><label class="form-label">Malzeme adı</label><input name="ad" class="form-control" placeholder="Simli Tül" required></div>
       <div class="col-md-2"><label class="form-label">Birim</label><select name="birim" class="form-select"><option value="M">Metre</option><option value="ADET">Adet</option><option value="KG">Kilogram</option><option value="GR">Gram</option></select></div>
       <div class="col-md-2"><label class="form-label">Başlangıç stok</label><input name="stok_miktari" type="number" step="0.001" class="form-control" value="0"></div>
-      <div class="col-md-2"><label class="form-label">Birim maliyet (TL)</label><input name="birim_maliyet" type="number" step="0.01" min="0" class="form-control" value="0"></div>
-      <div class="col-md-1"><button class="btn btn-dark w-100">Kaydet</button></div>
+      <div class="col-md-2"><label class="form-label">Birim maliyet</label><input name="birim_maliyet" type="number" step="0.0001" min="0" class="form-control" value="0"></div>
+      <div class="col-md-1"><label class="form-label">Para</label><select name="birim_maliyet_para_birimi" class="form-select"><option value="TRY">TL</option><option value="USD">USD</option></select></div>
       <div class="col-md-4"><label class="form-label">Görsel</label><input name="material_image" type="file" accept="image/*" class="form-control"></div>
+      <div class="col-md-2"><button class="btn btn-dark w-100">Kaydet</button></div>
     </form>
   </div></div>
 
-  <div class="card border-0 shadow-sm rounded-4 overflow-hidden"><div class="table-responsive"><table class="table align-middle mb-0"><thead class="table-light"><tr><th>Görsel</th><th>Kod</th><th>Malzeme</th><th>Birim</th><th>Stok</th><th>Birim Maliyet</th><th>Görsel İşlemi</th><th></th></tr></thead><tbody>
+  <div class="card border-0 shadow-sm rounded-4 overflow-hidden"><div class="table-responsive"><table class="table align-middle mb-0"><thead class="table-light"><tr><th>Görsel</th><th>Kod</th><th>Malzeme</th><th>Birim</th><th>Stok</th><th>Birim Maliyet</th><th>TL Karşılığı</th><th>Görsel İşlemi</th><th></th></tr></thead><tbody>
   {% for material in materials %}
     <tr>
-      <td style="width:90px;">
-        {% if material.image_url %}
-          <img src="{{ material.image_url }}" alt="{{ material.ad }}" style="width:72px;height:72px;object-fit:cover;border-radius:12px;border:1px solid #e5e7eb;">
-        {% else %}
-          <div class="d-flex align-items-center justify-content-center text-muted small" style="width:72px;height:72px;border-radius:12px;border:1px dashed #cbd5e1;background:#f8fafc;">Görsel yok</div>
-        {% endif %}
-      </td>
+      <td style="width:90px;">{% if material.image_url %}<img src="{{ material.image_url }}" alt="{{ material.ad }}" style="width:72px;height:72px;object-fit:cover;border-radius:12px;border:1px solid #e5e7eb;">{% else %}<div class="d-flex align-items-center justify-content-center text-muted small" style="width:72px;height:72px;border-radius:12px;border:1px dashed #cbd5e1;background:#f8fafc;">Görsel yok</div>{% endif %}</td>
       <td class="fw-bold">{{ material.kod }}</td>
       <td>{{ material.ad }}</td>
       <td>{{ material.get_birim_display }}</td>
       <td>{{ material.stok_miktari }}</td>
-      <td><strong>{{ material.birim_maliyet|floatformat:2 }} TL</strong></td>
-      <td style="min-width:280px;">
-        <form method="post" enctype="multipart/form-data" class="d-flex gap-2 align-items-center flex-wrap">
-          {% csrf_token %}
-          <input type="hidden" name="action" value="update_image">
-          <input type="hidden" name="id" value="{{ material.id }}">
-          <input name="material_image" type="file" accept="image/*" class="form-control form-control-sm" style="max-width:180px;">
-          <button class="btn btn-sm btn-outline-dark">Güncelle</button>
-          {% if material.image_url %}
-            <button name="remove_image" value="1" class="btn btn-sm btn-outline-secondary">Kaldır</button>
-          {% endif %}
-        </form>
+      <td style="min-width:250px;">
+        <form method="post" class="d-flex gap-2 align-items-center">{% csrf_token %}<input type="hidden" name="action" value="update_cost"><input type="hidden" name="id" value="{{ material.id }}"><input name="birim_maliyet" type="number" step="0.0001" min="0" class="form-control form-control-sm" value="{{ material.birim_maliyet }}"><select name="birim_maliyet_para_birimi" class="form-select form-select-sm" style="max-width:90px;"><option value="TRY" {% if material.birim_maliyet_para_birimi == 'TRY' %}selected{% endif %}>TL</option><option value="USD" {% if material.birim_maliyet_para_birimi == 'USD' %}selected{% endif %}>USD</option></select><button class="btn btn-sm btn-outline-primary">Kaydet</button></form>
       </td>
+      <td><strong>{{ material.birim_maliyet_tl|floatformat:2 }} TL</strong></td>
+      <td style="min-width:280px;"><form method="post" enctype="multipart/form-data" class="d-flex gap-2 align-items-center flex-wrap">{% csrf_token %}<input type="hidden" name="action" value="update_image"><input type="hidden" name="id" value="{{ material.id }}"><input name="material_image" type="file" accept="image/*" class="form-control form-control-sm" style="max-width:180px;"><button class="btn btn-sm btn-outline-dark">Güncelle</button>{% if material.image_url %}<button name="remove_image" value="1" class="btn btn-sm btn-outline-secondary">Kaldır</button>{% endif %}</form></td>
       <td class="text-end"><form method="post">{% csrf_token %}<input type="hidden" name="action" value="deactivate"><input type="hidden" name="id" value="{{ material.id }}"><button class="btn btn-sm btn-outline-danger">Pasife Al</button></form></td>
     </tr>
-  {% empty %}<tr><td colspan="8" class="text-center text-muted py-5">Henüz malzeme kartı yok.</td></tr>{% endfor %}
+  {% empty %}<tr><td colspan="9" class="text-center text-muted py-5">Henüz malzeme kartı yok.</td></tr>{% endfor %}
   </tbody></table></div></div>
 </div>
 {% endblock %}
