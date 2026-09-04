@@ -1,8 +1,10 @@
 from unittest.mock import Mock, patch
+from io import BytesIO
 
 from django.test import TestCase, override_settings
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
+from openpyxl import load_workbook
 
 from .models import Musteri, Order, OrderEvent, UrunKod
 from .qr import ensure_order_qr
@@ -205,5 +207,37 @@ class MaterialStageTests(TestCase):
                 value="siraya_alindi",
             ).exists()
         )
+
+
+class OrderExcelExportTests(TestCase):
+    def setUp(self):
+        self.user = get_user_model().objects.create_user("excel-user", password="test")
+        self.client.force_login(self.user)
+        self.first = Order.objects.create(
+            siparis_tipi="SERI", urun_kodu="7119", renk="BEYAZ", adet=2
+        )
+        self.second = Order.objects.create(
+            siparis_tipi="OZEL", urun_kodu="7170", renk="SİYAH", adet=1
+        )
+
+    def workbook_rows(self, response):
+        workbook = load_workbook(BytesIO(response.content))
+        return list(workbook.active.iter_rows(values_only=True))
+
+    def test_selected_order_export_contains_only_selected_order(self):
+        response = self.client.get("/orders/export/excel/", {"ids": self.second.id})
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("spreadsheetml", response["Content-Type"])
+        rows = self.workbook_rows(response)
+        self.assertEqual(len(rows), 2)
+        self.assertEqual(rows[1][0], self.second.siparis_numarasi)
+
+    def test_filtered_export_uses_current_list_filter(self):
+        response = self.client.get("/orders/export/excel/", {"urun_kodu": "7119"})
+
+        rows = self.workbook_rows(response)
+        self.assertEqual(len(rows), 2)
+        self.assertEqual(rows[1][2], "7119")
 
 # Create your tests here.
