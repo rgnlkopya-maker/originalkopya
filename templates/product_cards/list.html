@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container py-4">
+  <div class="d-flex justify-content-between align-items-center mb-4 gap-3 flex-wrap">
+    <div>
+      <div class="text-muted small">ÜRÜN YÖNETİMİ</div>
+      <h2 class="fw-bold mb-1">Ürün Kartları</h2>
+      <div class="text-muted">Yeni ürün kodları oluştuğunda kartları otomatik açılır.</div>
+    </div>
+    <a href="{% url 'material_list' %}" class="btn btn-dark">Malzeme Kartları</a>
+  </div>
+
+  <form method="get" class="mb-3">
+    <div class="input-group">
+      <input type="text" name="q" value="{{ q }}" class="form-control" placeholder="Ürün kodu ara...">
+      <button class="btn btn-outline-secondary">Ara</button>
+    </div>
+  </form>
+
+  <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
+    <div class="table-responsive">
+      <table class="table align-middle mb-0">
+        <thead class="table-light"><tr><th>Ürün Kodu</th><th>Ürün Tipi</th><th>Reçete</th><th></th></tr></thead>
+        <tbody>
+        {% for card in cards %}
+          <tr>
+            <td class="fw-bold">{{ card.urun.kod }}</td>
+            <td>{{ card.urun.get_urun_tipi_display|default:"—" }}</td>
+            <td>{% if card.materials.count %}{{ card.materials.count }} malzeme{% else %}<span class="text-warning">Henüz tanımlanmadı</span>{% endif %}</td>
+            <td class="text-end"><a class="btn btn-sm btn-outline-dark" href="{% url 'product_card_detail' card.id %}">Kartı Aç</a></td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="4" class="text-center text-muted py-5">Henüz ürün kartı yok.</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}
