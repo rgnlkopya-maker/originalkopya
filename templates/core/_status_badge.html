@@ -1,74 +1,65 @@
+{% load static %}
 {% comment %} KESİM {% endcomment %}
 {% if status == "Kesim Başladı" %}
     <span class="status-badge status-blue">Kesim Başladı</span>
-
 {% elif status == "Kısmi Kesim" %}
     <span class="status-badge status-yellow">Kısmi Kesim</span>
-
 {% elif status == "Kesim Bitti" %}
     <span class="status-badge status-green">Kesildi</span>
-
 
 {% comment %} DİKİM {% endcomment %}
 {% elif status == "Dikim Sırasına Alındı" %}
     <span class="status-badge status-gray">Dikim Sırasında</span>
-
 {% elif status == "Dikim Başladı" %}
     <span class="status-badge status-blue">Dikim Başladı</span>
-
 {% elif status == "Kısmi Dikim" %}
     <span class="status-badge status-yellow">Kısmi Dikim</span>
-
 {% elif status == "Dikim Bitti" %}
     <span class="status-badge status-green">Dikildi</span>
-
 
 {% comment %} FASON DİKİM {% endcomment %}
 {% elif status == "Fason Verildi" %}
     <span class="status-badge status-yellow">Fason Dikime Verildi</span>
-
 {% elif status == "Fason Alındı" %}
     <span class="status-badge status-blue">Fason Dikimden Alındı</span>
-
 
 {% comment %} NAKIŞ {% endcomment %}
 {% elif status == "Nakış Verildi" %}
     <span class="status-badge status-yellow">Nakış Verildi</span>
-
 {% elif status == "Nakış Alındı" %}
     <span class="status-badge status-blue">Nakış Alındı</span>
-
 
 {% comment %} SÜSLEME {% endcomment %}
 {% elif status == "Süsleme Sırasına Alındı" %}
     <span class="status-badge status-gray">Süsleme Sırasında</span>
-
 {% elif status == "Süsleme Başladı" %}
     <span class="status-badge status-blue">Süsleme Başladı</span>
-
 {% elif status == "Kısmi Süsleme" %}
     <span class="status-badge status-yellow">Kısmi Süsleme</span>
-
 {% elif status == "Süsleme Bitti" %}
     <span class="status-badge status-green">Süsleme Bitti</span>
-
 
 {% comment %} FASON SÜSLEME {% endcomment %}
 {% elif status == "Fason Süsleme Verildi" %}
     <span class="status-badge status-yellow">Fason Süslemeye Verildi</span>
-
 {% elif status == "Fason Süsleme Alındı" %}
     <span class="status-badge status-blue">Fason Süslemeden Alındı</span>
 
-
-{% comment %} SEVK {% endcomment %}
+{% comment %} SEVKİYAT OPERASYONLARI {% endcomment %}
 {% elif status == "Depoya Girdi" %}
     <span class="status-badge status-green">Depoya Girdi</span>
-
-{% elif status == "Gönderildi" %}
+{% elif status == "Gönderildi" or status == "Sevkedildi" %}
     <span class="status-badge status-green">Sevk Edildi</span>
+{% elif status == "Sevkiyat → Kargodan Geri Geldi" or status == "Kargodan Geri Geldi" %}
+    <span class="status-badge status-yellow">Kargodan Geri Geldi</span>
+{% elif status == "Sevkiyat → Iade Geldi" or status == "İade Geldi" %}
+    <span class="status-badge status-yellow">İade Geldi</span>
+{% elif status == "Sevkiyat → Yanlis Sevkiyat" or status == "Yanlış Sevkiyat" %}
+    <span class="status-badge status-yellow">Yanlış Sevkiyat</span>
+{% elif status == "Sevkiyat → Tekrar Gonderildi" or status == "Tekrar Gönderildi" %}
+    <span class="status-badge status-green">Tekrar Gönderildi</span>
 
-{% comment %} SEVKİYAT / FİNANS HAREKETLERİ {% endcomment %}
+{% comment %} ESKİ FİNANS HAREKETİ KAYITLARI - GERİYE DÖNÜK GÖRÜNÜM {% endcomment %}
 {% elif status == "Finans Hareketi → Indirim" %}
     <span class="status-badge status-yellow">İndirim Yapıldı</span>
 {% elif status == "Finans Hareketi → Ek Ucret" %}
@@ -87,11 +78,11 @@
     <span class="status-badge status-yellow">Yanlış Sevkiyat</span>
 {% elif status == "Finans Hareketi → Tekrar Sevk" %}
     <span class="status-badge status-green">Tekrar Sevk Edildi</span>
-
-
 {% else %}
     <span class="status-badge status-gray">{{ status }}</span>
 {% endif %}
+
+<script src="{% static 'core/shipping_operations.js' %}"></script>
 
 {% if is_manager %}
 <script>
@@ -118,9 +109,7 @@ document.addEventListener('DOMContentLoaded', function () {
     box.innerHTML = `
         <hr>
         <h5 class="mt-4">💰 Sipariş Günü Finans Özeti</h5>
-        <div class="alert alert-light border mb-0">
-            Bu sipariş finans snapshot sistemi kurulmadan önce oluşturulmuş. Geçmiş tarihli kur veya maliyet uydurulmadığı için sipariş günü kârı otomatik gösterilmiyor.
-        </div>`;
+        <div class="alert alert-light border mb-0">Bu sipariş finans snapshot sistemi kurulmadan önce oluşturulmuş. Geçmiş tarihli kur veya maliyet uydurulmadığı için sipariş günü kârı otomatik gösterilmiyor.</div>`;
     {% endif %}
 });
 </script>
