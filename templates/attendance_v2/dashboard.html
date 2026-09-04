@@ -1,5 +1,15 @@
 {% extends "base.html" %}
 {% block content %}
+<style>
+  .attendance-table-wrap { overflow-x: auto; overflow-y: visible; }
+  .attendance-sticky-head th {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    background: #f8f9fa;
+    box-shadow: 0 2px 0 rgba(0,0,0,.08);
+  }
+</style>
 <div class="container-fluid py-4 px-md-4">
   <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
     <div>
@@ -32,9 +42,9 @@
   </div>
 
   <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
-    <div class="table-responsive">
+    <div class="attendance-table-wrap">
       <table class="table table-bordered align-middle mb-0" style="min-width:1100px">
-        <thead class="table-light sticky-top">
+        <thead class="table-light attendance-sticky-head">
           <tr><th style="min-width:115px">Tarih</th>{% for user in users %}<th class="text-center" style="min-width:190px">{{ user.get_full_name|default:user.username }}</th>{% endfor %}</tr>
         </thead>
         <tbody>
