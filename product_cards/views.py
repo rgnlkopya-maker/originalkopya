@@ -9,12 +9,23 @@ from django.http import HttpResponseForbidden
 from django.shortcuts import get_object_or_404, redirect, render
 from supabase import create_client
 
-from core.models import UrunKod
+from core.models import ProductCost, UrunKod
 from .models import Material, ProductCard, ProductMaterial
 
 
 def _can_manage(user):
     return user.is_superuser or user.groups.filter(name__in=["patron", "mudur"]).exists()
+
+
+def _decimal_from_post(value, default="0"):
+    text = (value or default).replace(",", ".").strip()
+    try:
+        number = Decimal(text)
+        if number < 0:
+            raise InvalidOperation
+        return number
+    except (InvalidOperation, ValueError):
+        raise ValueError("Geçerli bir tutar girin.")
 
 
 def _upload_image(uploaded_file, folder, code):
@@ -110,14 +121,53 @@ def product_card_detail(request, card_id):
             usage.delete()
             messages.success(request, "Malzeme reçeteden kaldırıldı.")
 
+        elif action == "save_costs":
+            try:
+                card.iscilik_maliyeti = _decimal_from_post(request.POST.get("iscilik_maliyeti"))
+                card.genel_gider = _decimal_from_post(request.POST.get("genel_gider"))
+                card.diger_maliyet = _decimal_from_post(request.POST.get("diger_maliyet"))
+            except ValueError as exc:
+                messages.error(request, str(exc))
+                return redirect("product_card_detail", card_id=card.id)
+            card.save(update_fields=["iscilik_maliyeti", "genel_gider", "diger_maliyet", "updated_at"])
+            messages.success(request, "Ek maliyetler kaydedildi. Toplam maliyet yeniden hesaplandı.")
+
+        elif action == "approve_cost":
+            try:
+                card.iscilik_maliyeti = _decimal_from_post(request.POST.get("iscilik_maliyeti"))
+                card.genel_gider = _decimal_from_post(request.POST.get("genel_gider"))
+                card.diger_maliyet = _decimal_from_post(request.POST.get("diger_maliyet"))
+            except ValueError as exc:
+                messages.error(request, str(exc))
+                return redirect("product_card_detail", card_id=card.id)
+            card.save(update_fields=["iscilik_maliyeti", "genel_gider", "diger_maliyet", "updated_at"])
+
+            total = card.toplam_maliyet.quantize(Decimal("0.01"))
+            ProductCost.objects.update_or_create(
+                urun_kodu=card.urun.kod,
+                defaults={
+                    "maliyet": total,
+                    "para_birimi": "TRY",
+                    "is_active": True,
+                },
+            )
+            messages.success(request, f"{card.urun.kod} maliyeti {total} TL olarak Ürün Maliyetleri listesine kaydedildi.")
+
         return redirect("product_card_detail", card_id=card.id)
 
     materials = Material.objects.filter(aktif=True).order_by("ad")
-    usages = card.materials.select_related("material").all()
+    usages = list(card.materials.select_related("material").all())
+    material_total = sum((usage.satir_maliyeti for usage in usages), Decimal("0"))
+    calculated_total = material_total + card.iscilik_maliyeti + card.genel_gider + card.diger_maliyet
+    current_product_cost = ProductCost.objects.filter(urun_kodu=card.urun.kod, is_active=True).first()
+
     return render(request, "product_cards/detail.html", {
         "card": card,
         "materials": materials,
         "usages": usages,
+        "material_total": material_total,
+        "calculated_total": calculated_total,
+        "current_product_cost": current_product_cost,
         "urun_tipi_choices": UrunKod._meta.get_field("urun_tipi").choices,
     })
 
@@ -134,15 +184,26 @@ def material_list(request):
             ad = (request.POST.get("ad") or "").strip()
             birim = (request.POST.get("birim") or "M").strip()
             stok_text = (request.POST.get("stok_miktari") or "0").replace(",", ".")
+            birim_maliyet_text = (request.POST.get("birim_maliyet") or "0").replace(",", ".")
             try:
                 stok = Decimal(stok_text)
+                birim_maliyet = Decimal(birim_maliyet_text)
+                if stok < 0 or birim_maliyet < 0:
+                    raise InvalidOperation
             except (InvalidOperation, ValueError):
-                stok = Decimal("0")
+                messages.error(request, "Stok ve birim maliyet için geçerli pozitif değerler girin.")
+                return redirect("material_list")
 
             if kod and ad:
                 material, _ = Material.objects.update_or_create(
                     kod=kod,
-                    defaults={"ad": ad, "birim": birim, "stok_miktari": stok, "aktif": True},
+                    defaults={
+                        "ad": ad,
+                        "birim": birim,
+                        "stok_miktari": stok,
+                        "birim_maliyet": birim_maliyet,
+                        "aktif": True,
+                    },
                 )
                 uploaded_image = request.FILES.get("material_image")
                 if uploaded_image:
