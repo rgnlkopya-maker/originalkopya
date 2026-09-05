@@ -14,7 +14,8 @@ User = get_user_model()
 PERMISSION_FIELDS = [
     ('can_view_orders', 'Siparişleri Gör'),
     ('can_create_orders', 'Sipariş Oluştur'),
-    ('can_edit_orders', 'Sipariş / Üretim İşlemi Yap'),
+    ('can_edit_orders', 'Siparişi Düzenle'),
+    ('can_update_production', 'Üretim Panelini Kullan'),
     ('can_delete_orders', 'Sipariş Sil'),
     ('can_view_depots', 'Depoları Gör'),
     ('can_view_reports', 'Raporları Gör'),
