@@ -34,12 +34,19 @@ class ShipmentFinancialSnapshot(models.Model):
 @receiver(post_save,sender=Order)
 def create_order_financial_snapshot(sender,instance,created,**kwargs):
     if not created:return
-    rate_obj=ExchangeRate.objects.order_by("-rate_date","-fetched_at").first(); usd_try=rate_obj.usd_try if rate_obj else None; satis=instance.satis_fiyati; curr=instance.para_birimi or "TRY"; satis_tl=amount_to_try(satis,curr,usd_try) if satis is not None else None; cost_available=instance.maliyet_override is not None; effective=Decimal(instance.maliyet_override) if instance.maliyet_override is not None else None
-    if effective is None and instance.maliyet_uygulanan is not None:
-        exists=ProductCost.objects.filter(urun_kodu__iexact=instance.urun_kodu or "",is_active=True).exists()
-        if exists or Decimal(instance.maliyet_uygulanan or 0)!=0: effective=Decimal(instance.maliyet_uygulanan or 0); cost_available=True
+    rate_obj=ExchangeRate.objects.order_by("-rate_date","-fetched_at").first(); usd_try=rate_obj.usd_try if rate_obj else None
+    satis=instance.satis_fiyati; curr=instance.para_birimi or "TRY"; satis_tl=amount_to_try(satis,curr,usd_try) if satis is not None else None
+    pc=ProductCost.objects.filter(urun_kodu__iexact=instance.urun_kodu or "",is_active=True).first()
+    effective=None; cost_currency=instance.maliyet_para_birimi or "TRY"
+    if instance.maliyet_override is not None:
+        effective=Decimal(instance.maliyet_override)
+    elif instance.maliyet_uygulanan is not None and Decimal(instance.maliyet_uygulanan or 0)!=0:
+        effective=Decimal(instance.maliyet_uygulanan)
+    elif pc is not None:
+        effective=Decimal(pc.maliyet); cost_currency=pc.para_birimi or "TRY"
+        Order.objects.filter(pk=instance.pk).update(maliyet_uygulanan=pc.maliyet,maliyet_para_birimi=cost_currency)
     maliyet_tl=None
-    if cost_available and effective is not None:maliyet_tl=amount_to_try(effective+Decimal(instance.ekstra_maliyet or 0),instance.maliyet_para_birimi or "TRY",usd_try)
+    if effective is not None:maliyet_tl=amount_to_try(effective+Decimal(instance.ekstra_maliyet or 0),cost_currency,usd_try)
     kar=satis_tl-maliyet_tl if satis_tl is not None and maliyet_tl is not None else None; oran=kar/satis_tl*100 if kar is not None and satis_tl else None
     OrderFinancialSnapshot.objects.get_or_create(order=instance,defaults={"usd_try":usd_try,"satis_fiyati":satis,"satis_para_birimi":curr,"satis_tl":satis_tl.quantize(Decimal('.01')) if satis_tl is not None else None,"maliyet_tl":maliyet_tl.quantize(Decimal('.01')) if maliyet_tl is not None else None,"beklenen_kar_tl":kar.quantize(Decimal('.01')) if kar is not None else None,"beklenen_kar_orani":oran.quantize(Decimal('.01')) if oran is not None else None})
 
