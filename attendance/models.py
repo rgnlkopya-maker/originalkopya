@@ -6,6 +6,9 @@ class WorkplaceSettings(models.Model):
     name = models.CharField(max_length=120, default="Moli Tekstil")
     latitude = models.DecimalField(max_digits=10, decimal_places=7, null=True, blank=True)
     longitude = models.DecimalField(max_digits=10, decimal_places=7, null=True, blank=True)
+    second_location_name = models.CharField(max_length=120, default="Gaziemir", blank=True)
+    second_latitude = models.DecimalField(max_digits=10, decimal_places=7, null=True, blank=True)
+    second_longitude = models.DecimalField(max_digits=10, decimal_places=7, null=True, blank=True)
     normal_radius_m = models.PositiveIntegerField(default=50)
     overtime_radius_m = models.PositiveIntegerField(default=100)
     work_start = models.TimeField(default="08:30")
@@ -25,6 +28,18 @@ class WorkplaceSettings(models.Model):
     @property
     def location_ready(self):
         return self.latitude is not None and self.longitude is not None
+
+    @property
+    def second_location_ready(self):
+        return self.second_latitude is not None and self.second_longitude is not None
+
+    def active_locations(self):
+        locations = []
+        if self.location_ready:
+            locations.append(("Çankaya", self.latitude, self.longitude))
+        if self.second_location_ready:
+            locations.append((self.second_location_name or "Gaziemir", self.second_latitude, self.second_longitude))
+        return locations
 
     def __str__(self):
         return self.name
