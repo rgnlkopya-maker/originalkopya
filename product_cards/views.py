@@ -7,6 +7,7 @@ import xml.etree.ElementTree as ET
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.db import transaction
 from django.http import HttpResponseForbidden
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
@@ -14,7 +15,7 @@ from django.views.decorators.http import require_POST
 from supabase import create_client
 
 from core.models import ProductCost, UrunKod
-from .models import CURRENCY_CHOICES, ExchangeRate, Material, ProductCard, ProductMaterial
+from .models import CURRENCY_CHOICES, ExchangeRate, Material, MaterialStockMovement, ProductCard, ProductMaterial
 
 
 def _can_manage(user):
@@ -30,6 +31,16 @@ def _decimal_from_post(value, default="0"):
         return number
     except (InvalidOperation, ValueError):
         raise ValueError("Geçerli bir tutar girin.")
+
+
+def _date_from_post(value):
+    value = (value or "").strip()
+    if not value:
+        return None
+    try:
+        return timezone.datetime.strptime(value, "%Y-%m-%d").date()
+    except ValueError:
+        raise ValueError("Geçerli bir tarih girin.")
 
 
 def _upload_image(uploaded_file, folder, code):
@@ -181,16 +192,7 @@ def product_card_detail(request, card_id):
             card.genel_gider_para_birimi = request.POST.get("genel_gider_para_birimi") if request.POST.get("genel_gider_para_birimi") in valid_currencies else "TRY"
             card.iscilik_para_birimi = request.POST.get("iscilik_para_birimi") if request.POST.get("iscilik_para_birimi") in valid_currencies else "TRY"
             card.paketleme_para_birimi = request.POST.get("paketleme_para_birimi") if request.POST.get("paketleme_para_birimi") in valid_currencies else "TRY"
-
-            card.save(update_fields=[
-                "finansman_maliyeti", "finansman_para_birimi",
-                "nakis_maliyeti", "nakis_para_birimi",
-                "genel_gider", "genel_gider_para_birimi",
-                "iscilik_maliyeti", "iscilik_para_birimi",
-                "paketleme_maliyeti", "paketleme_para_birimi",
-                "updated_at",
-            ])
-
+            card.save(update_fields=["finansman_maliyeti", "finansman_para_birimi", "nakis_maliyeti", "nakis_para_birimi", "genel_gider", "genel_gider_para_birimi", "iscilik_maliyeti", "iscilik_para_birimi", "paketleme_maliyeti", "paketleme_para_birimi", "updated_at"])
             if action == "save_costs":
                 if ProductCost.objects.filter(urun_kodu=card.urun.kod, is_active=True).exists():
                     recalculate_approved_product_costs()
@@ -213,23 +215,53 @@ def material_list(request):
     if not _can_manage(request.user):
         return HttpResponseForbidden("Bu sayfaya erişim yetkiniz yok.")
     current_rate, rate_error = ensure_daily_rate()
+
     if request.method == "POST":
         action = request.POST.get("action")
+
         if action == "add":
             kod = (request.POST.get("kod") or "").strip().upper()
             ad = (request.POST.get("ad") or "").strip()
             birim = (request.POST.get("birim") or "M").strip()
+            kategori = (request.POST.get("kategori") or "DIGER").strip()
             para_birimi = (request.POST.get("birim_maliyet_para_birimi") or "TRY").strip()
             if para_birimi not in {"TRY", "USD"}:
                 para_birimi = "TRY"
+            if kategori not in {c[0] for c in Material.CATEGORY_CHOICES}:
+                kategori = "DIGER"
             try:
                 stok = _decimal_from_post(request.POST.get("stok_miktari"))
+                kritik_stok = _decimal_from_post(request.POST.get("kritik_stok"))
                 birim_maliyet = _decimal_from_post(request.POST.get("birim_maliyet"))
+                son_alis_tarihi = _date_from_post(request.POST.get("son_alis_tarihi"))
             except ValueError as exc:
                 messages.error(request, str(exc))
                 return redirect("material_list")
+
             if kod and ad:
-                material, _ = Material.objects.update_or_create(kod=kod, defaults={"ad": ad, "birim": birim, "stok_miktari": stok, "birim_maliyet": birim_maliyet, "birim_maliyet_para_birimi": para_birimi, "aktif": True})
+                with transaction.atomic():
+                    material, created = Material.objects.update_or_create(
+                        kod=kod,
+                        defaults={
+                            "ad": ad,
+                            "kategori": kategori,
+                            "birim": birim,
+                            "kritik_stok": kritik_stok,
+                            "tedarikci": (request.POST.get("tedarikci") or "").strip(),
+                            "aciklama": (request.POST.get("aciklama") or "").strip(),
+                            "birim_maliyet": birim_maliyet,
+                            "birim_maliyet_para_birimi": para_birimi,
+                            "son_alis_tarihi": son_alis_tarihi,
+                            "aktif": True,
+                        },
+                    )
+                    if created and stok > 0:
+                        material.stok_miktari = stok
+                        material.save(update_fields=["stok_miktari", "updated_at"])
+                        MaterialStockMovement.objects.create(material=material, movement_type="BASLANGIC", miktar=stok, onceki_stok=Decimal("0"), sonraki_stok=stok, aciklama="Malzeme kartı açılış stoğu", islem_yapan=request.user)
+                    elif not created and stok != material.stok_miktari:
+                        messages.warning(request, "Mevcut kartın stoğu kart kaydından değiştirilmedi. Stok için hareket ekleyin.")
+
                 uploaded_image = request.FILES.get("material_image")
                 if uploaded_image:
                     try:
@@ -240,6 +272,71 @@ def material_list(request):
                         return redirect("material_list")
                 recalculate_approved_product_costs()
                 messages.success(request, "Malzeme kartı kaydedildi.")
+
+        elif action == "update_info":
+            material = get_object_or_404(Material, pk=request.POST.get("id"), aktif=True)
+            try:
+                material.kritik_stok = _decimal_from_post(request.POST.get("kritik_stok"))
+                material.son_alis_tarihi = _date_from_post(request.POST.get("son_alis_tarihi"))
+            except ValueError as exc:
+                messages.error(request, str(exc))
+                return redirect("material_list")
+            kategori = request.POST.get("kategori") or "DIGER"
+            material.kategori = kategori if kategori in {c[0] for c in Material.CATEGORY_CHOICES} else "DIGER"
+            material.tedarikci = (request.POST.get("tedarikci") or "").strip()
+            material.aciklama = (request.POST.get("aciklama") or "").strip()
+            material.save(update_fields=["kategori", "kritik_stok", "tedarikci", "aciklama", "son_alis_tarihi", "updated_at"])
+            messages.success(request, "Malzeme bilgileri güncellendi.")
+
+        elif action == "stock_movement":
+            material_id = request.POST.get("id")
+            movement_type = (request.POST.get("movement_type") or "").strip()
+            allowed_types = {c[0] for c in MaterialStockMovement.MOVEMENT_CHOICES if c[0] != "BASLANGIC"}
+            if movement_type not in allowed_types:
+                messages.error(request, "Geçerli bir stok hareketi seçin.")
+                return redirect("material_list")
+            try:
+                miktar = _decimal_from_post(request.POST.get("miktar"))
+                if miktar <= 0:
+                    raise ValueError("Stok hareket miktarı sıfırdan büyük olmalıdır.")
+            except ValueError as exc:
+                messages.error(request, str(exc))
+                return redirect("material_list")
+
+            with transaction.atomic():
+                material = Material.objects.select_for_update().get(pk=material_id, aktif=True)
+                onceki = material.stok_miktari
+                if movement_type in {"CIKIS", "FIRE", "DUZELTME_EKSI"}:
+                    sonraki = onceki - miktar
+                    if sonraki < 0:
+                        messages.error(request, f"Yetersiz stok. Mevcut stok: {onceki} {material.get_birim_display()}.")
+                        return redirect("material_list")
+                else:
+                    sonraki = onceki + miktar
+                material.stok_miktari = sonraki
+                if movement_type == "GIRIS":
+                    try:
+                        movement_cost = _decimal_from_post(request.POST.get("hareket_birim_maliyet"), default="0")
+                    except ValueError:
+                        movement_cost = Decimal("0")
+                    movement_currency = request.POST.get("hareket_para_birimi") or material.birim_maliyet_para_birimi
+                    if movement_cost > 0:
+                        material.birim_maliyet = movement_cost
+                        material.birim_maliyet_para_birimi = movement_currency if movement_currency in {"TRY", "USD"} else "TRY"
+                    material.son_alis_tarihi = timezone.localdate()
+                material.save()
+                MaterialStockMovement.objects.create(
+                    material=material,
+                    movement_type=movement_type,
+                    miktar=miktar,
+                    onceki_stok=onceki,
+                    sonraki_stok=sonraki,
+                    aciklama=(request.POST.get("hareket_aciklama") or "").strip(),
+                    islem_yapan=request.user,
+                )
+            if movement_type == "GIRIS":
+                recalculate_approved_product_costs()
+            messages.success(request, f"Stok hareketi kaydedildi. Yeni stok: {sonraki} {material.get_birim_display()}.")
 
         elif action == "update_cost":
             material = get_object_or_404(Material, pk=request.POST.get("id"), aktif=True)
@@ -276,5 +373,15 @@ def material_list(request):
             messages.success(request, "Malzeme pasife alındı.")
         return redirect("material_list")
 
-    materials = Material.objects.filter(aktif=True).order_by("ad")
-    return render(request, "product_cards/material_list.html", {"materials": materials, "current_rate": current_rate, "rate_error": rate_error})
+    materials = Material.objects.filter(aktif=True).prefetch_related("stock_movements").order_by("ad")
+    recent_movements = MaterialStockMovement.objects.select_related("material", "islem_yapan").filter(material__aktif=True)[:40]
+    critical_count = sum(1 for material in materials if material.kritik_mi)
+    return render(request, "product_cards/material_list.html", {
+        "materials": materials,
+        "recent_movements": recent_movements,
+        "critical_count": critical_count,
+        "current_rate": current_rate,
+        "rate_error": rate_error,
+        "category_choices": Material.CATEGORY_CHOICES,
+        "movement_choices": [c for c in MaterialStockMovement.MOVEMENT_CHOICES if c[0] != "BASLANGIC"],
+    })
