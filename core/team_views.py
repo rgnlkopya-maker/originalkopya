@@ -43,25 +43,26 @@ def _annual_leave_entitlement(start, as_of):
     return years * 14
 
 
-def _selected_range(request, today, employment_start=None):
+def _selected_range(request, today, employment_start=None, employment_end=None):
+    effective_today = min(today, employment_end) if employment_end else today
     preset = request.GET.get("preset", "this_month")
     start_raw = request.GET.get("start", "").strip(); end_raw = request.GET.get("end", "").strip()
     if start_raw or end_raw:
         try:
-            start = date.fromisoformat(start_raw) if start_raw else today
-            end = date.fromisoformat(end_raw) if end_raw else today
+            start = date.fromisoformat(start_raw) if start_raw else effective_today
+            end = date.fromisoformat(end_raw) if end_raw else effective_today
             if start > end: start, end = end, start
-            return start, min(end, today), "custom"
+            return start, min(end, effective_today), "custom"
         except ValueError: pass
-    if preset == "today": return today, today, preset
+    if preset == "today": return effective_today, effective_today, preset
     if preset == "yesterday":
-        yesterday = today - timedelta(days=1); return yesterday, yesterday, preset
-    if preset == "this_week": return today - timedelta(days=today.weekday()), today, preset
+        yesterday = effective_today - timedelta(days=1); return yesterday, yesterday, preset
+    if preset == "this_week": return effective_today - timedelta(days=effective_today.weekday()), effective_today, preset
     if preset == "last_month":
-        first_this_month = today.replace(day=1); end = first_this_month - timedelta(days=1); return end.replace(day=1), end, preset
-    if preset == "this_year": return today.replace(month=1, day=1), today, preset
-    if preset == "all": return employment_start or date(2000, 1, 1), today, preset
-    return today.replace(day=1), today, "this_month"
+        first_this_month = effective_today.replace(day=1); end = first_this_month - timedelta(days=1); return end.replace(day=1), end, preset
+    if preset == "this_year": return effective_today.replace(month=1, day=1), effective_today, preset
+    if preset == "all": return employment_start or date(2000, 1, 1), effective_today, preset
+    return effective_today.replace(day=1), effective_today, "this_month"
 
 
 @login_required
@@ -74,7 +75,6 @@ def user_management_view(request):
         if action == "create_user":
             username = request.POST.get("username", "").strip(); password = request.POST.get("password", "").strip()
             role = request.POST.get("role", "").strip(); gorev = request.POST.get("gorev", "yok").strip()
-            phone_number = request.POST.get("phone_number", "").strip()
             first_name = request.POST.get("first_name", "").strip(); last_name = request.POST.get("last_name", "").strip()
             if not username or not password or not role:
                 messages.error(request, "Kullanıcı adı, şifre ve rol zorunludur."); return redirect("user_management")
@@ -84,7 +84,18 @@ def user_management_view(request):
             if role in {"personel", "mudur", "patron"}:
                 group, _ = Group.objects.get_or_create(name=role); user.groups.add(group)
             profile, _ = UserProfile.objects.get_or_create(user=user); profile.gorev = gorev; profile.save()
-            EmployeeHRProfile.objects.create(user=user, phone_number=phone_number)
+            def new_date(name):
+                raw = request.POST.get(name, "").strip(); return date.fromisoformat(raw) if raw else None
+            EmployeeHRProfile.objects.create(
+                user=user,
+                phone_number=request.POST.get("phone_number", "").strip(),
+                national_id=request.POST.get("national_id", "").strip(),
+                emergency_contact_name=request.POST.get("emergency_contact_name", "").strip(),
+                emergency_contact_phone=request.POST.get("emergency_contact_phone", "").strip(),
+                employment_start_date=new_date("employment_start_date"),
+                employment_end_date=new_date("employment_end_date"),
+                sgk_start_date=new_date("sgk_start_date"),
+            )
             messages.success(request, f"{user.get_full_name() or username} eklendi ✅"); return redirect("user_management")
         if action == "reset_password":
             u = get_object_or_404(User, pk=request.POST.get("user_id")); new_password = request.POST.get("new_password", "").strip()
@@ -125,13 +136,18 @@ def employee_detail(request, user_id):
             employee.groups.clear(); group, _ = Group.objects.get_or_create(name=role); employee.groups.add(group)
             gorev = request.POST.get("gorev", "yok"); valid_gorevler = {value for value, _label in UserProfile.GOREV_SECENEKLERI}
             user_profile.gorev = gorev if gorev in valid_gorevler else "yok"; user_profile.save(update_fields=["gorev"])
-            profile.phone_number = request.POST.get("phone_number", "").strip(); profile.employment_start_date = parse_date("employment_start_date")
+            profile.phone_number = request.POST.get("phone_number", "").strip()
+            profile.national_id = request.POST.get("national_id", "").strip()
+            profile.emergency_contact_name = request.POST.get("emergency_contact_name", "").strip()
+            profile.emergency_contact_phone = request.POST.get("emergency_contact_phone", "").strip()
+            profile.employment_start_date = parse_date("employment_start_date")
+            profile.employment_end_date = parse_date("employment_end_date")
             profile.sgk_start_date = parse_date("sgk_start_date"); profile.birth_date = parse_date("birth_date")
             profile.annual_leave_carryover = max(0, int(request.POST.get("annual_leave_carryover") or 0)); profile.note = request.POST.get("note", "").strip(); profile.save()
             messages.success(request, "Personel bilgileri güncellendi.")
         except (ValueError, TypeError): messages.error(request, "Girilen bilgileri kontrol edin.")
         return redirect("employee_detail", user_id=employee.id)
-    today = timezone.localdate(); range_start, range_end, preset = _selected_range(request, today, profile.employment_start_date)
+    today = timezone.localdate(); range_start, range_end, preset = _selected_range(request, today, profile.employment_start_date, profile.employment_end_date)
     range_records = AttendanceRecord.objects.filter(user=employee, work_date__range=(range_start, range_end))
     worked_days = range_records.filter(status="worked").count(); leave_days = range_records.filter(status="leave").count(); sick_days = range_records.filter(status="sick").count(); annual_leave_period = range_records.filter(status="annual_leave").count()
     late_minutes = range_records.aggregate(v=Sum("late_minutes"))["v"] or 0; overtime_minutes = range_records.aggregate(v=Sum("overtime_minutes"))["v"] or 0
