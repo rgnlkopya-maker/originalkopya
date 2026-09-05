@@ -37,7 +37,11 @@ class EmployeeHRProfile(models.Model):
         related_name="hr_profile",
     )
     phone_number = models.CharField(max_length=30, blank=True, default="")
+    national_id = models.CharField(max_length=11, blank=True, default="")
+    emergency_contact_name = models.CharField(max_length=120, blank=True, default="")
+    emergency_contact_phone = models.CharField(max_length=30, blank=True, default="")
     employment_start_date = models.DateField(null=True, blank=True)
+    employment_end_date = models.DateField(null=True, blank=True)
     sgk_start_date = models.DateField(null=True, blank=True)
     birth_date = models.DateField(null=True, blank=True)
     annual_leave_carryover = models.PositiveIntegerField(default=0)
