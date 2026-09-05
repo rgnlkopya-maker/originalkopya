@@ -2,52 +2,67 @@ from collections import Counter, defaultdict
 from decimal import Decimal
 
 from django.contrib.auth.decorators import login_required
+from django.db.models import DateTimeField, OuterRef, Subquery
 from django.shortcuts import get_object_or_404, render
 from django.utils import timezone
 
 from product_cards.finance_views import calculate_finance_result
-from product_cards.models import ShipmentFinancialSnapshot
-from .models import Musteri
+from .models import Musteri, Order, OrderEvent
 
 
 def _can_view(user):
     return user.is_superuser or user.groups.filter(name__in=["patron", "mudur"]).exists()
 
 
-def _valid_shipment_rows(start="", end="", customer_query="", customer_id=None):
-    """Return exactly the currently valid shipped orders used by shipment finance logic.
-
-    A row is included only when it has a shipment snapshot and the live finance equation
-    says the shipment is currently a final SEVKEDILDI state. Returns / wrong shipment /
-    cargo-return rows therefore disappear automatically; a re-shipment appears again.
-    Financial movements are recalculated on every request.
-    """
-    snapshots = ShipmentFinancialSnapshot.objects.select_related("order", "order__musteri").filter(
-        order__musteri__isnull=False,
-        order__is_active=True,
+def _shipment_finance_rows(start="", end="", customer_query="", customer_id=None):
+    """Use the exact same row-selection rule as Sevkiyat Finans Tablosu."""
+    finance_stages = [
+        "satis_fiyati",
+        "ekstra_maliyet",
+        "maliyet_override",
+        "maliyet_uygulanan",
+    ]
+    latest_event = (
+        OrderEvent.objects
+        .filter(order=OuterRef("pk"))
+        .exclude(event_type="order_update")
+        .exclude(stage__in=finance_stages)
+        .order_by("-id")[:1]
+    )
+    qs = (
+        Order.objects
+        .select_related("musteri")
+        .annotate(
+            latest_stage=Subquery(latest_event.values("stage")),
+            latest_value=Subquery(latest_event.values("value")),
+            last_status_date=Subquery(latest_event.values("timestamp"), output_field=DateTimeField()),
+        )
+        .filter(
+            is_active=True,
+            musteri__isnull=False,
+            latest_stage="sevkiyat_durum",
+            latest_value="gonderildi",
+        )
+        .order_by("-id")
     )
     if start:
-        snapshots = snapshots.filter(created_at__date__gte=start)
+        qs = qs.filter(last_status_date__date__gte=start)
     if end:
-        snapshots = snapshots.filter(created_at__date__lte=end)
+        qs = qs.filter(last_status_date__date__lte=end)
     if customer_query:
-        snapshots = snapshots.filter(order__musteri__ad__icontains=customer_query)
+        qs = qs.filter(musteri__ad__icontains=customer_query)
     if customer_id is not None:
-        snapshots = snapshots.filter(order__musteri_id=customer_id)
+        qs = qs.filter(musteri_id=customer_id)
 
-    valid = []
-    for snapshot in snapshots.order_by("created_at", "id"):
-        order = snapshot.order
+    rows = []
+    for order in qs:
         result = calculate_finance_result(order)
-        if result.get("status") != "SEVKEDILDI" or not result.get("is_final"):
-            continue
-        valid.append({
+        rows.append({
             "order": order,
-            "snapshot": snapshot,
             "result": result,
-            "ship_date": timezone.localtime(snapshot.created_at).date(),
+            "ship_date": timezone.localtime(order.last_status_date).date() if order.last_status_date else None,
         })
-    return valid
+    return rows
 
 
 @login_required
@@ -60,10 +75,10 @@ def customer_comparison_report(request):
     start = request.GET.get("start") or ""
     end = request.GET.get("end") or ""
     q = (request.GET.get("q") or "").strip()
-    valid = _valid_shipment_rows(start=start, end=end, customer_query=q)
+    finance_rows = _shipment_finance_rows(start=start, end=end, customer_query=q)
 
     grouped = defaultdict(list)
-    for item in valid:
+    for item in finance_rows:
         grouped[item["order"].musteri_id].append(item)
 
     customers = Musteri.objects.in_bulk(grouped.keys())
@@ -76,11 +91,12 @@ def customer_comparison_report(request):
         if not customer:
             continue
 
-        items.sort(key=lambda x: (x["ship_date"], x["order"].id))
-        first_date = items[0]["ship_date"]
-        last_date = items[-1]["ship_date"]
-        last_days = (today - last_date).days
-        status = "aktif" if last_days <= 90 else ("dikkat" if last_days <= 180 else "pasif")
+        dated = [x for x in items if x["ship_date"]]
+        dated.sort(key=lambda x: (x["ship_date"], x["order"].id))
+        first_date = dated[0]["ship_date"] if dated else None
+        last_date = dated[-1]["ship_date"] if dated else None
+        last_days = (today - last_date).days if last_date else None
+        status = "aktif" if last_days is not None and last_days <= 90 else ("dikkat" if last_days is not None and last_days <= 180 else "pasif")
         if status == "aktif":
             active_90 += 1
 
@@ -88,9 +104,11 @@ def customer_comparison_report(request):
         product_counts = Counter((x["order"].urun_kodu or "") for x in items if x["order"].urun_kodu)
         top_product = product_counts.most_common(1)[0][0] if product_counts else "—"
 
-        revenue_tl = sum((Decimal(x["result"]["satis_tl"] or 0) for x in items), Decimal("0"))
-        cost_tl = sum((Decimal(x["result"]["maliyet_tl"] or 0) for x in items), Decimal("0"))
-        profit_tl = sum((Decimal(x["result"]["kar_tl"] or 0) for x in items), Decimal("0"))
+        # Sevkiyat Finans ekranindaki ust toplamlarla ayni: yalnizca is_final satirlar finans toplamlarina girer.
+        final_items = [x for x in items if x["result"].get("is_final")]
+        revenue_tl = sum((Decimal(x["result"]["satis_tl"] or 0) for x in final_items), Decimal("0"))
+        cost_tl = sum((Decimal(x["result"]["maliyet_tl"] or 0) for x in final_items), Decimal("0"))
+        profit_tl = sum((Decimal(x["result"]["kar_tl"] or 0) for x in final_items), Decimal("0"))
 
         count = len(items)
         total_orders += count
@@ -139,18 +157,21 @@ def customer_detail_report(request, customer_id):
         return HttpResponseForbidden("Bu raporu görme yetkiniz yok.")
 
     customer = get_object_or_404(Musteri, pk=customer_id)
-    valid = _valid_shipment_rows(customer_id=customer.id)
-    valid.sort(key=lambda x: (x["ship_date"], x["order"].id), reverse=True)
+    finance_rows = _shipment_finance_rows(customer_id=customer.id)
+    finance_rows.sort(key=lambda x: ((x["ship_date"] or timezone.localdate()), x["order"].id), reverse=True)
+    orders = [x["order"] for x in finance_rows]
 
-    orders = [x["order"] for x in valid]
     type_counts = Counter((o.siparis_tipi or "") for o in orders)
     product_counts = Counter((o.urun_kodu or "") for o in orders if o.urun_kodu)
     top_products = [{"urun_kodu": code, "total": total} for code, total in product_counts.most_common(10)]
 
-    revenue_tl = sum((Decimal(x["result"]["satis_tl"] or 0) for x in valid), Decimal("0"))
-    cost_tl = sum((Decimal(x["result"]["maliyet_tl"] or 0) for x in valid), Decimal("0"))
-    profit_tl = sum((Decimal(x["result"]["kar_tl"] or 0) for x in valid), Decimal("0"))
+    final_items = [x for x in finance_rows if x["result"].get("is_final")]
+    revenue_tl = sum((Decimal(x["result"]["satis_tl"] or 0) for x in final_items), Decimal("0"))
+    cost_tl = sum((Decimal(x["result"]["maliyet_tl"] or 0) for x in final_items), Decimal("0"))
+    profit_tl = sum((Decimal(x["result"]["kar_tl"] or 0) for x in final_items), Decimal("0"))
 
+    dated = [x for x in finance_rows if x["ship_date"]]
+    dates = [x["ship_date"] for x in dated]
     return render(request, "reports/customer_detail.html", {
         "customer": customer,
         "orders": orders,
@@ -158,8 +179,8 @@ def customer_detail_report(request, customer_id):
         "ozel_count": type_counts.get("OZEL", 0),
         "tekli_count": type_counts.get("TEKLI", 0),
         "seri_count": type_counts.get("SERI", 0),
-        "first_order": valid[-1]["ship_date"] if valid else None,
-        "last_order": valid[0]["ship_date"] if valid else None,
+        "first_order": min(dates) if dates else None,
+        "last_order": max(dates) if dates else None,
         "top_products": top_products,
         "revenue": {"TRY": revenue_tl, "USD": Decimal("0"), "EUR": Decimal("0")},
         "cost": {"TRY": cost_tl, "USD": Decimal("0"), "EUR": Decimal("0")},
