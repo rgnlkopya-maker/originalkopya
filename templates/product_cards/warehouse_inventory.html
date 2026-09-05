@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block extra_css %}
+<style>
+.wrap{max-width:1400px;margin:0 auto;padding:24px 16px 50px}.head,.cardx{background:#fff;border:1px solid #edf0f6;border-radius:18px;box-shadow:0 5px 18px rgba(15,23,42,.06)}.head{padding:20px 22px;margin-bottom:16px}.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px;margin-bottom:18px}.depo-card{background:linear-gradient(135deg,#f7f8ff,#fff);border:1px solid #e6e9f5;border-radius:18px;padding:20px}.depo-name{font-size:22px;font-weight:800}.metric{font-size:28px;font-weight:800}.label{font-size:12px;color:#7b8497}.cardx{padding:18px}.filter-row{display:flex;gap:10px;flex-wrap:wrap;align-items:end}.form-control,.form-select{border-radius:12px}.stock{font-weight:800}.zero{color:#9ca3af}.low{color:#c83b3b}@media(max-width:800px){.grid{grid-template-columns:1fr}.wrap{padding:14px 8px}}
+</style>
+{% endblock %}
+{% block content %}
+<div class="wrap">
+  <div class="head d-flex justify-content-between align-items-center gap-3 flex-wrap">
+    <div><div class="text-muted small">DEPOLAR</div><h2 class="fw-bold mb-1">Hammadde Stokları</h2><div class="text-muted">Merkez ve Gaziemir depolarındaki gerçek malzeme stokları.</div></div>
+    <a href="{% url 'material_list' %}" class="btn btn-outline-secondary">← Malzeme Kartları</a>
+  </div>
+
+  <div class="grid">
+    {% for item in summary %}<div class="depo-card"><div class="depo-name">🏬 {{ item.warehouse.ad }}</div><div class="d-flex gap-5 mt-3"><div><div class="metric">{{ item.kalem }}</div><div class="label">Stokta malzeme kalemi</div></div><div><div class="metric">{{ item.toplam_hareket }}</div><div class="label">Toplam stok hareketi</div></div></div><a href="?depo={{ item.warehouse.kod }}" class="btn btn-sm btn-outline-primary mt-3">Bu depoyu göster</a></div>{% endfor %}
+  </div>
+
+  <div class="cardx mb-3">
+    <form method="get" class="filter-row"><div><label class="form-label">Depo</label><select name="depo" class="form-select"><option value="">Tümü</option>{% for w in warehouses %}<option value="{{ w.kod }}" {% if selected == w.kod %}selected{% endif %}>{{ w.ad }}</option>{% endfor %}</select></div><div style="min-width:280px"><label class="form-label">Malzeme ara</label><input name="q" value="{{ q }}" class="form-control" placeholder="Kod, malzeme veya tedarikçi"></div><div><button class="btn btn-primary">Filtrele</button></div><div><a href="{% url 'warehouse_inventory' %}" class="btn btn-outline-secondary">Temizle</a></div></form>
+  </div>
+
+  <div class="cardx">
+    <div class="table-responsive"><table class="table align-middle mb-0"><thead><tr><th>Depo</th><th>Malzeme</th><th>Aşama</th><th>Tedarikçi</th><th>Depo Stoğu</th><th>Toplam Stok</th><th>Kritik Seviye</th></tr></thead><tbody>
+      {% for row in rows %}<tr><td><strong>{{ row.warehouse.ad }}</strong></td><td><strong>{{ row.material.kod }}</strong><br>{{ row.material.ad }}</td><td>{{ row.material.get_kullanim_asamasi_display }}</td><td>{{ row.material.tedarikci|default:"—" }}</td><td class="stock {% if row.miktar == 0 %}zero{% elif row.material.kritik_stok > 0 and row.miktar <= row.material.kritik_stok %}low{% endif %}">{{ row.miktar }} {{ row.material.get_birim_display }}</td><td>{{ row.material.stok_miktari }} {{ row.material.get_birim_display }}</td><td>{% if row.material.kritik_stok > 0 %}{{ row.material.kritik_stok }}{% else %}—{% endif %}</td></tr>{% empty %}<tr><td colspan="7" class="text-center text-muted py-5">Seçilen kriterlerde stok kaydı yok.</td></tr>{% endfor %}
+    </tbody></table></div>
+  </div>
+</div>
+{% endblock %}
