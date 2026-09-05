@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block extra_css %}
+<style>
+.emp-wrap{padding:22px 12px 40px}.back-link{display:inline-flex;gap:7px;align-items:center;color:#53607a;text-decoration:none;font-weight:700;margin-bottom:14px}.hero{background:linear-gradient(135deg,#fff,#f2f4ff);border:1px solid #e7eaff;border-radius:20px;padding:22px;box-shadow:0 8px 24px rgba(15,23,42,.06)}.hero-top{display:flex;align-items:center;gap:14px}.avatar{width:58px;height:58px;border-radius:50%;background:#e9edff;color:#4560ff;display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:800}.hero h2{font-size:23px;font-weight:800;margin:0}.muted{color:#7a8499}.summary{margin-top:18px;background:#fff;border:1px solid #e7eaff;border-radius:14px;padding:15px 17px;font-size:15px;line-height:1.65}.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:16px}.stat{background:#fff;border:1px solid #e9ecf5;border-radius:16px;padding:15px}.stat small{color:#8790a5;font-weight:700}.stat strong{display:block;font-size:20px;margin-top:5px;color:#20283d}.grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px}.cardx{background:#fff;border:1px solid #e9ecf5;border-radius:18px;padding:19px;box-shadow:0 5px 18px rgba(15,23,42,.045)}.cardx h5{font-weight:800;margin-bottom:17px}.form-label{font-size:12px;font-weight:800;color:#687289}.form-control{border-radius:11px;border-color:#e1e5ef;min-height:43px}.save-btn{border:0;background:#4a63ff;color:#fff;border-radius:11px;padding:11px 18px;font-weight:800}.mini-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.mini{background:#f7f8fc;border-radius:12px;padding:12px}.mini span{display:block;color:#818a9e;font-size:12px;font-weight:700}.mini b{font-size:18px;color:#252c40}.note{font-size:12px;color:#8a93a5;margin-top:10px}@media(max-width:800px){.stats{grid-template-columns:repeat(2,1fr)}.grid{grid-template-columns:1fr}}@media(max-width:480px){.stats{grid-template-columns:1fr 1fr}.hero{padding:17px}}
+</style>
+{% endblock %}
+{% block content %}
+<div class="container-fluid emp-wrap">
+<a class="back-link" href="{% url 'user_management' %}"><i class="bi bi-arrow-left"></i> Ekipler</a>
+{% if messages %}{% for message in messages %}<div class="alert alert-{{ message.tags }}">{{ message }}</div>{% endfor %}{% endif %}
+<section class="hero">
+  <div class="hero-top"><div class="avatar">{{ employee.username|first|upper }}</div><div><h2>{{ employee.get_full_name|default:employee.username }}</h2><div class="muted">{{ role_label }} · {{ team_label }}</div></div></div>
+  <div class="summary">
+    {% if profile.employment_start_date %}<b>{{ employee.get_full_name|default:employee.username }}</b>, {{ profile.employment_start_date|date:"d.m.Y" }} tarihinde işe başladı ve <b>{{ service_years }} yıl {{ service_months }} ay {{ service_days }} gündür</b> çalışıyor.{% else %}İşe başlama tarihi henüz girilmedi.{% endif %}
+    {% if profile.sgk_start_date %} SGK girişi {{ profile.sgk_start_date|date:"d.m.Y" }} tarihinde yapıldı.{% endif %}
+    {% if profile.employment_start_date %} Toplam <b>{{ total_leave }} gün</b> yıllık izin hakkının <b>{{ used_annual_leave }} gününü</b> kullandı; <b>{{ remaining_leave }} günü</b> kaldı.{% endif %}
+    Bu ay <b>{{ worked_days }} gün</b> çalıştı{% if annual_leave_month %}, {{ annual_leave_month }} gün yıllık izin kullandı{% endif %}{% if sick_days %}, {{ sick_days }} gün raporlu oldu{% endif %} ve toplam <b>{{ late_minutes }} dakika</b> geç kaldı.
+  </div>
+</section>
+<div class="stats">
+ <div class="stat"><small>Çalışma Süresi</small><strong>{% if profile.employment_start_date %}{{ service_years }} yıl {{ service_months }} ay{% else %}-{% endif %}</strong></div>
+ <div class="stat"><small>Kalan Yıllık İzin</small><strong>{% if profile.employment_start_date %}{{ remaining_leave }} gün{% else %}-{% endif %}</strong></div>
+ <div class="stat"><small>Bu Ay Çalıştı</small><strong>{{ worked_days }} gün</strong></div>
+ <div class="stat"><small>Bu Ay Geç Kalma</small><strong>{{ late_minutes }} dk</strong></div>
+</div>
+<div class="grid">
+ <section class="cardx"><h5>Özlük Bilgileri</h5><form method="post">{% csrf_token %}
+   <div class="row g-3"><div class="col-md-6"><label class="form-label">İşe Başlama Tarihi</label><input type="date" class="form-control" name="employment_start_date" value="{{ profile.employment_start_date|date:'Y-m-d' }}"></div><div class="col-md-6"><label class="form-label">SGK Giriş Tarihi</label><input type="date" class="form-control" name="sgk_start_date" value="{{ profile.sgk_start_date|date:'Y-m-d' }}"></div><div class="col-md-6"><label class="form-label">Doğum Tarihi</label><input type="date" class="form-control" name="birth_date" value="{{ profile.birth_date|date:'Y-m-d' }}"></div><div class="col-md-6"><label class="form-label">Devreden Yıllık İzin</label><input type="number" min="0" class="form-control" name="annual_leave_carryover" value="{{ profile.annual_leave_carryover }}"></div><div class="col-12"><label class="form-label">Not</label><textarea class="form-control" rows="3" name="note">{{ profile.note }}</textarea></div></div><button class="save-btn mt-3" type="submit">Bilgileri Kaydet</button>
+ </form></section>
+ <section class="cardx"><h5>İzin & Puantaj Özeti</h5><div class="mini-grid"><div class="mini"><span>Hak Edilen Yıllık İzin</span><b>{{ earned_leave }} gün</b></div><div class="mini"><span>Kullanılan Yıllık İzin</span><b>{{ used_annual_leave }} gün</b></div><div class="mini"><span>Normal İzin · Bu Ay</span><b>{{ leave_days }} gün</b></div><div class="mini"><span>Rapor · Bu Ay</span><b>{{ sick_days }} gün</b></div><div class="mini"><span>Fazla Mesai · Bu Ay</span><b>{{ overtime_minutes }} dk</b></div><div class="mini"><span>Geç Kalma · Bu Ay</span><b>{{ late_minutes }} dk</b></div></div><div class="note">Puantaj değerleri günlük kayıtlar değiştikçe otomatik güncellenir. Yıllık izin yalnızca “Yıllık İzin” olarak işaretlenen günlerden düşer.</div></section>
+</div></div>
+{% endblock %}
