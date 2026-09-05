@@ -30,6 +30,23 @@ class WorkplaceSettings(models.Model):
         return self.name
 
 
+class EmployeeHRProfile(models.Model):
+    user = models.OneToOneField(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="hr_profile",
+    )
+    employment_start_date = models.DateField(null=True, blank=True)
+    sgk_start_date = models.DateField(null=True, blank=True)
+    birth_date = models.DateField(null=True, blank=True)
+    annual_leave_carryover = models.PositiveIntegerField(default=0)
+    note = models.TextField(blank=True, default="")
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"{self.user} özlük profili"
+
+
 class AttendanceRecord(models.Model):
     STATUS_CHOICES = [
         ("worked", "Çalıştı"),
