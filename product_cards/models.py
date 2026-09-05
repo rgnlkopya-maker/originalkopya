@@ -1,5 +1,6 @@
 from decimal import Decimal
 
+from django.conf import settings
 from django.db import models
 from django.db.models.signals import post_save
 from django.dispatch import receiver
@@ -50,11 +51,7 @@ def amount_to_try(amount, currency, usd_try):
 class OrderFinancialSnapshot(models.Model):
     """Siparis olusturuldugu andaki finansal fotografin degismeyen kaydi."""
 
-    order = models.OneToOneField(
-        Order,
-        on_delete=models.CASCADE,
-        related_name="financial_snapshot",
-    )
+    order = models.OneToOneField(Order, on_delete=models.CASCADE, related_name="financial_snapshot")
     usd_try = models.DecimalField(max_digits=12, decimal_places=6, null=True, blank=True)
     satis_fiyati = models.DecimalField(max_digits=14, decimal_places=2, null=True, blank=True)
     satis_para_birimi = models.CharField(max_length=3, default="TRY")
@@ -71,11 +68,7 @@ class OrderFinancialSnapshot(models.Model):
 class ShipmentFinancialSnapshot(models.Model):
     """Urun sevk edildigi andaki gercek finansal sonucu degismeden saklar."""
 
-    order = models.OneToOneField(
-        Order,
-        on_delete=models.CASCADE,
-        related_name="shipment_financial_snapshot",
-    )
+    order = models.OneToOneField(Order, on_delete=models.CASCADE, related_name="shipment_financial_snapshot")
     usd_try = models.DecimalField(max_digits=12, decimal_places=6, null=True, blank=True)
     satis_fiyati = models.DecimalField(max_digits=14, decimal_places=2, null=True, blank=True)
     satis_para_birimi = models.CharField(max_length=3, default="TRY")
@@ -94,13 +87,11 @@ class ShipmentFinancialSnapshot(models.Model):
 
 @receiver(post_save, sender=Order)
 def create_order_financial_snapshot(sender, instance, created, **kwargs):
-    """Yeni sipariste o anki kur, satis ve maliyeti sabitler; sonraki kur degisimlerinden etkilenmez."""
     if not created:
         return
 
     rate_obj = ExchangeRate.objects.order_by("-rate_date", "-fetched_at").first()
     usd_try = rate_obj.usd_try if rate_obj else None
-
     satis = instance.satis_fiyati
     satis_currency = instance.para_birimi or "TRY"
     satis_tl = None
@@ -111,15 +102,10 @@ def create_order_financial_snapshot(sender, instance, created, **kwargs):
         elif satis_currency == "USD" and usd_try:
             satis_tl = satis * usd_try
 
-    # Sipariste elle override varsa onu; yoksa siparise cekilen ProductCost degerini kullan.
     cost_available = instance.maliyet_override is not None
     effective_cost = Decimal(instance.maliyet_override) if instance.maliyet_override is not None else None
-
     if effective_cost is None and instance.maliyet_uygulanan is not None:
-        pc_exists = ProductCost.objects.filter(
-            urun_kodu__iexact=instance.urun_kodu or "",
-            is_active=True,
-        ).exists()
+        pc_exists = ProductCost.objects.filter(urun_kodu__iexact=instance.urun_kodu or "", is_active=True).exists()
         if pc_exists or Decimal(instance.maliyet_uygulanan or 0) != 0:
             effective_cost = Decimal(instance.maliyet_uygulanan or 0)
             cost_available = True
@@ -157,53 +143,36 @@ def create_order_financial_snapshot(sender, instance, created, **kwargs):
 
 @receiver(post_save, sender=OrderEvent)
 def create_shipment_financial_snapshot(sender, instance, created, **kwargs):
-    """Sevkedildi eventi ilk kez olustugunda sevkiyat gunu finans sonucunu dondurur."""
     if not created or instance.stage != "sevkiyat_durum" or instance.value != "gonderildi":
         return
-
     order = instance.order
-
-    # Ayni siparis tekrar sevkedildi olarak isaretlense bile ilk gercek sevkiyat kaydi degismez.
     if ShipmentFinancialSnapshot.objects.filter(order=order).exists():
         return
 
     rate_obj = ExchangeRate.objects.order_by("-rate_date", "-fetched_at").first()
     usd_try = rate_obj.usd_try if rate_obj else None
-
-    # Nihai satis fiyati: sevkiyat aninda Order uzerinde hangi fiyat varsa odur.
     satis = Decimal(order.satis_fiyati) if order.satis_fiyati is not None else None
     satis_currency = order.para_birimi or "TRY"
     satis_tl = amount_to_try(satis, satis_currency, usd_try)
 
-    # Sevkiyat gunu urun maliyeti: siparis gunundeki eski maliyet yerine guncel ProductCost kullanilir.
-    # Elle maliyet override girilmisse bu bilincli tercih oldugu icin onceliklidir.
     urun_maliyeti = None
     cost_currency = "TRY"
     if order.maliyet_override is not None:
         urun_maliyeti = Decimal(order.maliyet_override)
         cost_currency = order.maliyet_para_birimi or "TRY"
     else:
-        product_cost = ProductCost.objects.filter(
-            urun_kodu__iexact=order.urun_kodu or "",
-            is_active=True,
-        ).first()
+        product_cost = ProductCost.objects.filter(urun_kodu__iexact=order.urun_kodu or "", is_active=True).first()
         if product_cost:
             urun_maliyeti = Decimal(product_cost.maliyet)
             cost_currency = product_cost.para_birimi or "TRY"
         elif order.maliyet_uygulanan is not None:
-            # Eski/eksik urun kartlarinda finans kaydi tamamen bos kalmasin.
             urun_maliyeti = Decimal(order.maliyet_uygulanan)
             cost_currency = order.maliyet_para_birimi or "TRY"
 
     urun_maliyeti_tl = amount_to_try(urun_maliyeti, cost_currency, usd_try)
-
-    # Musterinin sonradan istedigi ek isler icin Order.ekstra_maliyet sevkiyat aninda dahil edilir.
     ekstra = Decimal(order.ekstra_maliyet or 0)
     ekstra_tl = amount_to_try(ekstra, cost_currency, usd_try) or Decimal("0")
-
-    toplam_maliyet_tl = None
-    if urun_maliyeti_tl is not None:
-        toplam_maliyet_tl = urun_maliyeti_tl + ekstra_tl
+    toplam_maliyet_tl = urun_maliyeti_tl + ekstra_tl if urun_maliyeti_tl is not None else None
 
     kar_tl = None
     kar_orani = None
@@ -230,7 +199,6 @@ class ProductCard(models.Model):
     urun = models.OneToOneField(UrunKod, on_delete=models.CASCADE, related_name="product_card")
     aciklama = models.TextField(blank=True, default="")
     image_url = models.URLField(blank=True, default="")
-
     finansman_maliyeti = models.DecimalField(max_digits=14, decimal_places=2, default=0)
     finansman_para_birimi = models.CharField(max_length=3, choices=CURRENCY_CHOICES, default="TRY")
     nakis_maliyeti = models.DecimalField(max_digits=14, decimal_places=2, default=0)
@@ -241,20 +209,14 @@ class ProductCard(models.Model):
     iscilik_para_birimi = models.CharField(max_length=3, choices=CURRENCY_CHOICES, default="TRY")
     paketleme_maliyeti = models.DecimalField(max_digits=14, decimal_places=2, default=0)
     paketleme_para_birimi = models.CharField(max_length=3, choices=CURRENCY_CHOICES, default="TRY")
-
-    # Eski kayitlarla uyumluluk icin tutuluyor; yeni maliyet ekraninda kullanilmiyor.
     diger_maliyet = models.DecimalField(max_digits=14, decimal_places=2, default=0)
     diger_maliyet_para_birimi = models.CharField(max_length=3, choices=CURRENCY_CHOICES, default="TRY")
-
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     @property
     def malzeme_maliyeti(self):
-        total = Decimal("0")
-        for usage in self.materials.select_related("material").all():
-            total += usage.satir_maliyeti
-        return total
+        return sum((usage.satir_maliyeti for usage in self.materials.select_related("material").all()), Decimal("0"))
 
     @property
     def finansman_maliyeti_tl(self):
@@ -278,33 +240,35 @@ class ProductCard(models.Model):
 
     @property
     def toplam_maliyet(self):
-        return (
-            self.malzeme_maliyeti
-            + self.finansman_maliyeti_tl
-            + self.nakis_maliyeti_tl
-            + self.genel_gider_tl
-            + self.iscilik_maliyeti_tl
-            + self.paketleme_maliyeti_tl
-        )
+        return self.malzeme_maliyeti + self.finansman_maliyeti_tl + self.nakis_maliyeti_tl + self.genel_gider_tl + self.iscilik_maliyeti_tl + self.paketleme_maliyeti_tl
 
     def __str__(self):
         return f"Ürün Kartı - {self.urun.kod}"
 
 
 class Material(models.Model):
-    UNIT_CHOICES = [
-        ("M", "Metre"),
-        ("ADET", "Adet"),
-        ("KG", "Kilogram"),
-        ("GR", "Gram"),
+    UNIT_CHOICES = [("M", "Metre"), ("ADET", "Adet"), ("KG", "Kilogram"), ("GR", "Gram")]
+    CATEGORY_CHOICES = [
+        ("KUMAS", "Kumaş"),
+        ("TUL", "Tül"),
+        ("DANTEL", "Dantel"),
+        ("ASTAR", "Astar"),
+        ("TAS", "Taş / Boncuk"),
+        ("FERMUAR", "Fermuar / Aksesuar"),
+        ("DIGER", "Diğer"),
     ]
 
     kod = models.CharField(max_length=80, unique=True)
     ad = models.CharField(max_length=160)
+    kategori = models.CharField(max_length=20, choices=CATEGORY_CHOICES, default="DIGER")
     birim = models.CharField(max_length=10, choices=UNIT_CHOICES, default="M")
     stok_miktari = models.DecimalField(max_digits=14, decimal_places=3, default=0)
+    kritik_stok = models.DecimalField(max_digits=14, decimal_places=3, default=0)
+    tedarikci = models.CharField(max_length=160, blank=True, default="")
+    aciklama = models.TextField(blank=True, default="")
     birim_maliyet = models.DecimalField(max_digits=14, decimal_places=4, default=0)
     birim_maliyet_para_birimi = models.CharField(max_length=3, choices=CURRENCY_CHOICES, default="TRY")
+    son_alis_tarihi = models.DateField(null=True, blank=True)
     image_url = models.URLField(blank=True, default="")
     aktif = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -314,8 +278,44 @@ class Material(models.Model):
     def birim_maliyet_tl(self):
         return to_try(self.birim_maliyet, self.birim_maliyet_para_birimi)
 
+    @property
+    def kritik_mi(self):
+        return self.kritik_stok > 0 and self.stok_miktari <= self.kritik_stok
+
     def __str__(self):
         return f"{self.kod} - {self.ad}"
+
+
+class MaterialStockMovement(models.Model):
+    MOVEMENT_CHOICES = [
+        ("GIRIS", "Stok Girişi"),
+        ("CIKIS", "Stok Çıkışı"),
+        ("IADE", "İade Girişi"),
+        ("FIRE", "Fire / Zayi"),
+        ("DUZELTME_ARTI", "Sayım Düzeltmesi +"),
+        ("DUZELTME_EKSI", "Sayım Düzeltmesi -"),
+        ("BASLANGIC", "Başlangıç Stoğu"),
+    ]
+    material = models.ForeignKey(Material, on_delete=models.PROTECT, related_name="stock_movements")
+    movement_type = models.CharField(max_length=20, choices=MOVEMENT_CHOICES)
+    miktar = models.DecimalField(max_digits=14, decimal_places=3)
+    onceki_stok = models.DecimalField(max_digits=14, decimal_places=3)
+    sonraki_stok = models.DecimalField(max_digits=14, decimal_places=3)
+    aciklama = models.CharField(max_length=255, blank=True, default="")
+    islem_yapan = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name="material_stock_movements")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at", "-id"]
+
+    @property
+    def signed_amount(self):
+        if self.movement_type in {"CIKIS", "FIRE", "DUZELTME_EKSI"}:
+            return -self.miktar
+        return self.miktar
+
+    def __str__(self):
+        return f"{self.material.kod} - {self.get_movement_type_display()} - {self.miktar}"
 
 
 class ProductMaterial(models.Model):
@@ -325,9 +325,7 @@ class ProductMaterial(models.Model):
     notlar = models.CharField(max_length=255, blank=True, default="")
 
     class Meta:
-        constraints = [
-            models.UniqueConstraint(fields=["product_card", "material"], name="unique_product_material")
-        ]
+        constraints = [models.UniqueConstraint(fields=["product_card", "material"], name="unique_product_material")]
         ordering = ["material__ad"]
 
     @property
