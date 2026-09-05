@@ -16,6 +16,9 @@ from core.models import OrderEvent, UserProfile
 from core.services.order_status import FINANCIAL_STAGES, STATUS_LABELS
 
 User = get_user_model()
+TEAM_CHOICES = list(UserProfile.GOREV_SECENEKLERI)
+if not any(value == "modelleme" for value, _label in TEAM_CHOICES):
+    TEAM_CHOICES.append(("modelleme", "Modelleme"))
 
 
 def _is_manager(user):
@@ -98,7 +101,8 @@ def user_management_view(request):
             user = User.objects.create_user(username=username, password=password, first_name=first_name, last_name=last_name)
             if role in {"personel", "mudur", "patron"}:
                 group, _ = Group.objects.get_or_create(name=role); user.groups.add(group)
-            profile, _ = UserProfile.objects.get_or_create(user=user); profile.gorev = gorev; profile.save()
+            valid_gorevler = {value for value, _label in TEAM_CHOICES}
+            profile, _ = UserProfile.objects.get_or_create(user=user); profile.gorev = gorev if gorev in valid_gorevler else "yok"; profile.save()
             def new_date(name):
                 raw = request.POST.get(name, "").strip(); return date.fromisoformat(raw) if raw else None
             hr = EmployeeHRProfile.objects.create(
@@ -121,7 +125,8 @@ def user_management_view(request):
             return redirect("user_management")
         if action == "update_gorev":
             u = get_object_or_404(User, pk=request.POST.get("user_id")); profile, _ = UserProfile.objects.get_or_create(user=u)
-            profile.gorev = request.POST.get("gorev", "yok").strip(); profile.save(); messages.success(request, f"{u.username} görevi güncellendi 🏷️"); return redirect("user_management")
+            gorev = request.POST.get("gorev", "yok").strip(); valid_gorevler = {value for value, _label in TEAM_CHOICES}
+            profile.gorev = gorev if gorev in valid_gorevler else "yok"; profile.save(); messages.success(request, f"{u.username} görevi güncellendi 🏷️"); return redirect("user_management")
         if action == "delete_user":
             u = get_object_or_404(User, pk=request.POST.get("user_id"))
             if u == request.user: messages.warning(request, "Kendinizi silemezsiniz.")
@@ -132,7 +137,7 @@ def user_management_view(request):
         "departed_users": departed_users,
         "profiles": profiles,
         "hr_profiles": hr_profiles,
-        "GOREVLER": UserProfile.GOREV_SECENEKLERI,
+        "GOREVLER": TEAM_CHOICES,
     })
 
 
@@ -171,7 +176,7 @@ def employee_detail(request, user_id):
             role = request.POST.get("role", "personel")
             if role not in {"personel", "mudur", "patron"}: role = "personel"
             employee.groups.clear(); group, _ = Group.objects.get_or_create(name=role); employee.groups.add(group)
-            gorev = request.POST.get("gorev", "yok"); valid_gorevler = {value for value, _label in UserProfile.GOREV_SECENEKLERI}
+            gorev = request.POST.get("gorev", "yok"); valid_gorevler = {value for value, _label in TEAM_CHOICES}
             user_profile.gorev = gorev if gorev in valid_gorevler else "yok"; user_profile.save(update_fields=["gorev"])
             profile.phone_number = request.POST.get("phone_number", "").strip()
             profile.national_id = request.POST.get("national_id", "").strip()
@@ -220,8 +225,9 @@ def employee_detail(request, user_id):
         event.operation_label = _event_label(event.stage, event.value)
 
     role = employee.groups.first().name if employee.groups.exists() else "personel"; role_labels = {"personel": "Personel", "mudur": "Müdür", "patron": "Patron"}
+    team_label = dict(TEAM_CHOICES).get(user_profile.gorev, user_profile.gorev.title())
     return render(request, "teams/employee_detail.html", {
-        "employee": employee, "profile": profile, "today": today, "role": role, "role_label": role_labels.get(role, role.title()), "team_label": user_profile.get_gorev_display(), "user_profile": user_profile, "gorevler": UserProfile.GOREV_SECENEKLERI,
+        "employee": employee, "profile": profile, "today": today, "role": role, "role_label": role_labels.get(role, role.title()), "team_label": team_label, "user_profile": user_profile, "gorevler": TEAM_CHOICES,
         "range_start": range_start, "range_end": range_end, "preset": preset, "service_years": service_years, "service_months": service_months, "service_days": service_days,
         "earned_leave": earned_leave, "used_annual_leave": used_annual_leave, "total_leave": total_leave, "remaining_leave": remaining_leave,
         "worked_days": worked_days, "leave_days": leave_days, "sick_days": sick_days, "annual_leave_period": annual_leave_period, "late_minutes": late_minutes, "overtime_minutes": overtime_minutes,
