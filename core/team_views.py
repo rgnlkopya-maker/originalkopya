@@ -1,5 +1,5 @@
 from calendar import monthrange
-from datetime import date
+from datetime import date, timedelta
 
 from django.contrib import messages
 from django.contrib.auth import get_user_model
@@ -45,11 +45,45 @@ def _service_parts(start, today):
     return years, months, (today - cursor).days
 
 
-def _annual_leave_entitlement(start, today):
-    if not start or start > today:
+def _annual_leave_entitlement(start, as_of):
+    if not start or start > as_of:
         return 0
-    years, _, _ = _service_parts(start, today)
+    years, _, _ = _service_parts(start, as_of)
     return years * 14
+
+
+def _selected_range(request, today, employment_start=None):
+    preset = request.GET.get("preset", "this_month")
+    start_raw = request.GET.get("start", "").strip()
+    end_raw = request.GET.get("end", "").strip()
+
+    if start_raw or end_raw:
+        try:
+            start = date.fromisoformat(start_raw) if start_raw else today
+            end = date.fromisoformat(end_raw) if end_raw else today
+            if start > end:
+                start, end = end, start
+            return start, min(end, today), "custom"
+        except ValueError:
+            pass
+
+    if preset == "today":
+        return today, today, preset
+    if preset == "yesterday":
+        yesterday = today - timedelta(days=1)
+        return yesterday, yesterday, preset
+    if preset == "this_week":
+        return today - timedelta(days=today.weekday()), today, preset
+    if preset == "last_month":
+        first_this_month = today.replace(day=1)
+        end = first_this_month - timedelta(days=1)
+        return end.replace(day=1), end, preset
+    if preset == "this_year":
+        return today.replace(month=1, day=1), today, preset
+    if preset == "all":
+        start = employment_start or date(2000, 1, 1)
+        return start, today, preset
+    return today.replace(day=1), today, "this_month"
 
 
 @login_required
@@ -77,7 +111,6 @@ def employee_detail(request, user_id):
             employee.username = username
             employee.first_name = request.POST.get("first_name", "").strip()
             employee.last_name = request.POST.get("last_name", "").strip()
-
             new_password = request.POST.get("new_password", "").strip()
             if new_password:
                 employee.set_password(new_password)
@@ -107,27 +140,27 @@ def employee_detail(request, user_id):
         return redirect("employee_detail", user_id=employee.id)
 
     today = timezone.localdate()
-    month_records = AttendanceRecord.objects.filter(
-        user=employee, work_date__year=today.year, work_date__month=today.month
-    )
-    all_records = AttendanceRecord.objects.filter(user=employee)
+    range_start, range_end, preset = _selected_range(request, today, profile.employment_start_date)
+    range_records = AttendanceRecord.objects.filter(user=employee, work_date__range=(range_start, range_end))
 
-    worked_days = month_records.filter(status="worked").count()
-    leave_days = month_records.filter(status="leave").count()
-    sick_days = month_records.filter(status="sick").count()
-    annual_leave_month = month_records.filter(status="annual_leave").count()
-    late_minutes = month_records.aggregate(v=Sum("late_minutes"))["v"] or 0
-    overtime_minutes = month_records.aggregate(v=Sum("overtime_minutes"))["v"] or 0
+    worked_days = range_records.filter(status="worked").count()
+    leave_days = range_records.filter(status="leave").count()
+    sick_days = range_records.filter(status="sick").count()
+    annual_leave_period = range_records.filter(status="annual_leave").count()
+    late_minutes = range_records.aggregate(v=Sum("late_minutes"))["v"] or 0
+    overtime_minutes = range_records.aggregate(v=Sum("overtime_minutes"))["v"] or 0
 
-    used_annual_leave = all_records.filter(status="annual_leave").count()
-    earned_leave = _annual_leave_entitlement(profile.employment_start_date, today)
+    # Leave balance is calculated as it stood at the selected range end date.
+    used_annual_leave = AttendanceRecord.objects.filter(
+        user=employee, status="annual_leave", work_date__lte=range_end
+    ).count()
+    earned_leave = _annual_leave_entitlement(profile.employment_start_date, range_end)
     total_leave = earned_leave + profile.annual_leave_carryover
     remaining_leave = max(0, total_leave - used_annual_leave)
-    service_years, service_months, service_days = _service_parts(profile.employment_start_date, today)
+    service_years, service_months, service_days = _service_parts(profile.employment_start_date, range_end)
 
     role = employee.groups.first().name if employee.groups.exists() else "personel"
     role_labels = {"personel": "Personel", "mudur": "Müdür", "patron": "Patron"}
-    team = user_profile.get_gorev_display()
 
     return render(request, "teams/employee_detail.html", {
         "employee": employee,
@@ -135,9 +168,12 @@ def employee_detail(request, user_id):
         "today": today,
         "role": role,
         "role_label": role_labels.get(role, role.title()),
-        "team_label": team,
+        "team_label": user_profile.get_gorev_display(),
         "user_profile": user_profile,
         "gorevler": UserProfile.GOREV_SECENEKLERI,
+        "range_start": range_start,
+        "range_end": range_end,
+        "preset": preset,
         "service_years": service_years,
         "service_months": service_months,
         "service_days": service_days,
@@ -148,7 +184,7 @@ def employee_detail(request, user_id):
         "worked_days": worked_days,
         "leave_days": leave_days,
         "sick_days": sick_days,
-        "annual_leave_month": annual_leave_month,
+        "annual_leave_period": annual_leave_period,
         "late_minutes": late_minutes,
         "overtime_minutes": overtime_minutes,
     })
