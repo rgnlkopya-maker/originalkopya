@@ -15,6 +15,7 @@ class UserProfile(models.Model):
         ("yok", "Yok"),
         ("kesim", "Kesim"),
         ("dikim", "Dikim"),
+        ("modelleme", "Modelleme"),
         ("susleme", "Süsleme"),
         ("hazir", "Hazır"),
         ("sevkiyat", "Sevkiyat"),
@@ -361,96 +362,55 @@ class OrderEvent(models.Model):
 
     # 🆕 Sipariş düzenleme logları için
     event_type = models.CharField(
-        max_length=20,
+        max_length=30,
+        default="stage",
+        db_index=True,
         choices=[
-            ("stage", "Aşama Güncellemesi"),
-            ("order_update", "Sipariş Güncellemesi"),
+            ("stage", "Üretim Aşaması"),
+            ("order_update", "Sipariş Düzenleme"),
         ],
-        default="stage"
     )
-
-    old_value = models.TextField(blank=True, null=True)
-    new_value = models.TextField(blank=True, null=True)
-
-    def __str__(self):
-        return f"{self.order} | {self.stage} → {self.value} ({self.user})"
 
     class Meta:
+        ordering = ["-timestamp"]
         indexes = [
-            models.Index(fields=["order"]),
-            models.Index(fields=["user"]),
-            models.Index(fields=["stage"]),
-            models.Index(fields=["event_type"]),
+            models.Index(fields=["order", "-timestamp"], name="core_ordere_order_i_91c1f7_idx"),
+            models.Index(fields=["order", "stage", "-timestamp"], name="core_ordere_order_i_5074f3_idx"),
+            models.Index(fields=["order", "event_type", "-timestamp"], name="core_ordere_order_i_14a6f4_idx"),
         ]
 
-
-
-# 🏬 DEPO STOK MODELİ
-class DepoStok(models.Model):
-    DEPO_SECENEKLERI = [
-        ('KORIDOR', 'Koridor'),
-        ('SHOWROOM', 'Showroom'),
-        ('SHOWROOM_MUTF', 'Showroom Mutfak'),
-        ('DANTEL_YANI', 'Dantel Odası Yanı'),
-        ('ELISI', 'Elişi Deposu'),
-    ]
-
-    urun_kodu = models.CharField(max_length=100, db_index=True)
-    renk = models.CharField(max_length=50, blank=True, null=True, db_index=True)
-    beden = models.CharField(max_length=50, blank=True, null=True, db_index=True)
-    adet = models.PositiveIntegerField(default=0)
-    depo = models.CharField(max_length=20, choices=DEPO_SECENEKLERI, default='KORIDOR')
-    aciklama = models.TextField(blank=True, null=True)
-    eklenme_tarihi = models.DateTimeField(auto_now_add=True)
-    order = models.ForeignKey('Order', on_delete=models.SET_NULL, null=True, blank=True, related_name='stok_kaydi')
-
     def __str__(self):
-        return f"{self.urun_kodu} - {self.renk}/{self.beden} ({self.depo}) [{self.adet} adet]"
-
-class UretimGecmisi(models.Model):
-    order = models.ForeignKey(
-        Order,
-        on_delete=models.CASCADE,
-        null=True,
-        blank=True,
-        related_name="uretim_kayitlari"
-    )
-    urun = models.CharField(max_length=100)
-    asama = models.CharField(max_length=100)
-    aciklama = models.TextField(blank=True, null=True)
-    tarih = models.DateTimeField(auto_now_add=True)
-
-    def __str__(self):
-        return f"{self.urun} - {self.asama}"
-
-
-
-class Notification(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="notification_set")
-    order = models.ForeignKey(Order, on_delete=models.CASCADE, null=True, blank=True)
-
-    title = models.CharField(max_length=255)
-    message = models.TextField(blank=True, null=True)
-
-    is_read = models.BooleanField(default=False)
-    timestamp = models.DateTimeField(auto_now_add=True)
-
-    def __str__(self):
-        return f"{self.user.username} → {self.title}"
-
-
+        return f"{self.order.siparis_numarasi} - {self.stage}: {self.value}"
 
 
 class OrderSeen(models.Model):
+    order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name="seen_records")
     user = models.ForeignKey(User, on_delete=models.CASCADE)
-    order = models.ForeignKey(Order, on_delete=models.CASCADE)
-    seen_time = models.DateTimeField(default=timezone.now)
+    last_seen = models.DateTimeField(default=timezone.now)
 
     class Meta:
-        unique_together = ('user', 'order')
+        unique_together = ("order", "user")
+
+
+class Notification(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="notifications")
+    order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name="notifications")
+    message = models.CharField(max_length=255)
+    is_read = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+
+class ProductionNote(models.Model):
+    order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name="production_notes")
+    stage = models.CharField(max_length=30, db_index=True)
+    author = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name="production_notes")
+    text = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        indexes = [models.Index(fields=["order", "stage", "-created_at"], name="core_prodno_order_i_f4a3c1_idx")]
 
     def __str__(self):
-        return f"{self.user} → {self.order}"
-
-
-
+        return f"{self.order_id} - {self.stage} - {self.author or '-'}"
