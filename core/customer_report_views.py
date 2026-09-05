@@ -1,5 +1,6 @@
 from collections import Counter, defaultdict
 from decimal import Decimal
+import json
 
 from django.contrib.auth.decorators import login_required
 from django.db.models import DateTimeField, OuterRef, Subquery
@@ -104,7 +105,6 @@ def customer_comparison_report(request):
         product_counts = Counter((x["order"].urun_kodu or "") for x in items if x["order"].urun_kodu)
         top_product = product_counts.most_common(1)[0][0] if product_counts else "—"
 
-        # Sevkiyat Finans ekranindaki ust toplamlarla ayni: yalnizca is_final satirlar finans toplamlarina girer.
         final_items = [x for x in items if x["result"].get("is_final")]
         revenue_tl = sum((Decimal(x["result"]["satis_tl"] or 0) for x in final_items), Decimal("0"))
         cost_tl = sum((Decimal(x["result"]["maliyet_tl"] or 0) for x in final_items), Decimal("0"))
@@ -157,7 +157,9 @@ def customer_detail_report(request, customer_id):
         return HttpResponseForbidden("Bu raporu görme yetkiniz yok.")
 
     customer = get_object_or_404(Musteri, pk=customer_id)
-    finance_rows = _shipment_finance_rows(customer_id=customer.id)
+    start = request.GET.get("start") or ""
+    end = request.GET.get("end") or ""
+    finance_rows = _shipment_finance_rows(start=start, end=end, customer_id=customer.id)
     finance_rows.sort(key=lambda x: ((x["ship_date"] or timezone.localdate()), x["order"].id), reverse=True)
     orders = [x["order"] for x in finance_rows]
 
@@ -165,13 +167,51 @@ def customer_detail_report(request, customer_id):
     product_counts = Counter((o.urun_kodu or "") for o in orders if o.urun_kodu)
     top_products = [{"urun_kodu": code, "total": total} for code, total in product_counts.most_common(10)]
 
+    product_type_counts = Counter()
+    for o in orders:
+        label = o.get_urun_tipi_display() if getattr(o, "urun_tipi", None) else "Belirtilmemiş"
+        product_type_counts[label] += 1
+    product_types = [{"label": k, "total": v} for k, v in product_type_counts.most_common()]
+
     final_items = [x for x in finance_rows if x["result"].get("is_final")]
     revenue_tl = sum((Decimal(x["result"]["satis_tl"] or 0) for x in final_items), Decimal("0"))
     cost_tl = sum((Decimal(x["result"]["maliyet_tl"] or 0) for x in final_items), Decimal("0"))
     profit_tl = sum((Decimal(x["result"]["kar_tl"] or 0) for x in final_items), Decimal("0"))
+    profit_margin = (profit_tl / revenue_tl * Decimal("100")) if revenue_tl else Decimal("0")
 
     dated = [x for x in finance_rows if x["ship_date"]]
-    dates = [x["ship_date"] for x in dated]
+    dates = sorted([x["ship_date"] for x in dated])
+    first_order = min(dates) if dates else None
+    last_order = max(dates) if dates else None
+    last_days = (timezone.localdate() - last_order).days if last_order else None
+    avg_interval = None
+    if len(dates) > 1:
+        intervals = [(dates[i] - dates[i - 1]).days for i in range(1, len(dates))]
+        avg_interval = round(sum(intervals) / len(intervals), 1)
+
+    monthly = defaultdict(lambda: {"count": 0, "revenue": Decimal("0"), "profit": Decimal("0")})
+    for item in finance_rows:
+        if not item["ship_date"]:
+            continue
+        key = item["ship_date"].strftime("%Y-%m")
+        monthly[key]["count"] += 1
+        if item["result"].get("is_final"):
+            monthly[key]["revenue"] += Decimal(item["result"]["satis_tl"] or 0)
+            monthly[key]["profit"] += Decimal(item["result"]["kar_tl"] or 0)
+    month_keys = sorted(monthly.keys())
+    month_labels = [f"{k[5:7]}/{k[:4]}" for k in month_keys]
+    month_counts = [monthly[k]["count"] for k in month_keys]
+    month_revenue = [float(monthly[k]["revenue"]) for k in month_keys]
+    month_profit = [float(monthly[k]["profit"]) for k in month_keys]
+
+    summary = "Seçilen tarih aralığında sevkiyat bulunamadı."
+    if orders:
+        summary = f"Seçilen dönemde {len(orders)} ürün sevk edildi."
+        if product_counts:
+            summary += f" En çok {product_counts.most_common(1)[0][0]} modeli tercih edildi."
+        if last_days is not None:
+            summary += f" Son sevkiyat {last_days} gün önce yapıldı."
+
     return render(request, "reports/customer_detail.html", {
         "customer": customer,
         "orders": orders,
@@ -179,10 +219,21 @@ def customer_detail_report(request, customer_id):
         "ozel_count": type_counts.get("OZEL", 0),
         "tekli_count": type_counts.get("TEKLI", 0),
         "seri_count": type_counts.get("SERI", 0),
-        "first_order": min(dates) if dates else None,
-        "last_order": max(dates) if dates else None,
+        "first_order": first_order,
+        "last_order": last_order,
+        "last_days": last_days,
+        "avg_interval": avg_interval,
         "top_products": top_products,
+        "product_types": product_types,
         "revenue": {"TRY": revenue_tl, "USD": Decimal("0"), "EUR": Decimal("0")},
         "cost": {"TRY": cost_tl, "USD": Decimal("0"), "EUR": Decimal("0")},
         "profit": {"TRY": profit_tl, "USD": Decimal("0"), "EUR": Decimal("0")},
+        "profit_margin": profit_margin,
+        "summary": summary,
+        "start": start,
+        "end": end,
+        "month_labels_json": json.dumps(month_labels, ensure_ascii=False),
+        "month_counts_json": json.dumps(month_counts),
+        "month_revenue_json": json.dumps(month_revenue),
+        "month_profit_json": json.dumps(month_profit),
     })
