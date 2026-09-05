@@ -7,6 +7,7 @@ from django.shortcuts import redirect
 from core import views
 from core.views import health_check
 from core.order_list_enhanced import order_list as enhanced_order_list
+from core.assistant_views import assistant_page, assistant_api, assistant_clear
 
 
 def logout_view(request):
@@ -47,12 +48,13 @@ urlpatterns = [
     path("reports/nakisci/", views.nakisci_raporu, name="nakisci_raporu"),
     path("product-costs/", views.product_cost_list, name="product_cost_list"),
     path("events/<int:event_id>/delete/", views.delete_order_event, name="delete_order_event"),
-    path("asistan/", views.ai_assistant_view, name="ai_assistant"),
-    path("api/assistant/", views.ai_assistant_api, name="ai_assistant_api"),
+    path("asistan/", assistant_page, name="ai_assistant"),
+    path("api/assistant/", assistant_api, name="ai_assistant_api"),
+    path("api/assistant/clear/", assistant_clear, name="ai_assistant_clear"),
     path("bildirim/<int:pk>/", views.notification_read, name="notification_read"),
     path("bildirim-okundu/<int:pk>/", views.mark_notification_read, name="mark_notification_read"),
     path("fasoncu/yeni/", views.fasoncu_yeni, name="fasoncu_yeni"),
-    path("nakisci/yeni/", views.nakisci_ekle, name="nakisci_ekle"),
+    path("nakisci/yeni/", views.nakisci_ekle, name="nakisci_yeni"),
     path("order/<int:order_id>/stok-ekle/", views.stok_ekle, name="stok_ekle"),
     path("depolar/", views.depo_ozet, name="depo_ozet"),
     path("depolar/detay/<str:depo_adi>/", views.depo_detay, name="depo_detay"),
@@ -62,7 +64,7 @@ urlpatterns = [
     path("ajax/beden/ekle/", views.beden_ekle_ajax, name="beden_ekle_ajax"),
     path("ajax/beden/pasif-yap/", views.beden_pasif_yap_ajax, name="beden_pasif_yap_ajax"),
     path("ajax/urun-kod/ekle/", views.urun_kod_ekle_ajax, name="urun_kod_ekle_ajax"),
-    path("ajax/urun-kod/tip-guncelle/", views.urun_kod_tipi_guncelle_ajax, name="urun_kod_tipi_guncelle_ajax"),
+    path("ajax/urun-kod/tip-guncelle/", views.urun_kodu_tipi_guncelle_ajax, name="urun_kod_tipi_guncelle_ajax"),
     path("ajax/urun-kod/pasif-yap/", views.urun_kod_pasif_yap_ajax, name="urun_kod_pasif_yap_ajax"),
     path("ajax/renk/ekle/", views.renk_ekle_ajax, name="renk_ekle_ajax"),
     path("ajax/renk/pasif-yap/", views.renk_pasif_yap_ajax, name="renk_pasif_yap_ajax"),
