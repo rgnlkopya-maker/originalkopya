@@ -1,49 +1,78 @@
 {% extends "base.html" %}
+{% block extra_css %}
+<style>
+.material-wrap{max-width:1450px;margin:0 auto;padding:24px 16px 50px}.material-head,.soft-card{background:#fff;border:1px solid #edf0f6;border-radius:18px;box-shadow:0 5px 18px rgba(15,23,42,.06)}.material-head{padding:20px 22px;margin-bottom:16px}.summary-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:14px 0 18px}.summary-card{background:#fff;border:1px solid #edf0f6;border-radius:16px;padding:14px 16px}.summary-value{font-size:24px;font-weight:800}.summary-label{font-size:12px;color:#7b8497}.soft-card{padding:18px;margin-bottom:18px}.soft-title{font-weight:800;font-size:17px;margin-bottom:12px}.form-control,.form-select{border-radius:11px;border-color:#e2e6ef}.material-table td,.material-table th{vertical-align:middle}.material-img{width:62px;height:62px;object-fit:cover;border-radius:12px;border:1px solid #e5e7eb}.material-placeholder{width:62px;height:62px;border-radius:12px;border:1px dashed #cbd5e1;background:#f8fafc;display:flex;align-items:center;justify-content:center;color:#94a3b8;font-size:11px}.stock-badge{display:inline-flex;align-items:center;padding:7px 10px;border-radius:999px;background:#eef8f1;color:#207a3d;font-weight:700}.stock-badge.critical{background:#fff0f0;color:#c83b3b}.tiny{font-size:11px;color:#7b8497}.details-box{background:#f8f9fc;border:1px solid #edf0f5;border-radius:12px;padding:10px}.movement-row{border-top:1px solid #f0f2f6;padding:9px 0}.movement-row:first-child{border-top:0}.movement-plus{color:#18864b;font-weight:800}.movement-minus{color:#c43d3d;font-weight:800}.btn-soft{border-radius:10px;font-weight:700}.accordion-button{font-weight:700;border-radius:12px!important}.accordion-item{border:1px solid #edf0f6;border-radius:12px!important;overflow:hidden;margin-bottom:8px}.accordion-button:not(.collapsed){background:#f5f7ff;color:#3349d8;box-shadow:none}@media(max-width:900px){.summary-grid{grid-template-columns:1fr}.material-wrap{padding:14px 8px}.soft-card{padding:12px}}
+</style>
+{% endblock %}
 {% block content %}
-<div class="container py-4">
-  <div class="d-flex justify-content-between align-items-center mb-4 gap-3 flex-wrap">
-    <div><div class="text-muted small">MALZEME YÖNETİMİ</div><h2 class="fw-bold mb-1">Malzeme Kartları</h2><div class="text-muted">Dantel, tül, astar, taş ve diğer sarf malzemelerini burada tanımla.</div></div>
-    <div class="d-flex gap-2 flex-wrap">
-      <a href="{% url 'product_card_list' %}" class="btn btn-outline-secondary">← Ürün Kartları</a>
-      <form method="post" action="{% url 'refresh_exchange_rate' %}">{% csrf_token %}<input type="hidden" name="next" value="{% url 'material_list' %}"><button class="btn btn-outline-primary">Kuru Güncelle</button></form>
-    </div>
+<div class="material-wrap">
+  <div class="material-head d-flex justify-content-between align-items-center gap-3 flex-wrap">
+    <div><div class="text-muted small">MALZEME YÖNETİMİ</div><h2 class="fw-bold mb-1">Malzeme Kartları</h2><div class="text-muted">Kart bilgileri, kritik stok ve tüm hammadde hareketleri tek yerde.</div></div>
+    <div class="d-flex gap-2 flex-wrap"><a href="{% url 'product_card_list' %}" class="btn btn-outline-secondary btn-soft">← Ürün Kartları</a><form method="post" action="{% url 'refresh_exchange_rate' %}">{% csrf_token %}<input type="hidden" name="next" value="{% url 'material_list' %}"><button class="btn btn-outline-primary btn-soft">Kuru Güncelle</button></form></div>
   </div>
+
   {% for message in messages %}<div class="alert alert-info">{{ message }}</div>{% endfor %}
 
-  <div class="alert {% if rate_error %}alert-warning{% else %}alert-primary{% endif %} d-flex justify-content-between align-items-center flex-wrap gap-2">
-    <div>{% if current_rate %}<strong>TCMB USD satış kuru:</strong> 1 USD = {{ current_rate.usd_try|floatformat:4 }} TL <span class="text-muted small">(TCMB tarih: {{ current_rate.source_date|default:"—" }})</span>{% else %}<strong>USD kuru bulunamadı.</strong>{% endif %}</div>
-    {% if rate_error %}<div class="small">Bugünkü kur alınamadı; son kayıt kullanılıyor. {{ rate_error }}</div>{% endif %}
+  <div class="summary-grid">
+    <div class="summary-card"><div class="summary-value">{{ materials|length }}</div><div class="summary-label">Aktif Malzeme Kartı</div></div>
+    <div class="summary-card"><div class="summary-value">{{ critical_count }}</div><div class="summary-label">Kritik Stokta Malzeme</div></div>
+    <div class="summary-card"><div class="summary-value">{% if current_rate %}{{ current_rate.usd_try|floatformat:2 }} ₺{% else %}—{% endif %}</div><div class="summary-label">Güncel USD Satış Kuru</div></div>
   </div>
 
-  <div class="card border-0 shadow-sm rounded-4 mb-4"><div class="card-body p-4">
-    <form method="post" enctype="multipart/form-data" class="row g-3 align-items-end">{% csrf_token %}<input type="hidden" name="action" value="add">
+  <div class="soft-card">
+    <div class="soft-title">＋ Yeni Malzeme Kartı</div>
+    <form method="post" enctype="multipart/form-data" class="row g-3">{% csrf_token %}<input type="hidden" name="action" value="add">
       <div class="col-md-2"><label class="form-label">Kod</label><input name="kod" class="form-control" placeholder="DT-01" required></div>
       <div class="col-md-3"><label class="form-label">Malzeme adı</label><input name="ad" class="form-control" placeholder="Simli Tül" required></div>
+      <div class="col-md-2"><label class="form-label">Kategori</label><select name="kategori" class="form-select">{% for value,label in category_choices %}<option value="{{ value }}">{{ label }}</option>{% endfor %}</select></div>
       <div class="col-md-2"><label class="form-label">Birim</label><select name="birim" class="form-select"><option value="M">Metre</option><option value="ADET">Adet</option><option value="KG">Kilogram</option><option value="GR">Gram</option></select></div>
-      <div class="col-md-2"><label class="form-label">Başlangıç stok</label><input name="stok_miktari" type="number" step="0.001" class="form-control" value="0"></div>
+      <div class="col-md-3"><label class="form-label">Tedarikçi</label><input name="tedarikci" class="form-control" placeholder="Firma / kişi"></div>
+      <div class="col-md-2"><label class="form-label">Başlangıç stok</label><input name="stok_miktari" type="number" step="0.001" min="0" class="form-control" value="0"></div>
+      <div class="col-md-2"><label class="form-label">Kritik stok</label><input name="kritik_stok" type="number" step="0.001" min="0" class="form-control" value="0"></div>
       <div class="col-md-2"><label class="form-label">Birim maliyet</label><input name="birim_maliyet" type="number" step="0.0001" min="0" class="form-control" value="0"></div>
       <div class="col-md-1"><label class="form-label">Para</label><select name="birim_maliyet_para_birimi" class="form-select"><option value="TRY">TL</option><option value="USD">USD</option></select></div>
-      <div class="col-md-4"><label class="form-label">Görsel</label><input name="material_image" type="file" accept="image/*" class="form-control"></div>
-      <div class="col-md-2"><button class="btn btn-dark w-100">Kaydet</button></div>
+      <div class="col-md-2"><label class="form-label">Son alış tarihi</label><input name="son_alis_tarihi" type="date" class="form-control"></div>
+      <div class="col-md-3"><label class="form-label">Görsel</label><input name="material_image" type="file" accept="image/*" class="form-control"></div>
+      <div class="col-md-8"><label class="form-label">Açıklama</label><input name="aciklama" class="form-control" placeholder="Renk, seri, kullanım notu vb."></div>
+      <div class="col-md-2 d-flex align-items-end"><button class="btn btn-dark w-100 btn-soft">Kartı Kaydet</button></div>
     </form>
-  </div></div>
+  </div>
 
-  <div class="card border-0 shadow-sm rounded-4 overflow-hidden"><div class="table-responsive"><table class="table align-middle mb-0"><thead class="table-light"><tr><th>Görsel</th><th>Kod</th><th>Malzeme</th><th>Birim</th><th>Stok</th><th>Birim Maliyet</th><th>TL Karşılığı</th><th>Görsel İşlemi</th><th></th></tr></thead><tbody>
-  {% for material in materials %}
-    <tr>
-      <td style="width:90px;">{% if material.image_url %}<img src="{{ material.image_url }}" alt="{{ material.ad }}" style="width:72px;height:72px;object-fit:cover;border-radius:12px;border:1px solid #e5e7eb;">{% else %}<div class="d-flex align-items-center justify-content-center text-muted small" style="width:72px;height:72px;border-radius:12px;border:1px dashed #cbd5e1;background:#f8fafc;">Görsel yok</div>{% endif %}</td>
-      <td class="fw-bold">{{ material.kod }}</td>
-      <td>{{ material.ad }}</td>
-      <td>{{ material.get_birim_display }}</td>
-      <td>{{ material.stok_miktari }}</td>
-      <td style="min-width:250px;">
-        <form method="post" class="d-flex gap-2 align-items-center">{% csrf_token %}<input type="hidden" name="action" value="update_cost"><input type="hidden" name="id" value="{{ material.id }}"><input name="birim_maliyet" type="number" step="0.0001" min="0" class="form-control form-control-sm" value="{{ material.birim_maliyet }}"><select name="birim_maliyet_para_birimi" class="form-select form-select-sm" style="max-width:90px;"><option value="TRY" {% if material.birim_maliyet_para_birimi == 'TRY' %}selected{% endif %}>TL</option><option value="USD" {% if material.birim_maliyet_para_birimi == 'USD' %}selected{% endif %}>USD</option></select><button class="btn btn-sm btn-outline-primary">Kaydet</button></form>
-      </td>
-      <td><strong>{{ material.birim_maliyet_tl|floatformat:2 }} TL</strong></td>
-      <td style="min-width:280px;"><form method="post" enctype="multipart/form-data" class="d-flex gap-2 align-items-center flex-wrap">{% csrf_token %}<input type="hidden" name="action" value="update_image"><input type="hidden" name="id" value="{{ material.id }}"><input name="material_image" type="file" accept="image/*" class="form-control form-control-sm" style="max-width:180px;"><button class="btn btn-sm btn-outline-dark">Güncelle</button>{% if material.image_url %}<button name="remove_image" value="1" class="btn btn-sm btn-outline-secondary">Kaldır</button>{% endif %}</form></td>
-      <td class="text-end"><form method="post">{% csrf_token %}<input type="hidden" name="action" value="deactivate"><input type="hidden" name="id" value="{{ material.id }}"><button class="btn btn-sm btn-outline-danger">Pasife Al</button></form></td>
-    </tr>
-  {% empty %}<tr><td colspan="9" class="text-center text-muted py-5">Henüz malzeme kartı yok.</td></tr>{% endfor %}
-  </tbody></table></div></div>
+  <div class="soft-card">
+    <div class="soft-title">Hammadde Kartları</div>
+    <div class="table-responsive"><table class="table material-table align-middle mb-0"><thead><tr><th>Görsel</th><th>Kod / Malzeme</th><th>Kategori</th><th>Stok</th><th>Tedarikçi</th><th>Birim Maliyet</th><th>İşlemler</th></tr></thead><tbody>
+    {% for material in materials %}
+      <tr>
+        <td>{% if material.image_url %}<img src="{{ material.image_url }}" alt="{{ material.ad }}" class="material-img">{% else %}<div class="material-placeholder">Görsel yok</div>{% endif %}</td>
+        <td><div class="fw-bold">{{ material.kod }}</div><div>{{ material.ad }}</div><div class="tiny">{{ material.get_birim_display }}{% if material.son_alis_tarihi %} · Son alış {{ material.son_alis_tarihi|date:"d.m.Y" }}{% endif %}</div></td>
+        <td>{{ material.get_kategori_display }}</td>
+        <td><span class="stock-badge {% if material.kritik_mi %}critical{% endif %}">{{ material.stok_miktari }} {{ material.get_birim_display }}</span>{% if material.kritik_stok > 0 %}<div class="tiny mt-1">Kritik: {{ material.kritik_stok }}</div>{% endif %}</td>
+        <td>{{ material.tedarikci|default:"—" }}</td>
+        <td><div class="fw-bold">{{ material.birim_maliyet }} {{ material.birim_maliyet_para_birimi }}</div><div class="tiny">{{ material.birim_maliyet_tl|floatformat:2 }} TL</div></td>
+        <td style="min-width:250px;"><div class="d-flex gap-2 flex-wrap"><button class="btn btn-sm btn-outline-primary btn-soft" type="button" data-bs-toggle="collapse" data-bs-target="#stock{{ material.id }}">Stok Hareketi</button><button class="btn btn-sm btn-outline-secondary btn-soft" type="button" data-bs-toggle="collapse" data-bs-target="#edit{{ material.id }}">Kartı Düzenle</button><form method="post">{% csrf_token %}<input type="hidden" name="action" value="deactivate"><input type="hidden" name="id" value="{{ material.id }}"><button class="btn btn-sm btn-outline-danger btn-soft">Pasife Al</button></form></div></td>
+      </tr>
+      <tr class="collapse" id="stock{{ material.id }}"><td colspan="7"><div class="details-box">
+        <form method="post" class="row g-2 align-items-end">{% csrf_token %}<input type="hidden" name="action" value="stock_movement"><input type="hidden" name="id" value="{{ material.id }}">
+          <div class="col-md-2"><label class="form-label">Hareket</label><select name="movement_type" class="form-select" required>{% for value,label in movement_choices %}<option value="{{ value }}">{{ label }}</option>{% endfor %}</select></div>
+          <div class="col-md-2"><label class="form-label">Miktar</label><input name="miktar" type="number" step="0.001" min="0.001" class="form-control" required></div>
+          <div class="col-md-2"><label class="form-label">Alış maliyeti</label><input name="hareket_birim_maliyet" type="number" step="0.0001" min="0" class="form-control" placeholder="Girişte opsiyonel"></div>
+          <div class="col-md-1"><label class="form-label">Para</label><select name="hareket_para_birimi" class="form-select"><option value="TRY">TL</option><option value="USD">USD</option></select></div>
+          <div class="col-md-3"><label class="form-label">Açıklama</label><input name="hareket_aciklama" class="form-control" placeholder="Fatura, sayım, fire nedeni vb."></div>
+          <div class="col-md-2"><button class="btn btn-primary w-100 btn-soft">Hareketi Kaydet</button></div>
+        </form>
+        <div class="mt-3"><div class="fw-bold mb-1">Son Hareketler</div>{% for mv in material.stock_movements.all|slice:":5" %}<div class="movement-row d-flex justify-content-between gap-3 flex-wrap"><div><strong>{{ mv.get_movement_type_display }}</strong> <span class="{% if mv.movement_type == 'CIKIS' or mv.movement_type == 'FIRE' or mv.movement_type == 'DUZELTME_EKSI' %}movement-minus{% else %}movement-plus{% endif %}">{% if mv.movement_type == 'CIKIS' or mv.movement_type == 'FIRE' or mv.movement_type == 'DUZELTME_EKSI' %}-{% else %}+{% endif %}{{ mv.miktar }}</span> <span class="tiny">{{ mv.onceki_stok }} → {{ mv.sonraki_stok }}</span></div><div class="tiny">{{ mv.created_at|date:"d.m.Y H:i" }} · {{ mv.islem_yapan.username|default:"Sistem" }}</div>{% if mv.aciklama %}<div class="w-100 tiny">{{ mv.aciklama }}</div>{% endif %}</div>{% empty %}<div class="tiny">Henüz hareket yok.</div>{% endfor %}</div>
+      </div></td></tr>
+      <tr class="collapse" id="edit{{ material.id }}"><td colspan="7"><div class="details-box">
+        <form method="post" class="row g-2 align-items-end">{% csrf_token %}<input type="hidden" name="action" value="update_info"><input type="hidden" name="id" value="{{ material.id }}"><div class="col-md-2"><label class="form-label">Kategori</label><select name="kategori" class="form-select">{% for value,label in category_choices %}<option value="{{ value }}" {% if material.kategori == value %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></div><div class="col-md-2"><label class="form-label">Tedarikçi</label><input name="tedarikci" class="form-control" value="{{ material.tedarikci }}"></div><div class="col-md-2"><label class="form-label">Kritik stok</label><input name="kritik_stok" type="number" step="0.001" min="0" class="form-control" value="{{ material.kritik_stok }}"></div><div class="col-md-2"><label class="form-label">Son alış</label><input name="son_alis_tarihi" type="date" class="form-control" value="{{ material.son_alis_tarihi|date:'Y-m-d' }}"></div><div class="col-md-3"><label class="form-label">Açıklama</label><input name="aciklama" class="form-control" value="{{ material.aciklama }}"></div><div class="col-md-1"><button class="btn btn-dark w-100 btn-soft">Kaydet</button></div></form>
+        <div class="row g-2 mt-2"><div class="col-md-5"><form method="post" class="d-flex gap-2">{% csrf_token %}<input type="hidden" name="action" value="update_cost"><input type="hidden" name="id" value="{{ material.id }}"><input name="birim_maliyet" type="number" step="0.0001" min="0" class="form-control" value="{{ material.birim_maliyet }}"><select name="birim_maliyet_para_birimi" class="form-select" style="max-width:90px"><option value="TRY" {% if material.birim_maliyet_para_birimi == 'TRY' %}selected{% endif %}>TL</option><option value="USD" {% if material.birim_maliyet_para_birimi == 'USD' %}selected{% endif %}>USD</option></select><button class="btn btn-outline-primary btn-soft">Maliyet</button></form></div><div class="col-md-7"><form method="post" enctype="multipart/form-data" class="d-flex gap-2">{% csrf_token %}<input type="hidden" name="action" value="update_image"><input type="hidden" name="id" value="{{ material.id }}"><input name="material_image" type="file" accept="image/*" class="form-control"><button class="btn btn-outline-dark btn-soft">Görsel</button>{% if material.image_url %}<button name="remove_image" value="1" class="btn btn-outline-secondary btn-soft">Kaldır</button>{% endif %}</form></div></div>
+      </div></td></tr>
+    {% empty %}<tr><td colspan="7" class="text-center text-muted py-5">Henüz malzeme kartı yok.</td></tr>{% endfor %}
+    </tbody></table></div>
+  </div>
+
+  <div class="soft-card">
+    <div class="soft-title">Son Stok Hareketleri</div>
+    <div class="table-responsive"><table class="table align-middle mb-0"><thead><tr><th>Tarih</th><th>Malzeme</th><th>Hareket</th><th>Miktar</th><th>Stok</th><th>İşlemi Yapan</th><th>Açıklama</th></tr></thead><tbody>{% for mv in recent_movements %}<tr><td>{{ mv.created_at|date:"d.m.Y H:i" }}</td><td><strong>{{ mv.material.kod }}</strong> · {{ mv.material.ad }}</td><td>{{ mv.get_movement_type_display }}</td><td class="{% if mv.movement_type == 'CIKIS' or mv.movement_type == 'FIRE' or mv.movement_type == 'DUZELTME_EKSI' %}movement-minus{% else %}movement-plus{% endif %}">{% if mv.movement_type == 'CIKIS' or mv.movement_type == 'FIRE' or mv.movement_type == 'DUZELTME_EKSI' %}-{% else %}+{% endif %}{{ mv.miktar }}</td><td>{{ mv.onceki_stok }} → {{ mv.sonraki_stok }}</td><td>{{ mv.islem_yapan.username|default:"Sistem" }}</td><td>{{ mv.aciklama|default:"—" }}</td></tr>{% empty %}<tr><td colspan="7" class="text-center text-muted py-4">Henüz stok hareketi yok.</td></tr>{% endfor %}</tbody></table></div>
+  </div>
 </div>
 {% endblock %}
