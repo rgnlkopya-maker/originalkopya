@@ -4,12 +4,14 @@ from datetime import date
 from django.contrib import messages
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth.models import Group
 from django.db.models import Sum
 from django.http import HttpResponseForbidden
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 
 from attendance.models import AttendanceRecord, EmployeeHRProfile
+from core.models import UserProfile
 
 User = get_user_model()
 
@@ -44,9 +46,6 @@ def _service_parts(start, today):
 
 
 def _annual_leave_entitlement(start, today):
-    """Current simple policy: 14 days for each completed service year + manual carryover.
-    We keep this isolated so the company policy can be adjusted later without touching the UI.
-    """
     if not start or start > today:
         return 0
     years, _, _ = _service_parts(start, today)
@@ -55,11 +54,12 @@ def _annual_leave_entitlement(start, today):
 
 @login_required
 def employee_detail(request, user_id):
-    if not (request.user.is_superuser or request.user.groups.filter(name__in=["patron", "mudur"]).exists()):
+    if not _is_manager(request.user):
         return HttpResponseForbidden("Bu sayfaya erişim yetkiniz yok.")
 
     employee = get_object_or_404(User, pk=user_id)
     profile, _ = EmployeeHRProfile.objects.get_or_create(user=employee)
+    user_profile, _ = UserProfile.objects.get_or_create(user=employee)
 
     if request.method == "POST":
         def parse_date(name):
@@ -67,15 +67,43 @@ def employee_detail(request, user_id):
             return date.fromisoformat(raw) if raw else None
 
         try:
+            username = request.POST.get("username", "").strip()
+            if not username:
+                raise ValueError("Kullanıcı adı boş olamaz.")
+            if User.objects.exclude(pk=employee.pk).filter(username__iexact=username).exists():
+                messages.error(request, "Bu kullanıcı adı başka bir kullanıcı tarafından kullanılıyor.")
+                return redirect("employee_detail", user_id=employee.id)
+
+            employee.username = username
+            employee.first_name = request.POST.get("first_name", "").strip()
+            employee.last_name = request.POST.get("last_name", "").strip()
+
+            new_password = request.POST.get("new_password", "").strip()
+            if new_password:
+                employee.set_password(new_password)
+            employee.save()
+
+            role = request.POST.get("role", "personel")
+            if role not in {"personel", "mudur", "patron"}:
+                role = "personel"
+            employee.groups.clear()
+            group, _ = Group.objects.get_or_create(name=role)
+            employee.groups.add(group)
+
+            gorev = request.POST.get("gorev", "yok")
+            valid_gorevler = {value for value, _label in UserProfile.GOREV_SECENEKLERI}
+            user_profile.gorev = gorev if gorev in valid_gorevler else "yok"
+            user_profile.save(update_fields=["gorev"])
+
             profile.employment_start_date = parse_date("employment_start_date")
             profile.sgk_start_date = parse_date("sgk_start_date")
             profile.birth_date = parse_date("birth_date")
             profile.annual_leave_carryover = max(0, int(request.POST.get("annual_leave_carryover") or 0))
             profile.note = request.POST.get("note", "").strip()
             profile.save()
-            messages.success(request, "Özlük bilgileri kaydedildi.")
+            messages.success(request, "Personel bilgileri güncellendi.")
         except (ValueError, TypeError):
-            messages.error(request, "Tarih veya izin devri bilgisini kontrol edin.")
+            messages.error(request, "Girilen bilgileri kontrol edin.")
         return redirect("employee_detail", user_id=employee.id)
 
     today = timezone.localdate()
@@ -99,14 +127,17 @@ def employee_detail(request, user_id):
 
     role = employee.groups.first().name if employee.groups.exists() else "personel"
     role_labels = {"personel": "Personel", "mudur": "Müdür", "patron": "Patron"}
-    team = getattr(getattr(employee, "userprofile", None), "get_gorev_display", lambda: "-")()
+    team = user_profile.get_gorev_display()
 
     return render(request, "teams/employee_detail.html", {
         "employee": employee,
         "profile": profile,
         "today": today,
+        "role": role,
         "role_label": role_labels.get(role, role.title()),
         "team_label": team,
+        "user_profile": user_profile,
+        "gorevler": UserProfile.GOREV_SECENEKLERI,
         "service_years": service_years,
         "service_months": service_months,
         "service_days": service_days,
