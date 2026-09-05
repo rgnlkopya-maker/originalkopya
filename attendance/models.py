@@ -36,6 +36,7 @@ class EmployeeHRProfile(models.Model):
         on_delete=models.CASCADE,
         related_name="hr_profile",
     )
+    phone_number = models.CharField(max_length=30, blank=True, default="")
     employment_start_date = models.DateField(null=True, blank=True)
     sgk_start_date = models.DateField(null=True, blank=True)
     birth_date = models.DateField(null=True, blank=True)
