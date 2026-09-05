@@ -49,7 +49,13 @@
   const input=document.getElementById('messageInput');
   const send=document.getElementById('sendButton');
   const clear=document.getElementById('clearChat');
-  const csrf=document.querySelector('input[name="csrfmiddlewaretoken"]')?.value || '';
+
+  function getCookie(name){
+    const value=`; ${document.cookie}`;
+    const parts=value.split(`; ${name}=`);
+    return parts.length===2 ? parts.pop().split(';').shift() : '';
+  }
+  const csrf=getCookie('csrftoken');
 
   function add(text,who,thinking=false){
     const row=document.createElement('div');row.className='msg-row '+who;
@@ -62,8 +68,13 @@
     add(message,'user');input.value='';send.disabled=true;
     const waiting=add('Düşünüyorum…','ai',true);
     try{
-      const res=await fetch('{% url "ai_assistant_api" %}',{method:'POST',headers:{'Content-Type':'application/json','X-CSRFToken':csrf},body:JSON.stringify({message})});
-      const data=await res.json();waiting.remove();add(data.reply||'Yanıt alınamadı.','ai');
+      const res=await fetch('{% url "ai_assistant_api" %}',{method:'POST',headers:{'Content-Type':'application/json','X-CSRFToken':csrf},credentials:'same-origin',body:JSON.stringify({message})});
+      const raw=await res.text();
+      let data={};
+      try{data=JSON.parse(raw);}catch(_){throw new Error(`HTTP ${res.status}`);}
+      waiting.remove();
+      if(!res.ok){add(data.reply||`Asistan hatası (${res.status}).`,'ai');}
+      else{add(data.reply||'Yanıt alınamadı.','ai');}
     }catch(e){waiting.remove();add('Asistan bağlantısında bir sorun oluştu.','ai');}
     finally{send.disabled=false;input.focus();}
   }
@@ -71,7 +82,7 @@
   send.addEventListener('click',()=>sendMessage());
   input.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMessage();}});
   document.querySelectorAll('.quick').forEach(btn=>btn.addEventListener('click',()=>sendMessage(btn.dataset.text)));
-  clear.addEventListener('click',async()=>{if(!confirm('Bu sohbet geçmişi temizlensin mi?'))return;await fetch('{% url "ai_assistant_clear" %}',{method:'POST',headers:{'X-CSRFToken':csrf}});box.innerHTML='';add('Yeni bir sohbet başlattık. Nasıl yardımcı olayım?','ai');});
+  clear.addEventListener('click',async()=>{if(!confirm('Bu sohbet geçmişi temizlensin mi?'))return;await fetch('{% url "ai_assistant_clear" %}',{method:'POST',headers:{'X-CSRFToken':csrf},credentials:'same-origin'});box.innerHTML='';add('Yeni bir sohbet başlattık. Nasıl yardımcı olayım?','ai');});
   box.scrollTop=box.scrollHeight;
 })();
 </script>
