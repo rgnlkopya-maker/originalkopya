@@ -73,10 +73,13 @@ def repair_incomplete_order_financial_snapshot(sender, instance, created, **kwar
     if was_created:
         return
 
+    expected_nonzero_cost = cost_tl is not None and Decimal(cost_tl or 0) != 0
+    snapshot_zero_cost = snapshot.maliyet_tl is not None and Decimal(snapshot.maliyet_tl or 0) == 0
     incomplete = (
         snapshot.satis_tl is None
         or Decimal(snapshot.satis_tl or 0) == 0
         or snapshot.maliyet_tl is None
+        or (snapshot_zero_cost and expected_nonzero_cost)
         or snapshot.beklenen_kar_tl is None
     )
     if not incomplete:
