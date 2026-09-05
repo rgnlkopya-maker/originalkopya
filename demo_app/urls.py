@@ -28,6 +28,7 @@ urlpatterns = [
     path("attendance/", include("attendance.urls")),
     path("planlama/", include("planning.urls")),
     path("urun-kartlari/", include("product_cards.urls")),
+    path("stok/", include("inventory.urls")),
     path("kalite/", include("quality_tracking.urls")),
     path("ayarlar/", include("app_settings.urls")),
     path("", enhanced_order_list, name="order_list"),
