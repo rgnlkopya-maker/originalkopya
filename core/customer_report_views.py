@@ -165,7 +165,16 @@ def customer_detail_report(request, customer_id):
 
     type_counts = Counter((o.siparis_tipi or "") for o in orders)
     product_counts = Counter((o.urun_kodu or "") for o in orders if o.urun_kodu)
-    top_products = [{"urun_kodu": code, "total": total} for code, total in product_counts.most_common(10)]
+
+    latest_order_by_product = {}
+    for item in finance_rows:
+        code = item["order"].urun_kodu or ""
+        if code and code not in latest_order_by_product:
+            latest_order_by_product[code] = item["order"].id
+    top_products = [
+        {"urun_kodu": code, "total": total, "order_id": latest_order_by_product.get(code)}
+        for code, total in product_counts.most_common(10)
+    ]
 
     product_type_counts = Counter()
     for o in orders:
@@ -179,6 +188,33 @@ def customer_detail_report(request, customer_id):
     profit_tl = sum((Decimal(x["result"]["kar_tl"] or 0) for x in final_items), Decimal("0"))
     profit_margin = (profit_tl / revenue_tl * Decimal("100")) if revenue_tl else Decimal("0")
 
+    product_finance = defaultdict(lambda: {"cost": Decimal("0"), "profit": Decimal("0"), "latest_order_id": None, "latest_key": None})
+    for item in final_items:
+        code = item["order"].urun_kodu or "Belirtilmemiş"
+        bucket = product_finance[code]
+        bucket["cost"] += Decimal(item["result"]["maliyet_tl"] or 0)
+        bucket["profit"] += Decimal(item["result"]["kar_tl"] or 0)
+        key = (item["ship_date"] or timezone.localdate(), item["order"].id)
+        if bucket["latest_key"] is None or key > bucket["latest_key"]:
+            bucket["latest_key"] = key
+            bucket["latest_order_id"] = item["order"].id
+
+    highest_cost_product = None
+    highest_profit_product = None
+    if product_finance:
+        cost_code, cost_data = max(product_finance.items(), key=lambda kv: kv[1]["cost"])
+        profit_code, profit_data = max(product_finance.items(), key=lambda kv: kv[1]["profit"])
+        highest_cost_product = {
+            "urun_kodu": cost_code,
+            "value": cost_data["cost"],
+            "order_id": cost_data["latest_order_id"],
+        }
+        highest_profit_product = {
+            "urun_kodu": profit_code,
+            "value": profit_data["profit"],
+            "order_id": profit_data["latest_order_id"],
+        }
+
     dated = [x for x in finance_rows if x["ship_date"]]
     dates = sorted([x["ship_date"] for x in dated])
     first_order = min(dates) if dates else None
@@ -189,20 +225,20 @@ def customer_detail_report(request, customer_id):
         intervals = [(dates[i] - dates[i - 1]).days for i in range(1, len(dates))]
         avg_interval = round(sum(intervals) / len(intervals), 1)
 
-    monthly = defaultdict(lambda: {"count": 0, "revenue": Decimal("0"), "profit": Decimal("0")})
+    daily = defaultdict(lambda: {"count": 0, "revenue": Decimal("0"), "profit": Decimal("0")})
     for item in finance_rows:
         if not item["ship_date"]:
             continue
-        key = item["ship_date"].strftime("%Y-%m")
-        monthly[key]["count"] += 1
+        key = item["ship_date"]
+        daily[key]["count"] += 1
         if item["result"].get("is_final"):
-            monthly[key]["revenue"] += Decimal(item["result"]["satis_tl"] or 0)
-            monthly[key]["profit"] += Decimal(item["result"]["kar_tl"] or 0)
-    month_keys = sorted(monthly.keys())
-    month_labels = [f"{k[5:7]}/{k[:4]}" for k in month_keys]
-    month_counts = [monthly[k]["count"] for k in month_keys]
-    month_revenue = [float(monthly[k]["revenue"]) for k in month_keys]
-    month_profit = [float(monthly[k]["profit"]) for k in month_keys]
+            daily[key]["revenue"] += Decimal(item["result"]["satis_tl"] or 0)
+            daily[key]["profit"] += Decimal(item["result"]["kar_tl"] or 0)
+    day_keys = sorted(daily.keys())
+    period_labels = [k.strftime("%d.%m.%Y") for k in day_keys]
+    period_counts = [daily[k]["count"] for k in day_keys]
+    period_revenue = [float(daily[k]["revenue"]) for k in day_keys]
+    period_profit = [float(daily[k]["profit"]) for k in day_keys]
 
     summary = "Seçilen tarih aralığında sevkiyat bulunamadı."
     if orders:
@@ -224,6 +260,8 @@ def customer_detail_report(request, customer_id):
         "last_days": last_days,
         "avg_interval": avg_interval,
         "top_products": top_products,
+        "highest_cost_product": highest_cost_product,
+        "highest_profit_product": highest_profit_product,
         "product_types": product_types,
         "revenue": {"TRY": revenue_tl, "USD": Decimal("0"), "EUR": Decimal("0")},
         "cost": {"TRY": cost_tl, "USD": Decimal("0"), "EUR": Decimal("0")},
@@ -232,8 +270,8 @@ def customer_detail_report(request, customer_id):
         "summary": summary,
         "start": start,
         "end": end,
-        "month_labels_json": json.dumps(month_labels, ensure_ascii=False),
-        "month_counts_json": json.dumps(month_counts),
-        "month_revenue_json": json.dumps(month_revenue),
-        "month_profit_json": json.dumps(month_profit),
+        "period_labels_json": json.dumps(period_labels, ensure_ascii=False),
+        "period_counts_json": json.dumps(period_counts),
+        "period_revenue_json": json.dumps(period_revenue),
+        "period_profit_json": json.dumps(period_profit),
     })
