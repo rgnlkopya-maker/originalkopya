@@ -5,7 +5,7 @@ from django.contrib import messages
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import Group
-from django.db.models import Sum
+from django.db.models import Q, Sum
 from django.http import HttpResponseForbidden
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
@@ -68,8 +68,13 @@ def _selected_range(request, today, employment_start=None, employment_end=None):
 @login_required
 def user_management_view(request):
     if not _is_manager(request.user): return HttpResponseForbidden("Bu sayfaya erişim yetkiniz yok.")
-    users = User.objects.all().order_by("username")
-    profiles = {p.user_id: p for p in UserProfile.objects.filter(user__in=users)}
+
+    all_users = User.objects.all().order_by("username")
+    departed_users = all_users.filter(Q(is_active=False) | Q(hr_profile__employment_end_date__isnull=False)).distinct()
+    users = all_users.exclude(pk__in=departed_users.values_list("pk", flat=True))
+    profiles = {p.user_id: p for p in UserProfile.objects.filter(user__in=all_users)}
+    hr_profiles = {p.user_id: p for p in EmployeeHRProfile.objects.filter(user__in=all_users)}
+
     if request.method == "POST":
         action = request.POST.get("action", "").strip()
         if action == "create_user":
@@ -86,7 +91,7 @@ def user_management_view(request):
             profile, _ = UserProfile.objects.get_or_create(user=user); profile.gorev = gorev; profile.save()
             def new_date(name):
                 raw = request.POST.get(name, "").strip(); return date.fromisoformat(raw) if raw else None
-            EmployeeHRProfile.objects.create(
+            hr = EmployeeHRProfile.objects.create(
                 user=user,
                 phone_number=request.POST.get("phone_number", "").strip(),
                 national_id=request.POST.get("national_id", "").strip(),
@@ -96,6 +101,8 @@ def user_management_view(request):
                 employment_end_date=new_date("employment_end_date"),
                 sgk_start_date=new_date("sgk_start_date"),
             )
+            if hr.employment_end_date:
+                user.is_active = False; user.save(update_fields=["is_active"])
             messages.success(request, f"{user.get_full_name() or username} eklendi ✅"); return redirect("user_management")
         if action == "reset_password":
             u = get_object_or_404(User, pk=request.POST.get("user_id")); new_password = request.POST.get("new_password", "").strip()
@@ -110,7 +117,13 @@ def user_management_view(request):
             if u == request.user: messages.warning(request, "Kendinizi silemezsiniz.")
             else: u.delete(); messages.success(request, "Kullanıcı silindi 🗑️")
             return redirect("user_management")
-    return render(request, "user_management.html", {"users": users, "profiles": profiles, "GOREVLER": UserProfile.GOREV_SECENEKLERI})
+    return render(request, "user_management.html", {
+        "users": users,
+        "departed_users": departed_users,
+        "profiles": profiles,
+        "hr_profiles": hr_profiles,
+        "GOREVLER": UserProfile.GOREV_SECENEKLERI,
+    })
 
 
 @login_required
@@ -119,7 +132,21 @@ def employee_detail(request, user_id):
     employee = get_object_or_404(User, pk=user_id)
     profile, _ = EmployeeHRProfile.objects.get_or_create(user=employee)
     user_profile, _ = UserProfile.objects.get_or_create(user=employee)
+
     if request.method == "POST":
+        action = request.POST.get("action", "edit_employee").strip()
+        if action == "mark_departed":
+            if employee == request.user:
+                messages.error(request, "Kendi hesabınızı işten ayrılanlara taşıyamazsınız.")
+                return redirect("employee_detail", user_id=employee.id)
+            if not profile.employment_end_date:
+                profile.employment_end_date = timezone.localdate()
+                profile.save(update_fields=["employment_end_date", "updated_at"])
+            employee.is_active = False
+            employee.save(update_fields=["is_active"])
+            messages.success(request, f"{employee.get_full_name() or employee.username} işyerinden ayrılanlar listesine taşındı.")
+            return redirect("user_management")
+
         def parse_date(name):
             raw = request.POST.get(name, "").strip(); return date.fromisoformat(raw) if raw else None
         try:
@@ -144,9 +171,12 @@ def employee_detail(request, user_id):
             profile.employment_end_date = parse_date("employment_end_date")
             profile.sgk_start_date = parse_date("sgk_start_date"); profile.birth_date = parse_date("birth_date")
             profile.annual_leave_carryover = max(0, int(request.POST.get("annual_leave_carryover") or 0)); profile.note = request.POST.get("note", "").strip(); profile.save()
+            employee.is_active = not bool(profile.employment_end_date)
+            employee.save(update_fields=["is_active"])
             messages.success(request, "Personel bilgileri güncellendi.")
         except (ValueError, TypeError): messages.error(request, "Girilen bilgileri kontrol edin.")
         return redirect("employee_detail", user_id=employee.id)
+
     today = timezone.localdate(); range_start, range_end, preset = _selected_range(request, today, profile.employment_start_date, profile.employment_end_date)
     range_records = AttendanceRecord.objects.filter(user=employee, work_date__range=(range_start, range_end))
     worked_days = range_records.filter(status="worked").count(); leave_days = range_records.filter(status="leave").count(); sick_days = range_records.filter(status="sick").count(); annual_leave_period = range_records.filter(status="annual_leave").count()
