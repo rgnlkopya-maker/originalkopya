@@ -147,43 +147,57 @@ class MaterialStockMovement(models.Model):
 
 
 class ProductMaterial(models.Model):
-    product_card=models.ForeignKey(ProductCard,on_delete=models.CASCADE,related_name="materials"); material=models.ForeignKey(Material,on_delete=models.PROTECT,related_name="product_usages"); miktar=models.DecimalField(max_digits=12,decimal_places=3); notlar=models.CharField(max_length=255,blank=True,default="")
+    STAGE_CHOICES=[("KESIM","Kesim Malzemesi"),("SUSLEME","Süsleme Malzemesi")]
+    product_card=models.ForeignKey(ProductCard,on_delete=models.CASCADE,related_name="materials")
+    material=models.ForeignKey(Material,on_delete=models.PROTECT,related_name="product_usages")
+    miktar=models.DecimalField(max_digits=12,decimal_places=3)
+    kullanim_asamasi=models.CharField(max_length=12,choices=STAGE_CHOICES,default="KESIM")
+    notlar=models.CharField(max_length=255,blank=True,default="")
     class Meta: constraints=[models.UniqueConstraint(fields=["product_card","material"],name="unique_product_material")]; ordering=["material__ad"]
     @property
     def satir_maliyeti(self): return self.miktar*self.material.birim_maliyet_tl
     def __str__(self): return f"{self.product_card.urun.kod} - {self.material.ad}: {self.miktar}"
 
 
-def _cut_event(instance): return instance.event_type == "stage" and instance.stage == "kesim_durum" and instance.value == "bitti"
+def _stock_stage_for_event(instance):
+    if instance.event_type != "stage" or instance.value != "bitti": return None
+    if instance.stage == "kesim_durum": return "KESIM"
+    if instance.stage == "susleme_durum": return "SUSLEME"
+    return None
 
 
 @receiver(post_save, sender=OrderEvent)
-def consume_materials_on_cut(sender, instance, created, **kwargs):
-    if not created or not _cut_event(instance): return
-    if MaterialStockMovement.objects.filter(order=instance.order,movement_type="URETIM",reversed=False).exists(): return
+def consume_materials_on_stage_completion(sender, instance, created, **kwargs):
+    stage = _stock_stage_for_event(instance)
+    if not created or not stage: return
+    if MaterialStockMovement.objects.filter(order=instance.order,source_event__stage=instance.stage,movement_type="URETIM",reversed=False).exists(): return
     try: card=ProductCard.objects.get(urun__kod__iexact=instance.order.urun_kodu)
     except ProductCard.DoesNotExist: return
-    usages=list(card.materials.select_related("material").all())
+    usages=list(card.materials.select_related("material").filter(kullanim_asamasi=stage))
     if not usages: return
     multiplier=Decimal(instance.order.adet or 1)
     with transaction.atomic():
         locked=[]
         for usage in usages:
-            material=Material.objects.select_for_update().get(pk=usage.material_id); qty=(usage.miktar*multiplier).quantize(Decimal("0.001"))
+            material=Material.objects.select_for_update().get(pk=usage.material_id)
+            qty=(usage.miktar*multiplier).quantize(Decimal("0.001"))
             if material.stok_miktari < qty: return
             locked.append((material,qty))
+        stage_label="kesim" if stage=="KESIM" else "süsleme"
         for material,qty in locked:
             before=material.stok_miktari; after=before-qty; material.stok_miktari=after; material.save(update_fields=["stok_miktari","updated_at"])
-            MaterialStockMovement.objects.create(material=material,movement_type="URETIM",miktar=qty,onceki_stok=before,sonraki_stok=after,aciklama=f"{instance.order.siparis_numarasi} kesim reçetesi tüketimi",order=instance.order,source_event=instance)
+            MaterialStockMovement.objects.create(material=material,movement_type="URETIM",miktar=qty,onceki_stok=before,sonraki_stok=after,aciklama=f"{instance.order.siparis_numarasi} {stage_label} reçetesi tüketimi",order=instance.order,source_event=instance)
 
 
 @receiver(pre_delete, sender=OrderEvent)
-def restore_materials_when_cut_deleted(sender, instance, **kwargs):
-    if not _cut_event(instance): return
+def restore_materials_when_stage_deleted(sender, instance, **kwargs):
+    stage = _stock_stage_for_event(instance)
+    if not stage: return
     movements=list(MaterialStockMovement.objects.filter(source_event=instance,movement_type="URETIM",reversed=False).select_related("material"))
     if not movements: return
     with transaction.atomic():
+        stage_label="Kesildi" if stage=="KESIM" else "Süsleme Bitti"
         for movement in movements:
             material=Material.objects.select_for_update().get(pk=movement.material_id); before=material.stok_miktari; after=before+movement.miktar; material.stok_miktari=after; material.save(update_fields=["stok_miktari","updated_at"])
-            MaterialStockMovement.objects.create(material=material,movement_type="URETIM_IADE",miktar=movement.miktar,onceki_stok=before,sonraki_stok=after,aciklama=f"{instance.order.siparis_numarasi} Kesildi kaydı silindi; stok iade edildi",order=instance.order)
+            MaterialStockMovement.objects.create(material=material,movement_type="URETIM_IADE",miktar=movement.miktar,onceki_stok=before,sonraki_stok=after,aciklama=f"{instance.order.siparis_numarasi} {stage_label} kaydı silindi; stok iade edildi",order=instance.order)
             movement.reversed=True; movement.save(update_fields=["reversed"])
