@@ -8,6 +8,7 @@ from core import views
 from core.views import health_check
 from core.order_list_enhanced import order_list as enhanced_order_list
 from core.assistant_views import assistant_page, assistant_api, assistant_clear
+from core.team_views import employee_detail
 
 
 def logout_view(request):
@@ -40,6 +41,7 @@ urlpatterns = [
     path("ajax/musteri/ekle/", views.ajax_musteri_ekle, name="ajax_musteri_ekle"),
     path("ajax/musteri/pasif-yap/", views.musteri_pasif_yap_ajax, name="musteri_pasif_yap_ajax"),
     path("users/", views.user_management_view, name="user_management"),
+    path("users/<int:user_id>/", employee_detail, name="employee_detail"),
     path("reports/", views.reports_view, name="reports"),
     path("staff-reports/", views.staff_reports_view, name="staff_reports"),
     path("reports/giden-urunler/", views.giden_urunler_raporu, name="giden_urunler_raporu"),
