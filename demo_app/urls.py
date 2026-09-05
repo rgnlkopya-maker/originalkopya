@@ -25,6 +25,7 @@ urlpatterns = [
     path("custom-login/", views.custom_login, name="custom_login"),
     path("logout/", logout_view, name="logout"),
     path("attendance/", include("attendance.urls")),
+    path("planlama/", include("planning.urls")),
     path("urun-kartlari/", include("product_cards.urls")),
     path("kalite/", include("quality_tracking.urls")),
     path("ayarlar/", include("app_settings.urls")),
