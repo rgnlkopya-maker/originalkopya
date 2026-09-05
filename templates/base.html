@@ -37,6 +37,7 @@
         {% if user.is_superuser or user.moli_access.can_view_reports %}<a href="{% url 'dashboard' %}" class="chip {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}"><i class="bi bi-bar-chart"></i><span class="chip-label">Raporlar</span></a>{% endif %}
         {% if user.is_superuser or user.moli_access.can_view_costs %}<a href="{% url 'product_cost_list' %}" class="chip {% if request.resolver_match.url_name == 'product_cost_list' %}active{% endif %}"><i class="bi bi-coin"></i><span class="chip-label">Maliyetler</span></a>{% endif %}
         {% if user.is_superuser or user.moli_access.can_manage_users %}<a href="{% url 'user_management' %}" class="chip {% if request.resolver_match.url_name == 'user_management' %}active{% endif %}"><i class="bi bi-people"></i><span class="chip-label">Ekipler</span></a>{% endif %}
+        <a href="{% url 'planning_page' %}" class="chip {% if request.resolver_match.url_name == 'planning_page' %}active{% endif %}"><i class="bi bi-calendar3"></i><span class="chip-label">Planlama</span></a>
         {% if user.is_superuser or user.moli_access.can_view_assistant %}<a href="{% url 'ai_assistant' %}" class="chip {% if request.resolver_match.url_name == 'ai_assistant' %}active{% endif %}"><i class="bi bi-robot"></i><span class="chip-label">Asistan</span></a>{% endif %}
       </div>
     </div>
