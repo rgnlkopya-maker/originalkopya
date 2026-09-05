@@ -31,6 +31,7 @@ INSTALLED_APPS = [
     "quality_tracking.apps.QualityTrackingConfig",
     "app_settings.apps.AppSettingsConfig",
     "planning.apps.PlanningConfig",
+    "inventory.apps.InventoryConfig",
 ]
 
 MIDDLEWARE = [
