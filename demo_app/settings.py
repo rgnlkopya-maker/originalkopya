@@ -30,6 +30,7 @@ INSTALLED_APPS = [
     "product_cards.apps.ProductCardsConfig",
     "quality_tracking.apps.QualityTrackingConfig",
     "app_settings.apps.AppSettingsConfig",
+    "planning.apps.PlanningConfig",
 ]
 
 MIDDLEWARE = [
