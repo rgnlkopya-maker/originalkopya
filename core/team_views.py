@@ -1,5 +1,6 @@
 from calendar import monthrange
 from datetime import date, timedelta
+from types import SimpleNamespace
 
 from django.contrib import messages
 from django.contrib.auth import get_user_model
@@ -14,6 +15,7 @@ from django.utils import timezone
 from attendance.models import AttendanceRecord, EmployeeHRProfile
 from core.models import OrderEvent, UserProfile
 from core.services.order_status import FINANCIAL_STAGES, STATUS_LABELS
+from quality_tracking.models import QualityIssue
 
 User = get_user_model()
 TEAM_CHOICES = list(UserProfile.GOREV_SECENEKLERI)
@@ -210,7 +212,7 @@ def employee_detail(request, user_id):
         .exclude(stage__in=FINANCIAL_STAGES)
         .order_by("-timestamp", "-id")
     )
-    raw_counts = (
+    raw_counts = list(
         work_events_qs.values("stage", "value")
         .annotate(count=Count("id"))
         .order_by("stage", "value")
@@ -219,10 +221,47 @@ def employee_detail(request, user_id):
         {"stage": row["stage"], "value": row["value"], "label": _event_label(row["stage"], row["value"]), "count": row["count"]}
         for row in raw_counts
     ]
-    work_events_total = work_events_qs.count()
-    work_events_page = Paginator(work_events_qs, 100).get_page(request.GET.get("work_page"))
-    for event in work_events_page:
-        event.operation_label = _event_label(event.stage, event.value)
+
+    # Quality issues selected by a manager for this employee are part of the employee history.
+    issue_qs = (
+        QualityIssue.objects
+        .filter(sorumlu_personeller=employee, created_at__date__range=(range_start, range_end))
+        .select_related("order", "order__musteri", "kaydeden")
+        .distinct()
+        .order_by("-created_at", "-id")
+    )
+    issue_count = issue_qs.count()
+    open_issue_count = issue_qs.filter(durum="ACIK").count()
+    if issue_count:
+        operation_counts.append({
+            "stage": "quality_issue",
+            "value": "issue",
+            "label": "⚠️ Hata Kaydı",
+            "count": issue_count,
+        })
+
+    # Merge production events and quality issues into the existing activity table so the
+    # employee page immediately reflects both without duplicating another timeline UI.
+    activity_items = []
+    for event in work_events_qs:
+        activity_items.append(SimpleNamespace(
+            timestamp=event.timestamp,
+            operation_label=_event_label(event.stage, event.value),
+            order=event.order,
+            aciklama=event.aciklama or "",
+        ))
+    for issue in issue_qs:
+        status_text = "Açık" if issue.durum == "ACIK" else "Çözüldü"
+        activity_items.append(SimpleNamespace(
+            timestamp=issue.created_at,
+            operation_label=f"⚠️ Hata: {issue.konu} · {status_text}",
+            order=issue.order,
+            aciklama=issue.aciklama or "",
+        ))
+    activity_items.sort(key=lambda item: item.timestamp, reverse=True)
+
+    work_events_total = len(activity_items)
+    work_events_page = Paginator(activity_items, 100).get_page(request.GET.get("work_page"))
 
     role = employee.groups.first().name if employee.groups.exists() else "personel"; role_labels = {"personel": "Personel", "mudur": "Müdür", "patron": "Patron"}
     team_label = dict(TEAM_CHOICES).get(user_profile.gorev, user_profile.gorev.title())
@@ -232,4 +271,5 @@ def employee_detail(request, user_id):
         "earned_leave": earned_leave, "used_annual_leave": used_annual_leave, "total_leave": total_leave, "remaining_leave": remaining_leave,
         "worked_days": worked_days, "leave_days": leave_days, "sick_days": sick_days, "annual_leave_period": annual_leave_period, "late_minutes": late_minutes, "overtime_minutes": overtime_minutes,
         "operation_counts": operation_counts, "work_events_total": work_events_total, "work_events_page": work_events_page,
+        "issue_count": issue_count, "open_issue_count": open_issue_count,
     })
