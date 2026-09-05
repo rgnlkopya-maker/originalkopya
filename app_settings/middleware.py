@@ -38,7 +38,7 @@ class MoliAccessMiddleware:
         elif '/delete/' in path and path.startswith('/order/'):
             permission = 'can_delete_orders'
         elif path.startswith('/orders/') and '/update/' in path:
-            permission = 'can_edit_orders'
+            permission = 'can_update_production'
         elif path.startswith('/order/') and path.endswith('/edit/'):
             permission = 'can_edit_orders'
         elif path == '/' or path.startswith('/order/'):
