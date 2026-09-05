@@ -43,13 +43,14 @@
         {% if user.is_superuser or user.moli_access.can_view_assistant %}<a href="{% url 'ai_assistant' %}" class="chip {% if request.resolver_match.url_name == 'ai_assistant' %}active{% endif %}"><i class="bi bi-robot"></i><span class="chip-label">Asistan</span></a>{% endif %}
       </div>
     </div>
-    {% if user.is_authenticated %}<div class="topbar-right"><div class="dropdown menu-dropdown"><button class="user-chip dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false"><i class="bi bi-person-circle"></i><span class="user-name-desktop">{{ user.get_full_name|default:user.username }}</span><span class="user-name-mobile">{% if user.first_name %}{{ user.first_name }}{% if user.last_name %} {{ user.last_name|first }}.{% endif %}{% else %}{{ user.username }}{% endif %}</span></button><ul class="dropdown-menu dropdown-menu-end">{% if user.is_superuser or user.moli_access.can_view_settings %}<li><a class="dropdown-item" href="{% url 'settings_home' %}"><i class="bi bi-gear"></i>Ayarlar</a></li><li><hr class="dropdown-divider"></li>{% endif %}<li><a class="dropdown-item danger" href="{% url 'logout' %}"><i class="bi bi-box-arrow-right"></i>Çıkış</a></li></ul></div></div>{% endif %}
+    {% if user.is_authenticated %}<div class="topbar-right"><div class="dropdown menu-dropdown"><button class="user-chip dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false"><i class="bi bi-person-circle"></i><span class="user-name-desktop">{{ user.get_full_name|default:user.username }}</span><span class="user-name-mobile">{{ user.get_full_name|default:user.username }}</span></button><ul class="dropdown-menu dropdown-menu-end">{% if user.is_superuser or user.moli_access.can_view_settings %}<li><a class="dropdown-item" href="{% url 'settings_home' %}"><i class="bi bi-gear"></i>Ayarlar</a></li><li><hr class="dropdown-divider"></li>{% endif %}<li><a class="dropdown-item danger" href="{% url 'logout' %}"><i class="bi bi-box-arrow-right"></i>Çıkış</a></li></ul></div></div>{% endif %}
   </div>
 </nav>
 <div id="mainContent">{% block content %}{% endblock %}</div>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<script>document.addEventListener('DOMContentLoaded',function(){const el=document.querySelector('.user-name-mobile');if(!el)return;const p=el.textContent.trim().split(/\s+/).filter(Boolean);if(p.length>1){el.textContent=p[0]+' '+Array.from(p[p.length-1])[0]+'.';}});</script>
 {% block extra_js %}{% endblock %}
 <input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}">
 </body>
