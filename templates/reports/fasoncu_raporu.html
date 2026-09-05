@@ -1,12 +1,62 @@
 {% extends "base.html" %}
-{% block extra_css %}<style>
-.page-wrap{padding:26px 18px 42px}.head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:18px}.title{font-size:25px;font-weight:900;color:#172033}.sub{color:#7a8499;font-size:13px;margin-top:4px}.add-btn{background:#4a63ff;color:#fff;text-decoration:none;border-radius:12px;padding:11px 15px;font-weight:800}.stats,.vendors{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px}.stat,.vendor,.card{background:#fff;border:1px solid #e7eaf3;border-radius:17px;box-shadow:0 5px 18px rgba(15,23,42,.045)}.stat{padding:16px}.stat span,.vendor span{display:block;color:#7c879d;font-size:11px;font-weight:800}.stat b{display:block;font-size:24px;margin-top:5px}.vendor{padding:14px}.vendor h6{font-weight:900;margin:0 0 9px}.vendor-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:7px}.vendor-grid div{background:#f7f8fc;border-radius:10px;padding:8px}.vendor-grid b{display:block;font-size:17px}.card{padding:16px;margin-top:16px}.filter{display:grid;grid-template-columns:1.2fr 1fr 1fr auto;gap:10px;align-items:end}.form-control,.form-select{height:42px;border-radius:11px;border-color:#dfe4f0}.label{font-size:11px;font-weight:800;color:#69758b;margin-bottom:5px}.actions{display:flex;gap:7px}.btnx{height:42px;border-radius:11px;border:1px solid #d9def0;background:#eef1ff;color:#4058dd;padding:0 13px;font-weight:800}.btnx.dark{background:#172033;color:#fff;border-color:#172033;text-decoration:none;display:flex;align-items:center}.section-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}.section-head h5{font-weight:900;margin:0}.pill{background:#eef1ff;color:#4058dd;padding:6px 10px;border-radius:999px;font-size:11px;font-weight:900}.table-wrap{overflow:auto;border:1px solid #edf0f6;border-radius:13px}.table{margin:0;min-width:900px}.table th{background:#f7f8fc;color:#788399;font-size:10px;text-transform:uppercase;padding:11px}.table td{padding:11px;border-top:1px solid #edf0f6;font-size:12px;vertical-align:middle}.order{font-weight:900;color:#4058dd;text-decoration:none}.qty{font-weight:900}.days{font-weight:900}.days.warn{color:#c2410c}.empty{text-align:center;padding:25px!important;color:#9099aa}@media(max-width:1000px){.stats,.vendors{grid-template-columns:repeat(2,1fr)}.filter{grid-template-columns:1fr 1fr}}@media(max-width:600px){.stats,.vendors,.filter{grid-template-columns:1fr}.head{align-items:flex-start}.actions{flex-wrap:wrap}}
-</style>{% endblock %}
-{% block content %}<div class="page-wrap">
-<div class="head"><div><div class="title">🧵 Fason Takibi</div><div class="sub">Fasona çıkan ürünler, geri alınanlar ve halen dışarıda bulunan adetler.</div></div><a class="add-btn" href="{% url 'fasoncu_yeni' %}">+ Yeni Fasoncu</a></div>
-<div class="stats"><div class="stat"><span>ŞU AN FASONDA</span><b>{{ total_outstanding }} adet</b></div><div class="stat"><span>SEÇİLİ DÖNEM VERİLEN</span><b>{{ period_given }} adet</b></div><div class="stat"><span>SEÇİLİ DÖNEM ALINAN</span><b>{{ period_received }} adet</b></div><div class="stat"><span>SEÇİLİ DÖNEM NET</span><b>{{ period_net }} adet</b></div></div>
-{% if vendor_cards %}<div class="vendors">{% for item in vendor_cards %}<div class="vendor"><h6>{{ item.fasoncu.ad }}</h6><div class="vendor-grid"><div><span>Verilen</span><b>{{ item.verilen }}</b></div><div><span>Alınan</span><b>{{ item.alinan }}</b></div><div><span>Dışarıda</span><b>{{ item.disarida }}</b></div></div></div>{% endfor %}</div>{% endif %}
-<div class="card"><form method="get" class="filter"><div><div class="label">FASONCU</div><select class="form-select" name="fasoncu"><option value="">Tümü</option>{% for fasoncu in fasoncular %}<option value="{{ fasoncu.id }}" {% if request.GET.fasoncu == fasoncu.id|stringformat:'s' %}selected{% endif %}>{{ fasoncu.ad }}</option>{% endfor %}</select></div><div><div class="label">BAŞLANGIÇ</div><input class="form-control" type="date" name="t1" value="{{ request.GET.t1 }}"></div><div><div class="label">BİTİŞ</div><input class="form-control" type="date" name="t2" value="{{ request.GET.t2 }}"></div><div class="actions"><button class="btnx">Filtrele</button><a class="btnx dark" href="{% url 'fasoncu_raporu' %}">Temizle</a></div></form></div>
-<div class="card"><div class="section-head"><h5>Şu Anda Fasonda Olanlar</h5><span class="pill">{{ open_jobs|length }} iş</span></div><div class="table-wrap"><table class="table"><thead><tr><th>Fasoncu</th><th>Sipariş</th><th>Ürün</th><th>İşlem</th><th>Verilen</th><th>Alınan</th><th>Kalan</th><th>Veriliş</th><th>Kaç Gündür</th></tr></thead><tbody>{% for item in open_jobs %}<tr><td><b>{{ item.fasoncu.ad }}</b></td><td><a class="order" href="{% url 'order_detail' item.order.id %}">#{{ item.order.siparis_numarasi|default:item.order.id }}</a></td><td>{{ item.order.urun_kodu|default:'-' }}</td><td>{{ item.islem }}</td><td>{{ item.verilen }}</td><td>{{ item.alinan }}</td><td class="qty">{{ item.kalan }}</td><td>{{ item.verilis_tarihi|date:'d.m.Y H:i' }}</td><td class="days {% if item.gun >= 7 %}warn{% endif %}">{{ item.gun }} gün</td></tr>{% empty %}<tr><td colspan="9" class="empty">Şu anda fasoncuda bekleyen ürün yok.</td></tr>{% endfor %}</tbody></table></div></div>
-<div class="card"><div class="section-head"><h5>Fason Hareket Geçmişi</h5><span class="pill">{{ raporlar|length }} hareket</span></div><div class="table-wrap"><table class="table"><thead><tr><th>Tarih</th><th>Fasoncu</th><th>Sipariş</th><th>Firma</th><th>Ürün</th><th>İşlem</th><th>Hareket</th><th>Adet</th><th>Personel</th></tr></thead><tbody>{% for item in raporlar %}<tr><td>{{ item.tarih|date:'d.m.Y H:i' }}</td><td><b>{{ item.fasoncu.ad }}</b></td><td><a class="order" href="{% url 'order_detail' item.order.id %}">#{{ item.order.siparis_numarasi|default:item.order.id }}</a></td><td>{{ item.order.musteri.ad|default:'-' }}</td><td>{{ item.order.urun_kodu|default:'-' }}</td><td>{{ item.islem }}</td><td>{{ item.durum }}</td><td class="qty">{{ item.adet }}</td><td>{{ item.personel|default:'-' }}</td></tr>{% empty %}<tr><td colspan="9" class="empty">Bu filtrelerde fason hareketi bulunamadı.</td></tr>{% endfor %}</tbody></table></div></div>
-</div>{% endblock %}
+{% block extra_css %}
+<style>
+.page-wrap{padding:24px 18px 42px}
+.card{background:#fff;border:1px solid #e7eaf3;border-radius:17px;box-shadow:0 5px 18px rgba(15,23,42,.045);padding:16px}
+.section-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.section-head h5{font-weight:900;margin:0;font-size:18px;color:#20283d}
+.table-wrap{overflow:auto;border:1px solid #edf0f6;border-radius:13px}
+.table{margin:0;min-width:900px}
+.table th{background:#f7f8fc;color:#788399;font-size:10px;text-transform:uppercase;padding:11px}
+.table td{padding:11px;border-top:1px solid #edf0f6;font-size:12px;vertical-align:middle}
+.order{font-weight:900;color:#4058dd;text-decoration:none}
+.qty{font-weight:900}
+.days{font-weight:900}
+.days.warn{color:#c2410c}
+.empty{text-align:center;padding:25px!important;color:#9099aa}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-wrap">
+  <div class="card">
+    <div class="section-head">
+      <h5>Şu Anda Fasonda Olanlar</h5>
+    </div>
+    <div class="table-wrap">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Fasoncu</th>
+            <th>Sipariş</th>
+            <th>Ürün</th>
+            <th>İşlem</th>
+            <th>Verilen</th>
+            <th>Alınan</th>
+            <th>Kalan</th>
+            <th>Veriliş</th>
+            <th>Kaç Gündür</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for item in open_jobs %}
+          <tr>
+            <td><b>{{ item.fasoncu.ad }}</b></td>
+            <td><a class="order" href="{% url 'order_detail' item.order.id %}">#{{ item.order.siparis_numarasi|default:item.order.id }}</a></td>
+            <td>{{ item.order.urun_kodu|default:'-' }}</td>
+            <td>{{ item.islem }}</td>
+            <td>{{ item.verilen }}</td>
+            <td>{{ item.alinan }}</td>
+            <td class="qty">{{ item.kalan }}</td>
+            <td>{{ item.verilis_tarihi|date:'d.m.Y H:i' }}</td>
+            <td class="days {% if item.gun >= 7 %}warn{% endif %}">{{ item.gun }} gün</td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="9" class="empty">Şu anda fasoncuda bekleyen ürün yok.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}
