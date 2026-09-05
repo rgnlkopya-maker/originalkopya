@@ -29,6 +29,7 @@ INSTALLED_APPS = [
     "attendance.apps.AttendanceConfig",
     "product_cards.apps.ProductCardsConfig",
     "quality_tracking.apps.QualityTrackingConfig",
+    "app_settings.apps.AppSettingsConfig",
 ]
 
 MIDDLEWARE = [
@@ -38,6 +39,7 @@ MIDDLEWARE = [
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "app_settings.middleware.MoliAccessMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
