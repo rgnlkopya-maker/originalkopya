@@ -25,6 +25,10 @@ class SystemSettings(models.Model):
     tcmb_update_hour = models.PositiveSmallIntegerField(default=9)
     finance_enabled = models.BooleanField(default=True)
 
+    # Depolar sayfasında aktif olarak gösterilecek depo kodları.
+    # Virgülle ayrılmış tutulur; mevcut stok depoları ilk açılışta otomatik eklenir.
+    active_depots = models.TextField(blank=True, default="")
+
     quality_categories = models.TextField(
         default="Dikiş hatası\nÖlçü / beden\nKumaş\nSüsleme\nLeke\nYanlış ürün\nPaketleme\nDiğer"
     )
