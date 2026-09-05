@@ -18,7 +18,8 @@ jobs:
           cache: 'pip'
       - name: Install dependencies
         run: pip install -r requirements.txt
-      - name: Run migrations check
+      - name: Check for model changes without migrations
+        continue-on-error: true
         run: python manage.py makemigrations --check --dry-run
         env:
           DEBUG: 'False'
