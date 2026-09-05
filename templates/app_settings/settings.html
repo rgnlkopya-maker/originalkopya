@@ -1,0 +1,64 @@
+{% extends 'base.html' %}
+{% block extra_css %}
+<style>
+.settings-wrap{max-width:1180px;margin:24px auto;padding:0 14px 40px}.settings-head{background:#fff;border-radius:20px;padding:20px 22px;box-shadow:0 6px 22px rgba(15,23,42,.06);margin-bottom:16px}.settings-title{font-size:25px;font-weight:800}.settings-sub{color:#7b8497;margin-top:4px}.settings-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}.settings-card{background:#fff;border:1px solid #edf0f6;border-radius:18px;padding:19px;box-shadow:0 4px 16px rgba(15,23,42,.05)}.settings-card.full{grid-column:1/-1}.card-titlex{font-weight:800;font-size:17px;margin-bottom:4px}.card-sub{font-size:12px;color:#8a91a3;margin-bottom:16px}.field-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.field.full{grid-column:1/-1}.field label{display:block;font-size:12px;font-weight:700;color:#596174;margin-bottom:5px}.soft-input,.soft-select,.soft-area{width:100%;border:1px solid #e3e7f0;border-radius:11px;background:#fbfcff;padding:10px 11px;outline:none}.soft-input,.soft-select{height:42px}.soft-area{min-height:90px;resize:vertical}.soft-input:focus,.soft-select:focus,.soft-area:focus{border-color:#aebcff;box-shadow:0 0 0 3px rgba(74,99,255,.08)}.save-row{display:flex;justify-content:flex-end;margin-top:14px}.save-btn{border:0;border-radius:11px;background:#4a63ff;color:#fff;font-weight:700;padding:10px 17px}.switch-line{display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:1px solid #f1f3f7}.switch-line:last-child{border-bottom:0}.perm-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px 14px;margin-top:14px}.perm-item{display:flex;align-items:center;gap:8px;background:#f8f9fd;border:1px solid #eef1f6;border-radius:11px;padding:10px}.perm-item input{width:18px;height:18px}.user-picker{max-width:360px}.note{font-size:12px;color:#7b8497;background:#f5f7ff;padding:10px 12px;border-radius:11px;margin-top:12px}@media(max-width:850px){.settings-grid,.field-grid{grid-template-columns:1fr}.settings-card.full,.field.full{grid-column:auto}.perm-grid{grid-template-columns:1fr 1fr}}@media(max-width:560px){.perm-grid{grid-template-columns:1fr}}
+</style>
+{% endblock %}
+{% block content %}
+<div class="settings-wrap">
+  <div class="settings-head"><div class="settings-title">⚙️ Ayarlar</div><div class="settings-sub">MoliApp çalışma kuralları ve kullanıcı erişimleri</div></div>
+  {% for message in messages %}<div class="alert alert-success">{{ message }}</div>{% endfor %}
+
+  <div class="settings-grid">
+    <form method="post" class="settings-card">{% csrf_token %}<input type="hidden" name="section" value="general">
+      <div class="card-titlex">🏢 Firma & Sipariş</div><div class="card-sub">Temel firma bilgileri ve yeni sipariş varsayılanları</div>
+      <div class="field-grid">
+        <div class="field full"><label>Firma Adı</label><input class="soft-input" name="company_name" value="{{ system.company_name }}"></div>
+        <div class="field"><label>Telefon</label><input class="soft-input" name="company_phone" value="{{ system.company_phone }}"></div>
+        <div class="field"><label>E-posta</label><input class="soft-input" name="company_email" value="{{ system.company_email }}"></div>
+        <div class="field full"><label>Adres</label><textarea class="soft-area" name="company_address">{{ system.company_address }}</textarea></div>
+        <div class="field"><label>Varsayılan Sipariş Tipi</label><select class="soft-select" name="default_order_type"><option value="SERI" {% if system.default_order_type == 'SERI' %}selected{% endif %}>Seri</option><option value="TEKLI" {% if system.default_order_type == 'TEKLI' %}selected{% endif %}>Tekli Sipariş</option><option value="STOK" {% if system.default_order_type == 'STOK' %}selected{% endif %}>Stoğa Üretim</option><option value="OZEL" {% if system.default_order_type == 'OZEL' %}selected{% endif %}>Özel Sipariş</option></select></div>
+        <div class="field"><label>Varsayılan Teslim Süresi (gün)</label><input class="soft-input" type="number" min="0" name="default_delivery_days" value="{{ system.default_delivery_days }}"></div>
+      </div><div class="save-row"><button class="save-btn">Kaydet</button></div>
+    </form>
+
+    <form method="post" class="settings-card">{% csrf_token %}<input type="hidden" name="section" value="attendance">
+      <div class="card-titlex">🕒 Puantaj & Mesai</div><div class="card-sub">Bu alan doğrudan çalışan puantaj sistemini değiştirir.</div>
+      <div class="field-grid">
+        <div class="field full"><label>İşyeri Adı</label><input class="soft-input" name="workplace_name" value="{{ workplace.name }}"></div>
+        <div class="field"><label>Mesai Başlangıç</label><input class="soft-input" type="time" name="work_start" value="{{ workplace.work_start|time:'H:i' }}"></div>
+        <div class="field"><label>Mesai Bitiş</label><input class="soft-input" type="time" name="work_end" value="{{ workplace.work_end|time:'H:i' }}"></div>
+        <div class="field"><label>Geç Kalma Toleransı (dk)</label><input class="soft-input" type="number" min="0" name="late_tolerance_minutes" value="{{ workplace.late_tolerance_minutes }}"></div>
+        <div class="field"><label>Normal Giriş Mesafesi (m)</label><input class="soft-input" type="number" min="1" name="normal_radius_m" value="{{ workplace.normal_radius_m }}"></div>
+        <div class="field"><label>Mesai Mesafesi (m)</label><input class="soft-input" type="number" min="1" name="overtime_radius_m" value="{{ workplace.overtime_radius_m }}"></div>
+      </div><div class="save-row"><button class="save-btn">Kaydet</button></div>
+    </form>
+
+    <form method="post" class="settings-card">{% csrf_token %}<input type="hidden" name="section" value="finance">
+      <div class="card-titlex">💰 Finans</div><div class="card-sub">Maliyet ve kur davranışının sistem tercihleri</div>
+      <div class="field-grid"><div class="field"><label>Varsayılan Para Birimi</label><select class="soft-select" name="default_currency"><option {% if system.default_currency == 'TRY' %}selected{% endif %}>TRY</option><option {% if system.default_currency == 'USD' %}selected{% endif %}>USD</option><option {% if system.default_currency == 'EUR' %}selected{% endif %}>EUR</option></select></div><div class="field"><label>TCMB Güncelleme Saati</label><input class="soft-input" type="number" min="0" max="23" name="tcmb_update_hour" value="{{ system.tcmb_update_hour }}"></div></div>
+      <div class="switch-line"><span>Finans modülü aktif</span><input type="checkbox" name="finance_enabled" {% if system.finance_enabled %}checked{% endif %}></div>
+      <div class="note">Not: Buradaki kur saati uygulama tercihidir; GitHub Actions zamanlamasını ayrıca eşleştirmek gerekir.</div>
+      <div class="save-row"><button class="save-btn">Kaydet</button></div>
+    </form>
+
+    <form method="post" class="settings-card">{% csrf_token %}<input type="hidden" name="section" value="quality">
+      <div class="card-titlex">⚠️ Kalite & Bildirim</div><div class="card-sub">Standart hata başlıkları ve yönetim uyarıları</div>
+      <div class="field"><label>Hata Kategorileri (her satıra bir kategori)</label><textarea class="soft-area" name="quality_categories">{{ system.quality_categories }}</textarea></div>
+      <div class="switch-line"><span>Geciken sipariş uyarıları</span><input type="checkbox" name="notify_late_orders" {% if system.notify_late_orders %}checked{% endif %}></div>
+      <div class="switch-line"><span>Yaklaşan teslim uyarıları</span><input type="checkbox" name="notify_upcoming_delivery" {% if system.notify_upcoming_delivery %}checked{% endif %}></div>
+      <div class="switch-line"><span>Açık hata / şikayet uyarıları</span><input type="checkbox" name="notify_open_quality_issue" {% if system.notify_open_quality_issue %}checked{% endif %}></div>
+      <div class="save-row"><button class="save-btn">Kaydet</button></div>
+    </form>
+
+    <form method="post" class="settings-card full" id="permissionForm">{% csrf_token %}<input type="hidden" name="section" value="permissions"><input type="hidden" name="user_id" id="permissionUserId">
+      <div class="card-titlex">🔐 Kullanıcı Yetkileri</div><div class="card-sub">Her kullanıcı için hangi ekranı görebileceğini ve hangi işlemi yapabileceğini ayrı ayrı belirle.</div>
+      <div class="field user-picker"><label>Kullanıcı</label><select class="soft-select" id="permissionUserSelect"><option value="">Kullanıcı seçin</option>{% for u in users %}<option value="{{ u.id }}" data-can-view-orders="{{ u.moli_access.can_view_orders|yesno:'1,0' }}" data-can-create-orders="{{ u.moli_access.can_create_orders|yesno:'1,0' }}" data-can-edit-orders="{{ u.moli_access.can_edit_orders|yesno:'1,0' }}" data-can-delete-orders="{{ u.moli_access.can_delete_orders|yesno:'1,0' }}" data-can-view-depots="{{ u.moli_access.can_view_depots|yesno:'1,0' }}" data-can-view-reports="{{ u.moli_access.can_view_reports|yesno:'1,0' }}" data-can-view-costs="{{ u.moli_access.can_view_costs|yesno:'1,0' }}" data-can-view-personnel="{{ u.moli_access.can_view_personnel|yesno:'1,0' }}" data-can-view-attendance="{{ u.moli_access.can_view_attendance|yesno:'1,0' }}" data-can-view-assistant="{{ u.moli_access.can_view_assistant|yesno:'1,0' }}" data-can-manage-quality="{{ u.moli_access.can_manage_quality|yesno:'1,0' }}" data-can-view-shipping-finance="{{ u.moli_access.can_view_shipping_finance|yesno:'1,0' }}" data-can-manage-users="{{ u.moli_access.can_manage_users|yesno:'1,0' }}" data-can-view-settings="{{ u.moli_access.can_view_settings|yesno:'1,0' }}">{{ u.get_full_name|default:u.username }} ({{ u.username }})</option>{% endfor %}</select></div>
+      <div class="perm-grid" id="permissionGrid">
+        <label class="perm-item"><input type="checkbox" name="can_view_orders"> Siparişleri Gör</label><label class="perm-item"><input type="checkbox" name="can_create_orders"> Sipariş Oluştur</label><label class="perm-item"><input type="checkbox" name="can_edit_orders"> Sipariş / Üretim İşlemi Yap</label><label class="perm-item"><input type="checkbox" name="can_delete_orders"> Sipariş Sil</label><label class="perm-item"><input type="checkbox" name="can_view_depots"> Depoları Gör</label><label class="perm-item"><input type="checkbox" name="can_view_reports"> Raporları Gör</label><label class="perm-item"><input type="checkbox" name="can_view_costs"> Maliyetleri Gör</label><label class="perm-item"><input type="checkbox" name="can_view_personnel"> Personel Raporlarını Gör</label><label class="perm-item"><input type="checkbox" name="can_view_attendance"> Puantaj & Mesaiyi Gör</label><label class="perm-item"><input type="checkbox" name="can_view_assistant"> Asistanı Gör</label><label class="perm-item"><input type="checkbox" name="can_manage_quality"> Hata / Şikayet İşlemleri</label><label class="perm-item"><input type="checkbox" name="can_view_shipping_finance"> Sevkiyat Finansını Gör</label><label class="perm-item"><input type="checkbox" name="can_manage_users"> Kullanıcı Yönetimi</label><label class="perm-item"><input type="checkbox" name="can_view_settings"> Ayarları Gör / Değiştir</label>
+      </div><div class="note">Superuser hesabı güvenlik amacıyla her zaman tüm bölümlere erişebilir.</div><div class="save-row"><button class="save-btn" id="permissionSave" disabled>Yetkileri Kaydet</button></div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+{% block extra_js %}<script>document.addEventListener('DOMContentLoaded',function(){const sel=document.getElementById('permissionUserSelect'),form=document.getElementById('permissionForm'),uid=document.getElementById('permissionUserId'),save=document.getElementById('permissionSave');const names=['can_view_orders','can_create_orders','can_edit_orders','can_delete_orders','can_view_depots','can_view_reports','can_view_costs','can_view_personnel','can_view_attendance','can_view_assistant','can_manage_quality','can_view_shipping_finance','can_manage_users','can_view_settings'];sel.addEventListener('change',function(){const o=this.options[this.selectedIndex];uid.value=o.value;save.disabled=!o.value;names.forEach(n=>{const cb=form.querySelector('[name="'+n+'"]');const key=n.replaceAll('_','-');cb.checked=o.dataset[key]==='1';});});});</script>{% endblock %}
