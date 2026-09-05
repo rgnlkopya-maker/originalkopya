@@ -10,6 +10,7 @@ from core.order_list_enhanced import order_list as enhanced_order_list
 from core.assistant_views import assistant_page, assistant_api, assistant_clear
 from core.team_views import employee_detail, user_management_view
 from core.fason_views import fasoncu_raporu, fasoncu_detay
+from core.nakis_views import nakisci_raporu, nakisci_detay
 
 
 def logout_view(request):
@@ -49,7 +50,8 @@ urlpatterns = [
     path("reports/home/", views.reports_home, name="reports_home"),
     path("reports/fasoncu/", fasoncu_raporu, name="fasoncu_raporu"),
     path("reports/fasoncu/<int:fasoncu_id>/", fasoncu_detay, name="fasoncu_detay"),
-    path("reports/nakisci/", views.nakisci_raporu, name="nakisci_raporu"),
+    path("reports/nakisci/", nakisci_raporu, name="nakisci_raporu"),
+    path("reports/nakisci/<int:nakisci_id>/", nakisci_detay, name="nakisci_detay"),
     path("product-costs/", views.product_cost_list, name="product_cost_list"),
     path("events/<int:event_id>/delete/", views.delete_order_event, name="delete_order_event"),
     path("asistan/", assistant_page, name="ai_assistant"),
