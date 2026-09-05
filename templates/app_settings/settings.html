@@ -1,7 +1,9 @@
 {% extends 'base.html' %}
 {% block extra_css %}
 <style>
-.settings-wrap{max-width:1180px;margin:24px auto;padding:0 14px 40px}.settings-head{background:#fff;border-radius:20px;padding:20px 22px;box-shadow:0 6px 22px rgba(15,23,42,.06);margin-bottom:16px}.settings-title{font-size:25px;font-weight:800}.settings-sub{color:#7b8497;margin-top:4px}.settings-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}.settings-card{background:#fff;border:1px solid #edf0f6;border-radius:18px;padding:19px;box-shadow:0 4px 16px rgba(15,23,42,.05)}.settings-card.full{grid-column:1/-1}.card-titlex{font-weight:800;font-size:17px;margin-bottom:4px}.card-sub{font-size:12px;color:#8a91a3;margin-bottom:16px}.field-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.field.full{grid-column:1/-1}.field label{display:block;font-size:12px;font-weight:700;color:#596174;margin-bottom:5px}.soft-input,.soft-select,.soft-area{width:100%;border:1px solid #e3e7f0;border-radius:11px;background:#fbfcff;padding:10px 11px;outline:none}.soft-input,.soft-select{height:42px}.soft-area{min-height:90px;resize:vertical}.soft-input:focus,.soft-select:focus,.soft-area:focus{border-color:#aebcff;box-shadow:0 0 0 3px rgba(74,99,255,.08)}.save-row{display:flex;justify-content:flex-end;margin-top:14px}.save-btn{border:0;border-radius:11px;background:#4a63ff;color:#fff;font-weight:700;padding:10px 17px}.switch-line{display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:1px solid #f1f3f7}.switch-line:last-child{border-bottom:0}.perm-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px 14px;margin-top:14px}.perm-item{display:flex;align-items:center;gap:8px;background:#f8f9fd;border:1px solid #eef1f6;border-radius:11px;padding:10px}.perm-item input{width:18px;height:18px}.user-picker{max-width:360px}.note{font-size:12px;color:#7b8497;background:#f5f7ff;padding:10px 12px;border-radius:11px;margin-top:12px}@media(max-width:850px){.settings-grid,.field-grid{grid-template-columns:1fr}.settings-card.full,.field.full{grid-column:auto}.perm-grid{grid-template-columns:1fr 1fr}}@media(max-width:560px){.perm-grid{grid-template-columns:1fr}}
+.settings-wrap{max-width:1180px;margin:24px auto;padding:0 14px 40px}.settings-head{background:#fff;border-radius:20px;padding:20px 22px;box-shadow:0 6px 22px rgba(15,23,42,.06);margin-bottom:16px}.settings-title{font-size:25px;font-weight:800}.settings-sub{color:#7b8497;margin-top:4px}.settings-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}.settings-card{background:#fff;border:1px solid #edf0f6;border-radius:18px;padding:19px;box-shadow:0 4px 16px rgba(15,23,42,.05)}.settings-card.full{grid-column:1/-1}.card-titlex{font-weight:800;font-size:17px;margin-bottom:4px}.card-sub{font-size:12px;color:#8a91a3;margin-bottom:16px}.field-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.field.full{grid-column:1/-1}.field label{display:block;font-size:12px;font-weight:700;color:#596174;margin-bottom:5px}.soft-input,.soft-select,.soft-area{width:100%;border:1px solid #e3e7f0;border-radius:11px;background:#fbfcff;padding:10px 11px;outline:none}.soft-input,.soft-select{height:42px}.soft-area{min-height:90px;resize:vertical}.soft-input:focus,.soft-select:focus,.soft-area:focus{border-color:#aebcff;box-shadow:0 0 0 3px rgba(74,99,255,.08)}.save-row{display:flex;justify-content:flex-end;margin-top:14px}.save-btn{border:0;border-radius:11px;background:#4a63ff;color:#fff;font-weight:700;padding:10px 17px}.switch-line{display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:1px solid #f1f3f7}.switch-line:last-child{border-bottom:0}.user-picker{max-width:420px}.note{font-size:12px;color:#7b8497;background:#f5f7ff;padding:10px 12px;border-radius:11px;margin-top:12px}
+.permission-toolbar{display:flex;align-items:end;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-bottom:16px}.preset-row{display:flex;gap:7px;flex-wrap:wrap}.preset-btn{border:1px solid #dfe4ef;background:#fff;color:#596174;border-radius:10px;padding:8px 11px;font-size:12px;font-weight:700}.preset-btn:hover{background:#f4f6ff;border-color:#cbd3ff;color:#3947c8}.preset-btn.primary{background:#eef1ff;border-color:#dbe1ff;color:#3f55db}.permission-summary{display:flex;align-items:center;gap:8px;margin:4px 0 14px}.permission-count{font-size:12px;font-weight:800;color:#4254c8;background:#eef1ff;border-radius:999px;padding:6px 10px}.permission-hint{font-size:12px;color:#8a91a3}.perm-sections{display:grid;grid-template-columns:1fr 1fr;gap:14px}.perm-section{border:1px solid #e9edf5;border-radius:15px;background:#fbfcff;padding:13px}.perm-section-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px}.perm-section-title{font-size:13px;font-weight:800;color:#30384b;display:flex;align-items:center;gap:7px}.perm-section-actions{display:flex;gap:5px}.mini-btn{border:0;background:#eef1f7;color:#697386;border-radius:8px;padding:5px 8px;font-size:10px;font-weight:700}.mini-btn:hover{background:#e3e8f5;color:#3b4cc0}.perm-list{display:grid;grid-template-columns:1fr 1fr;gap:8px}.perm-item{position:relative;display:flex;align-items:center;gap:9px;background:#fff;border:1px solid #e9edf5;border-radius:11px;padding:10px 11px;cursor:pointer;transition:.16s ease;min-height:46px}.perm-item:hover{border-color:#ccd5ff;background:#f9faff}.perm-item.checked{background:#f0f3ff;border-color:#cfd7ff;box-shadow:0 0 0 2px rgba(74,99,255,.05)}.perm-item input{width:18px;height:18px;accent-color:#4a63ff;flex:0 0 auto}.perm-label{font-size:12px;font-weight:700;color:#444d62;line-height:1.25}.perm-item.danger-perm .perm-label{color:#b54848}.perm-item.danger-perm.checked{background:#fff3f3;border-color:#ffd2d2}.selected-user-card{display:none;align-items:center;gap:10px;background:#f7f8fc;border:1px solid #e8ebf3;border-radius:12px;padding:10px 12px;margin-top:9px;max-width:420px}.selected-user-card.show{display:flex}.selected-avatar{width:34px;height:34px;border-radius:10px;background:#e9edff;color:#4254d4;display:flex;align-items:center;justify-content:center;font-weight:800}.selected-user-name{font-weight:800;font-size:13px}.selected-user-sub{font-size:11px;color:#8a91a3;margin-top:1px}.save-btn:disabled{opacity:.45;cursor:not-allowed}
+@media(max-width:850px){.settings-grid,.field-grid{grid-template-columns:1fr}.settings-card.full,.field.full{grid-column:auto}.perm-sections{grid-template-columns:1fr}.perm-list{grid-template-columns:1fr 1fr}}@media(max-width:560px){.perm-list{grid-template-columns:1fr}.permission-toolbar{align-items:stretch}.user-picker{max-width:none;width:100%}.preset-row{width:100%}.preset-btn{flex:1 1 auto}}
 </style>
 {% endblock %}
 {% block content %}
@@ -52,13 +54,90 @@
     </form>
 
     <form method="post" class="settings-card full" id="permissionForm">{% csrf_token %}<input type="hidden" name="section" value="permissions"><input type="hidden" name="user_id" id="permissionUserId">
-      <div class="card-titlex">🔐 Kullanıcı Yetkileri</div><div class="card-sub">Her kullanıcı için hangi ekranı görebileceğini ve hangi işlemi yapabileceğini ayrı ayrı belirle.</div>
-      <div class="field user-picker"><label>Kullanıcı</label><select class="soft-select" id="permissionUserSelect"><option value="">Kullanıcı seçin</option>{% for u in users %}<option value="{{ u.id }}" data-can-view-orders="{{ u.moli_access.can_view_orders|yesno:'1,0' }}" data-can-create-orders="{{ u.moli_access.can_create_orders|yesno:'1,0' }}" data-can-edit-orders="{{ u.moli_access.can_edit_orders|yesno:'1,0' }}" data-can-delete-orders="{{ u.moli_access.can_delete_orders|yesno:'1,0' }}" data-can-view-depots="{{ u.moli_access.can_view_depots|yesno:'1,0' }}" data-can-view-reports="{{ u.moli_access.can_view_reports|yesno:'1,0' }}" data-can-view-costs="{{ u.moli_access.can_view_costs|yesno:'1,0' }}" data-can-view-personnel="{{ u.moli_access.can_view_personnel|yesno:'1,0' }}" data-can-view-attendance="{{ u.moli_access.can_view_attendance|yesno:'1,0' }}" data-can-view-assistant="{{ u.moli_access.can_view_assistant|yesno:'1,0' }}" data-can-manage-quality="{{ u.moli_access.can_manage_quality|yesno:'1,0' }}" data-can-view-shipping-finance="{{ u.moli_access.can_view_shipping_finance|yesno:'1,0' }}" data-can-manage-users="{{ u.moli_access.can_manage_users|yesno:'1,0' }}" data-can-view-settings="{{ u.moli_access.can_view_settings|yesno:'1,0' }}">{{ u.get_full_name|default:u.username }} ({{ u.username }})</option>{% endfor %}</select></div>
-      <div class="perm-grid" id="permissionGrid">
-        <label class="perm-item"><input type="checkbox" name="can_view_orders"> Siparişleri Gör</label><label class="perm-item"><input type="checkbox" name="can_create_orders"> Sipariş Oluştur</label><label class="perm-item"><input type="checkbox" name="can_edit_orders"> Sipariş / Üretim İşlemi Yap</label><label class="perm-item"><input type="checkbox" name="can_delete_orders"> Sipariş Sil</label><label class="perm-item"><input type="checkbox" name="can_view_depots"> Depoları Gör</label><label class="perm-item"><input type="checkbox" name="can_view_reports"> Raporları Gör</label><label class="perm-item"><input type="checkbox" name="can_view_costs"> Maliyetleri Gör</label><label class="perm-item"><input type="checkbox" name="can_view_personnel"> Personel Raporlarını Gör</label><label class="perm-item"><input type="checkbox" name="can_view_attendance"> Puantaj & Mesaiyi Gör</label><label class="perm-item"><input type="checkbox" name="can_view_assistant"> Asistanı Gör</label><label class="perm-item"><input type="checkbox" name="can_manage_quality"> Hata / Şikayet İşlemleri</label><label class="perm-item"><input type="checkbox" name="can_view_shipping_finance"> Sevkiyat Finansını Gör</label><label class="perm-item"><input type="checkbox" name="can_manage_users"> Kullanıcı Yönetimi</label><label class="perm-item"><input type="checkbox" name="can_view_settings"> Ayarları Gör / Değiştir</label>
-      </div><div class="note">Superuser hesabı güvenlik amacıyla her zaman tüm bölümlere erişebilir.</div><div class="save-row"><button class="save-btn" id="permissionSave" disabled>Yetkileri Kaydet</button></div>
+      <div class="card-titlex">🔐 Kullanıcı Yetkileri</div><div class="card-sub">Bir kullanıcı seç; erişebileceği ekranları ve yapabileceği işlemleri bölüm bölüm belirle.</div>
+
+      <div class="permission-toolbar">
+        <div class="field user-picker"><label>Kullanıcı</label><select class="soft-select" id="permissionUserSelect"><option value="">Kullanıcı seçin</option>{% for u in users %}<option value="{{ u.id }}" data-name="{{ u.get_full_name|default:u.username }}" data-username="{{ u.username }}" data-can-view-orders="{{ u.moli_access.can_view_orders|yesno:'1,0' }}" data-can-create-orders="{{ u.moli_access.can_create_orders|yesno:'1,0' }}" data-can-edit-orders="{{ u.moli_access.can_edit_orders|yesno:'1,0' }}" data-can-delete-orders="{{ u.moli_access.can_delete_orders|yesno:'1,0' }}" data-can-view-depots="{{ u.moli_access.can_view_depots|yesno:'1,0' }}" data-can-view-reports="{{ u.moli_access.can_view_reports|yesno:'1,0' }}" data-can-view-costs="{{ u.moli_access.can_view_costs|yesno:'1,0' }}" data-can-view-personnel="{{ u.moli_access.can_view_personnel|yesno:'1,0' }}" data-can-view-attendance="{{ u.moli_access.can_view_attendance|yesno:'1,0' }}" data-can-view-assistant="{{ u.moli_access.can_view_assistant|yesno:'1,0' }}" data-can-manage-quality="{{ u.moli_access.can_manage_quality|yesno:'1,0' }}" data-can-view-shipping-finance="{{ u.moli_access.can_view_shipping_finance|yesno:'1,0' }}" data-can-manage-users="{{ u.moli_access.can_manage_users|yesno:'1,0' }}" data-can-view-settings="{{ u.moli_access.can_view_settings|yesno:'1,0' }}">{{ u.get_full_name|default:u.username }} ({{ u.username }})</option>{% endfor %}</select><div class="selected-user-card" id="selectedUserCard"><div class="selected-avatar" id="selectedAvatar">U</div><div><div class="selected-user-name" id="selectedUserName">-</div><div class="selected-user-sub" id="selectedUserSub">-</div></div></div></div>
+        <div class="preset-row">
+          <button type="button" class="preset-btn primary" data-preset="employee">Çalışan</button>
+          <button type="button" class="preset-btn" data-preset="manager">Müdür</button>
+          <button type="button" class="preset-btn" data-preset="all">Tümünü Aç</button>
+          <button type="button" class="preset-btn" data-preset="none">Tümünü Kapat</button>
+        </div>
+      </div>
+
+      <div class="permission-summary"><span class="permission-count" id="permissionCount">0 yetki açık</span><span class="permission-hint">Değişiklikler “Yetkileri Kaydet” butonuna basınca uygulanır.</span></div>
+
+      <div class="perm-sections" id="permissionGrid">
+        <section class="perm-section" data-section="orders"><div class="perm-section-head"><div class="perm-section-title">📦 Sipariş & Üretim</div><div class="perm-section-actions"><button type="button" class="mini-btn section-all">Hepsini aç</button><button type="button" class="mini-btn section-none">Kapat</button></div></div><div class="perm-list">
+          <label class="perm-item"><input type="checkbox" name="can_view_orders"><span class="perm-label">Siparişleri Gör</span></label>
+          <label class="perm-item"><input type="checkbox" name="can_create_orders"><span class="perm-label">Sipariş Oluştur</span></label>
+          <label class="perm-item"><input type="checkbox" name="can_edit_orders"><span class="perm-label">Sipariş / Üretim İşlemi Yap</span></label>
+          <label class="perm-item danger-perm"><input type="checkbox" name="can_delete_orders"><span class="perm-label">Sipariş Sil</span></label>
+        </div></section>
+
+        <section class="perm-section" data-section="operations"><div class="perm-section-head"><div class="perm-section-title">🏭 Operasyon</div><div class="perm-section-actions"><button type="button" class="mini-btn section-all">Hepsini aç</button><button type="button" class="mini-btn section-none">Kapat</button></div></div><div class="perm-list">
+          <label class="perm-item"><input type="checkbox" name="can_view_depots"><span class="perm-label">Depoları Gör</span></label>
+          <label class="perm-item"><input type="checkbox" name="can_manage_quality"><span class="perm-label">Hata / Şikayet İşlemleri</span></label>
+          <label class="perm-item"><input type="checkbox" name="can_view_attendance"><span class="perm-label">Puantaj & Mesaiyi Gör</span></label>
+          <label class="perm-item"><input type="checkbox" name="can_view_personnel"><span class="perm-label">Personel Raporlarını Gör</span></label>
+        </div></section>
+
+        <section class="perm-section" data-section="management"><div class="perm-section-head"><div class="perm-section-title">📊 Yönetim & Finans</div><div class="perm-section-actions"><button type="button" class="mini-btn section-all">Hepsini aç</button><button type="button" class="mini-btn section-none">Kapat</button></div></div><div class="perm-list">
+          <label class="perm-item"><input type="checkbox" name="can_view_reports"><span class="perm-label">Raporları Gör</span></label>
+          <label class="perm-item"><input type="checkbox" name="can_view_costs"><span class="perm-label">Maliyetleri Gör</span></label>
+          <label class="perm-item"><input type="checkbox" name="can_view_shipping_finance"><span class="perm-label">Sevkiyat Finansını Gör</span></label>
+          <label class="perm-item"><input type="checkbox" name="can_view_assistant"><span class="perm-label">Asistanı Gör</span></label>
+        </div></section>
+
+        <section class="perm-section" data-section="admin"><div class="perm-section-head"><div class="perm-section-title">⚙️ Sistem Yönetimi</div><div class="perm-section-actions"><button type="button" class="mini-btn section-all">Hepsini aç</button><button type="button" class="mini-btn section-none">Kapat</button></div></div><div class="perm-list">
+          <label class="perm-item danger-perm"><input type="checkbox" name="can_manage_users"><span class="perm-label">Kullanıcı Yönetimi</span></label>
+          <label class="perm-item danger-perm"><input type="checkbox" name="can_view_settings"><span class="perm-label">Ayarları Gör / Değiştir</span></label>
+        </div></section>
+      </div>
+
+      <div class="note">Superuser hesabı güvenlik amacıyla her zaman tüm bölümlere erişebilir. Kırmızı tonlu yetkiler kritik işlem veya sistem yönetimi yetkisidir.</div><div class="save-row"><button class="save-btn" id="permissionSave" disabled>Yetkileri Kaydet</button></div>
     </form>
   </div>
 </div>
 {% endblock %}
-{% block extra_js %}<script>document.addEventListener('DOMContentLoaded',function(){const sel=document.getElementById('permissionUserSelect'),form=document.getElementById('permissionForm'),uid=document.getElementById('permissionUserId'),save=document.getElementById('permissionSave');const names=['can_view_orders','can_create_orders','can_edit_orders','can_delete_orders','can_view_depots','can_view_reports','can_view_costs','can_view_personnel','can_view_attendance','can_view_assistant','can_manage_quality','can_view_shipping_finance','can_manage_users','can_view_settings'];sel.addEventListener('change',function(){const o=this.options[this.selectedIndex];uid.value=o.value;save.disabled=!o.value;names.forEach(n=>{const cb=form.querySelector('[name="'+n+'"]');const key=n.replaceAll('_','-');cb.checked=o.dataset[key]==='1';});});});</script>{% endblock %}
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded',function(){
+  const sel=document.getElementById('permissionUserSelect');
+  const form=document.getElementById('permissionForm');
+  const uid=document.getElementById('permissionUserId');
+  const save=document.getElementById('permissionSave');
+  const count=document.getElementById('permissionCount');
+  const card=document.getElementById('selectedUserCard');
+  const avatar=document.getElementById('selectedAvatar');
+  const userName=document.getElementById('selectedUserName');
+  const userSub=document.getElementById('selectedUserSub');
+  const names=['can_view_orders','can_create_orders','can_edit_orders','can_delete_orders','can_view_depots','can_view_reports','can_view_costs','can_view_personnel','can_view_attendance','can_view_assistant','can_manage_quality','can_view_shipping_finance','can_manage_users','can_view_settings'];
+  const employeePreset=['can_view_orders','can_create_orders','can_edit_orders','can_view_depots','can_view_attendance','can_view_assistant'];
+  const managerPreset=['can_view_orders','can_create_orders','can_edit_orders','can_view_depots','can_view_reports','can_view_costs','can_view_personnel','can_view_attendance','can_view_assistant','can_manage_quality','can_view_shipping_finance'];
+
+  function allCheckboxes(){return names.map(n=>form.querySelector('[name="'+n+'"]').closest('.perm-item'));}
+  function refresh(){
+    let open=0;
+    names.forEach(n=>{const cb=form.querySelector('[name="'+n+'"]');const item=cb.closest('.perm-item');item.classList.toggle('checked',cb.checked);if(cb.checked)open++;});
+    count.textContent=open+' / '+names.length+' yetki açık';
+  }
+  function setNames(openNames){names.forEach(n=>form.querySelector('[name="'+n+'"]').checked=openNames.includes(n));refresh();}
+
+  sel.addEventListener('change',function(){
+    const o=this.options[this.selectedIndex];uid.value=o.value;save.disabled=!o.value;
+    if(!o.value){card.classList.remove('show');setNames([]);return;}
+    names.forEach(n=>{const cb=form.querySelector('[name="'+n+'"]');const key=n.replaceAll('_','-');cb.checked=o.dataset[key]==='1';});
+    const displayName=o.dataset.name||o.dataset.username||'Kullanıcı';
+    avatar.textContent=(displayName.trim()[0]||'U').toUpperCase();userName.textContent=displayName;userSub.textContent='@'+(o.dataset.username||'');card.classList.add('show');refresh();
+  });
+
+  names.forEach(n=>form.querySelector('[name="'+n+'"]').addEventListener('change',refresh));
+  document.querySelectorAll('.section-all').forEach(btn=>btn.addEventListener('click',()=>{btn.closest('.perm-section').querySelectorAll('input[type="checkbox"]').forEach(cb=>cb.checked=true);refresh();}));
+  document.querySelectorAll('.section-none').forEach(btn=>btn.addEventListener('click',()=>{btn.closest('.perm-section').querySelectorAll('input[type="checkbox"]').forEach(cb=>cb.checked=false);refresh();}));
+  document.querySelectorAll('[data-preset]').forEach(btn=>btn.addEventListener('click',()=>{const p=btn.dataset.preset;if(p==='employee')setNames(employeePreset);else if(p==='manager')setNames(managerPreset);else if(p==='all')setNames(names);else setNames([]);}));
+  refresh();
+});
+</script>
+{% endblock %}
