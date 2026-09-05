@@ -9,16 +9,25 @@
   <style>
     body{font-family:"Plus Jakarta Sans",sans-serif;font-size:14.5px;background:#f3f4f8;overflow-x:hidden;color:#111827;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}
     .app-navbar{background:#fff;box-shadow:0 4px 18px rgba(0,0,0,.05);position:sticky;top:0;min-height:64px;z-index:100!important;padding-top:8px;padding-bottom:8px}
-    .chip-scroll{display:flex;align-items:center;gap:8px;overflow-x:auto;padding:2px;max-width:100%;scrollbar-width:none;-webkit-overflow-scrolling:touch}.chip-scroll::-webkit-scrollbar{display:none}
+    .topbar-grid{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:12px;width:100%}
+    .topbar-center{min-width:0;display:flex;align-items:center;gap:8px;overflow:visible}
+    .chip-scroll{display:flex;align-items:center;gap:8px;overflow-x:auto;overflow-y:hidden;padding:2px;min-width:0;flex:1;scrollbar-width:none;-webkit-overflow-scrolling:touch}.chip-scroll::-webkit-scrollbar{display:none}
     .chip{height:44px;width:auto;min-width:max-content;padding:0 13px;gap:7px;background:#eef1ff;border:1px solid #e3e6fb;color:#39405a!important;display:inline-flex;align-items:center;justify-content:center;border-radius:16px;text-decoration:none!important;font-weight:600;transition:.2s ease;font-size:13px;white-space:nowrap;box-shadow:0 6px 18px rgba(15,23,42,.06);flex:0 0 auto}
     .chip i{font-size:17px;line-height:1}.chip-label{line-height:1}.chip:hover{background:#e7ebff;border-color:#cfd6ff;box-shadow:0 3px 8px rgba(74,99,255,.15);transform:translateY(-1px)}.chip.active{background:#4a63ff;border-color:#3b54e9;color:#fff!important;box-shadow:0 4px 12px rgba(74,99,255,.30)}
-    .topbar-grid{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:12px;width:100%}.topbar-center{min-width:0;overflow:hidden}.topbar-right{justify-self:end;display:flex;align-items:center;gap:8px}
+    .topbar-right{justify-self:end;display:flex;align-items:center;gap:8px}
     .user-chip{display:inline-flex;align-items:center;gap:7px;background:#f4f6ff;border:1px solid #e3e6fb;height:44px;padding:0 13px;border-radius:16px;font-weight:600;color:#39405a;box-shadow:0 6px 18px rgba(15,23,42,.06);cursor:pointer;white-space:nowrap}
-    .menu-dropdown .dropdown-menu{border:1px solid #e7eaf2;border-radius:14px;box-shadow:0 14px 34px rgba(15,23,42,.14);padding:7px;min-width:195px;margin-top:7px!important}
+    .menu-dropdown{position:relative;flex:0 0 auto}
+    .menu-dropdown .dropdown-menu{border:1px solid #e7eaf2;border-radius:14px;box-shadow:0 14px 34px rgba(15,23,42,.14);padding:7px;min-width:195px;margin-top:7px!important;z-index:3000}
     .menu-dropdown .dropdown-item{border-radius:10px;padding:9px 11px;font-size:13px;font-weight:600;color:#39405a;display:flex;align-items:center;gap:8px}.menu-dropdown .dropdown-item:hover{background:#f2f4ff;color:#3349d8}.menu-dropdown .dropdown-item.danger{color:#d53333}.menu-dropdown .dropdown-divider{margin:5px 0;border-color:#eef0f5}
 
+    .orders-split{display:inline-flex;align-items:stretch;flex:0 0 auto;box-shadow:0 6px 18px rgba(15,23,42,.06);border-radius:16px}
+    .orders-main{border-radius:16px 0 0 16px;box-shadow:none;border-right:0}
+    .orders-toggle{height:44px;width:34px;border:1px solid #e3e6fb;border-left:1px solid rgba(57,64,90,.12);background:#eef1ff;color:#39405a;border-radius:0 16px 16px 0;display:flex;align-items:center;justify-content:center;padding:0;transition:.2s ease}
+    .orders-toggle:hover{background:#e7ebff}.orders-toggle.active{background:#4a63ff;border-color:#3b54e9;color:#fff}.orders-main.active{border-radius:16px 0 0 16px}
+    .orders-toggle::after{margin:0}
+
     @media(max-width:900px){
-      .app-navbar{min-height:56px;padding:7px 8px!important}.topbar-grid{gap:6px}.chip-scroll{gap:5px}.chip{height:38px;padding:0 9px;border-radius:13px;font-size:11.2px;gap:5px}.chip i{font-size:15px}.user-chip{height:38px;padding:0 9px;border-radius:13px;font-size:11.2px;max-width:100px;overflow:hidden;text-overflow:ellipsis}.menu-dropdown .dropdown-menu{min-width:180px}
+      .app-navbar{min-height:56px;padding:7px 8px!important}.topbar-grid{gap:6px}.topbar-center{gap:5px}.chip-scroll{gap:5px}.chip{height:38px;padding:0 9px;border-radius:13px;font-size:11.2px;gap:5px}.chip i{font-size:15px}.user-chip{height:38px;padding:0 9px;border-radius:13px;font-size:11.2px;max-width:100px;overflow:hidden;text-overflow:ellipsis}.menu-dropdown .dropdown-menu{min-width:180px}.orders-split{border-radius:13px}.orders-main{border-radius:13px 0 0 13px}.orders-main.active{border-radius:13px 0 0 13px}.orders-toggle{height:38px;width:30px;border-radius:0 13px 13px 0}
     }
 
     .modal{z-index:20000!important}.modal-backdrop{z-index:19999!important}.select2-container,.select2-dropdown{z-index:5000!important}.modal .select2-container,.modal .select2-dropdown{z-index:20001!important}.select2-hidden-accessible{display:none!important;visibility:hidden!important}.navbar .container-fluid{flex-wrap:nowrap!important}
@@ -31,20 +40,23 @@
 <nav class="navbar app-navbar px-3 mb-0">
   <div class="container-fluid topbar-grid">
     <div class="topbar-center">
-      <div class="chip-scroll">
 
-        {% if user.is_superuser or user.moli_access.can_view_orders or user.moli_access.can_create_orders %}
-        <div class="dropdown menu-dropdown">
-          <button class="chip dropdown-toggle {% if request.resolver_match.url_name == 'order_list' or request.resolver_match.url_name == 'order_multi_create' %}active{% endif %}" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-            <i class="bi bi-file-text"></i><span class="chip-label">Siparişler</span>
-          </button>
-          <ul class="dropdown-menu">
-            {% if user.is_superuser or user.moli_access.can_view_orders %}<li><a class="dropdown-item" href="{% url 'order_list' %}"><i class="bi bi-list-ul"></i>Sipariş Listesi</a></li>{% endif %}
-            {% if user.is_superuser or user.moli_access.can_create_orders %}<li><a class="dropdown-item" href="{% url 'order_multi_create' %}"><i class="bi bi-plus-circle"></i>Yeni Sipariş Gir</a></li>{% endif %}
-          </ul>
-        </div>
+      {% if user.is_superuser or user.moli_access.can_view_orders or user.moli_access.can_create_orders %}
+      <div class="dropdown menu-dropdown orders-split">
+        {% if user.is_superuser or user.moli_access.can_view_orders %}
+          <a href="{% url 'order_list' %}" class="chip orders-main {% if request.resolver_match.url_name == 'order_list' %}active{% endif %}"><i class="bi bi-file-text"></i><span class="chip-label">Siparişler</span></a>
+        {% else %}
+          <a href="{% url 'order_multi_create' %}" class="chip orders-main {% if request.resolver_match.url_name == 'order_multi_create' %}active{% endif %}"><i class="bi bi-file-text"></i><span class="chip-label">Siparişler</span></a>
         {% endif %}
+        <button class="orders-toggle dropdown-toggle {% if request.resolver_match.url_name == 'order_list' or request.resolver_match.url_name == 'order_multi_create' %}active{% endif %}" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Sipariş menüsünü aç"></button>
+        <ul class="dropdown-menu">
+          {% if user.is_superuser or user.moli_access.can_view_orders %}<li><a class="dropdown-item" href="{% url 'order_list' %}"><i class="bi bi-list-ul"></i>Sipariş Listesi</a></li>{% endif %}
+          {% if user.is_superuser or user.moli_access.can_create_orders %}<li><a class="dropdown-item" href="{% url 'order_multi_create' %}"><i class="bi bi-plus-circle"></i>Yeni Sipariş Gir</a></li>{% endif %}
+        </ul>
+      </div>
+      {% endif %}
 
+      <div class="chip-scroll">
         {% if user.is_superuser or user.moli_access.can_view_depots %}<a href="{% url 'depo_ozet' %}" class="chip {% if request.resolver_match.url_name == 'depo_ozet' %}active{% endif %}"><i class="bi bi-building"></i><span class="chip-label">Depolar</span></a>{% endif %}
         {% if user.is_superuser or user.moli_access.can_view_reports %}<a href="{% url 'dashboard' %}" class="chip {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}"><i class="bi bi-bar-chart"></i><span class="chip-label">Raporlar</span></a>{% endif %}
         {% if user.is_superuser or user.moli_access.can_view_costs %}<a href="{% url 'product_cost_list' %}" class="chip {% if request.resolver_match.url_name == 'product_cost_list' %}active{% endif %}"><i class="bi bi-coin"></i><span class="chip-label">Maliyetler</span></a>{% endif %}
