@@ -47,18 +47,21 @@ class SystemSettings(models.Model):
 class UserAccess(models.Model):
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="moli_access")
 
+    # Yeni normal kullanıcılar güvenli personel profiliyle başlar:
+    # yalnız siparişleri görür ve üretim panelini kullanır.
     can_view_orders = models.BooleanField(default=True)
-    can_create_orders = models.BooleanField(default=True)
-    can_edit_orders = models.BooleanField(default=True)
+    can_create_orders = models.BooleanField(default=False)
+    can_edit_orders = models.BooleanField(default=False)
+    can_update_production = models.BooleanField(default=True)
     can_delete_orders = models.BooleanField(default=False)
 
-    can_view_depots = models.BooleanField(default=True)
+    can_view_depots = models.BooleanField(default=False)
     can_view_reports = models.BooleanField(default=False)
     can_view_costs = models.BooleanField(default=False)
     can_view_personnel = models.BooleanField(default=False)
-    can_view_attendance = models.BooleanField(default=True)
-    can_view_assistant = models.BooleanField(default=True)
-    can_manage_quality = models.BooleanField(default=True)
+    can_view_attendance = models.BooleanField(default=False)
+    can_view_assistant = models.BooleanField(default=False)
+    can_manage_quality = models.BooleanField(default=False)
     can_view_shipping_finance = models.BooleanField(default=False)
     can_manage_users = models.BooleanField(default=False)
     can_view_settings = models.BooleanField(default=False)
