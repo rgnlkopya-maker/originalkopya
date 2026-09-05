@@ -5,13 +5,15 @@ from django.contrib import messages
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import Group
-from django.db.models import Q, Sum
+from django.core.paginator import Paginator
+from django.db.models import Count, Q, Sum
 from django.http import HttpResponseForbidden
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 
 from attendance.models import AttendanceRecord, EmployeeHRProfile
-from core.models import UserProfile
+from core.models import OrderEvent, UserProfile
+from core.services.order_status import FINANCIAL_STAGES, STATUS_LABELS
 
 User = get_user_model()
 
@@ -63,6 +65,14 @@ def _selected_range(request, today, employment_start=None, employment_end=None):
     if preset == "this_year": return effective_today.replace(month=1, day=1), effective_today, preset
     if preset == "all": return employment_start or date(2000, 1, 1), effective_today, preset
     return effective_today.replace(day=1), effective_today, "this_month"
+
+
+def _event_label(stage, value):
+    return STATUS_LABELS.get(
+        (stage, value),
+        f"{(stage or '').replace('_durum', '').replace('_', ' ').title()} → "
+        f"{(value or '').replace('_', ' ').title()}",
+    )
 
 
 @login_required
@@ -183,5 +193,37 @@ def employee_detail(request, user_id):
     late_minutes = range_records.aggregate(v=Sum("late_minutes"))["v"] or 0; overtime_minutes = range_records.aggregate(v=Sum("overtime_minutes"))["v"] or 0
     used_annual_leave = AttendanceRecord.objects.filter(user=employee, status="annual_leave", work_date__lte=range_end).count(); earned_leave = _annual_leave_entitlement(profile.employment_start_date, range_end)
     total_leave = earned_leave + profile.annual_leave_carryover; remaining_leave = max(0, total_leave - used_annual_leave); service_years, service_months, service_days = _service_parts(profile.employment_start_date, range_end)
+
+    work_events_qs = (
+        OrderEvent.objects
+        .select_related("order", "order__musteri")
+        .filter(
+            user=employee.username,
+            event_type="stage",
+            timestamp__date__range=(range_start, range_end),
+        )
+        .exclude(stage__in=FINANCIAL_STAGES)
+        .order_by("-timestamp", "-id")
+    )
+    raw_counts = (
+        work_events_qs.values("stage", "value")
+        .annotate(count=Count("id"))
+        .order_by("stage", "value")
+    )
+    operation_counts = [
+        {"stage": row["stage"], "value": row["value"], "label": _event_label(row["stage"], row["value"]), "count": row["count"]}
+        for row in raw_counts
+    ]
+    work_events_total = work_events_qs.count()
+    work_events_page = Paginator(work_events_qs, 100).get_page(request.GET.get("work_page"))
+    for event in work_events_page:
+        event.operation_label = _event_label(event.stage, event.value)
+
     role = employee.groups.first().name if employee.groups.exists() else "personel"; role_labels = {"personel": "Personel", "mudur": "Müdür", "patron": "Patron"}
-    return render(request, "teams/employee_detail.html", {"employee": employee, "profile": profile, "today": today, "role": role, "role_label": role_labels.get(role, role.title()), "team_label": user_profile.get_gorev_display(), "user_profile": user_profile, "gorevler": UserProfile.GOREV_SECENEKLERI, "range_start": range_start, "range_end": range_end, "preset": preset, "service_years": service_years, "service_months": service_months, "service_days": service_days, "earned_leave": earned_leave, "used_annual_leave": used_annual_leave, "total_leave": total_leave, "remaining_leave": remaining_leave, "worked_days": worked_days, "leave_days": leave_days, "sick_days": sick_days, "annual_leave_period": annual_leave_period, "late_minutes": late_minutes, "overtime_minutes": overtime_minutes})
+    return render(request, "teams/employee_detail.html", {
+        "employee": employee, "profile": profile, "today": today, "role": role, "role_label": role_labels.get(role, role.title()), "team_label": user_profile.get_gorev_display(), "user_profile": user_profile, "gorevler": UserProfile.GOREV_SECENEKLERI,
+        "range_start": range_start, "range_end": range_end, "preset": preset, "service_years": service_years, "service_months": service_months, "service_days": service_days,
+        "earned_leave": earned_leave, "used_annual_leave": used_annual_leave, "total_leave": total_leave, "remaining_leave": remaining_leave,
+        "worked_days": worked_days, "leave_days": leave_days, "sick_days": sick_days, "annual_leave_period": annual_leave_period, "late_minutes": late_minutes, "overtime_minutes": overtime_minutes,
+        "operation_counts": operation_counts, "work_events_total": work_events_total, "work_events_page": work_events_page,
+    })
