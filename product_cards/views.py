@@ -155,9 +155,6 @@ def product_card_detail(request, card_id):
         elif action == "add_material":
             material_id = request.POST.get("material_id")
             miktar_text = (request.POST.get("miktar") or "").replace(",", ".")
-            kullanim_asamasi = (request.POST.get("kullanim_asamasi") or "KESIM").strip()
-            if kullanim_asamasi not in {c[0] for c in ProductMaterial.STAGE_CHOICES}:
-                kullanim_asamasi = "KESIM"
             try:
                 miktar = Decimal(miktar_text)
                 if miktar <= 0:
@@ -166,10 +163,18 @@ def product_card_detail(request, card_id):
                 messages.error(request, "Geçerli bir sarfiyat miktarı girin.")
                 return redirect("product_card_detail", card_id=card.id)
             material = get_object_or_404(Material, pk=material_id, aktif=True)
-            ProductMaterial.objects.update_or_create(product_card=card, material=material, defaults={"miktar": miktar, "kullanim_asamasi": kullanim_asamasi, "notlar": (request.POST.get("notlar") or "").strip()})
+            ProductMaterial.objects.update_or_create(
+                product_card=card,
+                material=material,
+                defaults={
+                    "miktar": miktar,
+                    "kullanim_asamasi": material.kullanim_asamasi,
+                    "notlar": (request.POST.get("notlar") or "").strip(),
+                },
+            )
             if ProductCost.objects.filter(urun_kodu=card.urun.kod, is_active=True).exists():
                 recalculate_approved_product_costs()
-            messages.success(request, "Malzeme reçeteye eklendi/güncellendi.")
+            messages.success(request, f"Malzeme reçeteye {material.get_kullanim_asamasi_display()} olarak eklendi/güncellendi.")
 
         elif action == "remove_material":
             usage = get_object_or_404(ProductMaterial, pk=request.POST.get("usage_id"), product_card=card)
@@ -227,11 +232,14 @@ def material_list(request):
             ad = (request.POST.get("ad") or "").strip()
             birim = (request.POST.get("birim") or "M").strip()
             kategori = (request.POST.get("kategori") or "DIGER").strip()
+            kullanim_asamasi = (request.POST.get("kullanim_asamasi") or "KESIM").strip()
             para_birimi = (request.POST.get("birim_maliyet_para_birimi") or "TRY").strip()
             if para_birimi not in {"TRY", "USD"}:
                 para_birimi = "TRY"
             if kategori not in {c[0] for c in Material.CATEGORY_CHOICES}:
                 kategori = "DIGER"
+            if kullanim_asamasi not in {c[0] for c in Material.USAGE_STAGE_CHOICES}:
+                kullanim_asamasi = "KESIM"
             try:
                 stok = _decimal_from_post(request.POST.get("stok_miktari"))
                 kritik_stok = _decimal_from_post(request.POST.get("kritik_stok"))
@@ -248,6 +256,7 @@ def material_list(request):
                         defaults={
                             "ad": ad,
                             "kategori": kategori,
+                            "kullanim_asamasi": kullanim_asamasi,
                             "birim": birim,
                             "kritik_stok": kritik_stok,
                             "tedarikci": (request.POST.get("tedarikci") or "").strip(),
@@ -285,11 +294,14 @@ def material_list(request):
                 messages.error(request, str(exc))
                 return redirect("material_list")
             kategori = request.POST.get("kategori") or "DIGER"
+            kullanim_asamasi = request.POST.get("kullanim_asamasi") or "KESIM"
             material.kategori = kategori if kategori in {c[0] for c in Material.CATEGORY_CHOICES} else "DIGER"
+            material.kullanim_asamasi = kullanim_asamasi if kullanim_asamasi in {c[0] for c in Material.USAGE_STAGE_CHOICES} else "KESIM"
             material.tedarikci = (request.POST.get("tedarikci") or "").strip()
             material.aciklama = (request.POST.get("aciklama") or "").strip()
-            material.save(update_fields=["kategori", "kritik_stok", "tedarikci", "aciklama", "son_alis_tarihi", "updated_at"])
-            messages.success(request, "Malzeme bilgileri güncellendi.")
+            material.save(update_fields=["kategori", "kullanim_asamasi", "kritik_stok", "tedarikci", "aciklama", "son_alis_tarihi", "updated_at"])
+            ProductMaterial.objects.filter(material=material).update(kullanim_asamasi=material.kullanim_asamasi)
+            messages.success(request, "Malzeme bilgileri ve kullanım aşaması güncellendi.")
 
         elif action == "stock_movement":
             material_id = request.POST.get("id")
@@ -386,5 +398,6 @@ def material_list(request):
         "current_rate": current_rate,
         "rate_error": rate_error,
         "category_choices": Material.CATEGORY_CHOICES,
+        "usage_stage_choices": Material.USAGE_STAGE_CHOICES,
         "movement_choices": [c for c in MaterialStockMovement.MOVEMENT_CHOICES if c[0] != "BASLANGIC"],
     })
