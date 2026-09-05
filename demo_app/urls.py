@@ -12,7 +12,7 @@ from core.team_views import employee_detail, user_management_view
 from core.fason_views import fasoncu_raporu, fasoncu_detay
 from core.nakis_views import nakisci_raporu, nakisci_detay
 from core.depo_views import depo_ozet as managed_depo_ozet
-from core.customer_report_views import customer_comparison_report
+from core.customer_report_views import customer_comparison_report, customer_detail_report
 
 
 def logout_view(request):
@@ -57,6 +57,7 @@ urlpatterns = [
     path("reports/nakisci/", nakisci_raporu, name="nakisci_raporu"),
     path("reports/nakisci/<int:nakisci_id>/", nakisci_detay, name="nakisci_detay"),
     path("reports/musteri-karsilastirma/", customer_comparison_report, name="customer_comparison_report"),
+    path("reports/musteri-karsilastirma/<int:customer_id>/", customer_detail_report, name="customer_detail_report"),
     path("product-costs/", views.product_cost_list, name="product_cost_list"),
     path("events/<int:event_id>/delete/", views.delete_order_event, name="delete_order_event"),
     path("asistan/", assistant_page, name="ai_assistant"),
