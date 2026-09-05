@@ -33,6 +33,8 @@ class MoliAccessMiddleware:
             permission = 'can_manage_quality'
         elif path.startswith('/depolar/'):
             permission = 'can_view_depots'
+        elif path.startswith('/orders/export/excel/'):
+            permission = 'can_create_orders'
         elif path.startswith('/order/new/') or path.startswith('/orders/multi-create/'):
             permission = 'can_create_orders'
         elif '/delete/' in path and path.startswith('/order/'):
