@@ -11,6 +11,7 @@ from core.assistant_views import assistant_page, assistant_api, assistant_clear
 from core.team_views import employee_detail, user_management_view
 from core.fason_views import fasoncu_raporu, fasoncu_detay
 from core.nakis_views import nakisci_raporu, nakisci_detay
+from core.depo_views import depo_ozet as managed_depo_ozet
 
 
 def logout_view(request):
@@ -63,7 +64,7 @@ urlpatterns = [
     path("fasoncu/yeni/", views.fasoncu_yeni, name="fasoncu_yeni"),
     path("nakisci/yeni/", views.nakisci_ekle, name="nakisci_yeni"),
     path("order/<int:order_id>/stok-ekle/", views.stok_ekle, name="stok_ekle"),
-    path("depolar/", views.depo_ozet, name="depo_ozet"),
+    path("depolar/", managed_depo_ozet, name="depo_ozet"),
     path("depolar/detay/<str:depo_adi>/", views.depo_detay, name="depo_detay"),
     path("depolar/arama/", views.depo_arama, name="depo_arama"),
     path("depolar/hazirdan-ver/<int:stok_id>/", views.hazirdan_ver, name="hazirdan_ver"),
