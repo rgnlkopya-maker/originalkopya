@@ -155,6 +155,9 @@ def product_card_detail(request, card_id):
         elif action == "add_material":
             material_id = request.POST.get("material_id")
             miktar_text = (request.POST.get("miktar") or "").replace(",", ".")
+            kullanim_asamasi = (request.POST.get("kullanim_asamasi") or "KESIM").strip()
+            if kullanim_asamasi not in {c[0] for c in ProductMaterial.STAGE_CHOICES}:
+                kullanim_asamasi = "KESIM"
             try:
                 miktar = Decimal(miktar_text)
                 if miktar <= 0:
@@ -163,7 +166,7 @@ def product_card_detail(request, card_id):
                 messages.error(request, "Geçerli bir sarfiyat miktarı girin.")
                 return redirect("product_card_detail", card_id=card.id)
             material = get_object_or_404(Material, pk=material_id, aktif=True)
-            ProductMaterial.objects.update_or_create(product_card=card, material=material, defaults={"miktar": miktar, "notlar": (request.POST.get("notlar") or "").strip()})
+            ProductMaterial.objects.update_or_create(product_card=card, material=material, defaults={"miktar": miktar, "kullanim_asamasi": kullanim_asamasi, "notlar": (request.POST.get("notlar") or "").strip()})
             if ProductCost.objects.filter(urun_kodu=card.urun.kod, is_active=True).exists():
                 recalculate_approved_product_costs()
             messages.success(request, "Malzeme reçeteye eklendi/güncellendi.")
@@ -207,7 +210,7 @@ def product_card_detail(request, card_id):
     usages = list(card.materials.select_related("material").all())
     material_total = sum((usage.satir_maliyeti for usage in usages), Decimal("0"))
     current_product_cost = ProductCost.objects.filter(urun_kodu=card.urun.kod, is_active=True).first()
-    return render(request, "product_cards/detail.html", {"card": card, "materials": materials, "usages": usages, "material_total": material_total, "calculated_total": card.toplam_maliyet, "current_product_cost": current_product_cost, "current_rate": current_rate, "rate_error": rate_error, "currency_choices": CURRENCY_CHOICES, "urun_tipi_choices": UrunKod._meta.get_field("urun_tipi").choices})
+    return render(request, "product_cards/detail.html", {"card": card, "materials": materials, "usages": usages, "material_total": material_total, "calculated_total": card.toplam_maliyet, "current_product_cost": current_product_cost, "current_rate": current_rate, "rate_error": rate_error, "currency_choices": CURRENCY_CHOICES, "urun_tipi_choices": UrunKod._meta.get_field("urun_tipi").choices, "material_stage_choices": ProductMaterial.STAGE_CHOICES})
 
 
 @login_required
