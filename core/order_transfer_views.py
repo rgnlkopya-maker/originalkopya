@@ -1,8 +1,9 @@
 from django.contrib.auth.decorators import login_required
 from django.db import transaction
+from django.db.models import Q
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404
-from django.views.decorators.http import require_POST
+from django.views.decorators.http import require_GET, require_POST
 
 from app_settings.access import has_access
 from core.models import Order, OrderEvent
@@ -26,19 +27,63 @@ def _norm(value):
 
 
 @login_required
+@require_GET
+def search_transfer_targets(request, source_order_id):
+    if not has_access(request.user, "can_edit_orders"):
+        return JsonResponse({"results": []}, status=403)
+
+    source = get_object_or_404(Order, pk=source_order_id)
+    q = (request.GET.get("q") or "").strip()
+    if len(q) < 1:
+        return JsonResponse({"results": []})
+
+    orders = (
+        Order.objects.filter(is_active=True)
+        .exclude(pk=source.pk)
+        .select_related("musteri")
+        .filter(
+            Q(siparis_numarasi__icontains=q)
+            | Q(musteri__ad__icontains=q)
+            | Q(musteri_referans__icontains=q)
+            | Q(urun_kodu__icontains=q)
+            | Q(renk__icontains=q)
+            | Q(beden__icontains=q)
+        )
+        .order_by("-id")[:20]
+    )
+
+    results = []
+    for order in orders:
+        results.append({
+            "id": order.pk,
+            "siparis_numarasi": order.siparis_numarasi,
+            "musteri": order.musteri.ad if order.musteri else "Stoğa Üretim",
+            "musteri_referans": order.musteri_referans or "",
+            "urun_kodu": order.urun_kodu or "",
+            "renk": order.renk or "",
+            "beden": order.beden or "",
+        })
+    return JsonResponse({"results": results})
+
+
+@login_required
 @require_POST
 def transfer_production_history(request, source_order_id):
     if not has_access(request.user, "can_edit_orders"):
         return JsonResponse({"ok": False, "error": "Bu işlem için yetkiniz yok."}, status=403)
 
     source = get_object_or_404(Order, pk=source_order_id)
+    target_id = (request.POST.get("target_order_id") or "").strip()
     target_number = (request.POST.get("target_order_number") or "").strip()
-    if not target_number:
-        return JsonResponse({"ok": False, "error": "Yeni sipariş numarasını yazın."}, status=400)
 
-    target = Order.objects.filter(siparis_numarasi__iexact=target_number).first()
+    target = None
+    if target_id.isdigit():
+        target = Order.objects.filter(pk=int(target_id)).first()
+    elif target_number:
+        target = Order.objects.filter(siparis_numarasi__iexact=target_number).first()
+
     if not target:
-        return JsonResponse({"ok": False, "error": "Bu sipariş numarası bulunamadı."}, status=404)
+        return JsonResponse({"ok": False, "error": "Aktarılacak hedef siparişi seçin."}, status=400)
     if target.pk == source.pk:
         return JsonResponse({"ok": False, "error": "Aynı siparişe aktarım yapılamaz."}, status=400)
     if not target.is_active:
@@ -46,18 +91,14 @@ def transfer_production_history(request, source_order_id):
 
     if _norm(source.urun_kodu) != _norm(target.urun_kodu):
         return JsonResponse({"ok": False, "error": "Ürün kodları eşleşmiyor. Yanlış ürüne aktarımı önlemek için işlem durduruldu."}, status=400)
-
     if source.renk and target.renk and _norm(source.renk) != _norm(target.renk):
         return JsonResponse({"ok": False, "error": "Renkler eşleşmiyor. Hedef siparişi kontrol edin."}, status=400)
     if source.beden and target.beden and _norm(source.beden) != _norm(target.beden):
         return JsonResponse({"ok": False, "error": "Bedenler eşleşmiyor. Hedef siparişi kontrol edin."}, status=400)
 
     source_events = list(
-        OrderEvent.objects.filter(
-            order=source,
-            event_type="stage",
-            stage__in=PRODUCTION_STAGES,
-        ).order_by("timestamp", "id")
+        OrderEvent.objects.filter(order=source, event_type="stage", stage__in=PRODUCTION_STAGES)
+        .order_by("timestamp", "id")
     )
     if not source_events:
         return JsonResponse({"ok": False, "error": "Bu siparişte aktarılacak üretim geçmişi yok."}, status=400)
