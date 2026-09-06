@@ -2,7 +2,7 @@ from django.contrib.auth.decorators import login_required
 from django.db import transaction
 from django.db.models import Q
 from django.http import JsonResponse
-from django.shortcuts import get_object_or_404
+from django.shortcuts import get_object_or_404, redirect
 from django.views.decorators.http import require_GET, require_POST
 
 from app_settings.access import has_access
@@ -45,16 +45,11 @@ def search_transfer_targets(request, source_order_id):
     if not terms:
         return JsonResponse({"results": []})
 
-    orders = (
-        Order.objects.filter(is_active=True)
-        .exclude(pk=source.pk)
-        .select_related("musteri")
-    )
+    orders = Order.objects.filter(is_active=True).exclude(pk=source.pk).select_related("musteri")
     for term in terms:
         orders = orders.filter(_term_filter(term))
 
     orders = orders.order_by("-id")[:20]
-
     results = []
     for order in orders:
         results.append({
@@ -67,6 +62,13 @@ def search_transfer_targets(request, source_order_id):
             "beden": order.beden or "",
         })
     return JsonResponse({"results": results})
+
+
+@login_required
+@require_GET
+def order_by_number(request, order_number):
+    order = get_object_or_404(Order, siparis_numarasi__iexact=order_number)
+    return redirect("order_detail", pk=order.pk)
 
 
 @login_required
@@ -137,18 +139,18 @@ def transfer_production_history(request, source_order_id):
         OrderEvent.objects.create(
             order=source,
             user=actor,
-            gorev="yok",
-            stage="Üretim Aktarımı",
-            value=f"{target.siparis_numarasi} siparişine aktarıldı",
+            gorev=str(target.pk),
+            stage="uretim_aktarimi",
+            value=f"{target.siparis_numarasi}'e verildi",
             adet=0,
             event_type="stage",
         )
         OrderEvent.objects.create(
             order=target,
             user=actor,
-            gorev="yok",
-            stage="Üretim Aktarımı",
-            value=f"{source.siparis_numarasi} siparişinden alındı",
+            gorev=str(source.pk),
+            stage="uretim_aktarimi",
+            value=f"{source.siparis_numarasi}'den alındı",
             adet=0,
             event_type="stage",
         )
