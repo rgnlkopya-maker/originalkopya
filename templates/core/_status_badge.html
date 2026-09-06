@@ -91,18 +91,27 @@
 {% if is_manager %}
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-    const box = document.querySelector('.cost-section');
+    let box = document.querySelector('.cost-section');
+    if (!box && document.querySelector('.order-detail-wrap')) {
+        const infoGrid = document.querySelector('.info-grid');
+        if (infoGrid) {
+            box = document.createElement('section');
+            box.className = 'section-card cost-section';
+            box.innerHTML = '<div class="section-head"><h2 class="section-title">💰 Finans / Kâr Özeti</h2></div><div class="section-body"></div>';
+            infoGrid.insertAdjacentElement('afterend', box);
+            box = box.querySelector('.section-body');
+        }
+    }
     if (!box) return;
 
     {% if order.financial_snapshot %}
     box.innerHTML = `
-        <hr>
-        <div class="d-flex justify-content-between align-items-center mt-4 mb-2 flex-wrap gap-2">
-            <h5 class="mb-0">💰 Sipariş Günü Finans Özeti</h5>
+        <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
+            <h5 class="mb-0">Sipariş Günü Finans Özeti</h5>
             <span class="badge rounded-pill text-bg-light border">Sabit Snapshot</span>
         </div>
         <div class="small text-muted mb-3">Bu değerler sipariş oluşturulduğu anda sabitlenmiştir; sonraki kur ve maliyet değişikliklerinden etkilenmez.</div>
-        <table class="table table-sm table-bordered bg-white align-middle">
+        <table class="table table-sm table-bordered bg-white align-middle mb-0">
             <tr><th style="width:42%">Satış Fiyatı</th><td>{{ order.financial_snapshot.satis_fiyati|floatformat:2 }} {{ order.financial_snapshot.satis_para_birimi }}</td></tr>
             <tr><th>Sipariş Günü USD/TL Kuru</th><td>{% if order.financial_snapshot.usd_try %}{{ order.financial_snapshot.usd_try|floatformat:4 }} TL{% else %}<span class="text-muted">Kur kaydı yok</span>{% endif %}</td></tr>
             <tr><th>Satışın TL Karşılığı</th><td>{% if order.financial_snapshot.satis_tl is not None %}<strong>{{ order.financial_snapshot.satis_tl|floatformat:2 }} TL</strong>{% else %}<span class="text-muted">Hesaplanamadı</span>{% endif %}</td></tr>
@@ -111,8 +120,6 @@ document.addEventListener('DOMContentLoaded', function () {
         </table>`;
     {% else %}
     box.innerHTML = `
-        <hr>
-        <h5 class="mt-4">💰 Sipariş Günü Finans Özeti</h5>
         <div class="alert alert-light border mb-0">Bu sipariş finans snapshot sistemi kurulmadan önce oluşturulmuş. Geçmiş tarihli kur veya maliyet uydurulmadığı için sipariş günü kârı otomatik gösterilmiyor.</div>`;
     {% endif %}
 });
