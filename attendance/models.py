@@ -60,6 +60,8 @@ class EmployeeHRProfile(models.Model):
     sgk_start_date = models.DateField(null=True, blank=True)
     birth_date = models.DateField(null=True, blank=True)
     annual_leave_carryover = models.PositiveIntegerField(default=0)
+    chronic_conditions = models.TextField(blank=True, default="")
+    medications = models.TextField(blank=True, default="")
     note = models.TextField(blank=True, default="")
     updated_at = models.DateTimeField(auto_now=True)
 
