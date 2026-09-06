@@ -28,7 +28,7 @@ class MoliAccessMiddleware:
         elif path.startswith('/attendance/'):
             permission = 'can_view_attendance'
         elif path.startswith('/planlama/'):
-            permission = None
+            permission = 'can_manage_planning'
         elif path.startswith('/asistan/') or path.startswith('/api/assistant/'):
             permission = 'can_view_assistant'
         elif path.startswith('/kalite/'):
