@@ -141,7 +141,8 @@ def transfer_production_history(request, source_order_id):
             user=actor,
             gorev=str(target.pk),
             stage="uretim_aktarimi",
-            value=f"{target.siparis_numarasi}'e verildi",
+            value="verildi",
+            parca=target.siparis_numarasi,
             adet=0,
             event_type="stage",
         )
@@ -150,7 +151,8 @@ def transfer_production_history(request, source_order_id):
             user=actor,
             gorev=str(source.pk),
             stage="uretim_aktarimi",
-            value=f"{source.siparis_numarasi}'den alındı",
+            value="alindi",
+            parca=source.siparis_numarasi,
             adet=0,
             event_type="stage",
         )
