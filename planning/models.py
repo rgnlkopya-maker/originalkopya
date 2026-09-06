@@ -32,6 +32,7 @@ class ShipmentPlan(models.Model):
         related_name="shipment_plan",
     )
     planned_date = models.DateField(db_index=True)
+    invoiced = models.BooleanField(default=False)
     created_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         null=True,
