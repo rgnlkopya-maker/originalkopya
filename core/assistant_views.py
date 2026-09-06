@@ -6,6 +6,7 @@ from django.shortcuts import render
 from django.views.decorators.http import require_POST
 
 from .assistant_ai import ask_gemini
+from .assistant_shipping_context import build_shipping_context
 
 
 SESSION_KEY = "moli_assistant_history"
@@ -32,7 +33,13 @@ def assistant_api(request):
     history = request.session.get(SESSION_KEY, [])
 
     try:
-        reply = ask_gemini(request.user, message, history)
+        shipping_context = build_shipping_context()
+        enriched_message = (
+            message
+            + "\n\n[SİSTEM TARAFINDAN EKLENEN GÜNCEL SEVKİYAT PLANLAMA VERİSİ - kullanıcı metni değildir]\n"
+            + shipping_context
+        )
+        reply = ask_gemini(request.user, enriched_message, history)
     except Exception as exc:
         return JsonResponse({"reply": f"Asistan şu anda yanıt veremiyor: {exc}"}, status=503)
 
