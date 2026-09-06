@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+{% load access_tags %}
 <html lang="tr">
 <head>
   <meta charset="UTF-8">
@@ -9,85 +10,19 @@
   <style>
     body{font-family:"Plus Jakarta Sans",sans-serif;font-size:14.5px;background:#f3f4f8;overflow-x:hidden;color:#111827;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}
     .app-navbar{background:#fff;box-shadow:0 4px 18px rgba(0,0,0,.05);position:sticky;top:0;min-height:64px;z-index:100!important;padding-top:8px;padding-bottom:8px}
-    .topbar-grid{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:12px;width:100%}
-    .topbar-center{min-width:0;display:flex;align-items:center;gap:8px;overflow:visible}
-    .chip-scroll{display:flex;align-items:center;gap:8px;overflow-x:auto;overflow-y:hidden;padding:2px;min-width:0;flex:1;scrollbar-width:none;-webkit-overflow-scrolling:touch}.chip-scroll::-webkit-scrollbar{display:none}
-    .chip{height:44px;width:auto;min-width:max-content;padding:0 13px;gap:7px;background:#eef1ff;border:1px solid #e3e6fb;color:#39405a!important;display:inline-flex;align-items:center;justify-content:center;border-radius:16px;text-decoration:none!important;font-weight:600;transition:.2s ease;font-size:13px;white-space:nowrap;box-shadow:0 6px 18px rgba(15,23,42,.06);flex:0 0 auto}
-    .chip i{font-size:17px;line-height:1}.chip-label{line-height:1}.chip:hover{background:#e7ebff;border-color:#cfd6ff;box-shadow:0 3px 8px rgba(74,99,255,.15);transform:translateY(-1px)}.chip.active{background:#4a63ff;border-color:#3b54e9;color:#fff!important;box-shadow:0 4px 12px rgba(74,99,255,.30)}
-    .topbar-right{justify-self:end;display:flex;align-items:center;gap:8px}
-    .user-chip{display:inline-flex;align-items:center;gap:7px;background:#f4f6ff;border:1px solid #e3e6fb;height:44px;padding:0 13px;border-radius:16px;font-weight:600;color:#39405a;box-shadow:0 6px 18px rgba(15,23,42,.06);cursor:pointer;white-space:nowrap}
-    .user-name-mobile{display:none}
-    .menu-dropdown{position:relative;flex:0 0 auto}
-    .menu-dropdown .dropdown-menu{border:1px solid #e7eaf2;border-radius:14px;box-shadow:0 14px 34px rgba(15,23,42,.14);padding:7px;min-width:195px;margin-top:7px!important;z-index:3000}
-    .menu-dropdown .dropdown-item{border-radius:10px;padding:9px 11px;font-size:13px;font-weight:600;color:#39405a;display:flex;align-items:center;gap:8px}.menu-dropdown .dropdown-item:hover{background:#f2f4ff;color:#3349d8}.menu-dropdown .dropdown-item.danger{color:#d53333}.menu-dropdown .dropdown-divider{margin:5px 0;border-color:#eef0f5}
-    .page-nav{display:flex;align-items:center;gap:8px;padding:12px 18px 0;max-width:1600px;margin:0 auto}.page-nav-btn{display:inline-flex;align-items:center;gap:7px;height:36px;padding:0 12px;border-radius:10px;border:1px solid #dfe3ea;background:#fff;color:#39405a;text-decoration:none;font-size:12.5px;font-weight:700;box-shadow:0 3px 10px rgba(15,23,42,.05);transition:.15s}.page-nav-btn:hover{background:#eef1ff;border-color:#cfd6ff;color:#3349d8;transform:translateY(-1px)}.page-nav-btn i{font-size:14px}.page-nav-btn.back{cursor:pointer}
-    @media(max-width:1100px){.user-name-desktop{display:none!important}.user-name-mobile{display:inline!important}.user-chip{max-width:none!important}}
-    @media(max-width:900px){.app-navbar{min-height:52px;padding:6px 5px!important}.topbar-grid{gap:3px}.topbar-center{gap:3px}.chip-scroll{gap:3px;padding:1px}.chip{height:34px;padding:0 6px;border-radius:11px;font-size:10.5px;gap:4px;box-shadow:0 3px 10px rgba(15,23,42,.05)}.chip i{font-size:13px}.topbar-right{gap:3px}.user-chip{height:34px;padding:0 6px;border-radius:11px;font-size:10.5px;gap:3px;max-width:none}.user-chip>i{display:none}.menu-dropdown .dropdown-menu{min-width:180px}.page-nav{padding:8px 10px 0;gap:6px}.page-nav-btn{height:33px;padding:0 10px;font-size:11.5px;border-radius:9px}}
-    .modal{z-index:20000!important}.modal-backdrop{z-index:19999!important}.select2-container,.select2-dropdown{z-index:5000!important}.modal .select2-container,.modal .select2-dropdown{z-index:20001!important}.select2-hidden-accessible{display:none!important;visibility:hidden!important}.navbar .container-fluid{flex-wrap:nowrap!important}
-    table thead th{font-weight:600;font-size:12px;color:#64748b;letter-spacing:.4px;text-transform:uppercase}table tbody td{font-weight:500;color:#111827;font-size:14px;padding-top:16px!important;padding-bottom:16px!important}table tbody td:nth-child(2),table tbody td:nth-child(3),table tbody td:nth-child(4){font-weight:700;color:#0f172a}table a{color:#2563eb;font-weight:600;text-decoration:none}table a:hover{text-decoration:underline}table tbody tr{transition:.15s ease}table tbody tr:hover{background:#f4f7ff;box-shadow:inset 0 0 0 1px rgba(99,102,241,.18)}.badge,.btn-status{font-weight:700;border-radius:12px;padding:8px 12px}
-    hr:has(+ h5 + div #adet_kesim),h5:has(+ div #adet_kesim),div:has(> div > #adet_kesim){display:none!important}
+    .topbar-grid{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:12px;width:100%}.topbar-center{min-width:0;display:flex;align-items:center;gap:8px;overflow:visible}.chip-scroll{display:flex;align-items:center;gap:8px;overflow-x:auto;overflow-y:hidden;padding:2px;min-width:0;flex:1;scrollbar-width:none;-webkit-overflow-scrolling:touch}.chip-scroll::-webkit-scrollbar{display:none}.chip{height:44px;width:auto;min-width:max-content;padding:0 13px;gap:7px;background:#eef1ff;border:1px solid #e3e6fb;color:#39405a!important;display:inline-flex;align-items:center;justify-content:center;border-radius:16px;text-decoration:none!important;font-weight:600;transition:.2s ease;font-size:13px;white-space:nowrap;box-shadow:0 6px 18px rgba(15,23,42,.06);flex:0 0 auto}.chip i{font-size:17px;line-height:1}.chip-label{line-height:1}.chip:hover{background:#e7ebff;border-color:#cfd6ff;box-shadow:0 3px 8px rgba(74,99,255,.15);transform:translateY(-1px)}.chip.active{background:#4a63ff;border-color:#3b54e9;color:#fff!important;box-shadow:0 4px 12px rgba(74,99,255,.30)}.topbar-right{justify-self:end;display:flex;align-items:center;gap:8px}.user-chip{display:inline-flex;align-items:center;gap:7px;background:#f4f6ff;border:1px solid #e3e6fb;height:44px;padding:0 13px;border-radius:16px;font-weight:600;color:#39405a;box-shadow:0 6px 18px rgba(15,23,42,.06);cursor:pointer;white-space:nowrap}.user-name-mobile{display:none}.menu-dropdown{position:relative;flex:0 0 auto}.menu-dropdown .dropdown-menu{border:1px solid #e7eaf2;border-radius:14px;box-shadow:0 14px 34px rgba(15,23,42,.14);padding:7px;min-width:195px;margin-top:7px!important;z-index:3000}.menu-dropdown .dropdown-item{border-radius:10px;padding:9px 11px;font-size:13px;font-weight:600;color:#39405a;display:flex;align-items:center;gap:8px}.menu-dropdown .dropdown-item:hover{background:#f2f4ff;color:#3349d8}.menu-dropdown .dropdown-item.danger{color:#d53333}.menu-dropdown .dropdown-divider{margin:5px 0;border-color:#eef0f5}.page-nav{display:flex;align-items:center;gap:8px;padding:12px 18px 0;max-width:1600px;margin:0 auto}.page-nav-btn{display:inline-flex;align-items:center;gap:7px;height:36px;padding:0 12px;border-radius:10px;border:1px solid #dfe3ea;background:#fff;color:#39405a;text-decoration:none;font-size:12.5px;font-weight:700;box-shadow:0 3px 10px rgba(15,23,42,.05);transition:.15s}.page-nav-btn:hover{background:#eef1ff;border-color:#cfd6ff;color:#3349d8;transform:translateY(-1px)}.page-nav-btn i{font-size:14px}.page-nav-btn.back{cursor:pointer}@media(max-width:1100px){.user-name-desktop{display:none!important}.user-name-mobile{display:inline!important}.user-chip{max-width:none!important}}@media(max-width:900px){.app-navbar{min-height:52px;padding:6px 5px!important}.topbar-grid{gap:3px}.topbar-center{gap:3px}.chip-scroll{gap:3px;padding:1px}.chip{height:34px;padding:0 6px;border-radius:11px;font-size:10.5px;gap:4px;box-shadow:0 3px 10px rgba(15,23,42,.05)}.chip i{font-size:13px}.topbar-right{gap:3px}.user-chip{height:34px;padding:0 6px;border-radius:11px;font-size:10.5px;gap:3px;max-width:none}.user-chip>i{display:none}.menu-dropdown .dropdown-menu{min-width:180px}.page-nav{padding:8px 10px 0;gap:6px}.page-nav-btn{height:33px;padding:0 10px;font-size:11.5px;border-radius:9px}}.modal{z-index:20000!important}.modal-backdrop{z-index:19999!important}.select2-container,.select2-dropdown{z-index:5000!important}.modal .select2-container,.modal .select2-dropdown{z-index:20001!important}.select2-hidden-accessible{display:none!important;visibility:hidden!important}.navbar .container-fluid{flex-wrap:nowrap!important}table thead th{font-weight:600;font-size:12px;color:#64748b;letter-spacing:.4px;text-transform:uppercase}table tbody td{font-weight:500;color:#111827;font-size:14px;padding-top:16px!important;padding-bottom:16px!important}table tbody td:nth-child(2),table tbody td:nth-child(3),table tbody td:nth-child(4){font-weight:700;color:#0f172a}table a{color:#2563eb;font-weight:600;text-decoration:none}table a:hover{text-decoration:underline}table tbody tr{transition:.15s ease}table tbody tr:hover{background:#f4f7ff;box-shadow:inset 0 0 0 1px rgba(99,102,241,.18)}.badge,.btn-status{font-weight:700;border-radius:12px;padding:8px 12px}hr:has(+ h5 + div #adet_kesim),h5:has(+ div #adet_kesim),div:has(> div > #adet_kesim){display:none!important}
   </style>
-  {% block extra_css %}{% endblock %}
-  <script src="https://unpkg.com/htmx.org@1.9.10"></script>
-</head>
-<body>
-<nav class="navbar app-navbar px-3 mb-0">
-  <div class="container-fluid topbar-grid">
-    <div class="topbar-center">
-      <div class="chip-scroll">
-        {% if user.is_superuser or user.moli_access.can_view_orders %}<a href="{% url 'order_list' %}" class="chip {% if request.resolver_match.url_name == 'order_list' %}active{% endif %}"><i class="bi bi-file-text"></i><span class="chip-label">Siparişler</span></a>{% endif %}
-        {% if user.is_superuser or user.moli_access.can_view_depots %}<a href="{% url 'depo_ozet' %}" class="chip {% if request.resolver_match.url_name == 'depo_ozet' %}active{% endif %}"><i class="bi bi-building"></i><span class="chip-label">Depolar</span></a>{% endif %}
-        {% if user.is_superuser or user.moli_access.can_view_reports %}<a href="{% url 'dashboard' %}" class="chip {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}"><i class="bi bi-bar-chart"></i><span class="chip-label">Raporlar</span></a>{% endif %}
-        {% if user.is_superuser or user.moli_access.can_view_costs %}<a href="{% url 'product_cost_list' %}" class="chip {% if request.resolver_match.url_name == 'product_cost_list' %}active{% endif %}"><i class="bi bi-coin"></i><span class="chip-label">Maliyetler</span></a>{% endif %}
-        {% if user.is_superuser or user.moli_access.can_manage_users %}<a href="{% url 'user_management' %}" class="chip {% if request.resolver_match.url_name == 'user_management' %}active{% endif %}"><i class="bi bi-people"></i><span class="chip-label">Ekipler</span></a>{% endif %}
-        <a href="{% url 'planning_page' %}" class="chip {% if request.resolver_match.url_name == 'planning_page' %}active{% endif %}"><i class="bi bi-calendar3"></i><span class="chip-label">Planlama</span></a>
-        {% if user.is_superuser or user.moli_access.can_view_assistant %}<a href="{% url 'ai_assistant' %}" class="chip {% if request.resolver_match.url_name == 'ai_assistant' %}active{% endif %}"><i class="bi bi-robot"></i><span class="chip-label">Asistan</span></a>{% endif %}
-      </div>
-    </div>
-    {% if user.is_authenticated %}<div class="topbar-right"><div class="dropdown menu-dropdown"><button class="user-chip dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false"><i class="bi bi-person-circle"></i><span class="user-name-desktop">{{ user.get_full_name|default:user.username }}</span><span class="user-name-mobile">{{ user.get_full_name|default:user.username }}</span></button><ul class="dropdown-menu dropdown-menu-end">{% if user.is_superuser or user.moli_access.can_view_settings %}<li><a class="dropdown-item" href="{% url 'settings_home' %}"><i class="bi bi-gear"></i>Ayarlar</a></li><li><hr class="dropdown-divider"></li>{% endif %}<li><a class="dropdown-item danger" href="{% url 'logout' %}"><i class="bi bi-box-arrow-right"></i>Çıkış</a></li></ul></div></div>{% endif %}
-  </div>
-</nav>
-{% if request.resolver_match.url_name != 'order_list' and request.resolver_match.url_name != 'order_detail' %}
-<div class="page-nav no-print">
-  <a href="{% url 'order_list' %}" class="page-nav-btn"><i class="bi bi-house-door"></i><span>Ana Sayfa</span></a>
-  <button type="button" class="page-nav-btn back" onclick="if(document.referrer){history.back()}else{window.location.href='{% url 'order_list' %}'}"><i class="bi bi-arrow-left"></i><span>Geri</span></button>
-</div>
-{% endif %}
-<div id="mainContent">{% block content %}{% endblock %}</div>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
-<script>document.addEventListener('DOMContentLoaded',function(){const el=document.querySelector('.user-name-mobile');if(!el)return;const p=el.textContent.trim().split(/\s+/).filter(Boolean);if(p.length>1){el.textContent=p[0]+' '+Array.from(p[p.length-1])[0]+'.';}});</script>
-<script>
-document.addEventListener('DOMContentLoaded',function(){
-  document.addEventListener('click',function(e){
-    const link=e.target.closest('a[href]');
-    if(!link)return;
-    try{
-      const u=new URL(link.href,window.location.origin);
-      if(u.origin!==window.location.origin)return;
-      if(/^\/order\/\d+\/$/.test(u.pathname) && !u.searchParams.has('return_url')){
-        u.searchParams.set('return_url',window.location.pathname+window.location.search);
-        link.href=u.pathname+u.search;
-      }
-    }catch(err){}
-  },true);
-
-  const search=document.getElementById('searchInput');
-  if(search && window.location.pathname==='/'){
-    const key='moli-order-search:'+window.location.pathname+window.location.search;
-    const saved=sessionStorage.getItem(key);
-    if(saved && !search.value){
-      search.value=saved;
-      search.dispatchEvent(new Event('keyup',{bubbles:true}));
-    }
-    search.addEventListener('input',function(){sessionStorage.setItem(key,this.value)});
-    const clear=document.getElementById('clearFilters');
-    clear&&clear.addEventListener('click',function(){sessionStorage.removeItem(key)});
-  }
-});
-</script>
-{% block extra_js %}{% endblock %}
-<input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}">
-</body>
-</html>
+  {% block extra_css %}{% endblock %}<script src="https://unpkg.com/htmx.org@1.9.10"></script>
+</head><body>
+<nav class="navbar app-navbar px-3 mb-0"><div class="container-fluid topbar-grid"><div class="topbar-center"><div class="chip-scroll">
+{% if user|can:'can_view_orders' %}<a href="{% url 'order_list' %}" class="chip {% if request.resolver_match.url_name == 'order_list' %}active{% endif %}"><i class="bi bi-file-text"></i><span class="chip-label">Siparişler</span></a>{% endif %}
+{% if user|can:'can_view_depots' %}<a href="{% url 'depo_ozet' %}" class="chip {% if request.resolver_match.url_name == 'depo_ozet' %}active{% endif %}"><i class="bi bi-building"></i><span class="chip-label">Depolar</span></a>{% endif %}
+{% if user|can:'can_view_reports' %}<a href="{% url 'dashboard' %}" class="chip {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}"><i class="bi bi-bar-chart"></i><span class="chip-label">Raporlar</span></a>{% endif %}
+{% if user|can:'can_view_costs' %}<a href="{% url 'product_cost_list' %}" class="chip {% if request.resolver_match.url_name == 'product_cost_list' %}active{% endif %}"><i class="bi bi-coin"></i><span class="chip-label">Maliyetler</span></a>{% endif %}
+{% if user|can:'can_manage_users' %}<a href="{% url 'user_management' %}" class="chip {% if request.resolver_match.url_name == 'user_management' %}active{% endif %}"><i class="bi bi-people"></i><span class="chip-label">Ekipler</span></a>{% endif %}
+{% if user|can:'can_manage_planning' %}<a href="{% url 'planning_page' %}" class="chip {% if request.resolver_match.url_name == 'planning_page' or request.resolver_match.url_name == 'shipment_planning_page' %}active{% endif %}"><i class="bi bi-calendar3"></i><span class="chip-label">Planlama</span></a>{% endif %}
+{% if user|can:'can_view_assistant' %}<a href="{% url 'ai_assistant' %}" class="chip {% if request.resolver_match.url_name == 'ai_assistant' %}active{% endif %}"><i class="bi bi-robot"></i><span class="chip-label">Asistan</span></a>{% endif %}
+</div></div>{% if user.is_authenticated %}<div class="topbar-right"><div class="dropdown menu-dropdown"><button class="user-chip dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false"><i class="bi bi-person-circle"></i><span class="user-name-desktop">{{ user.get_full_name|default:user.username }}</span><span class="user-name-mobile">{{ user.get_full_name|default:user.username }}</span></button><ul class="dropdown-menu dropdown-menu-end">{% if user|can:'can_view_settings' %}<li><a class="dropdown-item" href="{% url 'settings_home' %}"><i class="bi bi-gear"></i>Ayarlar</a></li><li><hr class="dropdown-divider"></li>{% endif %}<li><a class="dropdown-item danger" href="{% url 'logout' %}"><i class="bi bi-box-arrow-right"></i>Çıkış</a></li></ul></div></div>{% endif %}</div></nav>
+{% if request.resolver_match.url_name != 'order_list' and request.resolver_match.url_name != 'order_detail' %}<div class="page-nav no-print"><a href="{% url 'order_list' %}" class="page-nav-btn"><i class="bi bi-house-door"></i><span>Ana Sayfa</span></a><button type="button" class="page-nav-btn back" onclick="if(document.referrer){history.back()}else{window.location.href='{% url 'order_list' %}'}"><i class="bi bi-arrow-left"></i><span>Geri</span></button></div>{% endif %}
+<div id="mainContent">{% block content %}{% endblock %}</div><script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script><script src="https://code.jquery.com/jquery-3.6.0.min.js"></script><script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script><script>document.addEventListener('DOMContentLoaded',function(){const el=document.querySelector('.user-name-mobile');if(!el)return;const p=el.textContent.trim().split(/\s+/).filter(Boolean);if(p.length>1){el.textContent=p[0]+' '+Array.from(p[p.length-1])[0]+'.';}});</script>
+<script>document.addEventListener('DOMContentLoaded',function(){document.addEventListener('click',function(e){const link=e.target.closest('a[href]');if(!link)return;try{const u=new URL(link.href,window.location.origin);if(u.origin!==window.location.origin)return;if(/^\/order\/\d+\/$/.test(u.pathname)&&!u.searchParams.has('return_url')){u.searchParams.set('return_url',window.location.pathname+window.location.search);link.href=u.pathname+u.search}}catch(err){}},true);const search=document.getElementById('searchInput');if(search&&window.location.pathname==='/'){const key='moli-order-search:'+window.location.pathname+window.location.search;const saved=sessionStorage.getItem(key);if(saved&&!search.value){search.value=saved;setTimeout(()=>search.dispatchEvent(new Event('keyup',{bubbles:true})),0)}search.addEventListener('input',function(){sessionStorage.setItem(key,this.value)});const clear=document.getElementById('clearFilters');clear&&clear.addEventListener('click',function(){sessionStorage.removeItem(key)})}});</script>{% block extra_js %}{% endblock %}<input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}"></body></html>
