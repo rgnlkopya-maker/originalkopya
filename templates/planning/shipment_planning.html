@@ -5,7 +5,7 @@
 {% block content %}
 <div class="ship-wrap">
   <div class="ship-top"><h1 class="ship-title">Planlama</h1><div class="week-nav"><a class="week-btn" href="?date={{ prev_date }}">←</a><div class="week-label">{{ week_label }}</div><a class="week-btn" href="?date={{ next_date }}">→</a></div></div>
-  <div class="planning-tabs"><a class="planning-tab" href="{% url 'planning_page' %}">Üretim Planı</a><a class="planning-tab active" href="{% url 'shipment_planning_page' %}">Sevkiyat Planı</a></div>
+  <div class="planning-tabs"><a class="planning-tab active" href="{% url 'shipment_planning_page' %}">Sevkiyat Planı</a><a class="planning-tab" href="{% url 'planning_page' %}">Üretim Planı</a></div>
   <div class="week-card">
     {% for day in weekdays %}
       {% with daykey=day|date:'Y-m-d' %}
