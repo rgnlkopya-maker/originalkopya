@@ -22,6 +22,17 @@ PRODUCTION_STAGES = {
 }
 
 
+def _term_filter(term):
+    return (
+        Q(siparis_numarasi__icontains=term)
+        | Q(musteri__ad__icontains=term)
+        | Q(musteri_referans__icontains=term)
+        | Q(urun_kodu__icontains=term)
+        | Q(renk__icontains=term)
+        | Q(beden__icontains=term)
+    )
+
+
 @login_required
 @require_GET
 def search_transfer_targets(request, source_order_id):
@@ -29,24 +40,20 @@ def search_transfer_targets(request, source_order_id):
         return JsonResponse({"results": []}, status=403)
 
     source = get_object_or_404(Order, pk=source_order_id)
-    q = (request.GET.get("q") or "").strip()
-    if len(q) < 1:
+    raw_q = (request.GET.get("q") or "").strip()
+    terms = [part for part in raw_q.split() if part]
+    if not terms:
         return JsonResponse({"results": []})
 
     orders = (
         Order.objects.filter(is_active=True)
         .exclude(pk=source.pk)
         .select_related("musteri")
-        .filter(
-            Q(siparis_numarasi__icontains=q)
-            | Q(musteri__ad__icontains=q)
-            | Q(musteri_referans__icontains=q)
-            | Q(urun_kodu__icontains=q)
-            | Q(renk__icontains=q)
-            | Q(beden__icontains=q)
-        )
-        .order_by("-id")[:20]
     )
+    for term in terms:
+        orders = orders.filter(_term_filter(term))
+
+    orders = orders.order_by("-id")[:20]
 
     results = []
     for order in orders:
