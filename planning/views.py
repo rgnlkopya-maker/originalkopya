@@ -40,7 +40,7 @@ def planning_page(request):
         cells.append(None)
     weeks = [cells[i:i + 7] for i in range(0, len(cells), 7)]
 
-    entries = PlanningEntry.objects.filter(date__year=year, date__month=month)
+    entries = PlanningEntry.objects.filter(date__year=year, date__month=month).exclude(section="sevkiyat")
     entry_map = {
         f"{entry.section}-{entry.date.day}": {
             "note": entry.note,
@@ -86,8 +86,10 @@ def shipment_planning_page(request):
     weekdays = [monday + timedelta(days=i) for i in range(5)]
     friday = weekdays[-1]
 
-    shipment_entries = PlanningEntry.objects.filter(section="sevkiyat", date__range=(monday, friday))
-    shipment_notes = {entry.date.isoformat(): entry.note for entry in shipment_entries}
+    shipment_entries = PlanningEntry.objects.filter(section="sevkiyat", date__range=(monday, friday)).order_by("date", "id")
+    shipment_notes = {day.isoformat(): [] for day in weekdays}
+    for entry in shipment_entries:
+        shipment_notes.setdefault(entry.date.isoformat(), []).append({"id": entry.id, "note": entry.note})
 
     plans = (
         ShipmentPlan.objects
@@ -150,6 +152,14 @@ def remove_shipment_plan(request, plan_id):
 
 @login_required
 @require_POST
+def delete_entry(request, entry_id):
+    entry = get_object_or_404(PlanningEntry, pk=entry_id, section="sevkiyat")
+    entry.delete()
+    return JsonResponse({"ok": True})
+
+
+@login_required
+@require_POST
 def save_entry(request):
     try:
         section = request.POST["section"]
@@ -165,18 +175,37 @@ def save_entry(request):
     text_color = request.POST.get("text_color", "#182033")[:7]
     background_color = request.POST.get("background_color", "#ffffff")[:7]
 
+    if section == "sevkiyat":
+        if not note:
+            return JsonResponse({"ok": False, "error": "Boş not eklenemez."}, status=400)
+        entry = PlanningEntry.objects.create(
+            section=section,
+            date=entry_date,
+            note=note,
+            text_color=text_color,
+            background_color=background_color,
+            updated_by=request.user,
+        )
+        return JsonResponse({"ok": True, "id": entry.id, "note": entry.note})
+
     if not note and background_color.lower() == "#ffffff":
         PlanningEntry.objects.filter(section=section, date=entry_date).delete()
         return JsonResponse({"ok": True, "deleted": True})
 
-    PlanningEntry.objects.update_or_create(
-        section=section,
-        date=entry_date,
-        defaults={
-            "note": note,
-            "text_color": text_color,
-            "background_color": background_color,
-            "updated_by": request.user,
-        },
-    )
+    entry = PlanningEntry.objects.filter(section=section, date=entry_date).first()
+    if entry:
+        entry.note = note
+        entry.text_color = text_color
+        entry.background_color = background_color
+        entry.updated_by = request.user
+        entry.save()
+    else:
+        PlanningEntry.objects.create(
+            section=section,
+            date=entry_date,
+            note=note,
+            text_color=text_color,
+            background_color=background_color,
+            updated_by=request.user,
+        )
     return JsonResponse({"ok": True})
