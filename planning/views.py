@@ -136,7 +136,7 @@ def plan_order_shipment(request, order_id):
         order=order,
         defaults={"planned_date": planned_date, "created_by": request.user},
     )
-    return redirect(f"{reverse('planning:shipment')}?date={planned_date.isoformat()}")
+    return redirect(f"{reverse('shipment_planning_page')}?date={planned_date.isoformat()}")
 
 
 @login_required
@@ -145,7 +145,7 @@ def remove_shipment_plan(request, plan_id):
     plan = get_object_or_404(ShipmentPlan, pk=plan_id)
     planned_date = plan.planned_date
     plan.delete()
-    return redirect(f"{reverse('planning:shipment')}?date={planned_date.isoformat()}")
+    return redirect(f"{reverse('shipment_planning_page')}?date={planned_date.isoformat()}")
 
 
 @login_required
