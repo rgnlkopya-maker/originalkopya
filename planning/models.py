@@ -19,8 +19,7 @@ class PlanningEntry(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        constraints = [models.UniqueConstraint(fields=["section", "date"], name="unique_planning_section_date")]
-        ordering = ["date", "section"]
+        ordering = ["date", "section", "id"]
 
     def __str__(self):
         return f"{self.get_section_display()} - {self.date}"
