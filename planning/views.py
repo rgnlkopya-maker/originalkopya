@@ -83,6 +83,12 @@ def shipment_planning_page(request):
     weekdays = [monday + timedelta(days=i) for i in range(5)]
     friday = weekdays[-1]
 
+    shipment_entries = PlanningEntry.objects.filter(
+        section="sevkiyat",
+        date__range=(monday, friday),
+    )
+    shipment_notes = {entry.date.isoformat(): entry.note for entry in shipment_entries}
+
     month_names = {
         1: "Ocak", 2: "Şubat", 3: "Mart", 4: "Nisan", 5: "Mayıs", 6: "Haziran",
         7: "Temmuz", 8: "Ağustos", 9: "Eylül", 10: "Ekim", 11: "Kasım", 12: "Aralık",
@@ -98,6 +104,7 @@ def shipment_planning_page(request):
         "prev_date": (monday - timedelta(days=7)).isoformat(),
         "next_date": (monday + timedelta(days=7)).isoformat(),
         "today": today,
+        "shipment_notes": shipment_notes,
     })
 
 
@@ -110,7 +117,7 @@ def save_entry(request):
     except (KeyError, ValueError):
         return JsonResponse({"ok": False, "error": "Geçersiz kayıt."}, status=400)
 
-    valid_sections = {item[0] for item in SECTIONS}
+    valid_sections = {item[0] for item in SECTIONS} | {"sevkiyat"}
     if section not in valid_sections:
         return JsonResponse({"ok": False, "error": "Geçersiz planlama bölümü."}, status=400)
 
