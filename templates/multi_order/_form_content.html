@@ -43,6 +43,18 @@
             </select>
             <div class="form-text">Ürün kodundan otomatik gelir; bu sipariş için değiştirebilirsiniz.</div>
         </div>
+
+        {% if is_manager %}
+        <div class="col-md-8 mt-3" id="price-history-area" style="display:none;">
+            <label class="form-label">Müşterinin Geçmiş Fiyatı</label>
+            <div class="d-flex gap-2 flex-wrap align-items-center">
+                <button type="button" id="price-history-btn" class="manage-btn" data-bs-toggle="modal" data-bs-target="#priceHistoryModal">
+                    💰 Geçmiş Fiyatlar
+                </button>
+                <span id="last-price-summary" class="small text-muted"></span>
+            </div>
+        </div>
+        {% endif %}
     </div>
 
     <hr>
@@ -153,3 +165,24 @@
 </form>
 
 {% include "multi_order/_modals.html" %}
+
+{% if is_manager %}
+<div class="modal fade" id="priceHistoryModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div>
+                    <h5 class="modal-title">💰 Geçmiş Fiyatlar</h5>
+                    <div class="small text-muted" id="price-history-subtitle"></div>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-0">
+                <div id="price-history-loading" class="p-4 text-center text-muted">Geçmiş siparişler yükleniyor...</div>
+                <div id="price-history-empty" class="p-4 text-center text-muted" style="display:none;">Bu müşteri ve ürün için sevk edilmiş fiyatlı sipariş bulunamadı.</div>
+                <div id="price-history-list" class="list-group list-group-flush"></div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
