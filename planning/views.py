@@ -1,5 +1,5 @@
 import calendar
-from datetime import date
+from datetime import date, timedelta
 
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
@@ -67,6 +67,37 @@ def planning_page(request):
         "prev_month": prev_month,
         "next_year": next_year,
         "next_month": next_month,
+    })
+
+
+@login_required
+def shipment_planning_page(request):
+    today = date.today()
+    raw_date = request.GET.get("date")
+    try:
+        selected = date.fromisoformat(raw_date) if raw_date else today
+    except ValueError:
+        selected = today
+
+    monday = selected - timedelta(days=selected.weekday())
+    weekdays = [monday + timedelta(days=i) for i in range(5)]
+    friday = weekdays[-1]
+
+    month_names = {
+        1: "Ocak", 2: "Şubat", 3: "Mart", 4: "Nisan", 5: "Mayıs", 6: "Haziran",
+        7: "Temmuz", 8: "Ağustos", 9: "Eylül", 10: "Ekim", 11: "Kasım", 12: "Aralık",
+    }
+    if monday.month == friday.month:
+        week_label = f"{monday.day}–{friday.day} {month_names[monday.month]} {monday.year}"
+    else:
+        week_label = f"{monday.day} {month_names[monday.month]} – {friday.day} {month_names[friday.month]} {friday.year}"
+
+    return render(request, "planning/shipment_planning.html", {
+        "weekdays": weekdays,
+        "week_label": week_label,
+        "prev_date": (monday - timedelta(days=7)).isoformat(),
+        "next_date": (monday + timedelta(days=7)).isoformat(),
+        "today": today,
     })
 
 
