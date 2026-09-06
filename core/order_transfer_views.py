@@ -22,10 +22,6 @@ PRODUCTION_STAGES = {
 }
 
 
-def _norm(value):
-    return (value or "").strip().casefold()
-
-
 @login_required
 @require_GET
 def search_transfer_targets(request, source_order_id):
@@ -88,13 +84,6 @@ def transfer_production_history(request, source_order_id):
         return JsonResponse({"ok": False, "error": "Aynı siparişe aktarım yapılamaz."}, status=400)
     if not target.is_active:
         return JsonResponse({"ok": False, "error": "Hedef sipariş pasif durumda."}, status=400)
-
-    if _norm(source.urun_kodu) != _norm(target.urun_kodu):
-        return JsonResponse({"ok": False, "error": "Ürün kodları eşleşmiyor. Yanlış ürüne aktarımı önlemek için işlem durduruldu."}, status=400)
-    if source.renk and target.renk and _norm(source.renk) != _norm(target.renk):
-        return JsonResponse({"ok": False, "error": "Renkler eşleşmiyor. Hedef siparişi kontrol edin."}, status=400)
-    if source.beden and target.beden and _norm(source.beden) != _norm(target.beden):
-        return JsonResponse({"ok": False, "error": "Bedenler eşleşmiyor. Hedef siparişi kontrol edin."}, status=400)
 
     source_events = list(
         OrderEvent.objects.filter(order=source, event_type="stage", stage__in=PRODUCTION_STAGES)
