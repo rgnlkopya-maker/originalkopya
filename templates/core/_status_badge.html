@@ -93,12 +93,12 @@
 document.addEventListener('DOMContentLoaded', function () {
     let box = document.querySelector('.cost-section');
     if (!box && document.querySelector('.order-detail-wrap')) {
-        const infoGrid = document.querySelector('.info-grid');
-        if (infoGrid) {
+        const production = document.querySelector('.production-wrap');
+        if (production) {
             box = document.createElement('section');
             box.className = 'section-card cost-section';
             box.innerHTML = '<div class="section-head"><h2 class="section-title">💰 Finans / Kâr Özeti</h2></div><div class="section-body"></div>';
-            infoGrid.insertAdjacentElement('afterend', box);
+            production.insertAdjacentElement('afterend', box);
             box = box.querySelector('.section-body');
         }
     }
