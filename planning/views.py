@@ -39,173 +39,84 @@ def planning_page(request):
     while len(cells) % 7:
         cells.append(None)
     weeks = [cells[i:i + 7] for i in range(0, len(cells), 7)]
-
     entries = PlanningEntry.objects.filter(date__year=year, date__month=month).exclude(section="sevkiyat")
-    entry_map = {
-        f"{entry.section}-{entry.date.day}": {
-            "note": entry.note,
-            "text_color": entry.text_color,
-            "background_color": entry.background_color,
-        }
-        for entry in entries
-    }
-
-    if month == 1:
-        prev_year, prev_month = year - 1, 12
-    else:
-        prev_year, prev_month = year, month - 1
-    if month == 12:
-        next_year, next_month = year + 1, 1
-    else:
-        next_year, next_month = year, month + 1
-
-    return render(request, "planning/planning.html", {
-        "year": year,
-        "month": month,
-        "month_label": f"{month:02d}/{year}",
-        "weeks": weeks,
-        "sections": SECTIONS,
-        "entry_map": entry_map,
-        "prev_year": prev_year,
-        "prev_month": prev_month,
-        "next_year": next_year,
-        "next_month": next_month,
-    })
+    entry_map = {f"{entry.section}-{entry.date.day}": {"note": entry.note, "text_color": entry.text_color, "background_color": entry.background_color} for entry in entries}
+    if month == 1: prev_year, prev_month = year - 1, 12
+    else: prev_year, prev_month = year, month - 1
+    if month == 12: next_year, next_month = year + 1, 1
+    else: next_year, next_month = year, month + 1
+    return render(request, "planning/planning.html", {"year": year, "month": month, "month_label": f"{month:02d}/{year}", "weeks": weeks, "sections": SECTIONS, "entry_map": entry_map, "prev_year": prev_year, "prev_month": prev_month, "next_year": next_year, "next_month": next_month})
 
 
 @login_required
 def shipment_planning_page(request):
     today = date.today()
     raw_date = request.GET.get("date")
-    try:
-        selected = date.fromisoformat(raw_date) if raw_date else today
-    except ValueError:
-        selected = today
-
+    try: selected = date.fromisoformat(raw_date) if raw_date else today
+    except ValueError: selected = today
     monday = selected - timedelta(days=selected.weekday())
     weekdays = [monday + timedelta(days=i) for i in range(5)]
     friday = weekdays[-1]
-
     shipment_entries = PlanningEntry.objects.filter(section="sevkiyat", date__range=(monday, friday)).order_by("date", "id")
     shipment_notes = {day.isoformat(): [] for day in weekdays}
-    for entry in shipment_entries:
-        shipment_notes.setdefault(entry.date.isoformat(), []).append({"id": entry.id, "note": entry.note})
-
-    plans = (
-        ShipmentPlan.objects
-        .filter(planned_date__range=(monday, friday))
-        .select_related("order", "order__musteri")
-    )
+    for entry in shipment_entries: shipment_notes.setdefault(entry.date.isoformat(), []).append({"id": entry.id, "note": entry.note})
+    plans = ShipmentPlan.objects.filter(planned_date__range=(monday, friday)).select_related("order", "order__musteri")
     shipment_plans = {day.isoformat(): [] for day in weekdays}
     for plan in plans:
         order = plan.order
-        shipment_plans.setdefault(plan.planned_date.isoformat(), []).append({
-            "id": plan.id,
-            "order": order,
-            "status": status_label(latest_status_event(order)),
-        })
+        shipment_plans.setdefault(plan.planned_date.isoformat(), []).append({"id": plan.id, "order": order, "status": status_label(latest_status_event(order)), "invoiced": plan.invoiced})
+    month_names = {1:"Ocak",2:"Şubat",3:"Mart",4:"Nisan",5:"Mayıs",6:"Haziran",7:"Temmuz",8:"Ağustos",9:"Eylül",10:"Ekim",11:"Kasım",12:"Aralık"}
+    week_label = f"{monday.day}–{friday.day} {month_names[monday.month]} {monday.year}" if monday.month == friday.month else f"{monday.day} {month_names[monday.month]} – {friday.day} {month_names[friday.month]} {friday.year}"
+    return render(request, "planning/shipment_planning.html", {"weekdays": weekdays, "week_label": week_label, "prev_date": (monday-timedelta(days=7)).isoformat(), "next_date": (monday+timedelta(days=7)).isoformat(), "today": today, "shipment_notes": shipment_notes, "shipment_plans": shipment_plans})
 
-    month_names = {
-        1: "Ocak", 2: "Şubat", 3: "Mart", 4: "Nisan", 5: "Mayıs", 6: "Haziran",
-        7: "Temmuz", 8: "Ağustos", 9: "Eylül", 10: "Ekim", 11: "Kasım", 12: "Aralık",
-    }
-    if monday.month == friday.month:
-        week_label = f"{monday.day}–{friday.day} {month_names[monday.month]} {monday.year}"
-    else:
-        week_label = f"{monday.day} {month_names[monday.month]} – {friday.day} {month_names[friday.month]} {friday.year}"
 
-    return render(request, "planning/shipment_planning.html", {
-        "weekdays": weekdays,
-        "week_label": week_label,
-        "prev_date": (monday - timedelta(days=7)).isoformat(),
-        "next_date": (monday + timedelta(days=7)).isoformat(),
-        "today": today,
-        "shipment_notes": shipment_notes,
-        "shipment_plans": shipment_plans,
-    })
+@login_required
+@require_POST
+def toggle_shipment_invoice(request, plan_id):
+    plan = get_object_or_404(ShipmentPlan, pk=plan_id)
+    plan.invoiced = not plan.invoiced
+    plan.save(update_fields=["invoiced", "updated_at"])
+    return JsonResponse({"ok": True, "invoiced": plan.invoiced})
 
 
 @login_required
 @require_POST
 def plan_order_shipment(request, order_id):
     order = get_object_or_404(Order, pk=order_id)
-    try:
-        planned_date = date.fromisoformat(request.POST.get("planned_date", ""))
-    except ValueError:
-        return redirect("order_detail", pk=order.pk)
-
-    ShipmentPlan.objects.update_or_create(
-        order=order,
-        defaults={"planned_date": planned_date, "created_by": request.user},
-    )
+    try: planned_date = date.fromisoformat(request.POST.get("planned_date", ""))
+    except ValueError: return redirect("order_detail", pk=order.pk)
+    ShipmentPlan.objects.update_or_create(order=order, defaults={"planned_date": planned_date, "created_by": request.user})
     return redirect(f"{reverse('shipment_planning_page')}?date={planned_date.isoformat()}")
 
 
 @login_required
 @require_POST
 def remove_shipment_plan(request, plan_id):
-    plan = get_object_or_404(ShipmentPlan, pk=plan_id)
-    planned_date = plan.planned_date
-    plan.delete()
+    plan = get_object_or_404(ShipmentPlan, pk=plan_id); planned_date = plan.planned_date; plan.delete()
     return redirect(f"{reverse('shipment_planning_page')}?date={planned_date.isoformat()}")
 
 
 @login_required
 @require_POST
 def delete_entry(request, entry_id):
-    entry = get_object_or_404(PlanningEntry, pk=entry_id, section="sevkiyat")
-    entry.delete()
-    return JsonResponse({"ok": True})
+    entry = get_object_or_404(PlanningEntry, pk=entry_id, section="sevkiyat"); entry.delete(); return JsonResponse({"ok": True})
 
 
 @login_required
 @require_POST
 def save_entry(request):
-    try:
-        section = request.POST["section"]
-        entry_date = date.fromisoformat(request.POST["date"])
-    except (KeyError, ValueError):
-        return JsonResponse({"ok": False, "error": "Geçersiz kayıt."}, status=400)
-
-    valid_sections = {item[0] for item in SECTIONS} | {"sevkiyat"}
-    if section not in valid_sections:
-        return JsonResponse({"ok": False, "error": "Geçersiz planlama bölümü."}, status=400)
-
-    note = request.POST.get("note", "").strip()
-    text_color = request.POST.get("text_color", "#182033")[:7]
-    background_color = request.POST.get("background_color", "#ffffff")[:7]
-
-    if section == "sevkiyat":
-        if not note:
-            return JsonResponse({"ok": False, "error": "Boş not eklenemez."}, status=400)
-        entry = PlanningEntry.objects.create(
-            section=section,
-            date=entry_date,
-            note=note,
-            text_color=text_color,
-            background_color=background_color,
-            updated_by=request.user,
-        )
-        return JsonResponse({"ok": True, "id": entry.id, "note": entry.note})
-
-    if not note and background_color.lower() == "#ffffff":
-        PlanningEntry.objects.filter(section=section, date=entry_date).delete()
-        return JsonResponse({"ok": True, "deleted": True})
-
-    entry = PlanningEntry.objects.filter(section=section, date=entry_date).first()
+    try: section=request.POST["section"]; entry_date=date.fromisoformat(request.POST["date"])
+    except (KeyError,ValueError): return JsonResponse({"ok":False,"error":"Geçersiz kayıt."},status=400)
+    valid_sections={item[0] for item in SECTIONS}|{"sevkiyat"}
+    if section not in valid_sections:return JsonResponse({"ok":False,"error":"Geçersiz planlama bölümü."},status=400)
+    note=request.POST.get("note","").strip(); text_color=request.POST.get("text_color","#182033")[:7]; background_color=request.POST.get("background_color","#ffffff")[:7]
+    if section=="sevkiyat":
+        if not note:return JsonResponse({"ok":False,"error":"Boş not eklenemez."},status=400)
+        entry=PlanningEntry.objects.create(section=section,date=entry_date,note=note,text_color=text_color,background_color=background_color,updated_by=request.user)
+        return JsonResponse({"ok":True,"id":entry.id,"note":entry.note})
+    if not note and background_color.lower()=="#ffffff":PlanningEntry.objects.filter(section=section,date=entry_date).delete();return JsonResponse({"ok":True,"deleted":True})
+    entry=PlanningEntry.objects.filter(section=section,date=entry_date).first()
     if entry:
-        entry.note = note
-        entry.text_color = text_color
-        entry.background_color = background_color
-        entry.updated_by = request.user
-        entry.save()
-    else:
-        PlanningEntry.objects.create(
-            section=section,
-            date=entry_date,
-            note=note,
-            text_color=text_color,
-            background_color=background_color,
-            updated_by=request.user,
-        )
-    return JsonResponse({"ok": True})
+        entry.note=note;entry.text_color=text_color;entry.background_color=background_color;entry.updated_by=request.user;entry.save()
+    else:PlanningEntry.objects.create(section=section,date=entry_date,note=note,text_color=text_color,background_color=background_color,updated_by=request.user)
+    return JsonResponse({"ok":True})
