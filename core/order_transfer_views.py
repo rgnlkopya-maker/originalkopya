@@ -106,6 +106,8 @@ def transfer_production_history(request, source_order_id):
 
     created_count = 0
     affected_stages = set()
+    actor = request.user.get_full_name().strip() or request.user.username
+
     with transaction.atomic():
         for event in source_events:
             signature = (event.stage, event.value, event.user, event.timestamp)
@@ -131,6 +133,25 @@ def transfer_production_history(request, source_order_id):
 
         for stage in affected_stages:
             sync_order_stage_from_events(target, stage)
+
+        OrderEvent.objects.create(
+            order=source,
+            user=actor,
+            gorev="yok",
+            stage="Üretim Aktarımı",
+            value=f"{target.siparis_numarasi} siparişine aktarıldı",
+            adet=0,
+            event_type="stage",
+        )
+        OrderEvent.objects.create(
+            order=target,
+            user=actor,
+            gorev="yok",
+            stage="Üretim Aktarımı",
+            value=f"{source.siparis_numarasi} siparişinden alındı",
+            adet=0,
+            event_type="stage",
+        )
 
     return JsonResponse({
         "ok": True,
