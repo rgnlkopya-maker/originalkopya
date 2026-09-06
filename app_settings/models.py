@@ -25,8 +25,6 @@ class SystemSettings(models.Model):
     tcmb_update_hour = models.PositiveSmallIntegerField(default=9)
     finance_enabled = models.BooleanField(default=True)
 
-    # Depolar sayfasında aktif olarak gösterilecek depo kodları.
-    # Virgülle ayrılmış tutulur; mevcut stok depoları ilk açılışta otomatik eklenir.
     active_depots = models.TextField(blank=True, default="")
 
     quality_categories = models.TextField(
@@ -51,8 +49,6 @@ class SystemSettings(models.Model):
 class UserAccess(models.Model):
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="moli_access")
 
-    # Yeni normal kullanıcılar güvenli personel profiliyle başlar:
-    # yalnız siparişleri görür ve üretim panelini kullanır.
     can_view_orders = models.BooleanField(default=True)
     can_create_orders = models.BooleanField(default=False)
     can_edit_orders = models.BooleanField(default=False)
@@ -67,6 +63,7 @@ class UserAccess(models.Model):
     can_view_assistant = models.BooleanField(default=False)
     can_manage_quality = models.BooleanField(default=False)
     can_view_shipping_finance = models.BooleanField(default=False)
+    can_manage_planning = models.BooleanField(default=False)
     can_manage_users = models.BooleanField(default=False)
     can_view_settings = models.BooleanField(default=False)
 
