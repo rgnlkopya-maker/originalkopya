@@ -18,7 +18,6 @@
     const actions = card.querySelector('.stage-actions');
     const sentButton = actions && Array.from(actions.querySelectorAll('button')).find(b => (b.textContent || '').includes('Gönderildi'));
     if (!actions || !sentButton || actions.dataset.shippingOpsInstalled === '1') return;
-
     const updateUrl = sentButton.getAttribute('hx-get');
     if (!updateUrl || !window.htmx) return;
 
@@ -29,16 +28,20 @@
       btn.textContent = op.label;
       btn.addEventListener('click', function () {
         if (op.confirm && !window.confirm(op.confirm)) return;
-        window.htmx.ajax('GET', updateUrl, {
-          target: '#uretim-paneli',
-          swap: 'innerHTML',
-          values: { stage: 'sevkiyat_durum', value: op.value }
-        });
+        window.htmx.ajax('GET', updateUrl, { target: '#uretim-paneli', swap: 'innerHTML', values: { stage: 'sevkiyat_durum', value: op.value } });
       });
       actions.appendChild(btn);
     });
-
     actions.dataset.shippingOpsInstalled = '1';
+  }
+
+  function transferLink(number) {
+    const a = document.createElement('a');
+    a.href = '/order-no/' + encodeURIComponent(number) + '/';
+    a.textContent = number;
+    a.style.fontWeight = '800';
+    a.style.textDecoration = 'underline';
+    return a;
   }
 
   function prettifyTimeline() {
@@ -48,17 +51,39 @@
       'Sevkiyat Durum → Yanlis Sevkiyat': 'Yanlış Sevkiyat',
       'Sevkiyat Durum → Tekrar Gonderildi': 'Tekrar Gönderildi'
     };
-    document.querySelectorAll('#uretim-paneli .timeline-main').forEach(el => {
-      const text = (el.textContent || '').trim().replace(/\s+/g, ' ');
-      if (replacements[text]) el.textContent = replacements[text];
+
+    document.querySelectorAll('#uretim-paneli .timeline-item').forEach(item => {
+      const main = item.querySelector('.timeline-main');
+      if (!main) return;
+      const text = (main.textContent || '').trim().replace(/\s+/g, ' ');
+      if (replacements[text]) main.textContent = replacements[text];
+
+      if (main.dataset.transferFormatted === '1') return;
+      const normalized = text.toLocaleLowerCase('tr-TR');
+      if (!normalized.includes('uretim aktarimi') && !normalized.includes('üretim aktarımı')) return;
+
+      const tags = item.querySelector('.timeline-tags');
+      let number = '';
+      if (tags) {
+        const m = (tags.textContent || '').match(/🧩\s*([^\s•]+)/);
+        if (m) number = m[1].trim();
+      }
+      if (!number) {
+        const m = text.match(/(?:→\s*)?([^\s]+)\s+sipariş(?:ine|inden)/i);
+        if (m) number = m[1].trim();
+      }
+      if (!number) return;
+
+      const isReceived = normalized.includes('alindi') || normalized.includes('alındı') || normalized.includes('siparişinden');
+      main.textContent = '';
+      main.appendChild(transferLink(number));
+      main.appendChild(document.createTextNode(isReceived ? "'den alındı" : "'e verildi"));
+      main.dataset.transferFormatted = '1';
+      if (tags && (tags.textContent || '').includes(number)) tags.style.display = 'none';
     });
   }
 
-  function refresh() {
-    installButtons();
-    prettifyTimeline();
-  }
-
+  function refresh() { installButtons(); prettifyTimeline(); }
   document.addEventListener('DOMContentLoaded', refresh);
   document.body.addEventListener('htmx:afterSwap', refresh);
   setTimeout(refresh, 0);
