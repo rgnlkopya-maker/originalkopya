@@ -25,7 +25,8 @@ def is_manager(user):
 
 
 def is_patron(user):
-    return user.is_superuser or user.username.lower() == "patron" or user.groups.filter(name="patron").exists()
+    # Patron ve Mudur uygulamada ayni tam yonetim yetkisine sahiptir.
+    return is_manager(user)
 
 
 def _distance_m(lat1, lon1, lat2, lon2):
@@ -122,7 +123,7 @@ def punch(request):
     now = timezone.now(); today = timezone.localdate(); is_weekend = today.weekday() >= 5
     record, _ = AttendanceRecord.objects.get_or_create(user=request.user, work_date=today)
     if record.status in {"leave", "annual_leave", "sick"}:
-        return JsonResponse({"ok": False, "message": "Bugün için izin/rapor kaydı var. Patron kullanıcı değiştirebilir."}, status=400)
+        return JsonResponse({"ok": False, "message": "Bugün için izin/rapor kaydı var. Patron veya Müdür değiştirebilir."}, status=400)
     record.status = "worked"
     if not record.check_in:
         allowed_radius = workplace.overtime_radius_m if is_weekend else workplace.normal_radius_m
