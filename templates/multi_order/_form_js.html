@@ -1,154 +1,30 @@
 <script>
 $(document).ready(function () {
-
     function initSelect2(context) {
-        $(context).find(".select2:not([multiple])").select2({
-            placeholder: "Seçiniz", allowClear: true, width: "100%", minimumResultsForSearch: 0
-        });
-        $(context).find("select.select2[multiple], select.select2[multiple='']").select2({
-            placeholder: "Beden seçiniz", closeOnSelect: false, allowClear: true, width: "100%", minimumResultsForSearch: 0
-        });
-        $(context).find(".beden-select").each(function () {
-            $(this).select2({
-                placeholder: "Beden seçiniz", closeOnSelect: false, allowClear: true, width: "100%", minimumResultsForSearch: 0
-            }).on("select2:select", function () { $(this).select2("close"); });
-        });
+        $(context).find(".select2:not([multiple])").select2({placeholder:"Seçiniz",allowClear:true,width:"100%",minimumResultsForSearch:0});
+        $(context).find("select.select2[multiple], select.select2[multiple='']").select2({placeholder:"Beden seçiniz",closeOnSelect:false,allowClear:true,width:"100%",minimumResultsForSearch:0});
+        $(context).find(".beden-select").each(function () {$(this).select2({placeholder:"Beden seçiniz",closeOnSelect:false,allowClear:true,width:"100%",minimumResultsForSearch:0}).on("select2:select",function(){$(this).select2("close")});});
     }
-
     initSelect2(document);
 
-    $("#urun_kodu_select").on("change", function () {
-        const selected = this.options[this.selectedIndex];
-        const urunTipi = selected ? selected.dataset.urunTipi : "";
-        $("#urun_tipi_select").val(urunTipi || "").trigger("change");
-    });
+    $("#urun_kodu_select").on("change",function(){const selected=this.options[this.selectedIndex];const urunTipi=selected?selected.dataset.urunTipi:"";$("#urun_tipi_select").val(urunTipi||"").trigger("change")});
 
-    let priceHistory = [];
+    const imageInput=document.getElementById("order-images");
+    const imagePreview=document.getElementById("order-images-preview");
+    const imageSummary=document.getElementById("order-images-summary");
+    if(imageInput){imageInput.addEventListener("change",function(){imagePreview.innerHTML="";const files=Array.from(this.files||[]);imageSummary.textContent=files.length?files.length+" fotoğraf seçildi.":"Henüz fotoğraf seçilmedi.";files.forEach(function(file){if(!file.type.startsWith("image/"))return;const img=document.createElement("img");img.style.width="82px";img.style.height="82px";img.style.objectFit="cover";img.style.borderRadius="10px";img.style.border="1px solid #e5e7eb";img.alt=file.name;const reader=new FileReader();reader.onload=e=>img.src=e.target.result;reader.readAsDataURL(file);imagePreview.appendChild(img)})})}
 
-    function escapeHtml(value) {
-        return $("<div>").text(value == null ? "" : String(value)).html();
-    }
+    let priceHistory=[];
+    function escapeHtml(value){return $("<div>").text(value==null?"":String(value)).html()}
+    function refreshPriceHistory(){const customerId=$("#musteri_select").val(),productCode=$("#urun_kodu_select").val(),area=$("#price-history-area"),summary=$("#last-price-summary");priceHistory=[];summary.text("");if(!area.length)return;if(!customerId||!productCode){area.hide();return}area.show();summary.text("Geçmiş fiyat aranıyor...");$.get("{% url 'customer_product_price_history' %}",{musteri:customerId,urun_kodu:productCode}).done(function(data){priceHistory=data.results||[];if(priceHistory.length){const last=priceHistory[0];summary.html("Son fiyat: <strong>"+escapeHtml(last.satis_fiyati)+" "+escapeHtml(last.para_birimi)+"</strong> · "+escapeHtml(last.siparis_tipi)+" · "+escapeHtml(last.urun_tipi))}else summary.text("Bu müşteri ve ürün için geçmiş fiyat yok.")}).fail(function(){summary.text("Geçmiş fiyat bilgisi alınamadı.")})}
+    $("#musteri_select, #urun_kodu_select").on("change",refreshPriceHistory);
+    $("#priceHistoryModal").on("show.bs.modal",function(){const customerName=$("#musteri_select option:selected").text(),productCode=$("#urun_kodu_select").val(),list=$("#price-history-list"),empty=$("#price-history-empty"),loading=$("#price-history-loading");$("#price-history-subtitle").text(customerName+" · "+productCode+" · son 10 sevk edilmiş sipariş");list.empty();loading.hide();if(!priceHistory.length){empty.show();return}empty.hide();priceHistory.forEach(function(item){const price=escapeHtml(item.satis_fiyati+" "+item.para_birimi);list.append(`<div class="list-group-item p-3"><div class="d-flex justify-content-between gap-3 align-items-start"><div><div class="fw-bold">${escapeHtml(item.urun_kodu)} · ${escapeHtml(item.urun_tipi)}</div><div class="small mt-1"><span class="badge text-bg-light border">${escapeHtml(item.siparis_tipi)}</span> <span class="text-muted ms-1">${escapeHtml(item.siparis_numarasi)}</span></div><div class="small text-muted mt-1">Sipariş: ${escapeHtml(item.siparis_tarihi)} · Sevkiyat: ${escapeHtml(item.sevkiyat_tarihi)}</div></div><div class="text-end"><div class="fw-bold fs-5">${price}</div><button type="button" class="btn btn-sm btn-outline-primary mt-2 use-old-price" data-price="${escapeHtml(item.satis_fiyati)}" data-currency="${escapeHtml(item.para_birimi)}">Bu fiyatı kullan</button></div></div></div>`)})});
+    $(document).on("click",".use-old-price",function(){$("input[name='satis_fiyati']").val($(this).data("price"));$("input[name='para_birimi']").val($(this).data("currency"));bootstrap.Modal.getOrCreateInstance(document.getElementById("priceHistoryModal")).hide()});
+    $(document).on("select2:open",function(e){let el=$(e.target);if(el.closest(".modal").length){let modal=el.closest(".modal");el.select2("close");let options={dropdownParent:modal,width:"100%",placeholder:el.attr("multiple")?"Beden seçiniz":"Seçiniz",closeOnSelect:!el.is("[multiple]"),allowClear:true};if(el.hasClass("beden-select"))options.closeOnSelect=true;el.select2(options);el.select2("open")}});
 
-    function refreshPriceHistory() {
-        const customerId = $("#musteri_select").val();
-        const productCode = $("#urun_kodu_select").val();
-        const area = $("#price-history-area");
-        const summary = $("#last-price-summary");
-
-        priceHistory = [];
-        summary.text("");
-        if (!area.length) return;
-
-        if (!customerId || !productCode) {
-            area.hide();
-            return;
-        }
-
-        area.show();
-        summary.text("Geçmiş fiyat aranıyor...");
-
-        $.get("{% url 'customer_product_price_history' %}", {
-            musteri: customerId,
-            urun_kodu: productCode
-        }).done(function (data) {
-            priceHistory = data.results || [];
-            if (priceHistory.length) {
-                const last = priceHistory[0];
-                summary.html("Son fiyat: <strong>" + escapeHtml(last.satis_fiyati) + " " + escapeHtml(last.para_birimi) + "</strong> · " + escapeHtml(last.siparis_tipi) + " · " + escapeHtml(last.urun_tipi));
-            } else {
-                summary.text("Bu müşteri ve ürün için geçmiş fiyat yok.");
-            }
-        }).fail(function () {
-            summary.text("Geçmiş fiyat bilgisi alınamadı.");
-        });
-    }
-
-    $("#musteri_select, #urun_kodu_select").on("change", refreshPriceHistory);
-
-    $("#priceHistoryModal").on("show.bs.modal", function () {
-        const customerName = $("#musteri_select option:selected").text();
-        const productCode = $("#urun_kodu_select").val();
-        const list = $("#price-history-list");
-        const empty = $("#price-history-empty");
-        const loading = $("#price-history-loading");
-
-        $("#price-history-subtitle").text(customerName + " · " + productCode + " · son 10 sevk edilmiş sipariş");
-        list.empty();
-        loading.hide();
-
-        if (!priceHistory.length) {
-            empty.show();
-            return;
-        }
-
-        empty.hide();
-        priceHistory.forEach(function (item) {
-            const price = escapeHtml(item.satis_fiyati + " " + item.para_birimi);
-            const row = `
-                <div class="list-group-item p-3">
-                    <div class="d-flex justify-content-between gap-3 align-items-start">
-                        <div>
-                            <div class="fw-bold">${escapeHtml(item.urun_kodu)} · ${escapeHtml(item.urun_tipi)}</div>
-                            <div class="small mt-1"><span class="badge text-bg-light border">${escapeHtml(item.siparis_tipi)}</span> <span class="text-muted ms-1">${escapeHtml(item.siparis_numarasi)}</span></div>
-                            <div class="small text-muted mt-1">Sipariş: ${escapeHtml(item.siparis_tarihi)} · Sevkiyat: ${escapeHtml(item.sevkiyat_tarihi)}</div>
-                        </div>
-                        <div class="text-end">
-                            <div class="fw-bold fs-5">${price}</div>
-                            <button type="button" class="btn btn-sm btn-outline-primary mt-2 use-old-price" data-price="${escapeHtml(item.satis_fiyati)}" data-currency="${escapeHtml(item.para_birimi)}">Bu fiyatı kullan</button>
-                        </div>
-                    </div>
-                </div>`;
-            list.append(row);
-        });
-    });
-
-    $(document).on("click", ".use-old-price", function () {
-        $("input[name='satis_fiyati']").val($(this).data("price"));
-        $("input[name='para_birimi']").val($(this).data("currency"));
-        bootstrap.Modal.getOrCreateInstance(document.getElementById("priceHistoryModal")).hide();
-    });
-
-    $(document).on("select2:open", function (e) {
-        let el = $(e.target);
-        if (el.closest(".modal").length) {
-            let modal = el.closest(".modal");
-            el.select2("close");
-            let options = {
-                dropdownParent: modal, width: "100%", placeholder: el.attr("multiple") ? "Beden seçiniz" : "Seçiniz",
-                closeOnSelect: !el.is("[multiple]"), allowClear: true
-            };
-            if (el.hasClass("beden-select")) options.closeOnSelect = true;
-            el.select2(options);
-            el.select2("open");
-        }
-    });
-
-    let index = 1;
-    $("#add-row").click(function () {
-        let row = `
-        <div class="row mb-3 renk-beden-row" data-index="${index}">
-            <div class="col-md-3"><label class="form-label">Renk</label><select name="renk_row_${index}" class="form-select select2">{% for r in renkler %}<option value="{{ r.ad }}">{{ r.ad }}</option>{% endfor %}</select></div>
-            <div class="col-md-4"><label class="form-label">Bedenler</label><select name="beden_row_${index}[]" class="form-select select2 beden-select" multiple>{% for b in bedenler %}<option value="{{ b.ad }}">{{ b.ad }}</option>{% endfor %}</select></div>
-            <div class="col-md-2"><label class="form-label">Adet</label><input type="number" min="1" value="1" name="adet_row_${index}" class="form-control"></div>
-            <div class="col-md-3"><label class="form-label">Müşteri Ref</label><input type="text" name="musteri_ref_row_${index}" class="form-control"></div>
-            <div class="col-12 mt-2"><button type="button" class="btn btn-danger remove-row">Sil</button></div>
-        </div>`;
-        $("#rows-container").append(row);
-        initSelect2(`.renk-beden-row[data-index="${index}"]`);
-        index++;
-    });
-
-    $(document).on("click", ".remove-row", function () { $(this).closest(".renk-beden-row").remove(); });
-
-    $("#siparis_tipi_select").on("change", function () {
-        const tip = $(this).val();
-        const musteriDiv = $("#musteri_select").closest(".col-md-4");
-        if (tip === "STOK") {
-            $("#musteri_select").val("").trigger("change");
-            musteriDiv.hide();
-        } else {
-            musteriDiv.show();
-        }
-    }).trigger("change");
+    let index=1;
+    $("#add-row").click(function(){let row=`<div class="row mb-3 renk-beden-row" data-index="${index}"><div class="col-md-3"><label class="form-label">Renk</label><select name="renk_row_${index}" class="form-select select2">{% for r in renkler %}<option value="{{ r.ad }}">{{ r.ad }}</option>{% endfor %}</select></div><div class="col-md-4"><label class="form-label">Bedenler</label><select name="beden_row_${index}[]" class="form-select select2 beden-select" multiple>{% for b in bedenler %}<option value="{{ b.ad }}">{{ b.ad }}</option>{% endfor %}</select></div><div class="col-md-2"><label class="form-label">Adet</label><input type="number" min="1" value="1" name="adet_row_${index}" class="form-control"></div><div class="col-md-3"><label class="form-label">Müşteri Ref</label><input type="text" name="musteri_ref_row_${index}" class="form-control"></div><div class="col-12 mt-2"><button type="button" class="btn btn-danger remove-row">Sil</button></div></div>`;$("#rows-container").append(row);initSelect2(`.renk-beden-row[data-index="${index}"]`);index++});
+    $(document).on("click",".remove-row",function(){$(this).closest(".renk-beden-row").remove()});
+    $("#siparis_tipi_select").on("change",function(){const tip=$(this).val(),musteriDiv=$("#musteri_select").closest(".col-md-4");if(tip==="STOK"){$("#musteri_select").val("").trigger("change");musteriDiv.hide()}else musteriDiv.show()}).trigger("change");
 });
 </script>
