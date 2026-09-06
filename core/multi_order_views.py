@@ -1,8 +1,12 @@
 from decimal import Decimal
+import os
+import uuid
 
+from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import redirect, render
+from supabase import create_client
 
 from .models import Beden, Musteri, Order, OrderImage, ProductCost, Renk, URUN_TIPI_CHOICES, UrunKod
 
@@ -14,6 +18,18 @@ def _to_decimal(value):
         return Decimal(str(value))
     except Exception:
         return None
+
+
+def _upload_order_image(uploaded_file, order_number):
+    if not settings.SUPABASE_URL or not settings.SUPABASE_SERVICE_ROLE_KEY:
+        raise RuntimeError("Supabase ayarları eksik.")
+    ext = os.path.splitext(uploaded_file.name)[1].lower() or ".jpg"
+    safe_order = "".join(ch for ch in order_number if ch.isalnum() or ch in ("-", "_")) or "siparis"
+    path = f"order-images/{safe_order}/{uuid.uuid4().hex}{ext}"
+    client = create_client(settings.SUPABASE_URL, settings.SUPABASE_SERVICE_ROLE_KEY)
+    bucket = client.storage.from_(settings.SUPABASE_BUCKET_NAME)
+    bucket.upload(path, uploaded_file.read(), file_options={"content-type": uploaded_file.content_type or "application/octet-stream", "upsert": "false"})
+    return bucket.get_public_url(path)
 
 
 @login_required
@@ -68,19 +84,15 @@ def order_multi_create(request):
                 for image in uploaded_images:
                     try:
                         image.seek(0)
-                        order_image = OrderImage.objects.create(order=order, image=image)
-                        try:
-                            order_image.image_url = order_image.image.url
-                            order_image.save(update_fields=["image_url"])
-                        except Exception:
-                            pass
+                        public_url = _upload_order_image(image, order.siparis_numarasi)
+                        OrderImage.objects.create(order=order, image_url=public_url)
                     except Exception:
                         image_errors += 1
 
         if created_orders:
             text = f"{len(created_orders)} adet sipariş başarıyla oluşturuldu!"
-            if uploaded_images:
-                text += f" {len(uploaded_images)} görsel siparişlere eklendi."
+            if uploaded_images and not image_errors:
+                text += f" {len(uploaded_images)} görsel kalıcı depoya eklendi."
             if image_errors:
                 messages.warning(request, f"Siparişler oluşturuldu ancak {image_errors} görsel kopyası yüklenemedi.")
             messages.success(request, text)
