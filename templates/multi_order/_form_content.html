@@ -1,188 +1,50 @@
-<form method="POST">
+<form method="POST" enctype="multipart/form-data">
     {% csrf_token %}
 
-    <!-- Üst Form (Sipariş tipi / Müşteri / Ürün Kodu) -->
     <div class="row mb-4">
         <div class="col-md-4">
             <label class="form-label">Sipariş Tipi</label>
             <select id="siparis_tipi_select" name="siparis_tipi" class="form-select" required>
-                <option value="SERI">Seri</option>
-                <option value="TEKLI">Tekli Sipariş</option>
-                <option value="STOK">Stoğa Üretim</option>
-                <option value="OZEL">Özel Sipariş</option>
+                <option value="SERI">Seri</option><option value="TEKLI">Tekli Sipariş</option><option value="STOK">Stoğa Üretim</option><option value="OZEL">Özel Sipariş</option>
             </select>
         </div>
-
         <div class="col-md-4">
             <label class="form-label">Müşteri</label>
-            <select id="musteri_select" name="musteri" class="form-select select2" required>
-                <option></option>
-                {% for m in musteriler %}
-                    <option value="{{ m.id }}">{{ m.ad }}</option>
-                {% endfor %}
-            </select>
+            <select id="musteri_select" name="musteri" class="form-select select2" required><option></option>{% for m in musteriler %}<option value="{{ m.id }}">{{ m.ad }}</option>{% endfor %}</select>
         </div>
-
         <div class="col-md-4">
             <label class="form-label">Ürün Kodu</label>
-            <select id="urun_kodu_select" name="urun_kodu" class="form-select select2" required>
-                <option></option>
-                {% for u in urun_kodlari %}
-                    <option value="{{ u.kod }}" data-urun-tipi="{{ u.urun_tipi }}">{{ u.kod }}</option>
-                {% endfor %}
-            </select>
+            <select id="urun_kodu_select" name="urun_kodu" class="form-select select2" required><option></option>{% for u in urun_kodlari %}<option value="{{ u.kod }}" data-urun-tipi="{{ u.urun_tipi }}">{{ u.kod }}</option>{% endfor %}</select>
         </div>
-
         <div class="col-md-4 mt-3">
             <label class="form-label">Ürün Tipi</label>
-            <select id="urun_tipi_select" name="urun_tipi" class="form-select" required>
-                <option value="">Seçiniz</option>
-                {% for value, label in urun_tipi_secenekleri %}
-                    <option value="{{ value }}">{{ label }}</option>
-                {% endfor %}
-            </select>
+            <select id="urun_tipi_select" name="urun_tipi" class="form-select" required><option value="">Seçiniz</option>{% for value, label in urun_tipi_secenekleri %}<option value="{{ value }}">{{ label }}</option>{% endfor %}</select>
             <div class="form-text">Ürün kodundan otomatik gelir; bu sipariş için değiştirebilirsiniz.</div>
         </div>
-
-        {% if is_manager %}
-        <div class="col-md-8 mt-3" id="price-history-area" style="display:none;">
-            <label class="form-label">Müşterinin Geçmiş Fiyatı</label>
-            <div class="d-flex gap-2 flex-wrap align-items-center">
-                <button type="button" id="price-history-btn" class="manage-btn" data-bs-toggle="modal" data-bs-target="#priceHistoryModal">
-                    💰 Geçmiş Fiyatlar
-                </button>
-                <span id="last-price-summary" class="small text-muted"></span>
-            </div>
-        </div>
-        {% endif %}
+        {% if is_manager %}<div class="col-md-8 mt-3" id="price-history-area" style="display:none;"><label class="form-label">Müşterinin Geçmiş Fiyatı</label><div class="d-flex gap-2 flex-wrap align-items-center"><button type="button" id="price-history-btn" class="manage-btn" data-bs-toggle="modal" data-bs-target="#priceHistoryModal">💰 Geçmiş Fiyatlar</button><span id="last-price-summary" class="small text-muted"></span></div></div>{% endif %}
     </div>
 
     <hr>
-
-    <!-- Renk Beden Başlık -->
-    <h5 class="section-title d-flex justify-content-between align-items-center">
-        <span>Renk - Beden Satırları</span>
-
-        <span class="d-flex gap-2">
-            <button type="button" class="manage-btn" data-bs-toggle="modal" data-bs-target="#renkModal">🎨 Renk Yönet</button>
-            <button type="button" class="manage-btn" data-bs-toggle="modal" data-bs-target="#bedenModal">👕 Beden Yönet</button>
-            <button type="button" class="manage-btn" data-bs-toggle="modal" data-bs-target="#musteriModal">🧍 Müşteri Yönet</button>
-            <button type="button" class="manage-btn" data-bs-toggle="modal" data-bs-target="#urunKodModal">📦 Ürün Kodu Yönet</button>
-        </span>
-    </h5>
-
-    <!-- Satırlar -->
-    <div id="rows-container">
-        <div class="renk-beden-card renk-beden-row" data-index="0">
-
-            <div class="row">
-                <div class="col-md-3">
-                    <label class="form-label">Renk</label>
-                    <select name="renk_row_0" class="form-select select2 renk-select">
-                        <option></option>
-                        {% for r in renkler %}
-                            <option value="{{ r.ad }}">{{ r.ad }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-
-                <div class="col-md-4">
-                    <label class="form-label">Bedenler</label>
-                    <select name="beden_row_0[]" class="form-select select2 beden-select" multiple>
-                        {% for b in bedenler %}
-                            <option value="{{ b.ad }}">{{ b.ad }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-
-                <div class="col-md-2">
-                    <label class="form-label">Adet</label>
-                    <input type="number" min="1" value="1" name="adet_row_0" class="form-control">
-                </div>
-
-                <div class="col-md-3">
-                    <label class="form-label">Müşteri Referansı</label>
-                    <input type="text" name="musteri_ref_row_0" class="form-control" placeholder="Örn: PO123">
-                </div>
-            </div>
-
-            <div class="mt-3 text-end">
-                <button type="button" class="btn btn-danger remove-row">Sil</button>
-            </div>
-        </div>
-    </div>
-
+    <h5 class="section-title d-flex justify-content-between align-items-center"><span>Renk - Beden Satırları</span><span class="d-flex gap-2"><button type="button" class="manage-btn" data-bs-toggle="modal" data-bs-target="#renkModal">🎨 Renk Yönet</button><button type="button" class="manage-btn" data-bs-toggle="modal" data-bs-target="#bedenModal">👕 Beden Yönet</button><button type="button" class="manage-btn" data-bs-toggle="modal" data-bs-target="#musteriModal">🧍 Müşteri Yönet</button><button type="button" class="manage-btn" data-bs-toggle="modal" data-bs-target="#urunKodModal">📦 Ürün Kodu Yönet</button></span></h5>
+    <div id="rows-container"><div class="renk-beden-card renk-beden-row" data-index="0"><div class="row"><div class="col-md-3"><label class="form-label">Renk</label><select name="renk_row_0" class="form-select select2 renk-select"><option></option>{% for r in renkler %}<option value="{{ r.ad }}">{{ r.ad }}</option>{% endfor %}</select></div><div class="col-md-4"><label class="form-label">Bedenler</label><select name="beden_row_0[]" class="form-select select2 beden-select" multiple>{% for b in bedenler %}<option value="{{ b.ad }}">{{ b.ad }}</option>{% endfor %}</select></div><div class="col-md-2"><label class="form-label">Adet</label><input type="number" min="1" value="1" name="adet_row_0" class="form-control"></div><div class="col-md-3"><label class="form-label">Müşteri Referansı</label><input type="text" name="musteri_ref_row_0" class="form-control" placeholder="Örn: PO123"></div></div><div class="mt-3 text-end"><button type="button" class="btn btn-danger remove-row">Sil</button></div></div></div>
     <button type="button" id="add-row" class="btn btn-success mt-2">+ Satır Ekle</button>
 
     <hr class="mt-4">
+    <div class="sub-card mb-4"><div class="row"><div class="col-md-6"><label class="form-label fw-bold">Teslim Tarihi</label><input type="date" name="teslim_tarihi" class="form-control"></div><div class="col-md-6"><label class="form-label fw-bold">Açıklama</label><input type="text" name="aciklama" class="form-control" placeholder="Opsiyonel"></div></div></div>
 
-    <!-- Genel Alanlar -->
     <div class="sub-card mb-4">
-        <div class="row">
-            <div class="col-md-6">
-                <label class="form-label fw-bold">Teslim Tarihi</label>
-                <input type="date" name="teslim_tarihi" class="form-control">
-            </div>
-
-            <div class="col-md-6">
-                <label class="form-label fw-bold">Açıklama</label>
-                <input type="text" name="aciklama" class="form-control" placeholder="Opsiyonel">
-            </div>
+        <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap">
+            <div><h5 class="section-title mb-1">📸 Sipariş Görselleri</h5><div class="small text-muted">Opsiyonel. Birden fazla fotoğrafı tek seferde seçebilirsiniz.</div></div>
+            <label class="btn btn-outline-primary mb-0" for="order-images">📷 Fotoğraf Seç</label>
         </div>
+        <input id="order-images" type="file" name="order_images" accept="image/*" multiple class="d-none">
+        <div id="order-images-summary" class="small text-muted mt-3">Henüz fotoğraf seçilmedi.</div>
+        <div id="order-images-preview" class="d-flex flex-wrap gap-2 mt-2"></div>
     </div>
 
-    {% if is_manager %}
-    <div class="cost-card">
-        <h5 class="section-title">💰 Fiyat & Maliyet Bilgileri</h5>
-
-        <div class="row g-3 mt-1">
-            <div class="col-md-4">
-                <label class="form-label">Satış Fiyatı</label>
-                <input type="number" step="0.01" name="satis_fiyati" class="form-control">
-            </div>
-
-            <div class="col-md-2">
-                <label class="form-label">Para</label>
-                <input type="text" name="para_birimi" value="TRY" class="form-control">
-            </div>
-
-            <div class="col-md-4">
-                <label class="form-label">Maliyet</label>
-                <input type="number" step="0.01" name="maliyet_uygulanan" class="form-control">
-            </div>
-
-            <div class="col-md-2">
-                <label class="form-label">Para</label>
-                <input type="text" name="maliyet_para_birimi" value="TRY" class="form-control">
-            </div>
-        </div>
-    </div>
-    {% endif %}
-
-    <div class="text-center mt-4">
-        <button class="btn btn-primary px-5 py-2">🚀 Siparişleri Oluştur</button>
-    </div>
+    {% if is_manager %}<div class="cost-card"><h5 class="section-title">💰 Fiyat & Maliyet Bilgileri</h5><div class="row g-3 mt-1"><div class="col-md-4"><label class="form-label">Satış Fiyatı</label><input type="number" step="0.01" name="satis_fiyati" class="form-control"></div><div class="col-md-2"><label class="form-label">Para</label><input type="text" name="para_birimi" value="TRY" class="form-control"></div><div class="col-md-4"><label class="form-label">Maliyet</label><input type="number" step="0.01" name="maliyet_uygulanan" class="form-control"></div><div class="col-md-2"><label class="form-label">Para</label><input type="text" name="maliyet_para_birimi" value="TRY" class="form-control"></div></div></div>{% endif %}
+    <div class="text-center mt-4"><button class="btn btn-primary px-5 py-2">🚀 Siparişleri Oluştur</button></div>
 </form>
 
 {% include "multi_order/_modals.html" %}
-
-{% if is_manager %}
-<div class="modal fade" id="priceHistoryModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-lg modal-dialog-scrollable">
-        <div class="modal-content">
-            <div class="modal-header">
-                <div>
-                    <h5 class="modal-title">💰 Geçmiş Fiyatlar</h5>
-                    <div class="small text-muted" id="price-history-subtitle"></div>
-                </div>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body p-0">
-                <div id="price-history-loading" class="p-4 text-center text-muted">Geçmiş siparişler yükleniyor...</div>
-                <div id="price-history-empty" class="p-4 text-center text-muted" style="display:none;">Bu müşteri ve ürün için sevk edilmiş fiyatlı sipariş bulunamadı.</div>
-                <div id="price-history-list" class="list-group list-group-flush"></div>
-            </div>
-        </div>
-    </div>
-</div>
-{% endif %}
+{% if is_manager %}<div class="modal fade" id="priceHistoryModal" tabindex="-1" aria-hidden="true"><div class="modal-dialog modal-lg modal-dialog-scrollable"><div class="modal-content"><div class="modal-header"><div><h5 class="modal-title">💰 Geçmiş Fiyatlar</h5><div class="small text-muted" id="price-history-subtitle"></div></div><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body p-0"><div id="price-history-loading" class="p-4 text-center text-muted">Geçmiş siparişler yükleniyor...</div><div id="price-history-empty" class="p-4 text-center text-muted" style="display:none;">Bu müşteri ve ürün için sevk edilmiş fiyatlı sipariş bulunamadı.</div><div id="price-history-list" class="list-group list-group-flush"></div></div></div></div></div>{% endif %}
