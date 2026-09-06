@@ -3,32 +3,113 @@
 
 {% block extra_css %}
 <style>
-body { background: #f5f7fb; }
-.detail-header {display:flex;justify-content:space-between;align-items:center;background:#ffffffee;backdrop-filter:blur(12px);border-radius:14px;padding:14px 20px;margin:22px 0 18px;box-shadow:0 4px 14px rgba(0,0,0,.06)}
-.detail-header-left{display:flex;gap:10px;align-items:center}.detail-back-btn{font-size:14px;background:#f3f4ff;padding:6px 14px;border-radius:8px;text-decoration:none;color:#3b45d9;font-weight:600;border:1px solid #dfe3ff;display:inline-flex;align-items:center;gap:6px}.detail-header-title{font-size:20px;font-weight:700;color:#111827}.detail-header-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.detail-header-actions .btn{border-radius:999px;font-size:13px;padding:6px 14px}.detail-card{border-radius:16px;box-shadow:0 2px 10px rgba(15,23,42,.08)}.label{font-weight:600}.stage-buttons form{display:inline-block;margin-right:5px;margin-bottom:5px}.ship-plan-box{background:#f8fafc;border:1px solid #e3e8ef;border-radius:12px;padding:12px 14px;margin-bottom:18px}.ship-plan-form{display:flex;align-items:end;gap:9px;flex-wrap:wrap}.ship-plan-form label{font-size:12px;font-weight:800;color:#667085;display:block;margin-bottom:4px}.ship-plan-form input{border:1px solid #d7dde7;border-radius:9px;padding:7px 10px}.ship-plan-btn{border:0;border-radius:9px;background:#182033;color:#fff;padding:8px 14px;font-size:13px;font-weight:800}.qr-print-block{display:flex;align-items:center;gap:15px;font-size:14px;line-height:1.3}.qr-print-block img,.qr-img{max-height:140px;width:auto}.extra-images-section{position:relative;z-index:999!important}.extra-images-section img{position:relative;z-index:1001!important;pointer-events:auto!important;cursor:pointer!important;border-radius:8px}@media print{.no-print,.btn-warning,.extra-images-section,.extra-images-section+form{display:none!important}.container,.card{max-width:100%!important;width:100%!important;box-shadow:none!important;border:none!important}}
+body{background:#f4f6fb}
+.order-detail-wrap{max-width:980px;margin:0 auto;padding:18px 12px 42px}
+.detail-header{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:14px;background:#fff;border:1px solid #edf0f5;border-radius:18px;padding:13px 16px;margin-bottom:16px;box-shadow:0 8px 24px rgba(15,23,42,.06)}
+.detail-header-left,.detail-header-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.detail-header-title{text-align:center;font-size:20px;font-weight:800;color:#172033;white-space:nowrap}
+.detail-back-btn{height:38px;padding:0 12px;border-radius:11px;background:#f1f3ff;border:1px solid #dde2ff;color:#4252d7;text-decoration:none;font-weight:700;display:inline-flex;align-items:center;gap:6px;font-size:13px}.detail-back-btn:hover{background:#e9edff;color:#3343c8}
+.detail-header-actions .btn{border-radius:11px;font-size:12px;font-weight:700;padding:8px 11px}.detail-header-actions form{margin:0}
+.detail-card{background:#fff;border:1px solid #edf0f5;border-radius:20px;box-shadow:0 10px 30px rgba(15,23,42,.06);padding:20px}
+.order-summary{display:flex;align-items:center;justify-content:space-between;gap:12px;padding-bottom:16px;border-bottom:1px solid #eef1f5;margin-bottom:18px}.order-no{display:flex;flex-direction:column;gap:3px}.order-no-label{font-size:11px;font-weight:800;letter-spacing:.45px;color:#8a93a4;text-transform:uppercase}.order-no-value{font-size:18px;font-weight:850;color:#172033}.status-wrap{display:flex;align-items:center;gap:8px}.status-label{font-size:12px;font-weight:800;color:#7a8496}
+.info-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:11px;margin-bottom:20px}.info-item{background:#f8f9fc;border:1px solid #edf0f5;border-radius:14px;padding:12px 13px;min-height:70px}.info-item.full{grid-column:1/-1}.info-label{display:block;font-size:10.5px;font-weight:850;letter-spacing:.4px;text-transform:uppercase;color:#8a93a4;margin-bottom:5px}.info-value{font-size:14px;font-weight:750;color:#222b3d;line-height:1.35;word-break:break-word}.info-value.muted{color:#a1a8b5;font-weight:600}
+.section-card{border:1px solid #edf0f5;border-radius:16px;background:#fff;margin-top:16px;overflow:hidden}.section-head{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:13px 15px;background:#fafbfe;border-bottom:1px solid #eef1f5}.section-title{font-size:15px;font-weight:850;color:#20283a;margin:0}.section-body{padding:15px}.empty-box{padding:24px 16px;text-align:center;border:1px dashed #dfe4ec;border-radius:12px;background:#fafbfc;color:#98a1b1;font-size:13px}.extra-images-section{position:relative;z-index:999!important;display:flex;flex-wrap:wrap;gap:10px;justify-content:flex-start}.extra-images-section>div{margin:0!important}.extra-images-section img{position:relative;z-index:1001!important;pointer-events:auto!important;cursor:zoom-in!important;border-radius:12px!important;max-height:180px;border:1px solid #e5e8ef!important}.upload-form{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin-top:12px;padding-top:12px;border-top:1px solid #eef1f5}.upload-form input{font-size:12px}.upload-form .btn{border-radius:10px;font-size:12px;font-weight:700}
+.audit-card{border:1px solid #f3d7db;border-radius:16px;overflow:hidden;background:#fff;margin-top:16px}.audit-head{padding:12px 15px;background:#fff5f6;border-bottom:1px solid #f4dde0;color:#b33a48;font-weight:850;font-size:14px}.audit-body{padding:13px}.audit-empty{color:#8d96a6;font-size:13px;font-style:italic;text-align:center;padding:7px}.audit-list{display:grid;gap:8px}.audit-item{border:1px solid #edf0f5;border-radius:11px;padding:10px 11px;font-size:12px;line-height:1.45}.audit-meta{color:#8b94a5;font-size:11px;margin-top:5px}
+.ship-plan-box{background:#f8fafc;border:1px solid #e3e8ef;border-radius:14px;padding:13px 14px;margin-bottom:18px}.ship-plan-form{display:flex;align-items:end;gap:9px;flex-wrap:wrap}.ship-plan-form label{font-size:11px;font-weight:850;color:#667085;display:block;margin-bottom:4px}.ship-plan-form input{border:1px solid #d7dde7;border-radius:9px;padding:8px 10px;background:#fff}.ship-plan-btn{border:0;border-radius:9px;background:#182033;color:#fff;padding:9px 14px;font-size:12px;font-weight:800}
+.production-wrap{margin-top:18px}.production-title{font-size:15px;font-weight:850;margin:18px 0 7px;color:#20283a}.production-sub{font-size:12px;color:#8a93a4}
+.stage-buttons form{display:inline-block;margin-right:5px;margin-bottom:5px}.qr-print-block{display:flex;align-items:center;gap:15px;font-size:14px;line-height:1.3}.qr-print-block img,.qr-img{max-height:140px;width:auto}
+@media(max-width:720px){.order-detail-wrap{padding:10px 8px 30px}.detail-header{grid-template-columns:1fr;padding:11px;border-radius:15px;gap:9px}.detail-header-left{order:1}.detail-header-title{order:2;text-align:left;font-size:18px}.detail-header-actions{order:3}.detail-header-left,.detail-header-actions{width:100%}.detail-back-btn{height:36px;font-size:12px}.detail-card{padding:13px;border-radius:16px}.order-summary{align-items:flex-start;flex-direction:column}.status-wrap{width:100%;justify-content:space-between;background:#f8f9fc;border:1px solid #edf0f5;border-radius:11px;padding:9px 10px}.info-grid{grid-template-columns:1fr;gap:8px}.info-item,.info-item.full{grid-column:auto;min-height:auto;padding:11px 12px}.info-label{font-size:10px;margin-bottom:3px}.info-value{font-size:14px}.section-head{padding:11px 12px}.section-body{padding:12px}.section-title{font-size:14px}.extra-images-section{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.extra-images-section img{width:100%;height:auto;max-height:none}.upload-form{align-items:stretch}.upload-form input,.upload-form .btn{width:100%}.ship-plan-form{align-items:stretch}.ship-plan-form>div,.ship-plan-form input,.ship-plan-btn{width:100%}.audit-head{font-size:13px}.audit-body{padding:10px}}
+@media print{.no-print,.btn-warning,.extra-images-section,.extra-images-section+form{display:none!important}.order-detail-wrap,.detail-card{max-width:100%!important;width:100%!important;box-shadow:none!important;border:none!important}.info-item{break-inside:avoid}}
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="container-fluid px-2 py-3">
-<div class="detail-header no-print"><div class="detail-header-left"><a href="{% url 'order_list' %}" class="detail-back-btn">🏠 <span>Anasayfa</span></a><a href="{{ back_url }}" class="detail-back-btn">⬅ <span>Geri</span></a></div><div class="detail-header-title">📦 Sipariş Detayı</div><div class="detail-header-actions">{% if is_manager %}<a href="{% url 'order_finance_movements' order.id %}" class="btn btn-outline-primary btn-sm">💳 Sevkiyat / Finans</a><a href="{% url 'order_edit' order.id %}" class="btn btn-warning btn-sm">✏️ Düzenle</a><button type="button" onclick="window.print()" class="btn btn-outline-primary btn-sm">🖨️ Yazdır</button><form action="{% url 'order_delete' order.id %}" method="POST" class="d-inline-block" onsubmit="return confirm('Bu siparişi silmek istediğine emin misin?');">{% csrf_token %}<button type="submit" class="btn btn-danger btn-sm">🗑️ Sil</button></form>{% endif %}</div></div>
+<div class="order-detail-wrap">
+  <div class="detail-header no-print">
+    <div class="detail-header-left">
+      <a href="{% url 'order_list' %}" class="detail-back-btn">🏠 <span>Anasayfa</span></a>
+      <a href="{{ back_url }}" class="detail-back-btn">⬅ <span>Geri</span></a>
+    </div>
+    <div class="detail-header-title">📦 Sipariş Detayı</div>
+    <div class="detail-header-actions">
+      {% if is_manager %}
+        <a href="{% url 'order_finance_movements' order.id %}" class="btn btn-outline-primary btn-sm">💳 Sevkiyat / Finans</a>
+        <a href="{% url 'order_edit' order.id %}" class="btn btn-warning btn-sm">✏️ Düzenle</a>
+        <button type="button" onclick="window.print()" class="btn btn-outline-primary btn-sm">🖨️ Yazdır</button>
+        <form action="{% url 'order_delete' order.id %}" method="POST" onsubmit="return confirm('Bu siparişi silmek istediğine emin misin?');">{% csrf_token %}<button type="submit" class="btn btn-danger btn-sm">🗑️ Sil</button></form>
+      {% endif %}
+    </div>
+  </div>
 
-<div class="card shadow-lg mx-auto p-4 detail-card" style="max-width:900px;">
-{% if user|can:'can_manage_planning' %}<div class="ship-plan-box no-print"><form class="ship-plan-form" method="post" action="{% url 'plan_order_shipment' order.id %}">{% csrf_token %}<div><label>SEVKİYAT PLANI</label><input type="date" name="planned_date" required value="{% if order.shipment_plan %}{{ order.shipment_plan.planned_date|date:'Y-m-d' }}{% endif %}"></div><button class="ship-plan-btn" type="submit">📦 Sevkiyata Planla</button>{% if order.shipment_plan %}<span class="small text-muted">Planlı: {{ order.shipment_plan.planned_date|date:"d.m.Y" }}</span>{% endif %}</form></div>{% endif %}
-<div class="d-flex justify-content-between align-items-center mb-2"><div class="text-muted small"><span class="label">Sipariş No:</span> {{ order.siparis_numarasi }}</div><div><span class="label">Son Durum:</span> {% include "core/_status_badge.html" with status=current_status %}</div></div><hr>
-<div class="row mb-3"><div class="col-md-6"><span class="label">Sipariş Tipi:</span> {{ order.siparis_tipi }}</div></div>
-<div class="row mb-3"><div class="col-md-6"><span class="label">Müşteri:</span> {% if order.musteri %}{{ order.musteri }}{% elif order.siparis_tipi == 'STOK' %}<em class="text-secondary">Stoğa Üretim</em>{% else %}<span class="text-muted">—</span>{% endif %}</div><div class="col-md-6"><span class="label">Ürün Kodu:</span> {{ order.urun_kodu }}</div><div class="col-md-6"><span class="label">Ürün Tipi:</span> {{ order.get_urun_tipi_display|default:"—" }}</div></div>
-<div class="row mb-3"><div class="col-md-12"><span class="label">Müşteri Sipariş Referansı:</span> {{ order.musteri_referans|default:"—" }}</div></div>
-<div class="row mb-3"><div class="col-md-6"><span class="label">Renk:</span> {{ order.renk }}</div><div class="col-md-6"><span class="label">Beden:</span> {{ order.beden }}</div></div>
-<div class="row mb-3"><div class="col-md-6"><span class="label">Adet:</span> {{ order.adet }}</div><div class="col-md-6"><span class="label">Sipariş Tarihi:</span> {{ order.siparis_tarihi|date:"d.m.Y" }}</div></div>
-<div class="row mb-3"><div class="col-md-6"><span class="label">Teslim Tarihi:</span> {{ order.teslim_tarihi|date:"d.m.Y" }}</div><div class="col-md-6"><span class="label">Açıklama:</span> {{ order.aciklama }}</div></div>
+  <div class="detail-card">
+    {% if user|can:'can_manage_planning' %}
+      <div class="ship-plan-box no-print">
+        <form class="ship-plan-form" method="post" action="{% url 'plan_order_shipment' order.id %}">{% csrf_token %}
+          <div><label>SEVKİYAT PLANI</label><input type="date" name="planned_date" required value="{% if order.shipment_plan %}{{ order.shipment_plan.planned_date|date:'Y-m-d' }}{% endif %}"></div>
+          <button class="ship-plan-btn" type="submit">📦 Sevkiyata Planla</button>
+          {% if order.shipment_plan %}<span class="small text-muted">Planlı: {{ order.shipment_plan.planned_date|date:"d.m.Y" }}</span>{% endif %}
+        </form>
+      </div>
+    {% endif %}
 
-<h5 class="fw-bold mt-4">📸 Ek Sipariş Görselleri</h5><div class="d-flex flex-wrap justify-content-center mb-3 extra-images-section">{% for img in order.extra_images.all %}<div class="position-relative d-inline-block m-2">{% if img.image_url %}<img src="{{ img.image_url }}" alt="Ek Görsel" class="img-thumbnail shadow-sm preview-img" style="max-height:180px;border-radius:8px;cursor:zoom-in;">{% endif %}{% if is_manager %}<form action="{% url 'delete_order_image' img.id %}" method="POST" class="position-absolute top-0 end-0 m-1 no-print" onsubmit="return confirm('Bu görseli silmek istediğine emin misin?');">{% csrf_token %}<button type="submit" class="btn btn-sm btn-danger py-0 px-1">✕</button></form>{% endif %}</div>{% empty %}<p class="text-muted">Henüz ek görsel yok.</p>{% endfor %}</div>
-{% if is_manager %}<form action="{% url 'order_add_image' order.pk %}" method="POST" enctype="multipart/form-data" class="no-print mt-3">{% csrf_token %}<input type="file" name="images" accept="image/*" multiple required><button type="submit" class="btn btn-outline-secondary btn-sm">📤 Çoklu Görsel Yükle</button></form>{% endif %}
+    <div class="order-summary">
+      <div class="order-no"><span class="order-no-label">Sipariş No</span><span class="order-no-value">{{ order.siparis_numarasi }}</span></div>
+      <div class="status-wrap"><span class="status-label">Son Durum</span>{% include "core/_status_badge.html" with status=current_status %}</div>
+    </div>
 
-<div class="card border-danger mt-4" style="max-width:650px;margin:0 auto;"><div class="card-header bg-danger text-white fw-bold">⚠️ Sipariş Düzenleme Kayıtları</div><div class="card-body">{% if update_events %}<ul class="list-group">{% for ev in update_events %}<li class="list-group-item"><strong>{{ ev.stage|title }}</strong> alanı değişti:<br><small class="text-muted">Önce:</small> <span class="text-decoration-line-through text-muted">{{ ev.old_value|default:"—" }}</span><br><small class="text-muted">Sonra:</small> <span class="fw-bold text-danger">{{ ev.new_value }}</span><br><small class="text-muted">{{ ev.timestamp|date:"d.m.Y H:i" }} — {{ ev.user }}</small></li>{% endfor %}</ul>{% else %}<div class="text-muted fst-italic">Bu siparişte henüz düzenleme yapılmamış.</div>{% endif %}</div></div>
-<div class="mt-4 no-print" id="uretim-paneli">{% include "core/_uretim_paneli.html" with order=order events=events %}</div>
-<hr class="mt-4"><h5 class="mt-3">📊 Üretim Adet Kaydı</h5>
-<p class="text-muted small">Üretim işlemleri ve mevcut sipariş fonksiyonları bu panel üzerinden devam eder.</p>
-</div></div>
+    <div class="info-grid">
+      <div class="info-item"><span class="info-label">Sipariş Tipi</span><div class="info-value">{{ order.siparis_tipi }}</div></div>
+      <div class="info-item"><span class="info-label">Müşteri</span><div class="info-value">{% if order.musteri %}{{ order.musteri }}{% elif order.siparis_tipi == 'STOK' %}Stoğa Üretim{% else %}<span class="muted">—</span>{% endif %}</div></div>
+      <div class="info-item"><span class="info-label">Ürün Kodu</span><div class="info-value">{{ order.urun_kodu|default:"—" }}</div></div>
+      <div class="info-item"><span class="info-label">Ürün Tipi</span><div class="info-value">{{ order.get_urun_tipi_display|default:"—" }}</div></div>
+      <div class="info-item full"><span class="info-label">Müşteri Sipariş Referansı</span><div class="info-value">{{ order.musteri_referans|default:"—" }}</div></div>
+      <div class="info-item"><span class="info-label">Renk</span><div class="info-value">{{ order.renk|default:"—" }}</div></div>
+      <div class="info-item"><span class="info-label">Beden</span><div class="info-value">{{ order.beden|default:"—" }}</div></div>
+      <div class="info-item"><span class="info-label">Adet</span><div class="info-value">{{ order.adet }}</div></div>
+      <div class="info-item"><span class="info-label">Sipariş Tarihi</span><div class="info-value">{{ order.siparis_tarihi|date:"d.m.Y"|default:"—" }}</div></div>
+      <div class="info-item"><span class="info-label">Teslim Tarihi</span><div class="info-value">{% if order.teslim_tarihi %}{{ order.teslim_tarihi|date:"d.m.Y" }}{% else %}<span class="muted">Belirtilmemiş</span>{% endif %}</div></div>
+      <div class="info-item"><span class="info-label">Açıklama</span><div class="info-value">{% if order.aciklama %}{{ order.aciklama }}{% else %}<span class="muted">Açıklama yok</span>{% endif %}</div></div>
+    </div>
+
+    <section class="section-card">
+      <div class="section-head"><h2 class="section-title">📸 Ek Sipariş Görselleri</h2></div>
+      <div class="section-body">
+        <div class="extra-images-section">
+          {% for img in order.extra_images.all %}
+            <div class="position-relative">
+              {% if img.image_url %}<img src="{{ img.image_url }}" alt="Ek Görsel" class="img-thumbnail shadow-sm preview-img">{% endif %}
+              {% if is_manager %}<form action="{% url 'delete_order_image' img.id %}" method="POST" class="position-absolute top-0 end-0 m-1 no-print" onsubmit="return confirm('Bu görseli silmek istediğine emin misin?');">{% csrf_token %}<button type="submit" class="btn btn-sm btn-danger py-0 px-1">✕</button></form>{% endif %}
+            </div>
+          {% empty %}
+            <div class="empty-box" style="width:100%">Henüz ek sipariş görseli yok.</div>
+          {% endfor %}
+        </div>
+        {% if is_manager %}
+          <form action="{% url 'order_add_image' order.pk %}" method="POST" enctype="multipart/form-data" class="upload-form no-print">{% csrf_token %}
+            <input type="file" name="images" accept="image/*" multiple required>
+            <button type="submit" class="btn btn-outline-secondary btn-sm">📤 Görsel Yükle</button>
+          </form>
+        {% endif %}
+      </div>
+    </section>
+
+    <section class="audit-card">
+      <div class="audit-head">⚠️ Sipariş Düzenleme Kayıtları</div>
+      <div class="audit-body">
+        {% if update_events %}
+          <div class="audit-list">
+            {% for ev in update_events %}
+              <div class="audit-item"><strong>{{ ev.stage|title }}</strong> alanı değişti.<br><span class="text-muted">Önce:</span> <span class="text-decoration-line-through text-muted">{{ ev.old_value|default:"—" }}</span><br><span class="text-muted">Sonra:</span> <strong>{{ ev.new_value }}</strong><div class="audit-meta">{{ ev.timestamp|date:"d.m.Y H:i" }} — {{ ev.user }}</div></div>
+            {% endfor %}
+          </div>
+        {% else %}
+          <div class="audit-empty">Bu siparişte henüz düzenleme yapılmamış.</div>
+        {% endif %}
+      </div>
+    </section>
+
+    <div class="production-wrap no-print" id="uretim-paneli">{% include "core/_uretim_paneli.html" with order=order events=events %}</div>
+    <div class="production-title">📊 Üretim Adet Kaydı</div>
+    <div class="production-sub">Üretim işlemleri ve mevcut sipariş fonksiyonları bu panel üzerinden devam eder.</div>
+  </div>
+</div>
 {% endblock %}
