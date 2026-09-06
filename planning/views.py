@@ -3,10 +3,13 @@ from datetime import date, timedelta
 
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
-from django.shortcuts import render
+from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
 from django.views.decorators.http import require_POST
 
-from .models import PlanningEntry
+from core.models import Order
+from core.services.order_status import latest_status_event, status_label
+from .models import PlanningEntry, ShipmentPlan
 
 
 SECTIONS = [
@@ -83,11 +86,22 @@ def shipment_planning_page(request):
     weekdays = [monday + timedelta(days=i) for i in range(5)]
     friday = weekdays[-1]
 
-    shipment_entries = PlanningEntry.objects.filter(
-        section="sevkiyat",
-        date__range=(monday, friday),
-    )
+    shipment_entries = PlanningEntry.objects.filter(section="sevkiyat", date__range=(monday, friday))
     shipment_notes = {entry.date.isoformat(): entry.note for entry in shipment_entries}
+
+    plans = (
+        ShipmentPlan.objects
+        .filter(planned_date__range=(monday, friday))
+        .select_related("order", "order__musteri")
+    )
+    shipment_plans = {day.isoformat(): [] for day in weekdays}
+    for plan in plans:
+        order = plan.order
+        shipment_plans.setdefault(plan.planned_date.isoformat(), []).append({
+            "id": plan.id,
+            "order": order,
+            "status": status_label(latest_status_event(order)),
+        })
 
     month_names = {
         1: "Ocak", 2: "Şubat", 3: "Mart", 4: "Nisan", 5: "Mayıs", 6: "Haziran",
@@ -105,7 +119,33 @@ def shipment_planning_page(request):
         "next_date": (monday + timedelta(days=7)).isoformat(),
         "today": today,
         "shipment_notes": shipment_notes,
+        "shipment_plans": shipment_plans,
     })
+
+
+@login_required
+@require_POST
+def plan_order_shipment(request, order_id):
+    order = get_object_or_404(Order, pk=order_id)
+    try:
+        planned_date = date.fromisoformat(request.POST.get("planned_date", ""))
+    except ValueError:
+        return redirect("order_detail", pk=order.pk)
+
+    ShipmentPlan.objects.update_or_create(
+        order=order,
+        defaults={"planned_date": planned_date, "created_by": request.user},
+    )
+    return redirect(f"{reverse('planning:shipment')}?date={planned_date.isoformat()}")
+
+
+@login_required
+@require_POST
+def remove_shipment_plan(request, plan_id):
+    plan = get_object_or_404(ShipmentPlan, pk=plan_id)
+    planned_date = plan.planned_date
+    plan.delete()
+    return redirect(f"{reverse('planning:shipment')}?date={planned_date.isoformat()}")
 
 
 @login_required
