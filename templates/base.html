@@ -58,6 +58,35 @@
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 <script>document.addEventListener('DOMContentLoaded',function(){const el=document.querySelector('.user-name-mobile');if(!el)return;const p=el.textContent.trim().split(/\s+/).filter(Boolean);if(p.length>1){el.textContent=p[0]+' '+Array.from(p[p.length-1])[0]+'.';}});</script>
+<script>
+document.addEventListener('DOMContentLoaded',function(){
+  document.addEventListener('click',function(e){
+    const link=e.target.closest('a[href]');
+    if(!link)return;
+    try{
+      const u=new URL(link.href,window.location.origin);
+      if(u.origin!==window.location.origin)return;
+      if(/^\/order\/\d+\/$/.test(u.pathname) && !u.searchParams.has('return_url')){
+        u.searchParams.set('return_url',window.location.pathname+window.location.search);
+        link.href=u.pathname+u.search;
+      }
+    }catch(err){}
+  },true);
+
+  const search=document.getElementById('searchInput');
+  if(search && window.location.pathname==='/'){
+    const key='moli-order-search:'+window.location.pathname+window.location.search;
+    const saved=sessionStorage.getItem(key);
+    if(saved && !search.value){
+      search.value=saved;
+      search.dispatchEvent(new Event('keyup',{bubbles:true}));
+    }
+    search.addEventListener('input',function(){sessionStorage.setItem(key,this.value)});
+    const clear=document.getElementById('clearFilters');
+    clear&&clear.addEventListener('click',function(){sessionStorage.removeItem(key)});
+  }
+});
+</script>
 {% block extra_js %}{% endblock %}
 <input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}">
 </body>
