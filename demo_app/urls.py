@@ -5,6 +5,7 @@ from django.conf.urls.static import static
 from django.contrib.auth import logout
 from django.shortcuts import redirect
 from core import views
+from core.order_transfer_views import transfer_production_history
 from core.views import health_check
 from core.order_list_enhanced import order_list as enhanced_order_list
 from core.assistant_views import assistant_page, assistant_api, assistant_clear
@@ -36,6 +37,7 @@ urlpatterns = [
     path("order/new/", views.order_create, name="order_create"),
     path("order/<int:pk>/", views.order_detail, name="order_detail"),
     path("order/<int:pk>/edit/", views.order_edit, name="order_edit"),
+    path("order/<int:source_order_id>/production-transfer/", transfer_production_history, name="transfer_production_history"),
     path("orders/<int:pk>/update/", views.update_stage, name="update_stage"),
     path("order/<int:pk>/delete/", views.order_delete, name="order_delete"),
     path("orders/<int:pk>/upload-image/", views.order_upload_image, name="order_upload_image"),
@@ -45,7 +47,7 @@ urlpatterns = [
     path("orders/multi-create/", views.order_multi_create, name="order_multi_create"),
     path("musteri/new/", views.musteri_create, name="musteri_create"),
     path("ajax/musteri/ekle/", views.ajax_musteri_ekle, name="ajax_musteri_ekle"),
-    path("ajax/musteri/pasif-yap/", views.musteri_pasif_yap_ajax, name="musteri_pasif_yap_ajax"),
+    path("ajax/musteri/pasif-yap/", views.musteri_pasif_yap_ajax, name="ajax_musteri_pasif_yap_ajax"),
     path("users/", user_management_view, name="user_management"),
     path("users/<int:user_id>/", employee_detail, name="employee_detail"),
     path("reports/", views.reports_view, name="reports"),
