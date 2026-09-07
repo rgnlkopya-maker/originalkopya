@@ -1,43 +1,50 @@
 {% extends "base.html" %}
 {% block extra_css %}
 <style>
-.material-wrap{max-width:1450px;margin:0 auto;padding:24px 16px 50px}.soft-card,.material-head{background:#fff;border:1px solid #edf0f6;border-radius:18px;box-shadow:0 5px 18px rgba(15,23,42,.06)}.material-head{padding:20px 22px;margin-bottom:16px}.soft-card{padding:18px;margin-bottom:18px}.summary-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:14px 0 18px}.summary-card{background:#fff;border:1px solid #edf0f6;border-radius:16px;padding:14px 16px}.summary-value{font-size:24px;font-weight:800}.summary-label{font-size:12px;color:#7b8497}.form-control,.form-select{border-radius:11px}.material-table td,.material-table th{vertical-align:middle}.stock-badge,.stage-badge,.warehouse-badge{display:inline-flex;align-items:center;padding:6px 9px;border-radius:999px;font-size:12px;font-weight:700}.stock-badge{background:#eef8f1;color:#207a3d}.stock-badge.critical{background:#fff0f0;color:#c83b3b}.stage-badge{background:#eef1ff;color:#4354c5}.stage-badge.susleme{background:#fff3e8;color:#b76518}.warehouse-badge{background:#f3f4f6;color:#374151;margin:2px}.tiny{font-size:11px;color:#7b8497}.details-box{background:#f8f9fc;border:1px solid #edf0f5;border-radius:12px;padding:12px}.btn-soft{border-radius:10px;font-weight:700}@media(max-width:900px){.summary-grid{grid-template-columns:1fr}.material-wrap{padding:14px 8px}}
+.material-wrap{max-width:1450px;margin:0 auto;padding:24px 16px 50px}.soft-card,.material-head{background:#fff;border:1px solid #edf0f6;border-radius:18px;box-shadow:0 5px 18px rgba(15,23,42,.06)}.material-head{padding:20px 22px;margin-bottom:16px}.soft-card{padding:18px;margin-bottom:18px}.summary-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:14px 0 18px}.summary-card{background:#fff;border:1px solid #edf0f6;border-radius:16px;padding:14px 16px}.summary-value{font-size:24px;font-weight:800}.summary-label{font-size:12px;color:#7b8497}.form-control,.form-select{border-radius:11px}.material-table td,.material-table th{vertical-align:middle}.stock-badge,.stage-badge,.warehouse-badge{display:inline-flex;align-items:center;padding:6px 9px;border-radius:999px;font-size:12px;font-weight:700}.stock-badge{background:#eef8f1;color:#207a3d}.stock-badge.critical{background:#fff0f0;color:#c83b3b}.stage-badge{background:#eef1ff;color:#4354c5}.stage-badge.susleme{background:#fff3e8;color:#b76518}.warehouse-badge{background:#f3f4f6;color:#374151;margin:2px}.tiny{font-size:11px;color:#7b8497}.details-box{background:#f8f9fc;border:1px solid #edf0f5;border-radius:12px;padding:12px}.btn-soft{border-radius:10px;font-weight:700}.material-head-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap}.material-search{width:340px;max-width:48vw;height:42px;border:1px solid #dfe5ef;border-radius:14px;padding:0 14px;outline:none}.material-search:focus{border-color:#bfcaff;box-shadow:0 0 0 4px rgba(66,103,255,.08)}.add-material-btn{width:42px;height:42px;border-radius:14px;border:1px solid #cfd8ff;background:#eef3ff;color:#3158ee;font-size:24px;line-height:1;display:inline-flex;align-items:center;justify-content:center;font-weight:700}.add-material-btn:hover{background:#e3eaff}.no-material-results{display:none;text-align:center;padding:28px;color:#7b8497;font-weight:600}@media(max-width:900px){.summary-grid{grid-template-columns:1fr}.material-wrap{padding:14px 8px}.material-search{width:100%;max-width:none}.material-head-actions{width:100%}}
 </style>
 {% endblock %}
 {% block content %}
 <div class="material-wrap">
   <div class="material-head d-flex justify-content-between align-items-center gap-3 flex-wrap">
     <div><div class="text-muted small">MALZEME YÖNETİMİ</div><h2 class="fw-bold mb-1">Malzeme Kartları</h2><div class="text-muted">Malzeme kimliği, kullanım aşaması ve depo stokları tek yerde.</div></div>
-    <div class="d-flex gap-2"><a href="{% url 'warehouse_inventory' %}" class="btn btn-primary btn-soft">🏬 Depo Stokları</a><a href="{% url 'product_card_list' %}" class="btn btn-outline-secondary btn-soft">← Ürün Kartları</a></div>
+    <div class="material-head-actions">
+      <input type="text" id="materialLiveSearch" class="material-search" autocomplete="off" placeholder="Malzeme kodu veya adı ara...">
+      <button type="button" class="add-material-btn" data-bs-toggle="collapse" data-bs-target="#newMaterialCard" aria-expanded="false" title="Yeni Malzeme Kartı">+</button>
+      <a href="{% url 'warehouse_inventory' %}" class="btn btn-primary btn-soft">🏬 Depo Stokları</a>
+      <a href="{% url 'product_card_list' %}" class="btn btn-outline-secondary btn-soft">← Ürün Kartları</a>
+    </div>
   </div>
   {% for message in messages %}<div class="alert alert-info">{{ message }}</div>{% endfor %}
   <div class="summary-grid"><div class="summary-card"><div class="summary-value">{{ materials|length }}</div><div class="summary-label">Aktif Malzeme</div></div><div class="summary-card"><div class="summary-value">{{ critical_count }}</div><div class="summary-label">Kritik Stok</div></div><div class="summary-card"><div class="summary-value">{{ warehouses|length }}</div><div class="summary-label">Aktif Depo</div></div></div>
 
-  <div class="soft-card">
-    <h5 class="fw-bold mb-3">＋ Yeni Malzeme Kartı</h5>
-    <form method="post" enctype="multipart/form-data" class="row g-3">{% csrf_token %}<input type="hidden" name="action" value="add">
-      <div class="col-md-2"><label class="form-label">Kod</label><input name="kod" class="form-control" required></div>
-      <div class="col-md-3"><label class="form-label">Malzeme adı</label><input name="ad" class="form-control" required></div>
-      <div class="col-md-2"><label class="form-label">Kategori</label><select name="kategori" class="form-select">{% for v,l in category_choices %}<option value="{{ v }}">{{ l }}</option>{% endfor %}</select></div>
-      <div class="col-md-2"><label class="form-label fw-bold">Kullanım Aşaması</label><select name="kullanim_asamasi" class="form-select" required>{% for v,l in usage_stage_choices %}<option value="{{ v }}">{{ l }}</option>{% endfor %}</select></div>
-      <div class="col-md-1"><label class="form-label">Birim</label><select name="birim" class="form-select"><option value="M">Metre</option><option value="ADET">Adet</option><option value="KG">Kg</option><option value="GR">Gram</option></select></div>
-      <div class="col-md-2"><label class="form-label">Tedarikçi</label><input name="tedarikci" class="form-control"></div>
-      <div class="col-md-2"><label class="form-label fw-bold">Açılış Deposu</label><select name="warehouse" class="form-select" required>{% for w in warehouses %}<option value="{{ w.id }}">{{ w.ad }}</option>{% endfor %}</select></div>
-      <div class="col-md-2"><label class="form-label">Başlangıç stok</label><input name="stok_miktari" type="number" step="0.001" min="0" value="0" class="form-control"></div>
-      <div class="col-md-2"><label class="form-label">Kritik stok</label><input name="kritik_stok" type="number" step="0.001" min="0" value="0" class="form-control"></div>
-      <div class="col-md-2"><label class="form-label">Birim maliyet</label><input name="birim_maliyet" type="number" step="0.0001" min="0" value="0" class="form-control"></div>
-      <div class="col-md-1"><label class="form-label">Para</label><select name="birim_maliyet_para_birimi" class="form-select"><option value="TRY">TL</option><option value="USD">USD</option></select></div>
-      <div class="col-md-2"><label class="form-label">Son alış</label><input name="son_alis_tarihi" type="date" class="form-control"></div>
-      <div class="col-md-3"><label class="form-label">Görsel</label><input name="material_image" type="file" accept="image/*" class="form-control"></div>
-      <div class="col-md-8"><label class="form-label">Açıklama</label><input name="aciklama" class="form-control"></div>
-      <div class="col-md-2 d-flex align-items-end"><button class="btn btn-dark w-100 btn-soft">Kartı Kaydet</button></div>
-    </form>
+  <div class="collapse" id="newMaterialCard">
+    <div class="soft-card">
+      <h5 class="fw-bold mb-3">＋ Yeni Malzeme Kartı</h5>
+      <form method="post" enctype="multipart/form-data" class="row g-3">{% csrf_token %}<input type="hidden" name="action" value="add">
+        <div class="col-md-2"><label class="form-label">Kod</label><input name="kod" class="form-control" required></div>
+        <div class="col-md-3"><label class="form-label">Malzeme adı</label><input name="ad" class="form-control" required></div>
+        <div class="col-md-2"><label class="form-label">Kategori</label><select name="kategori" class="form-select">{% for v,l in category_choices %}<option value="{{ v }}">{{ l }}</option>{% endfor %}</select></div>
+        <div class="col-md-2"><label class="form-label fw-bold">Kullanım Aşaması</label><select name="kullanim_asamasi" class="form-select" required>{% for v,l in usage_stage_choices %}<option value="{{ v }}">{{ l }}</option>{% endfor %}</select></div>
+        <div class="col-md-1"><label class="form-label">Birim</label><select name="birim" class="form-select"><option value="M">Metre</option><option value="ADET">Adet</option><option value="KG">Kg</option><option value="GR">Gram</option></select></div>
+        <div class="col-md-2"><label class="form-label">Tedarikçi</label><input name="tedarikci" class="form-control"></div>
+        <div class="col-md-2"><label class="form-label fw-bold">Açılış Deposu</label><select name="warehouse" class="form-select" required>{% for w in warehouses %}<option value="{{ w.id }}">{{ w.ad }}</option>{% endfor %}</select></div>
+        <div class="col-md-2"><label class="form-label">Başlangıç stok</label><input name="stok_miktari" type="number" step="0.001" min="0" value="0" class="form-control"></div>
+        <div class="col-md-2"><label class="form-label">Kritik stok</label><input name="kritik_stok" type="number" step="0.001" min="0" value="0" class="form-control"></div>
+        <div class="col-md-2"><label class="form-label">Birim maliyet</label><input name="birim_maliyet" type="number" step="0.0001" min="0" value="0" class="form-control"></div>
+        <div class="col-md-1"><label class="form-label">Para</label><select name="birim_maliyet_para_birimi" class="form-select"><option value="TRY">TL</option><option value="USD">USD</option></select></div>
+        <div class="col-md-2"><label class="form-label">Son alış</label><input name="son_alis_tarihi" type="date" class="form-control"></div>
+        <div class="col-md-3"><label class="form-label">Görsel</label><input name="material_image" type="file" accept="image/*" class="form-control"></div>
+        <div class="col-md-8"><label class="form-label">Açıklama</label><input name="aciklama" class="form-control"></div>
+        <div class="col-md-2 d-flex align-items-end"><button class="btn btn-dark w-100 btn-soft">Kartı Kaydet</button></div>
+      </form>
+    </div>
   </div>
 
   <div class="soft-card">
     <h5 class="fw-bold mb-3">Hammadde Kartları</h5>
-    <div class="table-responsive"><table class="table material-table align-middle"><thead><tr><th>Kod / Malzeme</th><th>Aşama</th><th>Toplam Stok</th><th>Depo Dağılımı</th><th>Tedarikçi</th><th>Maliyet</th><th>İşlemler</th></tr></thead><tbody>
-    {% for material in materials %}<tr>
+    <div class="table-responsive"><table class="table material-table align-middle"><thead><tr><th>Kod / Malzeme</th><th>Aşama</th><th>Toplam Stok</th><th>Depo Dağılımı</th><th>Tedarikçi</th><th>Maliyet</th><th>İşlemler</th></tr></thead><tbody id="materialTableBody">
+    {% for material in materials %}<tr class="material-main-row" data-material-id="{{ material.id }}" data-search="{{ material.kod|lower }} {{ material.ad|lower }} {{ material.tedarikci|default:''|lower }} {{ material.get_kategori_display|lower }}">
       <td><strong>{{ material.kod }}</strong><br>{{ material.ad }}<div class="tiny">{{ material.get_kategori_display }}</div></td>
       <td><span class="stage-badge {% if material.kullanim_asamasi == 'SUSLEME' %}susleme{% endif %}">{{ material.get_kullanim_asamasi_display }}</span></td>
       <td><span class="stock-badge {% if material.kritik_mi %}critical{% endif %}">{{ material.stok_miktari }} {{ material.get_birim_display }}</span></td>
@@ -46,11 +53,46 @@
       <td>{{ material.birim_maliyet }} {{ material.birim_maliyet_para_birimi }}</td>
       <td><div class="d-flex gap-1 flex-wrap"><button type="button" class="btn btn-sm btn-outline-primary btn-soft" data-bs-toggle="collapse" data-bs-target="#stock{{ material.id }}">Stok</button><button type="button" class="btn btn-sm btn-outline-secondary btn-soft" data-bs-toggle="collapse" data-bs-target="#edit{{ material.id }}">Düzenle</button><button type="button" class="btn btn-sm btn-outline-dark btn-soft" data-bs-toggle="collapse" data-bs-target="#transfer{{ material.id }}">Transfer</button></div></td>
     </tr>
-    <tr class="collapse" id="stock{{ material.id }}"><td colspan="7"><div class="details-box"><form method="post" class="row g-2 align-items-end">{% csrf_token %}<input type="hidden" name="action" value="stock_movement"><input type="hidden" name="id" value="{{ material.id }}"><div class="col-md-2"><label class="form-label">Depo</label><select name="warehouse" class="form-select" required>{% for w in warehouses %}<option value="{{ w.id }}">{{ w.ad }}</option>{% endfor %}</select></div><div class="col-md-2"><label class="form-label">Hareket</label><select name="movement_type" class="form-select">{% for v,l in movement_choices %}<option value="{{ v }}">{{ l }}</option>{% endfor %}</select></div><div class="col-md-2"><label class="form-label">Miktar</label><input name="miktar" type="number" step="0.001" min="0.001" class="form-control" required></div><div class="col-md-2"><label class="form-label">Alış maliyeti</label><input name="hareket_birim_maliyet" type="number" step="0.0001" min="0" class="form-control"></div><div class="col-md-1"><label class="form-label">Para</label><select name="hareket_para_birimi" class="form-select"><option value="TRY">TL</option><option value="USD">USD</option></select></div><div class="col-md-2"><label class="form-label">Açıklama</label><input name="hareket_aciklama" class="form-control"></div><div class="col-md-1"><button class="btn btn-primary w-100">Kaydet</button></div></form></div></td></tr>
-    <tr class="collapse" id="edit{{ material.id }}"><td colspan="7"><div class="details-box"><form method="post" class="row g-2 align-items-end">{% csrf_token %}<input type="hidden" name="action" value="update_info"><input type="hidden" name="id" value="{{ material.id }}"><div class="col-md-2"><label class="form-label">Kategori</label><select name="kategori" class="form-select">{% for v,l in category_choices %}<option value="{{ v }}" {% if material.kategori == v %}selected{% endif %}>{{ l }}</option>{% endfor %}</select></div><div class="col-md-2"><label class="form-label fw-bold">Kullanım Aşaması</label><select name="kullanim_asamasi" class="form-select">{% for v,l in usage_stage_choices %}<option value="{{ v }}" {% if material.kullanim_asamasi == v %}selected{% endif %}>{{ l }}</option>{% endfor %}</select></div><div class="col-md-2"><label class="form-label">Tedarikçi</label><input name="tedarikci" class="form-control" value="{{ material.tedarikci }}"></div><div class="col-md-2"><label class="form-label">Kritik stok</label><input name="kritik_stok" type="number" step="0.001" class="form-control" value="{{ material.kritik_stok }}"></div><div class="col-md-2"><label class="form-label">Son alış</label><input name="son_alis_tarihi" type="date" class="form-control" value="{{ material.son_alis_tarihi|date:'Y-m-d' }}"></div><div class="col-md-1"><label class="form-label">Not</label><input name="aciklama" class="form-control" value="{{ material.aciklama }}"></div><div class="col-md-1"><button class="btn btn-dark w-100">Kaydet</button></div></form></div></td></tr>
-    <tr class="collapse" id="transfer{{ material.id }}"><td colspan="7"><div class="details-box"><form method="post" class="row g-2 align-items-end">{% csrf_token %}<input type="hidden" name="action" value="transfer"><input type="hidden" name="id" value="{{ material.id }}"><div class="col-md-3"><label class="form-label">Kaynak Depo</label><select name="source_warehouse" class="form-select">{% for w in warehouses %}<option value="{{ w.id }}">{{ w.ad }}</option>{% endfor %}</select></div><div class="col-md-3"><label class="form-label">Hedef Depo</label><select name="target_warehouse" class="form-select">{% for w in warehouses reversed %}<option value="{{ w.id }}">{{ w.ad }}</option>{% endfor %}</select></div><div class="col-md-3"><label class="form-label">Miktar</label><input name="miktar" type="number" step="0.001" min="0.001" class="form-control" required></div><div class="col-md-3"><button class="btn btn-dark w-100">Depolar Arası Transfer</button></div></form></div></td></tr>
+    <tr class="collapse material-detail-row" data-material-id="{{ material.id }}" id="stock{{ material.id }}"><td colspan="7"><div class="details-box"><form method="post" class="row g-2 align-items-end">{% csrf_token %}<input type="hidden" name="action" value="stock_movement"><input type="hidden" name="id" value="{{ material.id }}"><div class="col-md-2"><label class="form-label">Depo</label><select name="warehouse" class="form-select" required>{% for w in warehouses %}<option value="{{ w.id }}">{{ w.ad }}</option>{% endfor %}</select></div><div class="col-md-2"><label class="form-label">Hareket</label><select name="movement_type" class="form-select">{% for v,l in movement_choices %}<option value="{{ v }}">{{ l }}</option>{% endfor %}</select></div><div class="col-md-2"><label class="form-label">Miktar</label><input name="miktar" type="number" step="0.001" min="0.001" class="form-control" required></div><div class="col-md-2"><label class="form-label">Alış maliyeti</label><input name="hareket_birim_maliyet" type="number" step="0.0001" min="0" class="form-control"></div><div class="col-md-1"><label class="form-label">Para</label><select name="hareket_para_birimi" class="form-select"><option value="TRY">TL</option><option value="USD">USD</option></select></div><div class="col-md-2"><label class="form-label">Açıklama</label><input name="hareket_aciklama" class="form-control"></div><div class="col-md-1"><button class="btn btn-primary w-100">Kaydet</button></div></form></div></td></tr>
+    <tr class="collapse material-detail-row" data-material-id="{{ material.id }}" id="edit{{ material.id }}"><td colspan="7"><div class="details-box"><form method="post" class="row g-2 align-items-end">{% csrf_token %}<input type="hidden" name="action" value="update_info"><input type="hidden" name="id" value="{{ material.id }}"><div class="col-md-2"><label class="form-label">Kategori</label><select name="kategori" class="form-select">{% for v,l in category_choices %}<option value="{{ v }}" {% if material.kategori == v %}selected{% endif %}>{{ l }}</option>{% endfor %}</select></div><div class="col-md-2"><label class="form-label fw-bold">Kullanım Aşaması</label><select name="kullanim_asamasi" class="form-select">{% for v,l in usage_stage_choices %}<option value="{{ v }}" {% if material.kullanim_asamasi == v %}selected{% endif %}>{{ l }}</option>{% endfor %}</select></div><div class="col-md-2"><label class="form-label">Tedarikçi</label><input name="tedarikci" class="form-control" value="{{ material.tedarikci }}"></div><div class="col-md-2"><label class="form-label">Kritik stok</label><input name="kritik_stok" type="number" step="0.001" class="form-control" value="{{ material.kritik_stok }}"></div><div class="col-md-2"><label class="form-label">Son alış</label><input name="son_alis_tarihi" type="date" class="form-control" value="{{ material.son_alis_tarihi|date:'Y-m-d' }}"></div><div class="col-md-1"><label class="form-label">Not</label><input name="aciklama" class="form-control" value="{{ material.aciklama }}"></div><div class="col-md-1"><button class="btn btn-dark w-100">Kaydet</button></div></form></div></td></tr>
+    <tr class="collapse material-detail-row" data-material-id="{{ material.id }}" id="transfer{{ material.id }}"><td colspan="7"><div class="details-box"><form method="post" class="row g-2 align-items-end">{% csrf_token %}<input type="hidden" name="action" value="transfer"><input type="hidden" name="id" value="{{ material.id }}"><div class="col-md-3"><label class="form-label">Kaynak Depo</label><select name="source_warehouse" class="form-select">{% for w in warehouses %}<option value="{{ w.id }}">{{ w.ad }}</option>{% endfor %}</select></div><div class="col-md-3"><label class="form-label">Hedef Depo</label><select name="target_warehouse" class="form-select">{% for w in warehouses reversed %}<option value="{{ w.id }}">{{ w.ad }}</option>{% endfor %}</select></div><div class="col-md-3"><label class="form-label">Miktar</label><input name="miktar" type="number" step="0.001" min="0.001" class="form-control" required></div><div class="col-md-3"><button class="btn btn-dark w-100">Depolar Arası Transfer</button></div></form></div></td></tr>
     {% empty %}<tr><td colspan="7" class="text-center text-muted py-5">Henüz malzeme kartı yok.</td></tr>{% endfor %}
     </tbody></table></div>
+    <div id="noMaterialResults" class="no-material-results">Aramaya uygun malzeme bulunamadı.</div>
   </div>
 </div>
+<script>
+document.addEventListener('DOMContentLoaded', function(){
+  const input = document.getElementById('materialLiveSearch');
+  const mainRows = Array.from(document.querySelectorAll('.material-main-row'));
+  const detailRows = Array.from(document.querySelectorAll('.material-detail-row'));
+  const empty = document.getElementById('noMaterialResults');
+
+  function filterMaterials(){
+    const term = (input.value || '').trim().toLocaleLowerCase('tr-TR');
+    let visible = 0;
+    const visibleIds = new Set();
+
+    mainRows.forEach(function(row){
+      const text = (row.dataset.search || row.textContent || '').toLocaleLowerCase('tr-TR');
+      const show = !term || text.includes(term);
+      row.style.display = show ? '' : 'none';
+      if(show){ visible++; visibleIds.add(row.dataset.materialId); }
+    });
+
+    detailRows.forEach(function(row){
+      if(!visibleIds.has(row.dataset.materialId)){
+        row.classList.remove('show');
+        row.style.display = 'none';
+      }else{
+        row.style.display = '';
+      }
+    });
+
+    empty.style.display = mainRows.length && visible === 0 ? 'block' : 'none';
+  }
+
+  input.addEventListener('input', filterMaterials);
+});
+</script>
 {% endblock %}
