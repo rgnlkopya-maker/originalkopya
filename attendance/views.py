@@ -129,16 +129,7 @@ def scan(request):
                 existing.approved_at = timezone.now() if auto_approved else None
                 existing.approved_by = request.user if auto_approved else None
                 existing.last_used_at = None
-                existing.save(
-                    update_fields=[
-                        "token_hash",
-                        "status",
-                        "user_agent",
-                        "approved_at",
-                        "approved_by",
-                        "last_used_at",
-                    ]
-                )
+                existing.save(update_fields=["token_hash", "status", "user_agent", "approved_at", "approved_by", "last_used_at"])
                 device = existing
             else:
                 device = AttendanceDevice.objects.create(
@@ -164,7 +155,8 @@ def scan(request):
             max_age=DEVICE_COOKIE_MAX_AGE,
             secure=True,
             httponly=True,
-            samesite="Strict",
+            samesite="Lax",
+            path="/",
         )
     return response
 
