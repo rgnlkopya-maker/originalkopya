@@ -19,7 +19,9 @@ from quality_tracking.models import QualityIssue
 
 User = get_user_model()
 TEAM_CHOICES = list(UserProfile.GOREV_SECENEKLERI)
-if not any(value == "modelleme" for value, _label in TEAM_CHOICES): TEAM_CHOICES.append(("modelleme", "Modelleme"))
+for value, label in [("modelleme", "Modelleme"), ("utucu", "Ütücü"), ("yardimci", "Yardımcı Eleman")]:
+    if not any(existing == value for existing, _label in TEAM_CHOICES):
+        TEAM_CHOICES.append((value, label))
 
 def _is_manager(user): return user.is_superuser or user.groups.filter(name__in=["patron", "mudur"]).exists()
 def _service_parts(start, today):
