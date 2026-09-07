@@ -35,6 +35,7 @@
 <div class="container-fluid px-2">
   <div class="modern-header">
     <div class="header-center">
+      <div class="stat-badge">📦 Kesinleşen Adet: <span id="finalAdet">0</span></div>
       <div class="stat-badge">💰 Kesinleşen Ciro: <span id="finalCiro">0,00</span> TL</div>
       <div class="stat-badge">📌 Kesinleşen Maliyet: <span id="finalMaliyet">0,00</span> TL</div>
       <div class="stat-badge">✅ Kesinleşen Kâr: <span id="finalKar">0,00</span> TL</div>
@@ -59,7 +60,7 @@
       <tbody>
       {% for o in orders %}
         {% finance_result o as fr %}
-        <tr class="finance-row" data-final="{% if fr.is_final %}1{% else %}0{% endif %}" data-sale="{{ fr.satis_tl|default:0 }}" data-cost="{{ fr.maliyet_tl|default:0 }}" data-profit="{{ fr.kar_tl|default:0 }}">
+        <tr class="finance-row" data-final="{% if fr.is_final %}1{% else %}0{% endif %}" data-qty="{{ o.adet|default:0 }}" data-sale="{{ fr.satis_tl|default:0 }}" data-cost="{{ fr.maliyet_tl|default:0 }}" data-profit="{{ fr.kar_tl|default:0 }}">
           <td><a class="order-link" href="{% url 'order_detail' o.id %}">{{ o.siparis_numarasi }}</a></td>
           <td>{{ o.musteri.ad|default:"-" }}</td>
           <td>{{ o.urun_kodu|default:"-" }}</td>
@@ -84,14 +85,16 @@
 {% block extra_js %}
 <script>
 document.addEventListener("DOMContentLoaded", function () {
-  let ciro = 0, maliyet = 0, kar = 0;
+  let adet = 0, ciro = 0, maliyet = 0, kar = 0;
   document.querySelectorAll(".finance-row").forEach(row => {
     if (row.dataset.final !== "1") return;
+    adet += parseInt(row.dataset.qty || "0", 10) || 0;
     ciro += parseFloat((row.dataset.sale || "0").replace(",", ".")) || 0;
     maliyet += parseFloat((row.dataset.cost || "0").replace(",", ".")) || 0;
     kar += parseFloat((row.dataset.profit || "0").replace(",", ".")) || 0;
   });
   const fmt = n => n.toLocaleString("tr-TR", {minimumFractionDigits: 2, maximumFractionDigits: 2});
+  document.getElementById("finalAdet").textContent = adet.toLocaleString("tr-TR");
   document.getElementById("finalCiro").textContent = fmt(ciro);
   document.getElementById("finalMaliyet").textContent = fmt(maliyet);
   document.getElementById("finalKar").textContent = fmt(kar);
