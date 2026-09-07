@@ -111,21 +111,45 @@ def scan(request):
     new_token = None
 
     existing = AttendanceDevice.objects.filter(user=request.user).first()
-    if device_state == "missing" or (device_state == "mismatch" and existing is None):
-        if existing:
-            device_state = "mismatch"
+
+    if device_state in {"missing", "mismatch"}:
+        if existing and existing.status == "approved":
             device = existing
+            device_state = "mismatch"
         else:
             new_token = secrets.token_urlsafe(32)
             auto_approved = is_manager(request.user)
-            device = AttendanceDevice.objects.create(
-                user=request.user,
-                token_hash=_hash_device_token(new_token),
-                status="approved" if auto_approved else "pending",
-                user_agent=(request.META.get("HTTP_USER_AGENT") or "")[:500],
-                approved_at=timezone.now() if auto_approved else None,
-                approved_by=request.user if auto_approved else None,
-            )
+            token_hash = _hash_device_token(new_token)
+            user_agent = (request.META.get("HTTP_USER_AGENT") or "")[:500]
+
+            if existing:
+                existing.token_hash = token_hash
+                existing.status = "approved" if auto_approved else "pending"
+                existing.user_agent = user_agent
+                existing.approved_at = timezone.now() if auto_approved else None
+                existing.approved_by = request.user if auto_approved else None
+                existing.last_used_at = None
+                existing.save(
+                    update_fields=[
+                        "token_hash",
+                        "status",
+                        "user_agent",
+                        "approved_at",
+                        "approved_by",
+                        "last_used_at",
+                    ]
+                )
+                device = existing
+            else:
+                device = AttendanceDevice.objects.create(
+                    user=request.user,
+                    token_hash=token_hash,
+                    status="approved" if auto_approved else "pending",
+                    user_agent=user_agent,
+                    approved_at=timezone.now() if auto_approved else None,
+                    approved_by=request.user if auto_approved else None,
+                )
+
             device_state = "approved" if auto_approved else "pending"
 
     response = render(
