@@ -34,7 +34,7 @@
 document.addEventListener('DOMContentLoaded', function(){
   const rows = Array.from(document.querySelectorAll('.cost-row'));
   const wrap = document.getElementById('clientPagination');
-  const pageSize = 25;
+  const pageSize = 10;
   let current = 1;
   const totalPages = Math.max(1, Math.ceil(rows.length / pageSize));
 
@@ -47,19 +47,19 @@ document.addEventListener('DOMContentLoaded', function(){
 
     const prev = document.createElement('button');
     prev.type = 'button'; prev.className = 'client-page-btn'; prev.textContent = '‹ Önceki'; prev.disabled = current === 1;
-    prev.onclick = () => { current--; render(); window.scrollTo({top:0, behavior:'smooth'}); };
+    prev.onclick = () => { current--; render(); };
     wrap.appendChild(prev);
 
     for (let i = 1; i <= totalPages; i++) {
       const b = document.createElement('button');
       b.type = 'button'; b.className = 'client-page-btn' + (i === current ? ' active' : ''); b.textContent = i;
-      b.onclick = () => { current = i; render(); window.scrollTo({top:0, behavior:'smooth'}); };
+      b.onclick = () => { current = i; render(); };
       wrap.appendChild(b);
     }
 
     const next = document.createElement('button');
     next.type = 'button'; next.className = 'client-page-btn'; next.textContent = 'Sonraki ›'; next.disabled = current === totalPages;
-    next.onclick = () => { current++; render(); window.scrollTo({top:0, behavior:'smooth'}); };
+    next.onclick = () => { current++; render(); };
     wrap.appendChild(next);
   }
   render();
