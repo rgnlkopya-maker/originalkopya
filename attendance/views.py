@@ -1,6 +1,8 @@
+import hashlib
 import io
 import math
 import os
+import secrets
 import uuid
 from calendar import monthrange
 from datetime import date, datetime
@@ -17,7 +19,10 @@ from django.utils import timezone
 from django.views.decorators.http import require_POST
 from supabase import create_client
 
-from .models import AttendanceRecord, WorkplaceSettings
+from .models import AttendanceDevice, AttendanceRecord, WorkplaceSettings
+
+DEVICE_COOKIE = "moli_attendance_device"
+DEVICE_COOKIE_MAX_AGE = 60 * 60 * 24 * 365 * 3
 
 
 def is_manager(user):
@@ -25,8 +30,24 @@ def is_manager(user):
 
 
 def is_patron(user):
-    # Patron ve Mudur uygulamada ayni tam yonetim yetkisine sahiptir.
     return is_manager(user)
+
+
+def _hash_device_token(token):
+    return hashlib.sha256(token.encode("utf-8")).hexdigest()
+
+
+def _device_for_request(request):
+    token = request.COOKIES.get(DEVICE_COOKIE, "")
+    if not token:
+        return None, "missing"
+    token_hash = _hash_device_token(token)
+    device = AttendanceDevice.objects.filter(user=request.user, token_hash=token_hash).first()
+    if not device:
+        return None, "mismatch"
+    if device.status != "approved":
+        return device, "pending"
+    return device, "approved"
 
 
 def _distance_m(lat1, lon1, lat2, lon2):
@@ -86,7 +107,42 @@ def scan(request):
     workplace = WorkplaceSettings.get_solo()
     today = timezone.localdate()
     record = AttendanceRecord.objects.filter(user=request.user, work_date=today).first()
-    return render(request, "attendance_v2/scan.html", {"workplace": workplace, "record": record})
+    device, device_state = _device_for_request(request)
+    new_token = None
+
+    if device_state == "missing":
+        existing = AttendanceDevice.objects.filter(user=request.user).first()
+        if existing:
+            device_state = "mismatch"
+            device = existing
+        else:
+            new_token = secrets.token_urlsafe(32)
+            auto_approved = is_manager(request.user)
+            device = AttendanceDevice.objects.create(
+                user=request.user,
+                token_hash=_hash_device_token(new_token),
+                status="approved" if auto_approved else "pending",
+                user_agent=(request.META.get("HTTP_USER_AGENT") or "")[:500],
+                approved_at=timezone.now() if auto_approved else None,
+                approved_by=request.user if auto_approved else None,
+            )
+            device_state = "approved" if auto_approved else "pending"
+
+    response = render(
+        request,
+        "attendance_v2/scan.html",
+        {"workplace": workplace, "record": record, "device": device, "device_state": device_state, "is_manager": is_manager(request.user)},
+    )
+    if new_token:
+        response.set_cookie(
+            DEVICE_COOKIE,
+            new_token,
+            max_age=DEVICE_COOKIE_MAX_AGE,
+            secure=True,
+            httponly=True,
+            samesite="Strict",
+        )
+    return response
 
 
 @login_required
@@ -112,6 +168,12 @@ def attendance_qr_print(request):
 @login_required
 @require_POST
 def punch(request):
+    device, device_state = _device_for_request(request)
+    if device_state == "pending":
+        return JsonResponse({"ok": False, "message": "Bu telefon henüz Müdür/Patron tarafından onaylanmadı."}, status=403)
+    if device_state in {"missing", "mismatch"}:
+        return JsonResponse({"ok": False, "message": "Bu hesap puantaj için başka bir telefona kayıtlı. Müdür/Patron cihaz kaydını sıfırlamalı."}, status=403)
+
     workplace = WorkplaceSettings.get_solo()
     if not workplace.active_locations():
         return JsonResponse({"ok": False, "message": "İşyeri konumu henüz yönetici tarafından tanımlanmadı."}, status=400)
@@ -131,6 +193,7 @@ def punch(request):
             return JsonResponse({"ok": False, "message": f"Giriş için izin verilen alan {allowed_radius} metre. En yakın işyerine yaklaşık {distance} m."}, status=400)
         record.check_in = now; record.check_in_latitude = lat; record.check_in_longitude = lon; record.check_in_distance_m = distance
         _recalculate(record, workplace); record.save()
+        device.last_used_at = now; device.save(update_fields=["last_used_at"])
         return JsonResponse({"ok": True, "action": "in", "message": f"Giriş kaydedildi: {timezone.localtime(now).strftime('%H:%M')} · {location_name}"})
     if record.check_out:
         return JsonResponse({"ok": False, "message": "Bugünkü giriş ve çıkışınız zaten tamamlandı."}, status=400)
@@ -140,7 +203,40 @@ def punch(request):
         return JsonResponse({"ok": False, "message": f"Çıkış için izin verilen alan {allowed_radius} metre. En yakın işyerine yaklaşık {distance} m."}, status=400)
     record.check_out = now; record.check_out_latitude = lat; record.check_out_longitude = lon; record.check_out_distance_m = distance
     _recalculate(record, workplace); record.save()
+    device.last_used_at = now; device.save(update_fields=["last_used_at"])
     return JsonResponse({"ok": True, "action": "out", "message": f"Çıkış kaydedildi: {timezone.localtime(now).strftime('%H:%M')} · {location_name}"})
+
+
+@login_required
+@user_passes_test(is_manager)
+def device_management(request):
+    devices = AttendanceDevice.objects.select_related("user", "approved_by").order_by("status", "user__first_name", "user__username")
+    pending_count = devices.filter(status="pending").count()
+    return render(request, "attendance_v2/device_management.html", {"devices": devices, "pending_count": pending_count})
+
+
+@login_required
+@user_passes_test(is_manager)
+@require_POST
+def approve_device(request, user_id):
+    target = get_object_or_404(User, pk=user_id)
+    device = get_object_or_404(AttendanceDevice, user=target)
+    device.status = "approved"
+    device.approved_at = timezone.now()
+    device.approved_by = request.user
+    device.save(update_fields=["status", "approved_at", "approved_by"])
+    messages.success(request, f"{target.get_full_name() or target.username} cihazı onaylandı.")
+    return redirect("attendance_device_management")
+
+
+@login_required
+@user_passes_test(is_manager)
+@require_POST
+def reset_device(request, user_id):
+    target = get_object_or_404(User, pk=user_id)
+    AttendanceDevice.objects.filter(user=target).delete()
+    messages.success(request, f"{target.get_full_name() or target.username} cihaz kaydı sıfırlandı. Yeni telefonla QR okutunca tekrar eşleştirme yapılacak.")
+    return redirect("attendance_device_management")
 
 
 @login_required
