@@ -69,6 +69,35 @@ class EmployeeHRProfile(models.Model):
         return f"{self.user} özlük profili"
 
 
+class AttendanceDevice(models.Model):
+    STATUS_CHOICES = [
+        ("pending", "Onay Bekliyor"),
+        ("approved", "Onaylı"),
+    ]
+
+    user = models.OneToOneField(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="attendance_device",
+    )
+    token_hash = models.CharField(max_length=64, unique=True)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="pending", db_index=True)
+    user_agent = models.CharField(max_length=500, blank=True, default="")
+    registered_at = models.DateTimeField(auto_now_add=True)
+    approved_at = models.DateTimeField(null=True, blank=True)
+    last_used_at = models.DateTimeField(null=True, blank=True)
+    approved_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="approved_attendance_devices",
+    )
+
+    def __str__(self):
+        return f"{self.user} - {self.get_status_display()}"
+
+
 class AttendanceRecord(models.Model):
     STATUS_CHOICES = [
         ("worked", "Çalıştı"),
