@@ -110,8 +110,8 @@ def scan(request):
     device, device_state = _device_for_request(request)
     new_token = None
 
-    if device_state == "missing":
-        existing = AttendanceDevice.objects.filter(user=request.user).first()
+    existing = AttendanceDevice.objects.filter(user=request.user).first()
+    if device_state == "missing" or (device_state == "mismatch" and existing is None):
         if existing:
             device_state = "mismatch"
             device = existing
@@ -292,45 +292,33 @@ def edit_record(request):
         try:
             record.check_in = _local_dt(work_date, datetime.strptime(check_in_text, "%H:%M").time()) if check_in_text else None
             record.check_out = _local_dt(work_date, datetime.strptime(check_out_text, "%H:%M").time()) if check_out_text else None
-        except ValueError: return JsonResponse({"ok": False, "message": "Saat formatı geçersiz."}, status=400)
-        if record.check_in and record.check_out and record.check_out < record.check_in: return JsonResponse({"ok": False, "message": "İzin/çıkış saati giriş saatinden önce olamaz."}, status=400)
+        except ValueError: return JsonResponse({"ok": False, "message": "Saat formatı hatalı."}, status=400)
     else: record.check_in = None; record.check_out = None
     if uploaded_report:
         try: record.report_image_url = _upload_report_image(uploaded_report, target_user.id, work_date)
-        except Exception as exc: return JsonResponse({"ok": False, "message": f"Rapor görseli yüklenemedi: {exc}"}, status=400)
-    if request.POST.get("remove_report_image") == "1": record.report_image_url = ""
+        except Exception as exc: return JsonResponse({"ok": False, "message": f"Rapor görseli yüklenemedi: {exc}"}, status=500)
     _recalculate(record, workplace); record.save(); return JsonResponse({"ok": True, "message": "Puantaj kaydı güncellendi."})
 
 
 @login_required
-@user_passes_test(is_manager)
+@user_passes_test(is_patron)
 @require_POST
 def save_workplace(request):
-    workplace = WorkplaceSettings.get_solo(); slot = (request.POST.get("location_slot") or "primary").strip()
-    try:
-        latitude = float(request.POST["latitude"]); longitude = float(request.POST["longitude"])
-    except (KeyError, TypeError, ValueError):
-        messages.error(request, "Geçerli bir işyeri konumu alınamadı."); return redirect("attendance_dashboard")
-    if slot == "second":
-        workplace.second_location_name = "Gaziemir"; workplace.second_latitude = latitude; workplace.second_longitude = longitude
-        message = "Gaziemir konumu kaydedildi."
-    else:
-        workplace.latitude = latitude; workplace.longitude = longitude; message = "Çankaya konumu kaydedildi."
-    workplace.save(); messages.success(request, message); return redirect("attendance_dashboard")
+    workplace = WorkplaceSettings.get_solo()
+    try: lat = float(request.POST.get("latitude")); lon = float(request.POST.get("longitude"))
+    except (TypeError, ValueError): return JsonResponse({"ok": False, "message": "Konum alınamadı."}, status=400)
+    location_slot = (request.POST.get("location_slot") or "primary").strip()
+    if location_slot == "secondary": workplace.second_latitude = lat; workplace.second_longitude = lon
+    else: workplace.latitude = lat; workplace.longitude = lon
+    workplace.save(); return JsonResponse({"ok": True, "message": "İşyeri konumu kaydedildi."})
 
 
 @login_required
 @user_passes_test(is_manager)
 def month_report(request, user_id, year=None, month=None):
     target_user = get_object_or_404(User, pk=user_id); today = timezone.localdate(); year = year or today.year; month = month or today.month
-    last_day = monthrange(year, month)[1]; start = date(year, month, 1); end = date(year, month, last_day)
-    records = {r.work_date: r for r in AttendanceRecord.objects.filter(user=target_user, work_date__range=(start, end))}
-    days = []; total_late = total_overtime = absent_count = workday_count = 0
-    for day_number in range(1, last_day + 1):
-        d = date(year, month, day_number); record = records.get(d)
-        if d.weekday() < 5:
-            workday_count += 1
-            if not record and d <= today: absent_count += 1
-        if record: total_late += record.late_minutes; total_overtime += record.overtime_minutes
-        days.append({"date": d, "record": record, "is_weekend": d.weekday() >= 5})
-    return render(request, "attendance_v2/month_report.html", {"target_user": target_user, "year": year, "month": month, "days": days, "workday_count": workday_count, "absent_count": absent_count, "total_late": total_late, "total_overtime": total_overtime})
+    last_day = monthrange(year, month)[1]; start = date(year, month, 1); end = date(year, month, last_day); workplace = WorkplaceSettings.get_solo()
+    records = AttendanceRecord.objects.filter(user=target_user, work_date__range=(start, end)).order_by("work_date")
+    totals = {"late": sum(r.late_minutes or 0 for r in records), "overtime": sum(r.overtime_minutes or 0 for r in records), "leave": records.filter(status="leave").count(), "annual_leave": records.filter(status="annual_leave").count(), "sick": records.filter(status="sick").count()}
+    prev_year, prev_month = (year - 1, 12) if month == 1 else (year, month - 1); next_year, next_month = (year + 1, 1) if month == 12 else (year, month + 1)
+    return render(request, "attendance_v2/month_report.html", {"target_user": target_user, "records": records, "totals": totals, "year": year, "month": month, "prev_year": prev_year, "prev_month": prev_month, "next_year": next_year, "next_month": next_month, "workplace": workplace})
