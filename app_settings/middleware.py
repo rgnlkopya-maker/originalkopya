@@ -25,7 +25,7 @@ class MoliAccessMiddleware:
             permission = 'can_view_reports'
         elif path.startswith('/product-costs/') or path.startswith('/urun-kartlari/'):
             permission = 'can_view_costs'
-        elif path in {'/attendance/scan/', '/attendance/punch/'}:
+        elif path in {'/attendance/', '/attendance/punch/'}:
             permission = None
         elif path.startswith('/attendance/'):
             permission = 'can_view_attendance'
