@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container py-4" style="max-width:1000px">
+  <div class="d-flex justify-content-between align-items-center gap-3 flex-wrap mb-4">
+    <div><div class="text-muted small">PUANTAJ GÜVENLİĞİ</div><h2 class="fw-bold mb-1">Kayıtlı Cihazlar</h2><div class="text-muted">Her kullanıcı puantaj işlemini yalnızca onaylı telefonundan yapabilir.</div></div>
+    <a href="{% url 'attendance_scan' %}" class="btn btn-outline-secondary">← Giriş / Çıkış</a>
+  </div>
+
+  {% for message in messages %}<div class="alert alert-info">{{ message }}</div>{% endfor %}
+  {% if pending_count %}<div class="alert alert-warning"><strong>{{ pending_count }} cihaz</strong> onay bekliyor.</div>{% endif %}
+
+  <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
+    <div class="table-responsive"><table class="table align-middle mb-0">
+      <thead class="table-light"><tr><th>Personel</th><th>Durum</th><th>Kayıt</th><th>Son Kullanım</th><th>Onaylayan</th><th class="text-end">İşlem</th></tr></thead>
+      <tbody>
+      {% for device in devices %}
+        <tr>
+          <td><strong>{{ device.user.get_full_name|default:device.user.username }}</strong><br><span class="text-muted small">@{{ device.user.username }}</span></td>
+          <td>{% if device.status == 'approved' %}<span class="badge text-bg-success">Onaylı</span>{% else %}<span class="badge text-bg-warning">Onay Bekliyor</span>{% endif %}</td>
+          <td>{{ device.registered_at|date:"d.m.Y H:i" }}</td>
+          <td>{{ device.last_used_at|date:"d.m.Y H:i"|default:"—" }}</td>
+          <td>{% if device.approved_by %}{{ device.approved_by.get_full_name|default:device.approved_by.username }}{% else %}—{% endif %}</td>
+          <td class="text-end">
+            <div class="d-flex gap-2 justify-content-end flex-wrap">
+              {% if device.status != 'approved' %}<form method="post" action="{% url 'attendance_device_approve' device.user.id %}">{% csrf_token %}<button class="btn btn-sm btn-success">Onayla</button></form>{% endif %}
+              <form method="post" action="{% url 'attendance_device_reset' device.user.id %}" onsubmit="return confirm('Bu cihaz kaydı sıfırlansın mı? Kullanıcı yeni telefonundan tekrar eşleştirme yapacak.');">{% csrf_token %}<button class="btn btn-sm btn-outline-danger">Cihazı Sıfırla</button></form>
+            </div>
+          </td>
+        </tr>
+      {% empty %}<tr><td colspan="6" class="text-center text-muted py-5">Henüz kayıtlı cihaz yok.</td></tr>{% endfor %}
+      </tbody>
+    </table></div>
+  </div>
+</div>
+{% endblock %}
