@@ -22,8 +22,8 @@
           <td>{% if device.approved_by %}{{ device.approved_by.get_full_name|default:device.approved_by.username }}{% else %}—{% endif %}</td>
           <td class="text-end">
             <div class="d-flex gap-2 justify-content-end flex-wrap">
-              {% if device.status != 'approved' %}<form method="post" action="{% url 'attendance_device_approve' device.user.id %}">{% csrf_token %}<button class="btn btn-sm btn-success">Onayla</button></form>{% endif %}
-              <form method="post" action="{% url 'attendance_device_reset' device.user.id %}" onsubmit="return confirm('Bu cihaz kaydı sıfırlansın mı? Kullanıcı yeni telefonundan tekrar eşleştirme yapacak.');">{% csrf_token %}<button class="btn btn-sm btn-outline-danger">Cihazı Sıfırla</button></form>
+              {% if device.status != 'approved' %}<form method="post" action="{% url 'attendance_approve_device' device.user.id %}">{% csrf_token %}<button class="btn btn-sm btn-success">Onayla</button></form>{% endif %}
+              <form method="post" action="{% url 'attendance_reset_device' device.user.id %}" onsubmit="return confirm('Bu cihaz kaydı sıfırlansın mı? Kullanıcı yeni telefonundan tekrar eşleştirme yapacak.');">{% csrf_token %}<button class="btn btn-sm btn-outline-danger">Cihazı Sıfırla</button></form>
             </div>
           </td>
         </tr>
