@@ -4,6 +4,9 @@ from . import views
 urlpatterns = [
     path("", views.scan, name="attendance_scan"),
     path("punch/", views.punch, name="attendance_punch"),
+    path("cihazlar/", views.device_management, name="attendance_device_management"),
+    path("cihazlar/<int:user_id>/onayla/", views.approve_device, name="attendance_device_approve"),
+    path("cihazlar/<int:user_id>/sifirla/", views.reset_device, name="attendance_device_reset"),
     path("qr.png", views.attendance_qr_image, name="attendance_qr_image"),
     path("qr-yazdir/", views.attendance_qr_print, name="attendance_qr_print"),
     path("panel/", views.dashboard, name="attendance_dashboard"),
