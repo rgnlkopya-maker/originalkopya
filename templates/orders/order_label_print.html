@@ -47,8 +47,8 @@
 
         .info {
             min-width: 0;
-            font-size: 10pt;
-            line-height: 1.18;
+            font-size: 9pt;
+            line-height: 1.12;
             overflow: hidden;
         }
 
@@ -56,7 +56,7 @@
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
-            margin-bottom: .45mm;
+            margin-bottom: .3mm;
         }
 
         .row:last-child { margin-bottom: 0; }
@@ -104,6 +104,7 @@
                 <div class="row"><strong>Beden:</strong> {{ order.beden }}</div>
                 <div class="row"><strong>Adet:</strong> {{ order.adet }}</div>
                 <div class="row"><strong>Teslim:</strong> {{ order.teslim_tarihi|date:"d.m.Y" }}</div>
+                <div class="row"><strong>Müşteri Ref:</strong> {{ order.musteri_referans|default:"-" }}</div>
             </div>
             <div class="qr">
                 {% if order.qr_code_url %}<img src="{{ order.qr_code_url }}" alt="QR">{% endif %}
