@@ -10,11 +10,11 @@
         </div>
         <div class="col-md-4">
             <label class="form-label">Müşteri</label>
-            <select id="musteri_select" name="musteri" class="form-select select2 single-search-select" multiple required>{% for m in musteriler %}<option value="{{ m.id }}">{{ m.ad }}</option>{% endfor %}</select>
+            <select id="musteri_select" name="musteri" class="form-select select2" required><option></option>{% for m in musteriler %}<option value="{{ m.id }}">{{ m.ad }}</option>{% endfor %}</select>
         </div>
         <div class="col-md-4">
             <label class="form-label">Ürün Kodu</label>
-            <select id="urun_kodu_select" name="urun_kodu" class="form-select select2 single-search-select" multiple required>{% for u in urun_kodlari %}<option value="{{ u.kod }}" data-urun-tipi="{{ u.urun_tipi }}">{{ u.kod }}</option>{% endfor %}</select>
+            <select id="urun_kodu_select" name="urun_kodu" class="form-select select2" required><option></option>{% for u in urun_kodlari %}<option value="{{ u.kod }}" data-urun-tipi="{{ u.urun_tipi }}">{{ u.kod }}</option>{% endfor %}</select>
         </div>
         <div class="col-md-4 mt-3">
             <label class="form-label">Ürün Tipi</label>
@@ -26,7 +26,7 @@
 
     <hr>
     <h5 class="section-title d-flex justify-content-between align-items-center"><span>Renk - Beden Satırları</span><span class="d-flex gap-2"><button type="button" class="manage-btn" data-bs-toggle="modal" data-bs-target="#renkModal">🎨 Renk Yönet</button><button type="button" class="manage-btn" data-bs-toggle="modal" data-bs-target="#bedenModal">👕 Beden Yönet</button><button type="button" class="manage-btn" data-bs-toggle="modal" data-bs-target="#musteriModal">🧍 Müşteri Yönet</button><button type="button" class="manage-btn" data-bs-toggle="modal" data-bs-target="#urunKodModal">📦 Ürün Kodu Yönet</button></span></h5>
-    <div id="rows-container"><div class="renk-beden-card renk-beden-row" data-index="0"><div class="row"><div class="col-md-3"><label class="form-label">Renk</label><select name="renk_row_0" class="form-select select2 renk-select single-search-select" multiple>{% for r in renkler %}<option value="{{ r.ad }}">{{ r.ad }}</option>{% endfor %}</select></div><div class="col-md-4"><label class="form-label">Bedenler</label><select name="beden_row_0[]" class="form-select select2 beden-select" multiple>{% for b in bedenler %}<option value="{{ b.ad }}">{{ b.ad }}</option>{% endfor %}</select></div><div class="col-md-2"><label class="form-label">Adet</label><input type="number" min="1" value="1" name="adet_row_0" class="form-control"></div><div class="col-md-3"><label class="form-label">Müşteri Referansı</label><input type="text" name="musteri_ref_row_0" class="form-control" placeholder="Örn: PO123"></div></div><div class="mt-3 text-end"><button type="button" class="btn btn-danger remove-row">Sil</button></div></div></div>
+    <div id="rows-container"><div class="renk-beden-card renk-beden-row" data-index="0"><div class="row"><div class="col-md-3"><label class="form-label">Renk</label><select name="renk_row_0" class="form-select select2 renk-select"><option></option>{% for r in renkler %}<option value="{{ r.ad }}">{{ r.ad }}</option>{% endfor %}</select></div><div class="col-md-4"><label class="form-label">Bedenler</label><select name="beden_row_0[]" class="form-select select2 beden-select" multiple>{% for b in bedenler %}<option value="{{ b.ad }}">{{ b.ad }}</option>{% endfor %}</select></div><div class="col-md-2"><label class="form-label">Adet</label><input type="number" min="1" value="1" name="adet_row_0" class="form-control"></div><div class="col-md-3"><label class="form-label">Müşteri Referansı</label><input type="text" name="musteri_ref_row_0" class="form-control" placeholder="Örn: PO123"></div></div><div class="mt-3 text-end"><button type="button" class="btn btn-danger remove-row">Sil</button></div></div></div>
     <button type="button" id="add-row" class="btn btn-success mt-2">+ Satır Ekle</button>
 
     <hr class="mt-4">
