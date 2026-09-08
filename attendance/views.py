@@ -5,7 +5,7 @@ import os
 import secrets
 import uuid
 from calendar import monthrange
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 
 import qrcode
 from django.conf import settings
@@ -83,10 +83,11 @@ def _recalculate(record, workplace):
         return
     work_start = _local_dt(record.work_date, workplace.work_start)
     work_end = _local_dt(record.work_date, workplace.work_end)
+    overtime_start = work_end + timedelta(minutes=5)
     if record.check_in and record.check_in > work_start:
         record.late_minutes = max(0, int((record.check_in - work_start).total_seconds() // 60))
-    if record.check_out and record.check_out > work_end:
-        record.overtime_minutes = max(0, int((record.check_out - work_end).total_seconds() // 60))
+    if record.check_out and record.check_out > overtime_start:
+        record.overtime_minutes = max(0, int((record.check_out - overtime_start).total_seconds() // 60))
 
 
 def _upload_report_image(uploaded_file, user_id, work_date):
@@ -268,6 +269,7 @@ def dashboard(request):
     hidden_attendance_names = {
         "emine kanyış", "oğuzhan kanyış", "mustafa kanyış", "osman kanyış",
         "mehmet şener", "mehmet", "mihriban", "patron",
+        "nursel demiral", "nurseldemiral",
     }
     active_users = User.objects.filter(is_active=True).order_by("first_name", "username")
     users = []
