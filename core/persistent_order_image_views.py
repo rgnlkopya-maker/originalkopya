@@ -116,15 +116,52 @@ def order_detail_persistent(request, pk):
             'if(i)i.src=\'\';document.body.style.overflow=\'\';return false;">✕</button>'
         )
 
-        # Print: independent popup print path.
+        # Print: keep button markup simple; implementation lives in a standalone JS function below.
         html = html.replace(
             '<button type="button" id="image-print-btn" class="image-viewer-btn">🖨️ Yazdır</button>',
             '<button type="button" id="image-print-btn" class="image-viewer-btn" '
-            'onclick="event.preventDefault();event.stopPropagation();var i=document.getElementById(\'image-viewer-img\');'
-            'if(!i||!i.src)return false;var w=window.open(\'\',\'_blank\');if(!w)return false;'
-            'w.document.write(\'<!doctype html><html><head><title>Sipariş Görseli</title><style>html,body{margin:0;padding:0;background:#fff}body{display:flex;align-items:center;justify-content:center;min-height:100vh}img{max-width:100%;max-height:100vh;object-fit:contain}@page{margin:10mm}</style></head><body><img id="pimg" src="\'+i.src.replace(/"/g,\'&quot;\')+\'"></body></html>\');'
-            'w.document.close();var p=w.document.getElementById(\'pimg\');p.onload=function(){w.focus();w.print();};return false;">🖨️ Yazdır</button>'
+            'onclick="return moliPrintViewerImage(event);">🖨️ Yazdır</button>'
         )
+
+        utility_script = """
+<script>
+function moliPrintViewerImage(e) {
+  if (e) {
+    e.preventDefault();
+    e.stopPropagation();
+  }
+  var img = document.getElementById('image-viewer-img');
+  if (!img || !img.src) return false;
+
+  var w = window.open('', '_blank');
+  if (!w) return false;
+
+  var src = img.src;
+  w.document.open();
+  w.document.write('<!doctype html><html><head><meta charset="utf-8"><title>Sipariş Görseli</title>' +
+    '<style>html,body{margin:0;padding:0;background:#fff}body{display:flex;align-items:center;justify-content:center;min-height:100vh}' +
+    'img{display:block;max-width:100%;max-height:100vh;object-fit:contain}@page{margin:10mm}</style></head>' +
+    '<body><img id="print-image" src="' + src + '"></body></html>');
+  w.document.close();
+
+  var printImg = w.document.getElementById('print-image');
+  var doPrint = function() {
+    try {
+      w.focus();
+      w.print();
+    } catch (err) {}
+  };
+
+  if (printImg && printImg.complete) {
+    setTimeout(doPrint, 150);
+  } else if (printImg) {
+    printImg.onload = function() { setTimeout(doPrint, 150); };
+  }
+  return false;
+}
+</script>
+"""
+        html = html.replace("</body>", utility_script + "</body>") if "</body>" in html else html + utility_script
 
         # Delete: keep separate and independent.
         if request.user.groups.filter(name__in=["patron", "mudur"]).exists():
