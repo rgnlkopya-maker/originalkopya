@@ -1,4 +1,4 @@
-from urllib.parse import quote, urlparse
+from urllib.parse import urlparse
 
 from django.conf import settings
 from django.contrib import messages
@@ -58,7 +58,7 @@ def _delete_supabase_object(public_url):
 
 @login_required
 def delete_order_image_by_url(request, pk):
-    """Delete the exact persistent image currently open in the image viewer."""
+    """Delete the exact persistent image selected in the image viewer."""
     if not request.user.groups.filter(name__in=["patron", "mudur"]).exists():
         return HttpResponseForbidden("Bu işlemi yapma yetkiniz yok.")
 
@@ -77,7 +77,7 @@ def delete_order_image_by_url(request, pk):
 
 @login_required
 def order_detail_persistent(request, pk):
-    """Hide stale local images and make the viewer X delete the selected persistent image."""
+    """Use persistent images while preserving the original image viewer behavior."""
     order = Order.objects.filter(pk=pk).first()
     if order and order.resim:
         order.resim = None
@@ -85,9 +85,8 @@ def order_detail_persistent(request, pk):
 
     response = core_views.order_detail(request, pk)
 
-    # The existing viewer uses X as a close button. On the order detail page,
-    # managers expect that X to delete the open photo. Capture the click before
-    # the old handler runs; clicking the dark backdrop still only closes viewer.
+    # Do NOT change the existing image click/zoom/close handlers.
+    # Only add a separate delete button for managers.
     if (
         getattr(response, "status_code", 200) == 200
         and request.user.groups.filter(name__in=["patron", "mudur"]).exists()
@@ -97,22 +96,30 @@ def order_detail_persistent(request, pk):
         script = f"""
 <script>
 document.addEventListener('DOMContentLoaded', function() {{
-  const closeBtn = document.getElementById('image-close-btn');
+  const actions = document.querySelector('.image-viewer-actions');
   const viewerImg = document.getElementById('image-viewer-img');
-  if (!closeBtn || !viewerImg) return;
+  const closeBtn = document.getElementById('image-close-btn');
+  if (!actions || !viewerImg || !closeBtn) return;
 
-  closeBtn.title = 'Bu görseli sil';
-  closeBtn.setAttribute('aria-label', 'Bu görseli sil');
+  // X remains the original close button. Add delete as a completely separate control.
+  if (!document.getElementById('image-delete-btn')) {{
+    const deleteBtn = document.createElement('button');
+    deleteBtn.type = 'button';
+    deleteBtn.id = 'image-delete-btn';
+    deleteBtn.className = 'image-viewer-btn';
+    deleteBtn.textContent = '🗑️ Sil';
+    deleteBtn.title = 'Bu görseli sil';
+    actions.insertBefore(deleteBtn, closeBtn);
 
-  closeBtn.addEventListener('click', function(e) {{
-    const src = viewerImg.src;
-    if (!src) return;
-    e.preventDefault();
-    e.stopPropagation();
-    e.stopImmediatePropagation();
-    if (!confirm('Bu fotoğraf silinsin mi?')) return;
-    window.location.href = '{delete_base}' + encodeURIComponent(src);
-  }}, true);
+    deleteBtn.addEventListener('click', function(e) {{
+      e.preventDefault();
+      e.stopPropagation();
+      const src = viewerImg.src;
+      if (!src) return;
+      if (!confirm('Bu fotoğraf silinsin mi?')) return;
+      window.location.href = '{delete_base}' + encodeURIComponent(src);
+    }});
+  }}
 }});
 </script>
 """
