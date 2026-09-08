@@ -15,6 +15,18 @@ $(document).ready(function () {
         return (data.text||"").toLocaleLowerCase("tr").indexOf(params.term.toLocaleLowerCase("tr"))>-1?data:null;
     }
 
+    function focusOpenSelect2Search(){
+        const input=document.querySelector(".select2-container--open .select2-search__field");
+        if(input){
+            input.removeAttribute("readonly");
+            input.focus({preventScroll:true});
+            const len=input.value.length;
+            if(input.setSelectionRange)input.setSelectionRange(len,len);
+            return true;
+        }
+        return false;
+    }
+
     initSelect2(document);
 
     $("#musteri_select,#urun_kodu_select").select2({
@@ -28,10 +40,12 @@ $(document).ready(function () {
     $(document).on("select2:open",function(e){
         const el=$(e.target);
         if(el.is("#musteri_select,#urun_kodu_select") || el.hasClass("renk-select")){
-            setTimeout(function(){
-                const input=document.querySelector(".select2-container--open .select2-search__field");
-                if(input){input.focus();input.select();}
-            },0);
+            requestAnimationFrame(function(){
+                if(!focusOpenSelect2Search()){
+                    setTimeout(focusOpenSelect2Search,30);
+                }
+            });
+            setTimeout(focusOpenSelect2Search,80);
         }
         if(el.closest(".modal").length){
             let modal=el.closest(".modal");
