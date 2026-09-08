@@ -64,6 +64,11 @@
     pointer-events: none !important;
 }
 
+/* Aynı Beden alanı için oluşmuş ikinci Select2 katmanını yalnızca gizle. */
+.beden-select + span.select2-container + span.select2-container {
+    display: none !important;
+}
+
 /* GENEL SAYFA */
 body {
     background: #f5f7fb !important;
