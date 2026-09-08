@@ -1,11 +1,32 @@
 <script>
 $(document).ready(function () {
     function initSelect2(context) {
-        $(context).find(".select2:not([multiple])").select2({placeholder:"Seçiniz",allowClear:true,width:"100%",minimumResultsForSearch:0});
+        $(context).find(".select2:not([multiple])").not("#musteri_select,#urun_kodu_select").select2({placeholder:"Seçiniz",allowClear:true,width:"100%",minimumResultsForSearch:0});
         $(context).find("select.select2[multiple], select.select2[multiple='']").select2({placeholder:"Beden seçiniz",closeOnSelect:false,allowClear:true,width:"100%",minimumResultsForSearch:0});
         $(context).find(".beden-select").each(function () {$(this).select2({placeholder:"Beden seçiniz",closeOnSelect:false,allowClear:true,width:"100%",minimumResultsForSearch:0}).on("select2:select",function(){$(this).select2("close")});});
     }
     initSelect2(document);
+
+    function topSearchMatcher(params,data){
+        if(!data.id)return null;
+        if($.trim(params.term)==="")return data;
+        return (data.text||"").toLocaleLowerCase("tr").indexOf(params.term.toLocaleLowerCase("tr"))>-1?data:null;
+    }
+
+    $("#musteri_select,#urun_kodu_select").select2({
+        placeholder:"Seçiniz",
+        allowClear:true,
+        width:"100%",
+        minimumResultsForSearch:0,
+        matcher:topSearchMatcher
+    });
+
+    $("#musteri_select,#urun_kodu_select").on("select2:open",function(){
+        setTimeout(function(){
+            const input=document.querySelector(".select2-container--open .select2-search__field");
+            if(input){input.focus();input.select();}
+        },0);
+    });
 
     $("#urun_kodu_select").on("change",function(){const selected=this.options[this.selectedIndex];const urunTipi=selected?selected.dataset.urunTipi:"";$("#urun_tipi_select").val(urunTipi||"").trigger("change")});
 
