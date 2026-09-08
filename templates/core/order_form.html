@@ -85,6 +85,26 @@
                     {{ form.aciklama }}
                 </div>
 
+                {% if edit_mode %}
+                <div class="col-12 mb-3">
+                    <label class="form-label fw-semibold">📸 Sipariş Görseli</label>
+
+                    {% if order.resim %}
+                    <div class="mb-2">
+                        <img src="{{ order.resim.url }}"
+                             alt="Mevcut sipariş görseli"
+                             class="img-thumbnail"
+                             style="max-width: 180px; max-height: 180px; object-fit: cover;">
+                    </div>
+                    {% endif %}
+
+                    {{ form.resim }}
+                    <div class="form-text">
+                        Görsel eklemek veya mevcut görseli değiştirmek için buradan dosya seçebilirsiniz.
+                    </div>
+                </div>
+                {% endif %}
+
                 
 
             <!-- 💰 FİYAT & MALİYET ALANLARI (Yalnızca patron / müdür için) -->
