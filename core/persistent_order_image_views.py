@@ -85,7 +85,6 @@ def order_detail_persistent(request, pk):
     ):
         html = response.content.decode(response.charset or "utf-8")
 
-        # Open: bind directly to each thumbnail.
         inline_open = (
             "onclick=\"var v=document.getElementById('image-viewer');"
             "var i=document.getElementById('image-viewer-img');"
@@ -99,7 +98,6 @@ def order_detail_persistent(request, pk):
             f'class="img-thumbnail preview-img" {inline_open}'
         )
 
-        # Backdrop: close only when the dark backdrop itself is tapped.
         html = html.replace(
             '<div id="image-viewer" class="image-viewer no-print" aria-hidden="true">',
             '<div id="image-viewer" class="image-viewer no-print" aria-hidden="true" '
@@ -107,7 +105,6 @@ def order_detail_persistent(request, pk):
             'var i=document.getElementById(\'image-viewer-img\');if(i)i.src=\'\';document.body.style.overflow=\'\';}">'
         )
 
-        # X: always close directly.
         html = html.replace(
             '<button type="button" id="image-close-btn" class="image-viewer-btn">✕</button>',
             '<button type="button" id="image-close-btn" class="image-viewer-btn" '
@@ -116,7 +113,6 @@ def order_detail_persistent(request, pk):
             'if(i)i.src=\'\';document.body.style.overflow=\'\';return false;">✕</button>'
         )
 
-        # Print: keep button markup simple; implementation lives in a standalone JS function below.
         html = html.replace(
             '<button type="button" id="image-print-btn" class="image-viewer-btn">🖨️ Yazdır</button>',
             '<button type="button" id="image-print-btn" class="image-viewer-btn" '
@@ -124,6 +120,29 @@ def order_detail_persistent(request, pk):
         )
 
         utility_script = """
+<style id="moli-print-image-style">
+@media print {
+  body.moli-print-image-mode * { visibility: hidden !important; }
+  body.moli-print-image-mode #moli-print-image-root,
+  body.moli-print-image-mode #moli-print-image-root * { visibility: visible !important; }
+  body.moli-print-image-mode #moli-print-image-root {
+    position: fixed !important;
+    inset: 0 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    background: #fff !important;
+    z-index: 2147483647 !important;
+  }
+  body.moli-print-image-mode #moli-print-image-root img {
+    display: block !important;
+    max-width: 100% !important;
+    max-height: 100vh !important;
+    object-fit: contain !important;
+  }
+  @page { margin: 10mm; }
+}
+</style>
 <script>
 function moliPrintViewerImage(e) {
   if (e) {
@@ -133,37 +152,35 @@ function moliPrintViewerImage(e) {
   var img = document.getElementById('image-viewer-img');
   if (!img || !img.src) return false;
 
-  var w = window.open('', '_blank');
-  if (!w) return false;
+  var oldRoot = document.getElementById('moli-print-image-root');
+  if (oldRoot) oldRoot.remove();
 
-  var src = img.src;
-  w.document.open();
-  w.document.write('<!doctype html><html><head><meta charset="utf-8"><title>Sipariş Görseli</title>' +
-    '<style>html,body{margin:0;padding:0;background:#fff}body{display:flex;align-items:center;justify-content:center;min-height:100vh}' +
-    'img{display:block;max-width:100%;max-height:100vh;object-fit:contain}@page{margin:10mm}</style></head>' +
-    '<body><img id="print-image" src="' + src + '"></body></html>');
-  w.document.close();
+  var root = document.createElement('div');
+  root.id = 'moli-print-image-root';
+  var printImg = document.createElement('img');
+  printImg.src = img.src;
+  root.appendChild(printImg);
+  document.body.appendChild(root);
+  document.body.classList.add('moli-print-image-mode');
 
-  var printImg = w.document.getElementById('print-image');
-  var doPrint = function() {
-    try {
-      w.focus();
-      w.print();
-    } catch (err) {}
+  var cleanup = function() {
+    document.body.classList.remove('moli-print-image-mode');
+    var r = document.getElementById('moli-print-image-root');
+    if (r) r.remove();
+    window.removeEventListener('afterprint', cleanup);
   };
 
-  if (printImg && printImg.complete) {
-    setTimeout(doPrint, 150);
-  } else if (printImg) {
-    printImg.onload = function() { setTimeout(doPrint, 150); };
-  }
+  window.addEventListener('afterprint', cleanup);
+  window.print();
+  setTimeout(function() {
+    if (document.body.classList.contains('moli-print-image-mode')) cleanup();
+  }, 1500);
   return false;
 }
 </script>
 """
         html = html.replace("</body>", utility_script + "</body>") if "</body>" in html else html + utility_script
 
-        # Delete: keep separate and independent.
         if request.user.groups.filter(name__in=["patron", "mudur"]).exists():
             delete_base = f"/order/{pk}/delete-image-by-url/?url="
             script = f"""
