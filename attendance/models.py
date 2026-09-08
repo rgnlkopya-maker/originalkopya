@@ -121,6 +121,7 @@ class AttendanceRecord(models.Model):
     check_in_distance_m = models.PositiveIntegerField(null=True, blank=True)
     check_out_distance_m = models.PositiveIntegerField(null=True, blank=True)
     late_minutes = models.PositiveIntegerField(default=0)
+    early_leave_minutes = models.PositiveIntegerField(default=0)
     overtime_minutes = models.PositiveIntegerField(default=0)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
