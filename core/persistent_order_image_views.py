@@ -71,7 +71,7 @@ def delete_order_image_by_url(request, pk):
 
 @login_required
 def order_detail_persistent(request, pk):
-    """Keep persistent images and make thumbnail click independent of listener timing."""
+    """Persistent images with direct, independent viewer controls."""
     order = Order.objects.filter(pk=pk).first()
     if order and order.resim:
         order.resim = None
@@ -85,8 +85,7 @@ def order_detail_persistent(request, pk):
     ):
         html = response.content.decode(response.charset or "utf-8")
 
-        # Direct inline binding on every rendered thumbnail. This does not depend
-        # on DOMContentLoaded, delegated listeners, Safari timing, or later DOM changes.
+        # Open: bind directly to each thumbnail.
         inline_open = (
             "onclick=\"var v=document.getElementById('image-viewer');"
             "var i=document.getElementById('image-viewer-img');"
@@ -95,10 +94,39 @@ def order_detail_persistent(request, pk):
             "document.body.style.overflow='hidden';}return false;\" "
             "role=\"button\" tabindex=\"0\" style=\"pointer-events:auto;touch-action:manipulation;cursor:zoom-in;\" "
         )
-        html = html.replace('class="img-thumbnail preview-img"', f'class="img-thumbnail preview-img" {inline_open}')
+        html = html.replace(
+            'class="img-thumbnail preview-img"',
+            f'class="img-thumbnail preview-img" {inline_open}'
+        )
 
-        # Remove the previously injected delegated-click script if it is present
-        # by not adding another one. Keep only a small independent delete button.
+        # Backdrop: close only when the dark backdrop itself is tapped.
+        html = html.replace(
+            '<div id="image-viewer" class="image-viewer no-print" aria-hidden="true">',
+            '<div id="image-viewer" class="image-viewer no-print" aria-hidden="true" '
+            'onclick="if(event.target===this){this.classList.remove(\'open\');this.setAttribute(\'aria-hidden\',\'true\');'
+            'var i=document.getElementById(\'image-viewer-img\');if(i)i.src=\'\';document.body.style.overflow=\'\';}">'
+        )
+
+        # X: always close directly.
+        html = html.replace(
+            '<button type="button" id="image-close-btn" class="image-viewer-btn">✕</button>',
+            '<button type="button" id="image-close-btn" class="image-viewer-btn" '
+            'onclick="event.preventDefault();event.stopPropagation();var v=document.getElementById(\'image-viewer\');'
+            'var i=document.getElementById(\'image-viewer-img\');if(v){v.classList.remove(\'open\');v.setAttribute(\'aria-hidden\',\'true\');}'
+            'if(i)i.src=\'\';document.body.style.overflow=\'\';return false;">✕</button>'
+        )
+
+        # Print: independent popup print path.
+        html = html.replace(
+            '<button type="button" id="image-print-btn" class="image-viewer-btn">🖨️ Yazdır</button>',
+            '<button type="button" id="image-print-btn" class="image-viewer-btn" '
+            'onclick="event.preventDefault();event.stopPropagation();var i=document.getElementById(\'image-viewer-img\');'
+            'if(!i||!i.src)return false;var w=window.open(\'\',\'_blank\');if(!w)return false;'
+            'w.document.write(\'<!doctype html><html><head><title>Sipariş Görseli</title><style>html,body{margin:0;padding:0;background:#fff}body{display:flex;align-items:center;justify-content:center;min-height:100vh}img{max-width:100%;max-height:100vh;object-fit:contain}@page{margin:10mm}</style></head><body><img id="pimg" src="\'+i.src.replace(/"/g,\'&quot;\')+\'"></body></html>\');'
+            'w.document.close();var p=w.document.getElementById(\'pimg\');p.onload=function(){w.focus();w.print();};return false;">🖨️ Yazdır</button>'
+        )
+
+        # Delete: keep separate and independent.
         if request.user.groups.filter(name__in=["patron", "mudur"]).exists():
             delete_base = f"/order/{pk}/delete-image-by-url/?url="
             script = f"""
@@ -108,7 +136,6 @@ def order_detail_persistent(request, pk):
   const closeBtn = document.getElementById('image-close-btn');
   const viewerImg = document.getElementById('image-viewer-img');
   if (!actions || !closeBtn || !viewerImg || document.getElementById('image-delete-btn')) return;
-
   const deleteBtn = document.createElement('button');
   deleteBtn.type = 'button';
   deleteBtn.id = 'image-delete-btn';
@@ -116,22 +143,19 @@ def order_detail_persistent(request, pk):
   deleteBtn.textContent = '🗑️ Sil';
   deleteBtn.title = 'Bu görseli sil';
   actions.insertBefore(deleteBtn, closeBtn);
-
   deleteBtn.onclick = function(e) {{
     e.preventDefault();
     e.stopPropagation();
     const src = viewerImg.src || '';
-    if (!src) return;
-    if (!confirm('Bu fotoğraf silinsin mi?')) return;
+    if (!src) return false;
+    if (!confirm('Bu fotoğraf silinsin mi?')) return false;
     window.location.href = '{delete_base}' + encodeURIComponent(src);
+    return false;
   }};
 }})();
 </script>
 """
-            if "</body>" in html:
-                html = html.replace("</body>", script + "</body>")
-            else:
-                html += script
+            html = html.replace("</body>", script + "</body>") if "</body>" in html else html + script
 
         response.content = html.encode(response.charset or "utf-8")
         if response.has_header("Content-Length"):
