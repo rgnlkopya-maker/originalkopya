@@ -5,5 +5,6 @@ class CoreConfig(AppConfig):
     name = "core"
 
     def ready(self):
+        import core.reminder_models  # Hatırlatma modellerini kaydet
         import core.signals       # admin ensure (post_migrate)
         import core.signals_qr    # ✅ QR üretimi (post_save)
