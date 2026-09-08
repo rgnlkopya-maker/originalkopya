@@ -77,7 +77,7 @@ def delete_order_image_by_url(request, pk):
 
 @login_required
 def order_detail_persistent(request, pk):
-    """Use persistent images while preserving the original image viewer behavior."""
+    """Use persistent images and reinforce the image viewer without changing other page behavior."""
     order = Order.objects.filter(pk=pk).first()
     if order and order.resim:
         order.resim = None
@@ -85,24 +85,18 @@ def order_detail_persistent(request, pk):
 
     response = core_views.order_detail(request, pk)
 
-    # Do NOT change the existing image click/zoom/close handlers.
-    # Only add a separate delete button for managers.
     if (
         getattr(response, "status_code", 200) == 200
-        and request.user.groups.filter(name__in=["patron", "mudur"]).exists()
         and response.get("Content-Type", "").startswith("text/html")
     ):
+        is_manager = request.user.groups.filter(name__in=["patron", "mudur"]).exists()
         delete_base = f"/order/{pk}/delete-image-by-url/?url="
-        script = f"""
-<script>
-document.addEventListener('DOMContentLoaded', function() {{
+        manager_js = ""
+        if is_manager:
+            manager_js = f"""
   const actions = document.querySelector('.image-viewer-actions');
-  const viewerImg = document.getElementById('image-viewer-img');
   const closeBtn = document.getElementById('image-close-btn');
-  if (!actions || !viewerImg || !closeBtn) return;
-
-  // X remains the original close button. Add delete as a completely separate control.
-  if (!document.getElementById('image-delete-btn')) {{
+  if (actions && closeBtn && !document.getElementById('image-delete-btn')) {{
     const deleteBtn = document.createElement('button');
     deleteBtn.type = 'button';
     deleteBtn.id = 'image-delete-btn';
@@ -110,17 +104,66 @@ document.addEventListener('DOMContentLoaded', function() {{
     deleteBtn.textContent = '🗑️ Sil';
     deleteBtn.title = 'Bu görseli sil';
     actions.insertBefore(deleteBtn, closeBtn);
-
     deleteBtn.addEventListener('click', function(e) {{
       e.preventDefault();
       e.stopPropagation();
-      const src = viewerImg.src;
+      const viewerImg = document.getElementById('image-viewer-img');
+      const src = viewerImg ? viewerImg.src : '';
       if (!src) return;
       if (!confirm('Bu fotoğraf silinsin mi?')) return;
       window.location.href = '{delete_base}' + encodeURIComponent(src);
     }});
   }}
-}});
+"""
+
+        script = f"""
+<script>
+(function() {{
+  const viewer = document.getElementById('image-viewer');
+  const viewerImg = document.getElementById('image-viewer-img');
+  const closeBtn = document.getElementById('image-close-btn');
+  if (!viewer || !viewerImg || !closeBtn) return;
+
+  function openViewer(src) {{
+    if (!src) return;
+    viewerImg.src = src;
+    viewer.classList.add('open');
+    viewer.setAttribute('aria-hidden', 'false');
+    document.body.style.overflow = 'hidden';
+  }}
+
+  function closeViewer() {{
+    viewer.classList.remove('open');
+    viewer.setAttribute('aria-hidden', 'true');
+    viewerImg.src = '';
+    document.body.style.overflow = '';
+  }}
+
+  // Delegated click works even when images are rendered/changed after page load.
+  document.addEventListener('click', function(e) {{
+    const thumb = e.target.closest && e.target.closest('.preview-img[data-full-image]');
+    if (thumb) {{
+      e.preventDefault();
+      e.stopPropagation();
+      openViewer(thumb.getAttribute('data-full-image') || thumb.src);
+      return;
+    }}
+    if (e.target === viewer) closeViewer();
+  }}, true);
+
+  // Keep X as close only.
+  closeBtn.addEventListener('click', function(e) {{
+    e.preventDefault();
+    e.stopPropagation();
+    closeViewer();
+  }}, true);
+
+  document.addEventListener('keydown', function(e) {{
+    if (e.key === 'Escape' && viewer.classList.contains('open')) closeViewer();
+  }});
+
+{manager_js}
+}})();
 </script>
 """
         html = response.content.decode(response.charset or "utf-8")
