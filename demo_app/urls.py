@@ -16,6 +16,7 @@ from core.fason_views import fasoncu_raporu, fasoncu_detay
 from core.nakis_views import nakisci_raporu, nakisci_detay
 from core.depo_views import depo_ozet as managed_depo_ozet
 from core.customer_report_views import customer_comparison_report, customer_detail_report
+from core.reminder_views import reminder_management, reminder_complete, reminder_toggle
 
 def logout_view(request):
     logout(request)
@@ -23,6 +24,7 @@ def logout_view(request):
 
 urlpatterns = [
     path("notifications/", views.notification_list, name="notification_list"), path("admin/", admin.site.urls), path("login/", views.custom_login, name="login"), path("custom-login/", views.custom_login, name="custom_login"), path("logout/", logout_view, name="logout"),
+    path("hatirlatmalar/", reminder_management, name="reminder_management"), path("hatirlatmalar/<int:reminder_id>/tamamla/", reminder_complete, name="reminder_complete"), path("hatirlatmalar/<int:reminder_id>/durum/", reminder_toggle, name="reminder_toggle"),
     path("attendance/", include("attendance.urls")), path("planlama/", include("planning.urls")), path("urun-kartlari/", include("product_cards.urls")), path("stok/", include("inventory.urls")), path("kalite/", include("quality_tracking.urls")), path("ayarlar/", include("app_settings.urls")),
     path("", enhanced_order_list, name="order_list"), path("order/new/", views.order_create, name="order_create"), path("order/<int:pk>/", views.order_detail, name="order_detail"), path("order/<int:pk>/edit/", views.order_edit, name="order_edit"),
     path("order/<int:source_order_id>/production-transfer/", transfer_production_history, name="transfer_production_history"), path("order/<int:source_order_id>/production-transfer/search/", search_transfer_targets, name="search_transfer_targets"), path("order-no/<str:order_number>/", order_by_number, name="order_by_number"),
