@@ -1,0 +1,26 @@
+{% if user.is_authenticated %}
+<div class="modal fade" id="reminderModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content border-0 shadow rounded-4">
+      <div class="modal-header border-0 pb-0">
+        <div><div class="text-muted small">HATIRLATMA</div><h5 class="modal-title fw-bold">Bekleyen Hatırlatmalar</h5></div>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Kapat"></button>
+      </div>
+      <div class="modal-body pt-3">
+        {% for item in due_reminders %}
+        <div class="border rounded-4 p-3 mb-3 bg-light">
+          <div class="fw-bold fs-6 mb-1">{{ item.reminder.title }}</div>
+          {% if item.reminder.message %}<div class="mb-2">{{ item.reminder.message }}</div>{% endif %}
+          <div class="text-muted small mb-3">{{ item.occurrence|date:"d.m.Y H:i" }}{% if item.reminder.repeat != 'none' %} · {{ item.reminder.get_repeat_display }}{% endif %}</div>
+          <form method="post" action="{% url 'reminder_complete' item.reminder.id %}">
+            {% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}">
+            <button class="btn btn-dark rounded-pill px-4">Tamamlandı</button>
+          </form>
+        </div>
+        {% empty %}<div class="text-muted text-center py-3">Bekleyen hatırlatma yok.</div>{% endfor %}
+      </div>
+      {% if can_manage_reminders %}<div class="modal-footer border-0 pt-0"><a href="{% url 'reminder_management' %}" class="btn btn-outline-secondary rounded-pill">Hatırlatmaları Yönet</a></div>{% endif %}
+    </div>
+  </div>
+</div>
+{% endif %}
