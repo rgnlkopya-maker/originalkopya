@@ -122,25 +122,49 @@ def order_detail_persistent(request, pk):
         utility_script = """
 <style id="moli-print-image-style">
 @media print {
-  body.moli-print-image-mode * { visibility: hidden !important; }
-  body.moli-print-image-mode #moli-print-image-root,
-  body.moli-print-image-mode #moli-print-image-root * { visibility: visible !important; }
+  @page {
+    size: A4 portrait;
+    margin: 10mm;
+  }
+
+  html,
+  body.moli-print-image-mode {
+    width: 210mm !important;
+    height: 297mm !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+    background: #fff !important;
+  }
+
+  body.moli-print-image-mode > *:not(#moli-print-image-root) {
+    display: none !important;
+  }
+
   body.moli-print-image-mode #moli-print-image-root {
-    position: fixed !important;
-    inset: 0 !important;
     display: flex !important;
+    width: 190mm !important;
+    height: 277mm !important;
+    margin: 0 !important;
+    padding: 0 !important;
     align-items: center !important;
     justify-content: center !important;
+    overflow: hidden !important;
     background: #fff !important;
-    z-index: 2147483647 !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
   }
+
   body.moli-print-image-mode #moli-print-image-root img {
     display: block !important;
-    max-width: 100% !important;
-    max-height: 100vh !important;
+    max-width: 190mm !important;
+    max-height: 277mm !important;
+    width: auto !important;
+    height: auto !important;
     object-fit: contain !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
   }
-  @page { margin: 10mm; }
 }
 </style>
 <script>
@@ -149,6 +173,7 @@ function moliPrintViewerImage(e) {
     e.preventDefault();
     e.stopPropagation();
   }
+
   var img = document.getElementById('image-viewer-img');
   if (!img || !img.src) return false;
 
@@ -157,9 +182,12 @@ function moliPrintViewerImage(e) {
 
   var root = document.createElement('div');
   root.id = 'moli-print-image-root';
+
   var printImg = document.createElement('img');
   printImg.src = img.src;
+  printImg.alt = 'Sipariş görseli';
   root.appendChild(printImg);
+
   document.body.appendChild(root);
   document.body.classList.add('moli-print-image-mode');
 
@@ -170,11 +198,18 @@ function moliPrintViewerImage(e) {
     window.removeEventListener('afterprint', cleanup);
   };
 
-  window.addEventListener('afterprint', cleanup);
-  window.print();
-  setTimeout(function() {
-    if (document.body.classList.contains('moli-print-image-mode')) cleanup();
-  }, 1500);
+  var doPrint = function() {
+    window.addEventListener('afterprint', cleanup);
+    window.print();
+  };
+
+  if (printImg.complete) {
+    setTimeout(doPrint, 50);
+  } else {
+    printImg.onload = function() { setTimeout(doPrint, 50); };
+    printImg.onerror = cleanup;
+  }
+
   return false;
 }
 </script>
