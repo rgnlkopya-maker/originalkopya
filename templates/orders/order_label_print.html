@@ -1,52 +1,79 @@
 <!DOCTYPE html>
 <html>
 <head>
+    <meta charset="UTF-8">
     <style>
-        body {
+        @page {
+            size: 80mm 40mm;
+            margin: 0;
+        }
+
+        * { box-sizing: border-box; }
+
+        html, body {
+            width: 80mm;
             margin: 0;
             padding: 0;
             font-family: Arial, sans-serif;
         }
 
         .label {
+            width: 80mm;
+            height: 40mm;
+            padding: 2mm 2.5mm;
+            display: flex;
+            align-items: center;
+            page-break-after: always;
+            overflow: hidden;
+        }
+
+        .label:last-child { page-break-after: auto; }
+
+        .label-box {
             width: 100%;
-            height: 100vh;
+            height: 100%;
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) 27mm;
+            gap: 2mm;
+            align-items: center;
+        }
+
+        .info {
+            min-width: 0;
+            font-size: 9pt;
+            line-height: 1.18;
+            overflow: hidden;
+        }
+
+        .row {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            margin-bottom: .45mm;
+        }
+
+        .row:last-child { margin-bottom: 0; }
+        .info strong { font-weight: 700; }
+
+        .qr {
+            width: 27mm;
+            height: 27mm;
             display: flex;
             align-items: center;
             justify-content: center;
         }
 
-        .label-box {
-            border: 1px solid #000;
-            padding: 20px;
-            display: flex;
-            gap: 20px;
-            align-items: center;
-        }
-
-        .info {
-            font-size: 14px;
-            line-height: 1.6;
-        }
-
         .qr img {
-            width: 150px;
-            height: 150px;
+            width: 27mm;
+            height: 27mm;
+            display: block;
+            object-fit: contain;
         }
 
         @media print {
-            body {
-                margin: 0;
-                padding: 0;
-            }
-
-            .label {
-                height: 100vh;
-            }
-
-            .label-box {
-                border: none;
-            }
+            html, body { width: 80mm; }
+            .label { break-after: page; }
+            .label:last-child { break-after: auto; }
         }
     </style>
 </head>
@@ -55,19 +82,16 @@
     <div class="label">
         <div class="label-box">
             <div class="info">
-                <strong>Sipariş:</strong> {{ order.siparis_numarasi }}<br>
-                <strong>Müşteri:</strong> {{ order.musteri }}<br>
-                <strong>Ürün:</strong> {{ order.urun_kodu }}<br>
-                <strong>Renk:</strong> {{ order.renk }}<br>
-                <strong>Beden:</strong> {{ order.beden }}<br>
-                <strong>Adet:</strong> {{ order.adet }}<br>
-                <strong>Teslim:</strong> {{ order.teslim_tarihi|date:"d.m.Y" }}<br>
+                <div class="row"><strong>Sipariş:</strong> {{ order.siparis_numarasi }}</div>
+                <div class="row"><strong>Müşteri:</strong> {{ order.musteri }}</div>
+                <div class="row"><strong>Ürün:</strong> {{ order.urun_kodu }}</div>
+                <div class="row"><strong>Renk:</strong> {{ order.renk }}</div>
+                <div class="row"><strong>Beden:</strong> {{ order.beden }}</div>
+                <div class="row"><strong>Adet:</strong> {{ order.adet }}</div>
+                <div class="row"><strong>Teslim:</strong> {{ order.teslim_tarihi|date:"d.m.Y" }}</div>
             </div>
-
             <div class="qr">
-                {% if order.qr_code_url %}
-                    <img src="{{ order.qr_code_url }}">
-                {% endif %}
+                {% if order.qr_code_url %}<img src="{{ order.qr_code_url }}" alt="QR">{% endif %}
             </div>
         </div>
     </div>
