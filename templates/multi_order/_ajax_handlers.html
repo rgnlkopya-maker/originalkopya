@@ -4,6 +4,28 @@ function getCSRFToken() {
     return el ? el.value : "";
 }
 
+function refreshBedenSelects() {
+    document.querySelectorAll(".beden-select").forEach(function (sel) {
+        const $sel = $(sel);
+        if ($sel.hasClass("select2-hidden-accessible")) {
+            $sel.select2("destroy");
+        }
+        $sel.select2({
+            placeholder: "Beden seçiniz",
+            closeOnSelect: false,
+            allowClear: true,
+            width: "100%",
+            minimumResultsForSearch: 0
+        });
+        $sel.off("select2:select.closeSize").on("select2:select.closeSize", function () {
+            $(this).select2("close");
+        });
+    });
+}
+
+$(document).ready(function () {
+    refreshBedenSelects();
+});
 
 /* ----------------- MÜŞTERİ ----------------- */
 function musteriKaydet() {
@@ -46,7 +68,6 @@ function musteriPasifYap() {
     .then(data => {
         if (data.success) {
             alert("Müşteri pasif yapıldı.");
-
             $("#musteri_select option[value='" + musteriId + "']").remove();
             $("#musteri_select").trigger("change");
             $("#modal_musteri_listesi option[value='" + musteriId + "']").remove();
@@ -83,7 +104,6 @@ function renkKaydet() {
 function renkPasifYap() {
     const renkId = document.getElementById("modal_renk_listesi").value;
     if (!renkId) { alert("Lütfen renk seçin."); return; }
-
     if (!confirm("Seçili rengi pasif yapmak istediğinize emin misiniz?")) return;
 
     fetch("/ajax/renk/pasif-yap/", {
@@ -114,11 +134,16 @@ function bedenKaydet() {
     .then(data => {
         if (data.success) {
             document.querySelectorAll(".beden-select").forEach(sel => {
-                sel.add(new Option(data.ad, data.ad));
+                if (!Array.from(sel.options).some(opt => opt.value === data.ad)) {
+                    sel.add(new Option(data.ad, data.ad));
+                }
             });
+            refreshBedenSelects();
 
             const modalSelect = document.getElementById("modal_beden_listesi");
-            modalSelect.add(new Option(data.ad, data.id));
+            if (!Array.from(modalSelect.options).some(opt => opt.value == data.id)) {
+                modalSelect.add(new Option(data.ad, data.id));
+            }
 
             document.getElementById("modal_beden_ad").value = "";
             bootstrap.Modal.getInstance(document.getElementById("bedenModal")).hide();
@@ -129,7 +154,6 @@ function bedenKaydet() {
 function bedenPasifYap() {
     const bedenId = document.getElementById("modal_beden_listesi").value;
     if (!bedenId) { alert("Lütfen beden seçin."); return; }
-
     if (!confirm("Seçili bedeni pasif yapmak istediğinize emin misiniz?")) return;
 
     fetch("/ajax/beden/pasif-yap/", {
@@ -180,7 +204,6 @@ function urunKodKaydet() {
 function urunKodPasifYap() {
     const urunId = document.getElementById("modal_urun_kod_listesi").value;
     if (!urunId) { alert("Lütfen ürün kodu seçin."); return; }
-
     if (!confirm("Seçili ürün kodunu pasif yapmak istediğinize emin misiniz?")) return;
 
     fetch("/ajax/urun-kod/pasif-yap/", {
