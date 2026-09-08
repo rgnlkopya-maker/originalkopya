@@ -74,6 +74,7 @@ def _local_dt(day, clock):
 
 def _recalculate(record, workplace):
     record.late_minutes = 0
+    record.early_leave_minutes = 0
     record.overtime_minutes = 0
     if record.status != "worked":
         return
@@ -86,6 +87,8 @@ def _recalculate(record, workplace):
     overtime_start = work_end + timedelta(minutes=5)
     if record.check_in and record.check_in > work_start:
         record.late_minutes = max(0, int((record.check_in - work_start).total_seconds() // 60))
+    if record.check_out and record.check_out < work_end:
+        record.early_leave_minutes = max(0, math.ceil((work_end - record.check_out).total_seconds() / 60))
     if record.check_out and record.check_out > overtime_start:
         record.overtime_minutes = max(0, int((record.check_out - overtime_start).total_seconds() // 60))
 
@@ -288,7 +291,7 @@ def dashboard(request):
     monthly_totals = []
     for user in users:
         user_records = [r for r in records_qs if r.user_id == user.id]
-        monthly_totals.append({"user": user, "total_late": sum(r.late_minutes or 0 for r in user_records), "total_overtime": sum(r.overtime_minutes or 0 for r in user_records), "leave_days": sum(1 for r in user_records if r.status == "leave"), "annual_leave_days": sum(1 for r in user_records if r.status == "annual_leave"), "sick_days": sum(1 for r in user_records if r.status == "sick")})
+        monthly_totals.append({"user": user, "total_late": sum(r.late_minutes or 0 for r in user_records), "total_early_leave": sum(r.early_leave_minutes or 0 for r in user_records), "total_overtime": sum(r.overtime_minutes or 0 for r in user_records), "leave_days": sum(1 for r in user_records if r.status == "leave"), "annual_leave_days": sum(1 for r in user_records if r.status == "annual_leave"), "sick_days": sum(1 for r in user_records if r.status == "sick")})
     prev_year, prev_month = (year - 1, 12) if month == 1 else (year, month - 1); next_year, next_month = (year + 1, 1) if month == 12 else (year, month + 1)
     return render(request, "attendance_v2/dashboard.html", {"workplace": workplace, "users": users, "matrix_rows": matrix_rows, "monthly_totals": monthly_totals, "today": today, "year": year, "month": month, "prev_year": prev_year, "prev_month": prev_month, "next_year": next_year, "next_month": next_month, "can_edit": is_patron(request.user)})
 
@@ -337,6 +340,6 @@ def month_report(request, user_id, year=None, month=None):
     target_user = get_object_or_404(User, pk=user_id); today = timezone.localdate(); year = year or today.year; month = month or today.month
     last_day = monthrange(year, month)[1]; start = date(year, month, 1); end = date(year, month, last_day); workplace = WorkplaceSettings.get_solo()
     records = AttendanceRecord.objects.filter(user=target_user, work_date__range=(start, end)).order_by("work_date")
-    totals = {"late": sum(r.late_minutes or 0 for r in records), "overtime": sum(r.overtime_minutes or 0 for r in records), "leave": records.filter(status="leave").count(), "annual_leave": records.filter(status="annual_leave").count(), "sick": records.filter(status="sick").count()}
+    totals = {"late": sum(r.late_minutes or 0 for r in records), "early_leave": sum(r.early_leave_minutes or 0 for r in records), "overtime": sum(r.overtime_minutes or 0 for r in records), "leave": records.filter(status="leave").count(), "annual_leave": records.filter(status="annual_leave").count(), "sick": records.filter(status="sick").count()}
     prev_year, prev_month = (year - 1, 12) if month == 1 else (year, month - 1); next_year, next_month = (year + 1, 1) if month == 12 else (year, month + 1)
     return render(request, "attendance_v2/month_report.html", {"target_user": target_user, "records": records, "totals": totals, "year": year, "month": month, "prev_year": prev_year, "prev_month": prev_month, "next_year": next_year, "next_month": next_month, "workplace": workplace})
