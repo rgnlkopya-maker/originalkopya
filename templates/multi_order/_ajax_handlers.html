@@ -122,7 +122,8 @@ function renkPasifYap() {
 
 /* ----------------- BEDEN ----------------- */
 function bedenKaydet() {
-    const ad = document.getElementById("modal_beden_ad").value.trim();
+    const input = document.getElementById("modal_beden_ad");
+    const ad = input.value.trim();
     if (!ad) { alert("Beden boş olamaz!"); return; }
 
     fetch("/ajax/beden/ekle/", {
@@ -132,23 +133,29 @@ function bedenKaydet() {
     })
     .then(res => res.json())
     .then(data => {
-        if (data.success) {
-            document.querySelectorAll(".beden-select").forEach(sel => {
-                if (!Array.from(sel.options).some(opt => opt.value === data.ad)) {
-                    sel.add(new Option(data.ad, data.ad));
-                }
-            });
-            refreshBedenSelects();
+        if (!data.success) {
+            alert(data.message || "Hata oluştu.");
+            return;
+        }
 
-            const modalSelect = document.getElementById("modal_beden_listesi");
-            if (!Array.from(modalSelect.options).some(opt => opt.value == data.id)) {
-                modalSelect.add(new Option(data.ad, data.id));
+        document.querySelectorAll(".beden-select").forEach(sel => {
+            if (!Array.from(sel.options).some(opt => opt.value === data.ad)) {
+                sel.add(new Option(data.ad, data.ad));
             }
+            $(sel).trigger("change.select2");
+        });
 
-            document.getElementById("modal_beden_ad").value = "";
-            bootstrap.Modal.getInstance(document.getElementById("bedenModal")).hide();
-        } else { alert(data.message || "Hata oluştu."); }
-    });
+        const modalSelect = document.getElementById("modal_beden_listesi");
+        if (modalSelect && !Array.from(modalSelect.options).some(opt => opt.value == data.id)) {
+            modalSelect.add(new Option(data.ad, data.id));
+        }
+
+        input.value = "";
+        const modalEl = document.getElementById("bedenModal");
+        const modal = bootstrap.Modal.getInstance(modalEl) || bootstrap.Modal.getOrCreateInstance(modalEl);
+        modal.hide();
+    })
+    .catch(() => alert("Beden kaydedilirken bağlantı hatası oluştu."));
 }
 
 function bedenPasifYap() {
