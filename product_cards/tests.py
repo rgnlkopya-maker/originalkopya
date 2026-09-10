@@ -5,10 +5,70 @@ from unittest.mock import patch
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
 from django.test import TestCase
+from django.urls import reverse
+from django.utils import timezone
 
-from core.models import Musteri, Order, OrderEvent, ProductCost
+from core.models import Musteri, Order, OrderEvent, ProductCost, UrunKod
 from .finance_views import calculate_finance_result
-from .models import ExchangeRate, OrderFinancialSnapshot, ShipmentFinancialSnapshot
+from .models import ExchangeRate, Material, OrderFinancialSnapshot, ProductCard, ProductMaterial, ShipmentFinancialSnapshot
+
+
+class MaterialCostEditTests(TestCase):
+    def setUp(self):
+        self.user = get_user_model().objects.create_user("material-manager", password="test")
+        patron, _ = Group.objects.get_or_create(name="patron")
+        self.user.groups.add(patron)
+        self.client.force_login(self.user)
+        ExchangeRate.objects.create(rate_date=timezone.localdate(), usd_try=Decimal("40.000000"))
+        product = UrunKod.objects.create(kod="MAT-TEST")
+        self.card, _ = ProductCard.objects.get_or_create(urun=product)
+        self.material = Material.objects.create(
+            kod="KUMAS-TEST",
+            ad="Test Kumaşı",
+            kategori="KUMAS",
+            kullanim_asamasi="KESIM",
+            birim="M",
+            birim_maliyet=Decimal("10.0000"),
+            birim_maliyet_para_birimi="TRY",
+        )
+        ProductMaterial.objects.create(
+            product_card=self.card,
+            material=self.material,
+            miktar=Decimal("2.000"),
+            kullanim_asamasi="KESIM",
+        )
+        ProductCost.objects.create(
+            urun_kodu=product.kod,
+            maliyet=Decimal("20.00"),
+            para_birimi="TRY",
+            is_active=True,
+        )
+
+    def test_material_edit_updates_cost_currency_and_approved_product_cost(self):
+        response = self.client.post(
+            reverse("material_list"),
+            {
+                "action": "update_info",
+                "id": str(self.material.pk),
+                "kategori": "KUMAS",
+                "kullanim_asamasi": "KESIM",
+                "tedarikci": "",
+                "kritik_stok": "0",
+                "birim_maliyet": "3.0000",
+                "birim_maliyet_para_birimi": "USD",
+                "son_alis_tarihi": "",
+                "aciklama": "",
+            },
+        )
+
+        self.assertEqual(response.status_code, 302)
+        self.material.refresh_from_db()
+        product_cost = ProductCost.objects.get(urun_kodu="MAT-TEST", is_active=True)
+
+        self.assertEqual(self.material.birim_maliyet, Decimal("3.0000"))
+        self.assertEqual(self.material.birim_maliyet_para_birimi, "USD")
+        self.assertEqual(product_cost.maliyet, Decimal("240.00"))
+        self.assertEqual(product_cost.para_birimi, "TRY")
 
 
 class FinanceSnapshotRegressionTests(TestCase):
