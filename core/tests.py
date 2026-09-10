@@ -240,4 +240,34 @@ class OrderExcelExportTests(TestCase):
         self.assertEqual(len(rows), 2)
         self.assertEqual(rows[1][2], "7119")
 
+
+class StockTransferAccessTests(TestCase):
+    def setUp(self):
+        self.order = Order.objects.create(siparis_tipi="SERI", urun_kodu="7119")
+        self.user = get_user_model().objects.create_user(
+            "stock-user", password="test-password"
+        )
+
+    def test_anonymous_user_is_redirected_to_login(self):
+        response = self.client.get(f"/order/{self.order.id}/stok-ekle/")
+
+        self.assertEqual(response.status_code, 302)
+        self.assertIn("/login/", response.url)
+
+    def test_regular_user_is_forbidden(self):
+        self.client.force_login(self.user)
+
+        response = self.client.get(f"/order/{self.order.id}/stok-ekle/")
+
+        self.assertEqual(response.status_code, 403)
+
+    def test_manager_can_open_stock_transfer(self):
+        manager_group, _ = Group.objects.get_or_create(name="mudur")
+        self.user.groups.add(manager_group)
+        self.client.force_login(self.user)
+
+        response = self.client.get(f"/order/{self.order.id}/stok-ekle/")
+
+        self.assertEqual(response.status_code, 200)
+
 # Create your tests here.
