@@ -1707,7 +1707,14 @@ def musteri_pasif_yap_ajax(request):
         return JsonResponse({"success": False, "message": "Müşteri bulunamadı."})
 
 
+@login_required
 def stok_ekle(request, order_id):
+    if not (
+        request.user.is_superuser
+        or request.user.groups.filter(name__in=["patron", "mudur"]).exists()
+    ):
+        return HttpResponseForbidden("Bu işlemi yapma yetkiniz yok.")
+
     order = get_object_or_404(Order, id=order_id)
 
     if request.method == "POST":
