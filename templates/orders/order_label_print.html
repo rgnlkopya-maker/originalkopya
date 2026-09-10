@@ -60,6 +60,11 @@
         }
 
         .row:last-child { margin-bottom: 0; }
+        .description-row {
+            font-size: 6.5pt;
+            line-height: 1;
+            margin-bottom: .35mm;
+        }
         .info strong { font-weight: 700; }
 
         .qr {
@@ -100,6 +105,7 @@
                 <div class="row"><strong>Sipariş:</strong> {{ order.siparis_numarasi }}</div>
                 <div class="row"><strong>Müşteri:</strong> {{ order.musteri }}</div>
                 <div class="row"><strong>Ürün:</strong> {{ order.urun_kodu }}</div>
+                {% if order.aciklama %}<div class="row description-row"><strong>Açıklama:</strong> {{ order.aciklama }}</div>{% endif %}
                 <div class="row"><strong>Renk:</strong> {{ order.renk }}</div>
                 <div class="row"><strong>Beden:</strong> {{ order.beden }}</div>
                 <div class="row"><strong>Adet:</strong> {{ order.adet }}</div>
