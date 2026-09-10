@@ -206,9 +206,17 @@ def material_list(request):
                 recalculate_approved_product_costs(); messages.success(request,"Malzeme kartı kaydedildi.")
         elif action == "update_info":
             material=get_object_or_404(Material,pk=request.POST.get("id"),aktif=True)
-            try: material.kritik_stok=_decimal_from_post(request.POST.get("kritik_stok")); material.son_alis_tarihi=_date_from_post(request.POST.get("son_alis_tarihi"))
+            try:
+                material.kritik_stok=_decimal_from_post(request.POST.get("kritik_stok"))
+                material.birim_maliyet=_decimal_from_post(request.POST.get("birim_maliyet"))
+                material.son_alis_tarihi=_date_from_post(request.POST.get("son_alis_tarihi"))
             except ValueError as exc: messages.error(request,str(exc)); return redirect("material_list")
-            kategori=request.POST.get("kategori") or "DIGER"; kullanim_asamasi=request.POST.get("kullanim_asamasi") or "KESIM"; material.kategori=kategori if kategori in {c[0] for c in Material.CATEGORY_CHOICES} else "DIGER"; material.kullanim_asamasi=kullanim_asamasi if kullanim_asamasi in {c[0] for c in Material.USAGE_STAGE_CHOICES} else "KESIM"; material.tedarikci=(request.POST.get("tedarikci") or "").strip(); material.aciklama=(request.POST.get("aciklama") or "").strip(); material.save(update_fields=["kategori","kullanim_asamasi","kritik_stok","tedarikci","aciklama","son_alis_tarihi","updated_at"]); ProductMaterial.objects.filter(material=material).update(kullanim_asamasi=material.kullanim_asamasi); messages.success(request,"Malzeme bilgileri ve kullanım aşaması güncellendi.")
+            kategori=request.POST.get("kategori") or "DIGER"; kullanim_asamasi=request.POST.get("kullanim_asamasi") or "KESIM"; para_birimi=request.POST.get("birim_maliyet_para_birimi") or "TRY"
+            material.kategori=kategori if kategori in {c[0] for c in Material.CATEGORY_CHOICES} else "DIGER"; material.kullanim_asamasi=kullanim_asamasi if kullanim_asamasi in {c[0] for c in Material.USAGE_STAGE_CHOICES} else "KESIM"; material.birim_maliyet_para_birimi=para_birimi if para_birimi in {"TRY","USD"} else "TRY"; material.tedarikci=(request.POST.get("tedarikci") or "").strip(); material.aciklama=(request.POST.get("aciklama") or "").strip()
+            material.save(update_fields=["kategori","kullanim_asamasi","kritik_stok","tedarikci","aciklama","birim_maliyet","birim_maliyet_para_birimi","son_alis_tarihi","updated_at"])
+            ProductMaterial.objects.filter(material=material).update(kullanim_asamasi=material.kullanim_asamasi)
+            recalculate_approved_product_costs()
+            messages.success(request,"Malzeme bilgileri güncellendi; bağlı ürün maliyetleri de yenilendi.")
         elif action == "stock_movement":
             material_id=request.POST.get("id"); movement_type=(request.POST.get("movement_type") or "").strip(); warehouse=_warehouse_from_post(request); allowed_types={"GIRIS","CIKIS","IADE","FIRE","DUZELTME_ARTI","DUZELTME_EKSI"}
             if movement_type not in allowed_types or not warehouse: messages.error(request,"Geçerli depo ve stok hareketi seçin."); return redirect("material_list")
