@@ -274,7 +274,12 @@ def dashboard(request):
         "mehmet şener", "mehmet", "mihriban", "patron",
         "nursel demiral", "nurseldemiral",
     }
-    active_users = User.objects.filter(is_active=True).order_by("first_name", "username")
+    active_users = (
+        User.objects.filter(is_active=True)
+        .exclude(groups__name__iexact="patron")
+        .distinct()
+        .order_by("first_name", "username")
+    )
     users = []
     for user in active_users:
         full_name = user.get_full_name().strip().casefold(); username = user.username.strip().casefold()
