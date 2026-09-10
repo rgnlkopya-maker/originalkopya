@@ -91,4 +91,4 @@ SUPABASE_SERVICE_ROLE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
 SUPABASE_BUCKET_NAME = os.getenv("SUPABASE_BUCKET_NAME", "order-qr")
 DEMO_MODE = os.getenv("DEMO_MODE", "False").lower() == "true"
 DEMO_COMPANY_NAME = os.getenv("DEMO_COMPANY_NAME", "Moli Demo Atölyesi")
-DEMO_PASSWORD = os.getenv("DEMO_PASSWORD", "MoliDemo2026!")
+DEMO_PASSWORD = os.getenv("DEMO_PASSWORD", "")
