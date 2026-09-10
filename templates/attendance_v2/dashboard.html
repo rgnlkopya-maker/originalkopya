@@ -2,8 +2,10 @@
 {% block content %}
 <style>
   .attendance-table-wrap { overflow-x: auto; overflow-y: visible; position: relative; }
-  .attendance-sticky-head th { position: sticky; top: 64px; z-index: 30; background: #f8f9fa !important; box-shadow: 0 2px 0 rgba(0,0,0,.10); }
-  @media(max-width:900px){.attendance-sticky-head th{top:52px}}
+  .attendance-sticky-head th { background: #f8f9fa !important; }
+  .attendance-fixed-head { position: fixed; display: none; overflow: hidden; z-index: 90; background: #f8f9fa; box-shadow: 0 3px 8px rgba(15,23,42,.18); }
+  .attendance-fixed-head table { margin: 0; table-layout: fixed; }
+  .attendance-fixed-head th { background: #f8f9fa !important; }
 </style>
 <div class="container-fluid py-4 px-md-4">
   <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
@@ -29,6 +31,44 @@
 <div class="modal fade" id="editAttendanceModal" tabindex="-1" aria-hidden="true"><div class="modal-dialog modal-dialog-centered"><div class="modal-content rounded-4 border-0 shadow"><div class="modal-header border-0 pb-0"><div><h5 class="modal-title fw-bold" id="editTitle">Puantaj Düzenle</h5><div class="text-muted small" id="editDate"></div></div><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body p-4"><form id="editAttendanceForm" enctype="multipart/form-data">{% csrf_token %}<input type="hidden" name="user_id" id="editUserId"><input type="hidden" name="work_date" id="editWorkDate"><div class="mb-3"><label class="form-label fw-semibold">Durum</label><select class="form-select form-select-lg" name="status" id="editStatus"><option value="worked">Çalıştı</option><option value="leave">İzinli</option><option value="annual_leave">Yıllık İzin</option><option value="sick">Raporlu</option><option value="other">Diğer</option></select></div><div id="timeFields"><div class="mb-3"><label class="form-label fw-semibold" id="checkInLabel">Mesaiye başladı</label><input type="time" class="form-control form-control-lg" name="check_in" id="editCheckIn"></div><div class="mb-3"><label class="form-label fw-semibold" id="checkOutLabel">Mesaiyi bitirdi</label><input type="time" class="form-control form-control-lg" name="check_out" id="editCheckOut"></div></div><div class="mb-3"><label class="form-label fw-semibold">Açıklama</label><textarea class="form-control" rows="3" name="note" id="editNote"></textarea></div><div class="mb-3"><label class="form-label fw-semibold">Rapor görseli</label><input type="file" class="form-control" name="report_image" id="editReportImage" accept="image/*,application/pdf"><div id="existingReport" class="small mt-2"></div><div class="form-check mt-2"><input class="form-check-input" type="checkbox" value="1" name="remove_report_image" id="removeReport"><label class="form-check-label" for="removeReport">Mevcut rapor görselini kaldır</label></div></div><div id="editError" class="text-danger small mb-2"></div><button type="submit" class="btn btn-dark w-100 py-2">Kaydet</button></form></div></div></div></div>
 <script>
 window.addEventListener('load',()=>{
+ const tableWrap=document.querySelector('.attendance-table-wrap'),attendanceTable=tableWrap?.querySelector('table'),sourceHead=attendanceTable?.querySelector('thead');
+ if(tableWrap&&attendanceTable&&sourceHead){
+   const fixedHead=document.createElement('div');
+   fixedHead.className='attendance-fixed-head';
+   fixedHead.setAttribute('aria-hidden','true');
+   const fixedTable=attendanceTable.cloneNode(false);
+   const clonedHead=sourceHead.cloneNode(true);
+   fixedTable.removeAttribute('style');
+   fixedTable.appendChild(clonedHead);
+   fixedHead.appendChild(fixedTable);
+   document.body.appendChild(fixedHead);
+   const syncFixedHead=()=>{
+     const wrapRect=tableWrap.getBoundingClientRect();
+     const nav=document.querySelector('.app-navbar');
+     const top=nav?nav.getBoundingClientRect().bottom:0;
+     const headHeight=sourceHead.getBoundingClientRect().height;
+     const visible=wrapRect.top<top&&wrapRect.bottom>top+headHeight;
+     fixedHead.style.display=visible?'block':'none';
+     if(!visible)return;
+     fixedHead.style.top=top+'px';
+     fixedHead.style.left=wrapRect.left+'px';
+     fixedHead.style.width=wrapRect.width+'px';
+     fixedTable.style.width=attendanceTable.scrollWidth+'px';
+     fixedTable.style.transform='translateX(-'+tableWrap.scrollLeft+'px)';
+     sourceHead.querySelectorAll('th').forEach((th,index)=>{
+       const clonedTh=clonedHead.querySelectorAll('th')[index];
+       const width=th.getBoundingClientRect().width;
+       clonedTh.style.width=width+'px';
+       clonedTh.style.minWidth=width+'px';
+       clonedTh.style.maxWidth=width+'px';
+     });
+   };
+   window.addEventListener('scroll',syncFixedHead,{passive:true});
+   window.addEventListener('resize',syncFixedHead);
+   tableWrap.addEventListener('scroll',syncFixedHead,{passive:true});
+   if(window.ResizeObserver)new ResizeObserver(syncFixedHead).observe(tableWrap);
+   syncFixedHead();
+ }
  document.querySelectorAll('.save-location').forEach(btn=>btn.addEventListener('click',()=>{const form=btn.closest('form'),s=form.querySelector('.location-status');s.textContent='Konum alınıyor…';btn.disabled=true;navigator.geolocation.getCurrentPosition(p=>{form.querySelector('.location-lat').value=p.coords.latitude;form.querySelector('.location-lon').value=p.coords.longitude;form.submit();},()=>{s.textContent='Konum alınamadı.';btn.disabled=false;},{enableHighAccuracy:true,timeout:12000,maximumAge:0});}));
  {% if can_edit %}const modal=bootstrap.Modal.getOrCreateInstance(document.getElementById('editAttendanceModal'));const status=document.getElementById('editStatus'),timeFields=document.getElementById('timeFields'),checkInLabel=document.getElementById('checkInLabel'),checkOutLabel=document.getElementById('checkOutLabel');function syncFields(){const show=status.value==='worked'||status.value==='leave';timeFields.style.display=show?'block':'none';checkInLabel.textContent='Mesaiye başladı';checkOutLabel.textContent=status.value==='leave'?'İzne çıktı':'Mesaiyi bitirdi';}status.addEventListener('change',syncFields);document.querySelectorAll('.attendance-cell').forEach(cell=>cell.addEventListener('click',()=>{document.getElementById('editUserId').value=cell.dataset.userId;document.getElementById('editWorkDate').value=cell.dataset.date;document.getElementById('editTitle').textContent=cell.dataset.userName;document.getElementById('editDate').textContent=cell.dataset.date;status.value=cell.dataset.status||'worked';document.getElementById('editCheckIn').value=cell.dataset.checkIn||'';document.getElementById('editCheckOut').value=cell.dataset.checkOut||'';document.getElementById('editNote').value=cell.dataset.note||'';document.getElementById('editReportImage').value='';document.getElementById('removeReport').checked=false;const existing=document.getElementById('existingReport');existing.innerHTML=cell.dataset.reportUrl?`<a href="${cell.dataset.reportUrl}" target="_blank">Mevcut rapor görselini aç</a>`:'Rapor görseli yok';document.getElementById('editError').textContent='';syncFields();modal.show();}));document.getElementById('editAttendanceForm').addEventListener('submit',async e=>{e.preventDefault();const error=document.getElementById('editError');error.textContent='';try{const response=await fetch('{% url "attendance_edit_record" %}',{method:'POST',body:new FormData(e.target)});const data=await response.json();if(!data.ok){error.textContent=data.message||'Kayıt güncellenemedi.';return;}window.location.reload();}catch(err){error.textContent='Bağlantı hatası oluştu.';}});{% endif %}
 });
