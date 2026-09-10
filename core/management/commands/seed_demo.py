@@ -34,7 +34,10 @@ class Command(BaseCommand):
         now = timezone.now()
         today = timezone.localdate()
 
-        demo_password = getattr(settings, "DEMO_PASSWORD", "MoliDemo2026!")
+        demo_password = getattr(settings, "DEMO_PASSWORD", "")
+        if not demo_password:
+            raise CommandError("DEMO_PASSWORD ortam değişkeni zorunludur.")
+
         demo_user, _ = User.objects.update_or_create(
             username="demo",
             defaults={
