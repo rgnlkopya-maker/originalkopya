@@ -44,7 +44,27 @@ class MaterialCostEditTests(TestCase):
             is_active=True,
         )
 
+    def _create_order(self):
+        with patch("core.signals_qr.ensure_order_qr"):
+            return Order.objects.create(
+                siparis_tipi="SERI",
+                urun_kodu="MAT-TEST",
+                satis_fiyati=Decimal("500.00"),
+                para_birimi="TRY",
+                maliyet_uygulanan=Decimal("20.00"),
+                maliyet_para_birimi="TRY",
+            )
+
     def test_material_edit_updates_cost_currency_and_approved_product_cost(self):
+        open_order = self._create_order()
+        shipped_order = self._create_order()
+        OrderEvent.objects.create(
+            order=shipped_order,
+            user="test",
+            stage="sevkiyat_durum",
+            value="gonderildi",
+        )
+
         response = self.client.post(
             reverse("material_list"),
             {
@@ -69,6 +89,21 @@ class MaterialCostEditTests(TestCase):
         self.assertEqual(self.material.birim_maliyet_para_birimi, "USD")
         self.assertEqual(product_cost.maliyet, Decimal("240.00"))
         self.assertEqual(product_cost.para_birimi, "TRY")
+
+        open_order.refresh_from_db()
+        open_snapshot = OrderFinancialSnapshot.objects.get(order=open_order)
+        self.assertEqual(open_order.maliyet_uygulanan, Decimal("240.00"))
+        self.assertEqual(open_snapshot.maliyet_tl, Decimal("240.00"))
+        self.assertEqual(open_snapshot.beklenen_kar_tl, Decimal("260.00"))
+        self.assertEqual(open_snapshot.beklenen_kar_orani, Decimal("52.00"))
+
+        shipped_order.refresh_from_db()
+        shipped_order_snapshot = OrderFinancialSnapshot.objects.get(order=shipped_order)
+        shipment_snapshot = ShipmentFinancialSnapshot.objects.get(order=shipped_order)
+        self.assertEqual(shipped_order.maliyet_uygulanan, Decimal("20.00"))
+        self.assertEqual(shipped_order_snapshot.maliyet_tl, Decimal("20.00"))
+        self.assertEqual(shipment_snapshot.urun_maliyeti_tl, Decimal("20.00"))
+        self.assertEqual(shipment_snapshot.toplam_maliyet_tl, Decimal("20.00"))
 
 
 class FinanceSnapshotRegressionTests(TestCase):
