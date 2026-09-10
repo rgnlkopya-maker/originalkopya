@@ -14,8 +14,8 @@ from django.utils import timezone
 from django.views.decorators.http import require_POST
 from supabase import create_client
 
-from core.models import ProductCost, UrunKod
-from .models import CURRENCY_CHOICES, ExchangeRate, Material, MaterialStockMovement, MaterialWarehouseStock, ProductCard, ProductMaterial, Warehouse
+from core.models import Order, ProductCost, UrunKod
+from .models import CURRENCY_CHOICES, ExchangeRate, Material, MaterialStockMovement, MaterialWarehouseStock, OrderFinancialSnapshot, ProductCard, ProductMaterial, Warehouse
 
 
 def _can_manage(user):
@@ -64,6 +64,64 @@ def _upload_image(uploaded_file, folder, code):
     return bucket.get_public_url(path)
 
 
+SHIPPED_EVENT_VALUES = {"gonderildi", "tekrar_gonderildi", "tekrar_sevk"}
+
+
+def sync_unshipped_order_costs(product_code, product_cost_tl):
+    """Keep open orders live; never change an order that has ever been shipped."""
+    orders = (
+        Order.objects.filter(
+            urun_kodu__iexact=product_code,
+            shipment_financial_snapshot__isnull=True,
+        )
+        .exclude(
+            events__stage="sevkiyat_durum",
+            events__value__in=SHIPPED_EVENT_VALUES,
+        )
+        .distinct()
+    )
+    updated = 0
+    for order in orders:
+        snapshot = OrderFinancialSnapshot.objects.filter(order=order).first()
+        if snapshot is None:
+            continue
+
+        current_cost_tl = (
+            Decimal(product_cost_tl) + Decimal(order.ekstra_maliyet or 0)
+        ).quantize(Decimal("0.01"))
+        profit = (
+            Decimal(snapshot.satis_tl) - current_cost_tl
+            if snapshot.satis_tl is not None
+            else None
+        )
+        profit_rate = (
+            profit / Decimal(snapshot.satis_tl) * Decimal("100")
+            if profit is not None and snapshot.satis_tl
+            else None
+        )
+
+        Order.objects.filter(pk=order.pk).update(
+            maliyet_uygulanan=product_cost_tl,
+            maliyet_para_birimi="TRY",
+        )
+        snapshot.maliyet_tl = current_cost_tl
+        snapshot.beklenen_kar_tl = (
+            profit.quantize(Decimal("0.01")) if profit is not None else None
+        )
+        snapshot.beklenen_kar_orani = (
+            profit_rate.quantize(Decimal("0.01"))
+            if profit_rate is not None
+            else None
+        )
+        snapshot.save(update_fields=[
+            "maliyet_tl",
+            "beklenen_kar_tl",
+            "beklenen_kar_orani",
+        ])
+        updated += 1
+    return updated
+
+
 def recalculate_approved_product_costs():
     approved_codes = set(ProductCost.objects.filter(is_active=True).values_list("urun_kodu", flat=True))
     if not approved_codes:
@@ -73,6 +131,7 @@ def recalculate_approved_product_costs():
     for card in cards:
         total = card.toplam_maliyet.quantize(Decimal("0.01"))
         ProductCost.objects.filter(urun_kodu=card.urun.kod, is_active=True).update(maliyet=total, para_birimi="TRY")
+        sync_unshipped_order_costs(card.urun.kod, total)
         updated += 1
     return updated
 
