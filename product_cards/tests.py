@@ -372,3 +372,16 @@ class PriceListTests(TestCase):
         response = self.client.get(reverse("price_list"))
 
         self.assertContains(response, reverse("product_card_detail", args=[card.pk]))
+
+    def test_real_profit_rate_is_calculated_after_profit_and_discount(self):
+        response = self.client.post(reverse("save_price_list_settings"), {
+            "profit_rate": "25",
+            "discount_rate": "25",
+            "monthly_term_rate": "2",
+            "usd_try": "41",
+            "eur_try": "46",
+            "changed_field": "discount_rate",
+        })
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["real_profit_rate"], "-6.25")
