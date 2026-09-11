@@ -1,0 +1,49 @@
+<div class="modal fade" id="showroomAddModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content showroom-modal-content">
+      <div class="modal-header">
+        <div>
+          <div class="small text-muted">SİPARİŞ FÖYÜ</div>
+          <h5 class="modal-title mb-0">Föye Ürün Ekle</h5>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="row g-3 mb-3">
+          <div class="col-md-4">
+            <label class="form-label">Sipariş Tipi</label>
+            <div class="form-control showroom-fixed-field">Seri</div>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Müşteri</label>
+            <select id="musteri_select" class="form-select select2" required>
+              <option></option>
+              {% for m in musteriler %}<option value="{{ m.id }}">{{ m.ad }}</option>{% endfor %}
+            </select>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Ürün Kodu</label>
+            <input id="showroomProductCode" type="text" class="form-control" readonly>
+            <select id="urun_kodu_select" class="d-none"><option></option>{% for u in urun_kodlari %}<option value="{{ u.kod }}">{{ u.kod }}</option>{% endfor %}</select>
+          </div>
+        </div>
+
+        <div class="showroom-manage-row mb-3">
+          <button type="button" class="manage-btn" data-bs-toggle="modal" data-bs-target="#musteriModal">🧍 Müşteri Yönet</button>
+          <button type="button" class="manage-btn" data-bs-toggle="modal" data-bs-target="#urunKodModal">📦 Ürün Kodu Yönet</button>
+          <button type="button" class="manage-btn" data-bs-toggle="modal" data-bs-target="#renkModal">🎨 Renk Yönet</button>
+          <button type="button" class="manage-btn" data-bs-toggle="modal" data-bs-target="#bedenModal">👕 Beden Yönet</button>
+        </div>
+
+        <div id="showroomRows"></div>
+        <button type="button" id="showroomAddRow" class="btn btn-success mt-2">+ Satır Ekle</button>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-light" data-bs-dismiss="modal">Kapat</button>
+        <button type="button" id="showroomSaveItem" class="btn btn-primary">Föye Ekle</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% include "multi_order/_modals.html" %}
