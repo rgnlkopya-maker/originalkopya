@@ -24,6 +24,10 @@ document.addEventListener('DOMContentLoaded',function(){
   const current=++requestNumber;state.textContent='Hesaplanıyor…';const data=new FormData(form);data.append('changed_field',changedField);
   try{const response=await fetch('{% url "save_price_list_settings" %}',{method:'POST',body:data,headers:{'X-Requested-With':'XMLHttpRequest'}});const result=await response.json();if(current!==requestNumber)return;if(result.ok){updateRows(result.rows||[]);state.textContent='✓ Otomatik kaydedildi';}else{state.textContent=result.message;}if(result.source)document.getElementById('rate-source').textContent='Kaynak: '+result.source;if(result.checked_at)document.getElementById('rate-time').textContent='Son kontrol: '+result.checked_at;}catch(e){if(current===requestNumber)state.textContent='Kaydedilemedi';}
  }
- inputs.forEach(input=>input.addEventListener('input',()=>{clearTimeout(timer);timer=setTimeout(()=>save(input.name),450);}));
+ inputs.forEach(input=>input.addEventListener('input',()=>{
+  const profit=parseFloat(form.elements.profit_rate.value.replace(',','.'))||0,discount=parseFloat(form.elements.discount_rate.value.replace(',','.'))||0;
+  if(profit<=0&&discount>0){form.elements.discount_rate.value='0';state.textContent='Önce kâr oranı girmelisiniz.';clearTimeout(timer);timer=setTimeout(()=>save('discount_rate'),800);return;}
+  clearTimeout(timer);timer=setTimeout(()=>save(input.name),450);
+ }));
 });
 </script>{% endblock %}
