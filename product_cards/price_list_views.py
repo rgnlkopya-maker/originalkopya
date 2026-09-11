@@ -11,10 +11,6 @@ from django.views.decorators.http import require_POST
 from .models import ExchangeRate, PriceListSettings, ProductCard
 
 
-FISH_TYPES = {"BALIK", "ETEKLI_BALIK", "TESETTUR_BALIK", "TESETTUR_ETEKLI_BALIK"}
-HELEN_TYPES = {"HELEN", "TESETTUR_HELEN"}
-
-
 def _can_manage(user):
     return user.is_superuser or user.groups.filter(name__in=["patron", "mudur"]).exists()
 
@@ -80,6 +76,36 @@ def _ensure_price_rates(settings):
         return str(exc)
 
 
+def _price_rows(settings):
+    profit = settings.profit_rate / Decimal("100")
+    discount = settings.discount_rate / Decimal("100")
+    monthly = settings.monthly_term_rate / Decimal("100")
+    usd_rate = settings.usd_try
+    eur_rate = settings.eur_try
+    cards = (
+        ProductCard.objects.select_related("urun")
+        .prefetch_related("materials__material")
+        .filter(urun__aktif=True)
+        .order_by("urun__kod")
+    )
+    rows = []
+    for card in cards:
+        cost = card.toplam_maliyet
+        with_profit = cost * (Decimal("1") + profit)
+        discounted = with_profit * (Decimal("1") - discount)
+        rows.append({
+            "id": card.id,
+            "code": card.urun.kod,
+            "cash": discounted.quantize(Decimal("0.01")),
+            "term3": (discounted * (Decimal("1") + monthly * 3)).quantize(Decimal("0.01")),
+            "term6": (discounted * (Decimal("1") + monthly * 6)).quantize(Decimal("0.01")),
+            "term9": (discounted * (Decimal("1") + monthly * 9)).quantize(Decimal("0.01")),
+            "usd": (discounted / usd_rate).quantize(Decimal("0.01")) if usd_rate > 0 else None,
+            "eur": (discounted / eur_rate).quantize(Decimal("0.01")) if eur_rate > 0 else None,
+        })
+    return rows
+
+
 @login_required
 def price_list(request):
     if not _can_manage(request.user):
@@ -87,21 +113,9 @@ def price_list(request):
 
     settings = PriceListSettings.get_solo()
     rate_error = _ensure_price_rates(settings)
-    group = (request.GET.get("grup") or "balik").lower()
-    if group not in {"balik", "helen"}:
-        group = "balik"
-    types = FISH_TYPES if group == "balik" else HELEN_TYPES
-    cards = (
-        ProductCard.objects.select_related("urun")
-        .prefetch_related("materials__material")
-        .filter(urun__aktif=True, urun__urun_tipi__in=types)
-        .order_by("urun__kod")
-    )
-    rows = [{"card": card, "cost_tl": card.toplam_maliyet} for card in cards]
     return render(request, "product_cards/price_list.html", {
         "settings": settings,
-        "rows": rows,
-        "group": group,
+        "rows": _price_rows(settings),
         "rate_error": rate_error,
     })
 
@@ -146,4 +160,8 @@ def save_price_list_settings(request):
         "message": "Otomatik kaydedildi",
         "source": settings.rate_source,
         "checked_at": timezone.localtime(settings.rate_checked_at).strftime("%d.%m.%Y %H:%M") if settings.rate_checked_at else "",
+        "rows": [
+            {key: str(value) if isinstance(value, Decimal) else value for key, value in row.items()}
+            for row in _price_rows(settings)
+        ],
     })
