@@ -200,3 +200,38 @@ def restore_materials_when_stage_deleted(sender,instance,**kwargs):
             if not movement.warehouse:continue
             stock,_=MaterialWarehouseStock.objects.select_for_update().get_or_create(material=movement.material,warehouse=movement.warehouse,defaults={"miktar":0}); before=stock.miktar; stock.miktar=before+movement.miktar; stock.save(update_fields=["miktar","updated_at"]); MaterialStockMovement.objects.create(material=movement.material,warehouse=movement.warehouse,movement_type="URETIM_IADE",miktar=movement.miktar,onceki_stok=before,sonraki_stok=stock.miktar,aciklama=f"{instance.order.siparis_numarasi} {stage_label} kaydı silindi; stok iade edildi",order=instance.order); movement.reversed=True; movement.save(update_fields=["reversed"]); touched.add(movement.material_id)
         for material_id in touched: Material.objects.get(pk=material_id).sync_total_stock()
+
+
+class ShowroomDraft(models.Model):
+    STATUS_CHOICES=[("DRAFT","Taslak"),("PENDING","Onay Bekliyor"),("APPROVED","Onaylandı"),("TRANSFERRED","Siparişe Aktarıldı")]
+    CURRENCY_CHOICES=[("TRY","TL"),("USD","USD"),("EUR","EUR")]
+    DISCOUNT_SCOPE_CHOICES=[("ALL","Tüm ürünler"),("SELECTED","Seçili ürünler")]
+    created_by=models.ForeignKey(settings.AUTH_USER_MODEL,on_delete=models.PROTECT,related_name="showroom_drafts")
+    customer=models.ForeignKey("core.Musteri",on_delete=models.SET_NULL,null=True,blank=True,related_name="showroom_drafts")
+    status=models.CharField(max_length=12,choices=STATUS_CHOICES,default="DRAFT")
+    currency=models.CharField(max_length=3,choices=CURRENCY_CHOICES,default="TRY")
+    profit_rate=models.DecimalField(max_digits=7,decimal_places=2,default=0)
+    discount_rate=models.DecimalField(max_digits=7,decimal_places=2,default=0)
+    monthly_term_rate=models.DecimalField(max_digits=7,decimal_places=2,default=0)
+    usd_try=models.DecimalField(max_digits=12,decimal_places=6,default=1)
+    eur_try=models.DecimalField(max_digits=12,decimal_places=6,default=1)
+    overall_discount_amount=models.DecimalField(max_digits=16,decimal_places=2,default=0)
+    discount_scope=models.CharField(max_length=10,choices=DISCOUNT_SCOPE_CHOICES,default="ALL")
+    created_at=models.DateTimeField(auto_now_add=True)
+    updated_at=models.DateTimeField(auto_now=True)
+    class Meta: ordering=["-updated_at","-id"]
+    def __str__(self): return f"Showroom Föyü #{self.pk or 'Yeni'}"
+
+
+class ShowroomDraftItem(models.Model):
+    draft=models.ForeignKey(ShowroomDraft,on_delete=models.CASCADE,related_name="items")
+    product_card=models.ForeignKey(ProductCard,on_delete=models.PROTECT,related_name="showroom_draft_items")
+    color=models.CharField(max_length=120,blank=True,default="")
+    size=models.CharField(max_length=120,blank=True,default="")
+    quantity=models.PositiveIntegerField(default=1)
+    unit_price=models.DecimalField(max_digits=16,decimal_places=2)
+    discount_selected=models.BooleanField(default=True)
+    created_at=models.DateTimeField(auto_now_add=True)
+    updated_at=models.DateTimeField(auto_now=True)
+    class Meta: ordering=["created_at","id"]
+    def __str__(self): return f"{self.product_card.urun.kod} x {self.quantity}"
