@@ -5,7 +5,7 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import redirect, render
 
-from attendance.models import WorkplaceSettings
+from attendance.models import AttendanceRecord, WorkplaceSettings
 from .access import has_access
 from .models import SystemSettings, UserAccess
 
@@ -76,6 +76,10 @@ def settings_home(request):
             except ValueError:
                 pass
             workplace.save()
+            from attendance.views import _recalculate
+            for record in AttendanceRecord.objects.all().iterator():
+                _recalculate(record, workplace)
+                record.save(update_fields=["late_minutes", "early_leave_minutes", "overtime_minutes"])
             messages.success(request, 'Puantaj ve mesai ayarları kaydedildi.')
 
         elif section == 'finance':
