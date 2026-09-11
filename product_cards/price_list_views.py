@@ -81,6 +81,13 @@ def _ensure_price_rates(settings):
         return str(exc)
 
 
+def _real_profit_rate(profit_rate, discount_rate):
+    multiplier = (Decimal("1") + profit_rate / Decimal("100")) * (
+        Decimal("1") - discount_rate / Decimal("100")
+    )
+    return ((multiplier - Decimal("1")) * Decimal("100")).quantize(Decimal("0.01"))
+
+
 def _price_rows(settings):
     profit = settings.profit_rate / Decimal("100")
     discount = settings.discount_rate / Decimal("100")
@@ -125,6 +132,7 @@ def price_list(request):
         "settings": settings,
         "rows": _price_rows(settings),
         "rate_error": rate_error,
+        "real_profit_rate": _real_profit_rate(settings.profit_rate, settings.discount_rate),
     })
 
 
@@ -176,6 +184,7 @@ def save_price_list_settings(request):
         "message": "Otomatik kaydedildi",
         "source": settings.rate_source,
         "checked_at": timezone.localtime(settings.rate_checked_at).strftime("%d.%m.%Y %H:%M") if settings.rate_checked_at else "",
+        "real_profit_rate": str(_real_profit_rate(settings.profit_rate, settings.discount_rate)),
         "rows": [
             {key: str(value) if isinstance(value, Decimal) else value for key, value in row.items()}
             for row in _price_rows(settings)
