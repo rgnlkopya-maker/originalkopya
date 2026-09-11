@@ -5,7 +5,7 @@ from django.http import HttpResponseForbidden, JsonResponse
 from django.db import transaction
 from django.shortcuts import get_object_or_404, render
 from django.views.decorators.http import require_POST
-from core.models import Musteri
+from core.models import Beden, Musteri, Renk
 from .models import PriceListSettings, ProductCard, ShowroomDraft, ShowroomDraftItem
 from .price_list_views import _ensure_price_rates, _price_rows, _real_profit_rate
 
@@ -69,7 +69,7 @@ def showroom_page(request):
     settings=PriceListSettings.get_solo()
     rate_error=_ensure_price_rates(settings)
     return render(request,"product_cards/showroom_draft.html",{"draft":draft,"settings":settings,"rows":_price_rows(settings,active=True),"draft_data":_draft_data(draft),
-      "customers":Musteri.objects.filter(aktif=True).order_by("ad"),"rate_error":rate_error,
+      "customers":Musteri.objects.filter(aktif=True).order_by("ad"),"colors":list(Renk.objects.filter(aktif=True).order_by("ad").values_list("ad",flat=True)),"sizes":list(Beden.objects.filter(aktif=True).order_by("ad").values_list("ad",flat=True)),"rate_error":rate_error,
       "real_profit":_real_profit_rate(settings.profit_rate,settings.discount_rate)})
 
 
