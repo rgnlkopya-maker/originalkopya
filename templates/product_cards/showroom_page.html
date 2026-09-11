@@ -27,7 +27,13 @@ document.addEventListener('DOMContentLoaded',function(){
  function initSelects(scope){
    if(window.jQuery&&$.fn.select2){
      $(scope).find('.renk-select').each(function(){if($(this).hasClass('select2-hidden-accessible'))$(this).select2('destroy');$(this).select2({placeholder:'Renk seçiniz',allowClear:true,width:'100%',dropdownParent:$(modalEl)});});
-     $(scope).find('.beden-select').each(function(){if($(this).hasClass('select2-hidden-accessible'))$(this).select2('destroy');$(this).select2({placeholder:'Beden seçiniz',allowClear:true,closeOnSelect:false,width:'100%',dropdownParent:$(modalEl)});});
+     $(scope).find('.beden-select').each(function(){
+       if($(this).hasClass('select2-hidden-accessible'))$(this).select2('destroy');
+       $(this).select2({placeholder:'Beden seçiniz',allowClear:true,closeOnSelect:false,width:'100%',dropdownParent:$(modalEl)});
+       $(this).off('select2:select.showroomClose').on('select2:select.showroomClose',function(){
+         $(this).select2('close');
+       });
+     });
    }
  }
  function addRow(){
