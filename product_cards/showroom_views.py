@@ -149,12 +149,3 @@ def showroom_add_rows(request):
             ShowroomDraftItem.objects.create(draft=draft,product_card=card,color=color,size=size,quantity=qty,unit_price=price)
     return JsonResponse({"ok":True,"draft":_draft_data(draft)})
 
-
-@login_required
-@require_POST
-def showroom_add_customer(request):
-    if not _allowed(request.user): return JsonResponse({"ok":False,"message":"Yetkiniz yok."},status=403)
-    name=(request.POST.get("name") or "").strip()
-    if len(name)<2:return JsonResponse({"ok":False,"message":"Müşteri adını yazın."},status=400)
-    customer=Musteri.objects.create(ad=name,aktif=True)
-    return JsonResponse({"ok":True,"customer":{"id":customer.pk,"name":customer.ad}})
