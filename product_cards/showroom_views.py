@@ -1,10 +1,13 @@
 from decimal import Decimal, InvalidOperation
+import json
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponseForbidden, JsonResponse
+from django.db import transaction
 from django.shortcuts import get_object_or_404, render
 from django.views.decorators.http import require_POST
 from core.models import Musteri
 from .models import PriceListSettings, ProductCard, ShowroomDraft, ShowroomDraftItem
+from .price_list_views import _ensure_price_rates, _price_rows, _real_profit_rate
 
 
 def _manager(user):
@@ -63,8 +66,11 @@ def showroom_page(request):
         settings=PriceListSettings.get_solo()
         draft=ShowroomDraft.objects.create(created_by=request.user,profit_rate=settings.profit_rate,discount_rate=settings.discount_rate,
           monthly_term_rate=settings.monthly_term_rate,usd_try=settings.usd_try,eur_try=settings.eur_try)
-    return render(request,"product_cards/showroom_draft.html",{"draft":draft,"rows":_rows(draft),"draft_data":_draft_data(draft),
-      "customers":Musteri.objects.filter(aktif=True).order_by("ad"),"real_profit":((1+draft.profit_rate/100)*(1-draft.discount_rate/100)-1)*100})
+    settings=PriceListSettings.get_solo()
+    rate_error=_ensure_price_rates(settings)
+    return render(request,"product_cards/showroom_draft.html",{"draft":draft,"settings":settings,"rows":_price_rows(settings,active=True),"draft_data":_draft_data(draft),
+      "customers":Musteri.objects.filter(aktif=True).order_by("ad"),"rate_error":rate_error,
+      "real_profit":_real_profit_rate(settings.profit_rate,settings.discount_rate)})
 
 
 @login_required
@@ -118,3 +124,37 @@ def showroom_delete_item(request):
     if not _allowed(request.user): return JsonResponse({"ok":False},status=403)
     draft=_owned_draft(request.user,request.POST.get("draft_id"));get_object_or_404(ShowroomDraftItem,pk=request.POST.get("item_id"),draft=draft).delete()
     return JsonResponse({"ok":True,"draft":_draft_data(draft)})
+
+
+@login_required
+@require_POST
+def showroom_add_rows(request):
+    if not _allowed(request.user): return JsonResponse({"ok":False,"message":"Yetkiniz yok."},status=403)
+    draft=_owned_draft(request.user,request.POST.get("draft_id"))
+    card=get_object_or_404(ProductCard,pk=request.POST.get("card_id"),price_list_active=True)
+    try:
+        rows=json.loads(request.POST.get("rows") or "[]")
+        cleaned=[]
+        for row in rows:
+            color=str(row.get("color") or "").strip(); size=str(row.get("size") or "").strip()
+            qty=int(row.get("quantity") or 0); price=_number(str(row.get("unit_price") or "0"))
+            if qty<1: continue
+            if price<0: raise ValueError
+            cleaned.append((color,size,qty,price))
+        if not cleaned: raise ValueError
+    except (ValueError,TypeError,InvalidOperation,json.JSONDecodeError):
+        return JsonResponse({"ok":False,"message":"En az bir geçerli renk, beden, adet ve fiyat satırı girin."},status=400)
+    with transaction.atomic():
+        for color,size,qty,price in cleaned:
+            ShowroomDraftItem.objects.create(draft=draft,product_card=card,color=color,size=size,quantity=qty,unit_price=price)
+    return JsonResponse({"ok":True,"draft":_draft_data(draft)})
+
+
+@login_required
+@require_POST
+def showroom_add_customer(request):
+    if not _allowed(request.user): return JsonResponse({"ok":False,"message":"Yetkiniz yok."},status=403)
+    name=(request.POST.get("name") or "").strip()
+    if len(name)<2:return JsonResponse({"ok":False,"message":"Müşteri adını yazın."},status=400)
+    customer=Musteri.objects.create(ad=name,aktif=True)
+    return JsonResponse({"ok":True,"customer":{"id":customer.pk,"name":customer.ad}})
