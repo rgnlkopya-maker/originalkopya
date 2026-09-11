@@ -86,7 +86,9 @@ def _recalculate(record, workplace):
     work_end = _local_dt(record.work_date, workplace.work_end)
     overtime_start = work_end + timedelta(minutes=5)
     if record.check_in and record.check_in > work_start:
-        record.late_minutes = max(0, int((record.check_in - work_start).total_seconds() // 60))
+        actual_late_minutes = max(0, int((record.check_in - work_start).total_seconds() // 60))
+        if actual_late_minutes > workplace.late_tolerance_minutes:
+            record.late_minutes = actual_late_minutes
     if record.check_out and record.check_out < work_end:
         record.early_leave_minutes = max(0, math.ceil((work_end - record.check_out).total_seconds() / 60))
     if record.check_out and record.check_out > overtime_start:
