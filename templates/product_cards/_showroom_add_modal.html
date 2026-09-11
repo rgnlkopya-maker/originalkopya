@@ -1,149 +1,30 @@
 <style>
-#showroomAddModal .modal-dialog{
-  width:94vw;
-  max-width:94vw;
-  height:92vh;
-  margin:4vh auto;
-}
-#showroomAddModal .modal-content{
-  height:92vh;
-  border-radius:18px;
-  overflow:hidden;
-  display:flex;
-  flex-direction:column;
-}
-#showroomAddModal .modal-body{
-  overflow-y:auto;
-  flex:1 1 auto;
-  min-height:0;
-  padding-bottom:24px;
-}
-#showroomAddModal .modal-footer{
-  position:sticky;
-  bottom:0;
-  z-index:30;
-  flex:0 0 auto;
-  background:#fff;
-  border-top:1px solid #e5e7eb;
-  padding:12px 16px calc(12px + env(safe-area-inset-bottom));
-  box-shadow:0 -8px 20px rgba(15,23,42,.08);
-}
-#showroomAddModal .select2-search__field,
-#showroomAddModal .select2-selection__rendered{
-  font-size:16px !important;
-}
-@media(max-width:768px){
-  #showroomAddModal .modal-dialog{
-    width:96vw;
-    max-width:96vw;
-    height:90vh;
-    margin:5vh auto;
-  }
-  #showroomAddModal .modal-content{
-    height:90vh;
-    border-radius:14px;
-  }
-  #showroomAddModal input,
-  #showroomAddModal select,
-  #showroomAddModal textarea,
-  .select2-container--open .select2-search__field{
-    font-size:16px !important;
-  }
-  #showroomAddModal .modal-footer{
-    gap:8px;
-  }
-  #showroomAddModal .modal-footer .btn{
-    min-height:44px;
-  }
-}
+#showroomAddModal .modal-dialog{width:94vw;max-width:94vw;height:92vh;margin:4vh auto}
+#showroomAddModal .modal-content{height:92vh;border-radius:18px;overflow:hidden;display:flex;flex-direction:column}
+#showroomAddModal .modal-body{overflow-y:auto;flex:1 1 auto;min-height:0;padding-bottom:24px}
+#showroomAddModal .modal-footer{position:sticky;bottom:0;z-index:30;flex:0 0 auto;background:#fff;border-top:1px solid #e5e7eb;padding:12px 16px calc(12px + env(safe-area-inset-bottom));box-shadow:0 -8px 20px rgba(15,23,42,.08)}
+#showroomAddModal .select2-search__field,#showroomAddModal .select2-selection__rendered{font-size:16px!important}
+.showroom-archive-list{display:grid;gap:10px}.showroom-archive-card{border:1px solid #e5eaf2;border-radius:14px;padding:14px;background:#fff}.showroom-archive-head{display:flex;justify-content:space-between;gap:12px;align-items:center;margin-bottom:8px}.showroom-archive-customer{font-weight:850;color:#263044}.showroom-archive-date{font-size:12px;color:#7b8597}.showroom-archive-stats{display:flex;gap:14px;flex-wrap:wrap;font-size:13px;color:#566177}.showroom-archive-total{font-weight:850;color:#263044}.showroom-archive-open{border:1px solid #dce2ff;background:#eef1ff;color:#3b45d9;border-radius:9px;padding:7px 12px;font-weight:750}.showroom-archive-empty{text-align:center;color:#8a94a6;padding:32px 10px}
+@media(max-width:768px){#showroomAddModal .modal-dialog{width:96vw;max-width:96vw;height:90vh;margin:5vh auto}#showroomAddModal .modal-content{height:90vh;border-radius:14px}#showroomAddModal input,#showroomAddModal select,#showroomAddModal textarea,.select2-container--open .select2-search__field{font-size:16px!important}#showroomAddModal .modal-footer{gap:8px}#showroomAddModal .modal-footer .btn{min-height:44px}.showroom-archive-head{align-items:flex-start;flex-direction:column}}
 </style>
-<div class="modal fade" id="showroomAddModal" tabindex="-1" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
-    <div class="modal-content showroom-modal-content">
-      <div class="modal-header">
-        <div>
-          <div class="small text-muted">SİPARİŞ FÖYÜ</div>
-          <h5 class="modal-title mb-0">Föye Ürün Ekle</h5>
-        </div>
-        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-      </div>
-      <div class="modal-body">
-        <div class="row g-3 mb-3">
-          <div class="col-md-4">
-            <label class="form-label">Sipariş Tipi</label>
-            <div class="form-control showroom-fixed-field">Seri</div>
-          </div>
-          <div class="col-md-4">
-            <label class="form-label">Ürün Kodu</label>
-            <input id="showroomProductCode" type="text" class="form-control" readonly>
-          </div>
-        </div>
-
-        <div class="showroom-manage-row mb-3">
-          <button type="button" class="manage-btn" data-bs-toggle="modal" data-bs-target="#renkModal">🎨 Renk Yönet</button>
-          <button type="button" class="manage-btn" data-bs-toggle="modal" data-bs-target="#bedenModal">👕 Beden Yönet</button>
-        </div>
-
-        <div id="showroomRows"></div>
-        <button type="button" id="showroomAddRow" class="btn btn-success mt-2">+ Satır Ekle</button>
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-light" data-bs-dismiss="modal">Kapat</button>
-        <button type="button" id="showroomSaveItem" class="btn btn-primary">Föye Ekle</button>
-      </div>
-    </div>
-  </div>
-</div>
-
+<div class="modal fade" id="showroomAddModal" tabindex="-1" aria-hidden="true"><div class="modal-dialog modal-dialog-centered modal-dialog-scrollable"><div class="modal-content showroom-modal-content"><div class="modal-header"><div><div class="small text-muted">SİPARİŞ FÖYÜ</div><h5 class="modal-title mb-0">Föye Ürün Ekle</h5></div><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><div class="row g-3 mb-3"><div class="col-md-4"><label class="form-label">Sipariş Tipi</label><div class="form-control showroom-fixed-field">Seri</div></div><div class="col-md-4"><label class="form-label">Ürün Kodu</label><input id="showroomProductCode" type="text" class="form-control" readonly></div></div><div class="showroom-manage-row mb-3"><button type="button" class="manage-btn" data-bs-toggle="modal" data-bs-target="#renkModal">🎨 Renk Yönet</button><button type="button" class="manage-btn" data-bs-toggle="modal" data-bs-target="#bedenModal">👕 Beden Yönet</button></div><div id="showroomRows"></div><button type="button" id="showroomAddRow" class="btn btn-success mt-2">+ Satır Ekle</button></div><div class="modal-footer"><button type="button" class="btn btn-light" data-bs-dismiss="modal">Kapat</button><button type="button" id="showroomSaveItem" class="btn btn-primary">Föye Ekle</button></div></div></div></div>
+<div class="modal fade" id="showroomArchiveModal" tabindex="-1" aria-hidden="true"><div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable"><div class="modal-content"><div class="modal-header"><h5 class="modal-title" id="showroomArchiveTitle">Föyler</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><div id="showroomArchiveList" class="showroom-archive-list"></div></div></div></div></div>
 {% include "multi_order/_modals.html" %}
-
 <script>
-document.addEventListener('DOMContentLoaded', function () {
-  const addRowBtn = document.getElementById('showroomAddRow');
-  if (addRowBtn && window.jQuery) {
-    addRowBtn.addEventListener('click', function () {
-      setTimeout(function () {
-        $('.renk-select').each(function () {
-          if ($(this).hasClass('select2-hidden-accessible')) {
-            $(this).select2('close');
-          }
-        });
-        const $lastColor = $('.renk-select').last();
-        if ($lastColor.length) {
-          $lastColor.val(null).trigger('change.select2');
-        }
-      }, 0);
-    });
-  }
-
-  const actions = document.querySelector('.price-actions');
-  const openBtn = document.getElementById('showroomCreateBtn');
-  if (actions && openBtn && !document.getElementById('showroomDraftsBtn')) {
-    const draftsBtn = document.createElement('button');
-    draftsBtn.type = 'button';
-    draftsBtn.id = 'showroomDraftsBtn';
-    draftsBtn.className = 'showroom-create-btn';
-    draftsBtn.textContent = 'Taslak Föyler';
-
-    const approvedBtn = document.createElement('button');
-    approvedBtn.type = 'button';
-    approvedBtn.id = 'showroomApprovedBtn';
-    approvedBtn.className = 'showroom-create-btn';
-    approvedBtn.textContent = 'Onaylanan Föyler';
-
-    openBtn.insertAdjacentElement('afterend', draftsBtn);
-    draftsBtn.insertAdjacentElement('afterend', approvedBtn);
-  }
-
-  if (window.jQuery) {
-    $(document).on('select2:open', function () {
-      setTimeout(function () {
-        const search = document.querySelector('.select2-container--open .select2-search__field');
-        if (search) {
-          search.style.fontSize = '16px';
-        }
-      }, 0);
-    });
-  }
+document.addEventListener('DOMContentLoaded',function(){
+ const addRowBtn=document.getElementById('showroomAddRow');
+ if(addRowBtn&&window.jQuery){addRowBtn.addEventListener('click',function(){setTimeout(function(){$('.renk-select').each(function(){if($(this).hasClass('select2-hidden-accessible'))$(this).select2('close')});const $lastColor=$('.renk-select').last();if($lastColor.length)$lastColor.val(null).trigger('change.select2')},0)})}
+ const actions=document.querySelector('.price-actions'),openBtn=document.getElementById('showroomCreateBtn');
+ if(actions&&openBtn&&!document.getElementById('showroomDraftsBtn')){const draftsBtn=document.createElement('button');draftsBtn.type='button';draftsBtn.id='showroomDraftsBtn';draftsBtn.className='showroom-create-btn';draftsBtn.textContent='Taslak Föyler';const approvedBtn=document.createElement('button');approvedBtn.type='button';approvedBtn.id='showroomApprovedBtn';approvedBtn.className='showroom-create-btn';approvedBtn.textContent='Onaylanan Föyler';openBtn.insertAdjacentElement('afterend',draftsBtn);draftsBtn.insertAdjacentElement('afterend',approvedBtn)}
+ const LIST_URL='{% url "showroom_archive_list" %}',ACTION_URL='{% url "showroom_draft_action" %}',STORAGE_KEY='moli_showroom_active_draft_v1';
+ function csrf(){const m=document.cookie.match(/(?:^|; )csrftoken=([^;]*)/);return m?decodeURIComponent(m[1]):''}
+ function esc(v){return String(v??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]))}
+ function money(v){return new Intl.NumberFormat('tr-TR',{minimumFractionDigits:2,maximumFractionDigits:2}).format(Number(v)||0)+' TL'}
+ async function action(payload){const r=await fetch(ACTION_URL,{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json','X-CSRFToken':csrf()},body:JSON.stringify(payload)});const data=await r.json();if(!r.ok)throw new Error(data.message||'İşlem yapılamadı.');return data}
+ async function showArchive(kind){const title=document.getElementById('showroomArchiveTitle'),list=document.getElementById('showroomArchiveList');title.textContent=kind==='draft'?'Taslak Föyler':'Onaylanan Föyler';list.innerHTML='<div class="showroom-archive-empty">Yükleniyor…</div>';bootstrap.Modal.getOrCreateInstance(document.getElementById('showroomArchiveModal')).show();try{const r=await fetch(LIST_URL+'?kind='+kind,{credentials:'same-origin'}),data=await r.json();if(!r.ok)throw new Error(data.message||'Liste alınamadı.');if(!data.items.length){list.innerHTML='<div class="showroom-archive-empty">Henüz kayıt bulunmuyor.</div>';return}list.innerHTML=data.items.map(x=>`<div class="showroom-archive-card"><div class="showroom-archive-head"><div><div class="showroom-archive-customer">${esc(x.customer)}</div><div class="showroom-archive-date">${esc(x.updated_at)}</div></div>${kind==='draft'?`<button type="button" class="showroom-archive-open" data-open-draft="${x.id}">Aç</button>`:''}</div><div class="showroom-archive-stats"><span>${x.product_count} ürün çeşidi</span><span>${x.total_qty} adet</span><span class="showroom-archive-total">${money(x.total)}</span></div></div>`).join('')}catch(e){list.innerHTML='<div class="showroom-archive-empty">'+esc(e.message)+'</div>'}}
+ document.getElementById('showroomDraftsBtn')?.addEventListener('click',()=>showArchive('draft'));
+ document.getElementById('showroomApprovedBtn')?.addEventListener('click',()=>showArchive('approved'));
+ document.addEventListener('click',async function(e){const open=e.target.closest('[data-open-draft]');if(open){try{await action({action:'open_saved',draft_id:open.dataset.openDraft});localStorage.removeItem(STORAGE_KEY);location.reload()}catch(err){alert(err.message)}return}const save=e.target.closest('#showroomDraftSaveBtn'),del=e.target.closest('#showroomDraftDeleteBtn'),approve=e.target.closest('#showroomApproveBtn');if(!save&&!del&&!approve)return;if(del&&!confirm('Açık taslak tamamen silinsin mi?'))return;if(approve&&!confirm('Bu Föy onaylanan sipariş olarak kaydedilsin mi?'))return;try{const result=await action({action:save?'save_draft':del?'delete':'approve'});localStorage.removeItem(STORAGE_KEY);alert(result.message);location.reload()}catch(err){alert(err.message)}});
+ if(window.jQuery){$(document).on('select2:open',function(){setTimeout(function(){const search=document.querySelector('.select2-container--open .select2-search__field');if(search)search.style.fontSize='16px'},0)})}
 });
 </script>
