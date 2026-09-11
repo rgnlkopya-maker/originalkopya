@@ -10,7 +10,7 @@ from django.utils import timezone
 
 from core.models import Musteri, Order, OrderEvent, ProductCost, UrunKod
 from .finance_views import calculate_finance_result
-from .models import ExchangeRate, Material, OrderFinancialSnapshot, ProductCard, ProductMaterial, ShipmentFinancialSnapshot
+from .models import ExchangeRate, Material, OrderFinancialSnapshot, PriceListSettings, ProductCard, ProductMaterial, ShipmentFinancialSnapshot
 
 
 class MaterialCostEditTests(TestCase):
@@ -269,3 +269,56 @@ class MultiOrderFinancePostTests(TestCase):
         self.assertEqual(snapshot.satis_tl, Decimal("13000.00"))
         self.assertEqual(snapshot.maliyet_tl, Decimal("9253.52"))
         self.assertEqual(snapshot.beklenen_kar_tl, Decimal("3746.48"))
+
+class PriceListTests(TestCase):
+    def setUp(self):
+        self.manager = get_user_model().objects.create_user(
+            "price-manager", password="test-password"
+        )
+        patron, _ = Group.objects.get_or_create(name="patron")
+        self.manager.groups.add(patron)
+        self.client.force_login(self.manager)
+        self.settings = PriceListSettings.objects.create(
+            pk=1,
+            profit_rate=Decimal("20"),
+            discount_rate=Decimal("5"),
+            monthly_term_rate=Decimal("2"),
+            usd_try=Decimal("40"),
+            eur_try=Decimal("45"),
+            rate_source="TCMB",
+            rate_checked_at=timezone.now(),
+        )
+
+    def test_new_product_card_appears_in_matching_group(self):
+        product = UrunKod.objects.create(kod="PRICE-FISH", urun_tipi="BALIK")
+        ProductCard.objects.get_or_create(urun=product)
+
+        response = self.client.get(reverse("price_list"), {"grup": "balik"})
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "PRICE-FISH")
+
+    def test_helen_product_does_not_appear_in_fish_group(self):
+        product = UrunKod.objects.create(kod="PRICE-HELEN", urun_tipi="HELEN")
+        ProductCard.objects.get_or_create(urun=product)
+
+        response = self.client.get(reverse("price_list"), {"grup": "balik"})
+
+        self.assertNotContains(response, "PRICE-HELEN")
+
+    def test_settings_are_saved_automatically_by_endpoint(self):
+        response = self.client.post(reverse("save_price_list_settings"), {
+            "profit_rate": "25",
+            "discount_rate": "7.5",
+            "monthly_term_rate": "2.5",
+            "usd_try": "41",
+            "eur_try": "46",
+            "changed_field": "profit_rate",
+        })
+
+        self.assertEqual(response.status_code, 200)
+        self.settings.refresh_from_db()
+        self.assertEqual(self.settings.profit_rate, Decimal("25"))
+        self.assertEqual(self.settings.discount_rate, Decimal("7.5"))
+        self.assertEqual(self.settings.monthly_term_rate, Decimal("2.5"))
+
