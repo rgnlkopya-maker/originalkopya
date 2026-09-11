@@ -149,3 +149,20 @@ def showroom_add_rows(request):
             ShowroomDraftItem.objects.create(draft=draft,product_card=card,color=color,size=size,description=description,quantity=qty,unit_price=price)
     return JsonResponse({"ok":True,"draft":_draft_data(draft)})
 
+
+
+@login_required
+@require_POST
+def showroom_update_product_price(request):
+    if not _allowed(request.user): return JsonResponse({"ok":False,"message":"Yetkiniz yok."},status=403)
+    draft=_owned_draft(request.user,request.POST.get("draft_id"))
+    try:
+        price=_number(request.POST.get("unit_price"))
+        if price<0: raise ValueError
+    except (ValueError,InvalidOperation):
+        return JsonResponse({"ok":False,"message":"Fiyat geçersiz."},status=400)
+    items=draft.items.filter(product_card_id=request.POST.get("card_id"))
+    if not items.exists(): return JsonResponse({"ok":False,"message":"Ürün föyde bulunamadı."},status=404)
+    items.update(unit_price=price)
+    draft.save(update_fields=["updated_at"])
+    return JsonResponse({"ok":True,"draft":_draft_data(draft)})
