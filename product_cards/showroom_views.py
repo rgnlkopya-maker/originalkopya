@@ -48,7 +48,7 @@ def _draft_data(draft):
     for item in draft.items.select_related("product_card__urun").all():
         line=(item.unit_price*item.quantity).quantize(Decimal(".01")); subtotal+=line; qty+=item.quantity
         if item.discount_selected:selected+=line
-        items.append({"id":item.pk,"card_id":item.product_card_id,"code":item.product_card.urun.kod,"color":item.color,"size":item.size,
+        items.append({"id":item.pk,"card_id":item.product_card_id,"code":item.product_card.urun.kod,"color":item.color,"size":item.size,"description":item.description,
           "quantity":item.quantity,"unit_price":str(item.unit_price),"line_total":str(line),"discount_selected":item.discount_selected})
     eligible=subtotal if draft.discount_scope=="ALL" else selected
     discount=min(max(draft.overall_discount_amount,Decimal("0")),eligible)
@@ -114,7 +114,7 @@ def showroom_update_item(request):
     draft=_owned_draft(request.user,request.POST.get("draft_id")); item=get_object_or_404(ShowroomDraftItem,pk=request.POST.get("item_id"),draft=draft)
     try:item.quantity=max(1,int(request.POST.get("quantity") or 1));item.unit_price=_number(request.POST.get("unit_price"))
     except (ValueError,InvalidOperation):return JsonResponse({"ok":False,"message":"Adet veya fiyat geçersiz."},status=400)
-    item.color=(request.POST.get("color") or "").strip();item.size=(request.POST.get("size") or "").strip();item.discount_selected=request.POST.get("discount_selected")=="1";item.save()
+    item.color=(request.POST.get("color") or "").strip();item.size=(request.POST.get("size") or "").strip();item.description=(request.POST.get("description") or "").strip()[:500];item.discount_selected=request.POST.get("discount_selected")=="1";item.save()
     return JsonResponse({"ok":True,"draft":_draft_data(draft)})
 
 
@@ -136,16 +136,16 @@ def showroom_add_rows(request):
         rows=json.loads(request.POST.get("rows") or "[]")
         cleaned=[]
         for row in rows:
-            color=str(row.get("color") or "").strip(); size=str(row.get("size") or "").strip()
+            color=str(row.get("color") or "").strip(); size=str(row.get("size") or "").strip(); description=str(row.get("description") or "").strip()[:500]
             qty=int(row.get("quantity") or 0); price=_number(str(row.get("unit_price") or "0"))
             if qty<1: continue
             if price<0: raise ValueError
-            cleaned.append((color,size,qty,price))
+            cleaned.append((color,size,description,qty,price))
         if not cleaned: raise ValueError
     except (ValueError,TypeError,InvalidOperation,json.JSONDecodeError):
         return JsonResponse({"ok":False,"message":"En az bir geçerli renk, beden, adet ve fiyat satırı girin."},status=400)
     with transaction.atomic():
-        for color,size,qty,price in cleaned:
-            ShowroomDraftItem.objects.create(draft=draft,product_card=card,color=color,size=size,quantity=qty,unit_price=price)
+        for color,size,description,qty,price in cleaned:
+            ShowroomDraftItem.objects.create(draft=draft,product_card=card,color=color,size=size,description=description,quantity=qty,unit_price=price)
     return JsonResponse({"ok":True,"draft":_draft_data(draft)})
 
