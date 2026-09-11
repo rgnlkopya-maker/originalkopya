@@ -22,7 +22,24 @@ document.addEventListener('DOMContentLoaded',function(){
  }
  function csrf(){const m=document.cookie.match(/(?:^|; )csrftoken=([^;]*)/);return m?decodeURIComponent(m[1]):''}
  async function runAction(action){const r=await fetch(ACTION_URL,{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json','X-CSRFToken':csrf()},body:JSON.stringify({action})}),data=await r.json();if(!r.ok||!data.ok)throw new Error(data.message||'İşlem yapılamadı.');localStorage.removeItem(STORAGE_KEY);return data}
- document.addEventListener('click',async function(e){const save=e.target.closest('#showroomDraftSaveBtn'),del=e.target.closest('#showroomDraftDeleteBtn'),approve=e.target.closest('#showroomApproveBtn');if(!save&&!del&&!approve)return;if(del&&!confirm('Açık taslak tamamen silinsin mi?'))return;if(approve&&!confirm('Bu Föy onaylanan sipariş olarak kaydedilsin mi?'))return;const btn=save||del||approve;btn.disabled=true;try{const data=await runAction(save?'save_draft':del?'delete':'approve');alert(data.message);window.location.href='{% url "showroom_page" %}'}catch(err){alert(err.message);btn.disabled=false}});
+ async function clearAnyRecreatedDraft(){
+   await new Promise(resolve=>setTimeout(resolve,700));
+   try{await fetch(ACTION_URL,{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json','X-CSRFToken':csrf()},body:JSON.stringify({action:'delete'})});}catch(e){}
+   try{localStorage.removeItem(STORAGE_KEY)}catch(e){}
+ }
+ document.addEventListener('click',async function(e){
+   const save=e.target.closest('#showroomDraftSaveBtn'),del=e.target.closest('#showroomDraftDeleteBtn'),approve=e.target.closest('#showroomApproveBtn');
+   if(!save&&!del&&!approve)return;
+   if(del&&!confirm('Açık taslak tamamen silinsin mi?'))return;
+   if(approve&&!confirm('Bu Föy onaylanan sipariş olarak kaydedilsin mi?'))return;
+   const btn=save||del||approve;btn.disabled=true;
+   try{
+     const data=await runAction(save?'save_draft':del?'delete':'approve');
+     await clearAnyRecreatedDraft();
+     alert(data.message);
+     window.location.href='{% url "showroom_page" %}';
+   }catch(err){alert(err.message);btn.disabled=false}
+ });
  if(window.jQuery){$(document).on('select2:open',function(){setTimeout(function(){const search=document.querySelector('.select2-container--open .select2-search__field');if(search)search.style.fontSize='16px'},0)})}
 });
 </script>
