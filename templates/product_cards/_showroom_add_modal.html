@@ -116,6 +116,25 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   }
 
+  const actions = document.querySelector('.price-actions');
+  const openBtn = document.getElementById('showroomCreateBtn');
+  if (actions && openBtn && !document.getElementById('showroomDraftsBtn')) {
+    const draftsBtn = document.createElement('button');
+    draftsBtn.type = 'button';
+    draftsBtn.id = 'showroomDraftsBtn';
+    draftsBtn.className = 'showroom-create-btn';
+    draftsBtn.textContent = 'Taslak Föyler';
+
+    const approvedBtn = document.createElement('button');
+    approvedBtn.type = 'button';
+    approvedBtn.id = 'showroomApprovedBtn';
+    approvedBtn.className = 'showroom-create-btn';
+    approvedBtn.textContent = 'Onaylanan Föyler';
+
+    openBtn.insertAdjacentElement('afterend', draftsBtn);
+    draftsBtn.insertAdjacentElement('afterend', approvedBtn);
+  }
+
   if (window.jQuery) {
     $(document).on('select2:open', function () {
       setTimeout(function () {
