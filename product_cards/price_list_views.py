@@ -154,6 +154,12 @@ def save_price_list_settings(request):
     except (InvalidOperation, ValueError) as exc:
         return JsonResponse({"ok": False, "message": str(exc)}, status=400)
 
+    if parsed["discount_rate"] > 0 and parsed["profit_rate"] <= 0:
+        return JsonResponse({
+            "ok": False,
+            "message": "İndirim uygulamak için önce kâr oranı girmelisiniz.",
+        }, status=400)
+
     for field, value in parsed.items():
         setattr(settings, field, value)
     if request.POST.get("changed_field") in {"usd_try", "eur_try"}:
