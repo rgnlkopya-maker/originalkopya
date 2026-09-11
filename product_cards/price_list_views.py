@@ -59,7 +59,12 @@ def fetch_price_list_tcmb_rates():
 
 def _ensure_price_rates(settings):
     checked = settings.rate_checked_at
-    if checked and timezone.localdate(checked) == timezone.localdate():
+    if (
+        checked
+        and timezone.localdate(checked) == timezone.localdate()
+        and settings.usd_try > 1
+        and settings.eur_try > 1
+    ):
         return None
     try:
         fetch_price_list_tcmb_rates()
