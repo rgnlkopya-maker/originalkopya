@@ -4,7 +4,7 @@ import django.db.models.deletion
 
 
 class Migration(migrations.Migration):
-    dependencies=[("core","0001_initial"),("product_cards","0017_productcard_price_list_active"),migrations.swappable_dependency(settings.AUTH_USER_MODEL)]
+    dependencies=[("core","0056_auditlog"),("product_cards","0017_productcard_price_list_active"),migrations.swappable_dependency(settings.AUTH_USER_MODEL)]
     operations=[
         migrations.CreateModel(name="ShowroomDraft",fields=[
             ("id",models.BigAutoField(auto_created=True,primary_key=True,serialize=False,verbose_name="ID")),
