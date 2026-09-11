@@ -385,3 +385,28 @@ class PriceListTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json()["real_profit_rate"], "-6.25")
+
+    def test_price_list_status_only_hides_card_from_price_list(self):
+        product = UrunKod.objects.create(kod="ONLY-PRICE-LIST", urun_tipi="DIGER")
+        card, _ = ProductCard.objects.get_or_create(urun=product)
+        response = self.client.post(reverse("toggle_price_list_status"), {
+            "card_id": card.pk, "active": "0", "return_status": "aktif",
+        })
+        self.assertEqual(response.status_code, 302)
+        card.refresh_from_db()
+        product.refresh_from_db()
+        self.assertFalse(card.price_list_active)
+        self.assertTrue(product.aktif)
+        self.assertNotContains(self.client.get(reverse("price_list")), "ONLY-PRICE-LIST")
+        self.assertContains(self.client.get(reverse("price_list") + "?durum=pasif"), "ONLY-PRICE-LIST")
+
+    def test_excel_contains_only_active_price_list_cards(self):
+        active_product = UrunKod.objects.create(kod="EXCEL-ACTIVE", urun_tipi="DIGER")
+        ProductCard.objects.get_or_create(urun=active_product)
+        passive_product = UrunKod.objects.create(kod="EXCEL-PASSIVE", urun_tipi="DIGER")
+        ProductCard.objects.create(urun=passive_product, price_list_active=False)
+        response = self.client.get(reverse("export_price_list_excel"))
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response["Content-Type"], "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+        self.assertIn(b"PK", response.content[:4])
+
