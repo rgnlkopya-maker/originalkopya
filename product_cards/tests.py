@@ -333,3 +333,42 @@ class PriceListTests(TestCase):
         self.assertEqual(self.settings.discount_rate, Decimal("7.5"))
         self.assertEqual(self.settings.monthly_term_rate, Decimal("2.5"))
 
+
+    def test_blank_percentage_values_are_saved_as_zero(self):
+        response = self.client.post(reverse("save_price_list_settings"), {
+            "profit_rate": "",
+            "discount_rate": "",
+            "monthly_term_rate": "",
+            "usd_try": "41",
+            "eur_try": "46",
+            "changed_field": "profit_rate",
+        })
+
+        self.assertEqual(response.status_code, 200)
+        self.settings.refresh_from_db()
+        self.assertEqual(self.settings.profit_rate, Decimal("0"))
+        self.assertEqual(self.settings.discount_rate, Decimal("0"))
+        self.assertEqual(self.settings.monthly_term_rate, Decimal("0"))
+
+    def test_discount_is_rejected_when_profit_is_zero(self):
+        response = self.client.post(reverse("save_price_list_settings"), {
+            "profit_rate": "0",
+            "discount_rate": "10",
+            "monthly_term_rate": "2",
+            "usd_try": "41",
+            "eur_try": "46",
+            "changed_field": "discount_rate",
+        })
+
+        self.assertEqual(response.status_code, 400)
+        self.settings.refresh_from_db()
+        self.assertEqual(self.settings.profit_rate, Decimal("20"))
+        self.assertEqual(self.settings.discount_rate, Decimal("5"))
+
+    def test_product_code_links_to_product_card_detail(self):
+        product = UrunKod.objects.create(kod="CLICKABLE-PRICE", urun_tipi="DIGER")
+        card, _ = ProductCard.objects.get_or_create(urun=product)
+
+        response = self.client.get(reverse("price_list"))
+
+        self.assertContains(response, reverse("product_card_detail", args=[card.pk]))
