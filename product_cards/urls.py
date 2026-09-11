@@ -10,6 +10,7 @@ urlpatterns = [
     path("showroom-foyu/urun-ekle/", showroom_views.showroom_add_item, name="showroom_add_item"),
     path("showroom-foyu/satirlar-ekle/", showroom_views.showroom_add_rows, name="showroom_add_rows"),
     path("showroom-foyu/urun-guncelle/", showroom_views.showroom_update_item, name="showroom_update_item"),
+    path("showroom-foyu/urun-fiyati/", showroom_views.showroom_update_product_price, name="showroom_update_product_price"),
     path("showroom-foyu/urun-sil/", showroom_views.showroom_delete_item, name="showroom_delete_item"),
     path("fiyat-listesi/kaydet/", price_list_views.save_price_list_settings, name="save_price_list_settings"),
     path("fiyat-listesi/excel/", price_list_views.export_price_list_excel, name="export_price_list_excel"),
