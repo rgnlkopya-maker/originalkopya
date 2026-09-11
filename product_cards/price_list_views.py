@@ -101,7 +101,7 @@ def _price_rows(settings, active=True):
     cards = (
         ProductCard.objects.select_related("urun")
         .prefetch_related("materials__material")
-        .filter(urun__aktif=True, price_list_active=active)
+        .filter(price_list_active=active)
         .order_by("urun__kod")
     )
     rows = []
@@ -137,7 +137,7 @@ def price_list(request):
         "settings": settings,
         "rows": _price_rows(settings, active=not show_inactive),
         "show_inactive": show_inactive,
-        "inactive_count": ProductCard.objects.filter(urun__aktif=True, price_list_active=False).count(),
+        "inactive_count": ProductCard.objects.filter(price_list_active=False).count(),
         "rate_error": rate_error,
         "real_profit_rate": _real_profit_rate(settings.profit_rate, settings.discount_rate),
     })
