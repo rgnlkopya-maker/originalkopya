@@ -6,6 +6,7 @@ import xml.etree.ElementTree as ET
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponse, HttpResponseForbidden, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
 from django.utils import timezone
 from django.views.decorators.http import require_POST
 from openpyxl import Workbook
@@ -208,7 +209,7 @@ def toggle_price_list_status(request):
     card.price_list_active = request.POST.get("active") == "1"
     card.save(update_fields=["price_list_active", "updated_at"])
     if request.POST.get("return_status") == "pasif":
-        return redirect("%s?durum=pasif" % request.build_absolute_uri(reverse("price_list")).replace(request.build_absolute_uri("/"), "/", 1))
+        return redirect(f'{reverse("price_list")}?durum=pasif')
     return redirect("price_list")
 
 
