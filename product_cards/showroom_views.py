@@ -232,11 +232,13 @@ def showroom_draft_action(request):
             draft.status = "PENDING" if action == "save_draft" else "APPROVED"
             draft.save(update_fields=["status", "updated_at"])
             return JsonResponse({"ok": True, "draft": draft.id, "status": draft.status, "message": "Taslak kaydedildi." if action == "save_draft" else "Föy onaylananlara kaydedildi."})
-        if action == "open_saved":
+
+        if action in {"open_saved", "edit_saved"}:
             draft_id = payload.get("draft_id")
-            target = ShowroomDraft.objects.filter(id=draft_id, created_by=request.user, status="PENDING").first()
+            allowed_statuses = ["PENDING"] if action == "open_saved" else ["PENDING", "APPROVED"]
+            target = ShowroomDraft.objects.filter(id=draft_id, created_by=request.user, status__in=allowed_statuses).first()
             if not target:
-                return JsonResponse({"ok": False, "message": "Taslak bulunamadı."}, status=404)
+                return JsonResponse({"ok": False, "message": "Föy bulunamadı."}, status=404)
             active = _active_draft(request.user)
             if active and active.id != target.id:
                 if active.items.exists():
@@ -244,7 +246,16 @@ def showroom_draft_action(request):
                 active.delete()
             target.status = "DRAFT"
             target.save(update_fields=["status", "updated_at"])
-            return JsonResponse({"ok": True, "draft": target.id, "message": "Taslak açıldı."})
+            return JsonResponse({"ok": True, "draft": target.id, "message": "Föy düzenlemeye açıldı."})
+
+        if action == "delete_saved":
+            draft_id = payload.get("draft_id")
+            target = ShowroomDraft.objects.filter(id=draft_id, created_by=request.user, status__in=["PENDING", "APPROVED"]).first()
+            if not target:
+                return JsonResponse({"ok": False, "message": "Föy bulunamadı."}, status=404)
+            target.delete()
+            return JsonResponse({"ok": True, "message": "Föy silindi."})
+
     return JsonResponse({"ok": False, "message": "İşlem geçersiz."}, status=400)
 
 
