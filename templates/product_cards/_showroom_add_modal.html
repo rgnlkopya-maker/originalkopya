@@ -13,6 +13,10 @@
 #showroomAddModal .modal-body{
   overflow-y:auto;
 }
+#showroomAddModal .select2-search__field,
+#showroomAddModal .select2-selection__rendered{
+  font-size:16px !important;
+}
 @media(max-width:768px){
   #showroomAddModal .modal-dialog{
     width:96vw;
@@ -23,6 +27,12 @@
   #showroomAddModal .modal-content{
     height:94vh;
     border-radius:14px;
+  }
+  #showroomAddModal input,
+  #showroomAddModal select,
+  #showroomAddModal textarea,
+  .select2-container--open .select2-search__field{
+    font-size:16px !important;
   }
 }
 </style>
@@ -65,3 +75,35 @@
 </div>
 
 {% include "multi_order/_modals.html" %}
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  const addRowBtn = document.getElementById('showroomAddRow');
+  if (addRowBtn && window.jQuery) {
+    addRowBtn.addEventListener('click', function () {
+      setTimeout(function () {
+        $('.renk-select').each(function () {
+          if ($(this).hasClass('select2-hidden-accessible')) {
+            $(this).select2('close');
+          }
+        });
+        const $lastColor = $('.renk-select').last();
+        if ($lastColor.length) {
+          $lastColor.val(null).trigger('change.select2');
+        }
+      }, 0);
+    });
+  }
+
+  if (window.jQuery) {
+    $(document).on('select2:open', function () {
+      setTimeout(function () {
+        const search = document.querySelector('.select2-container--open .select2-search__field');
+        if (search) {
+          search.style.fontSize = '16px';
+        }
+      }, 0);
+    });
+  }
+});
+</script>
