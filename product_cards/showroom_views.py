@@ -3,8 +3,10 @@ from decimal import Decimal, InvalidOperation
 
 from django.contrib.auth.decorators import login_required
 from django.db import transaction
+from django.db.models import Count, DecimalField, ExpressionWrapper, F, Sum
 from django.http import HttpResponseForbidden, JsonResponse
 from django.shortcuts import render
+from django.utils import timezone
 from django.views.decorators.http import require_GET, require_POST
 
 from core.models import Beden, Musteri, Renk, URUN_TIPI_CHOICES, UrunKod
@@ -91,6 +93,36 @@ def _serialize_draft(draft):
         "discount_rate": str(draft.discount_rate or 0),
         "discount_amount": str(draft.overall_discount_amount or 0),
         "updated_at": draft.updated_at.isoformat() if draft.updated_at else None,
+    }
+
+
+def _draft_summary(draft):
+    line_total = ExpressionWrapper(
+        F("quantity") * F("unit_price"),
+        output_field=DecimalField(max_digits=20, decimal_places=2),
+    )
+    items = draft.items.aggregate(
+        product_count=Count("product_card", distinct=True),
+        total_qty=Sum("quantity"),
+        subtotal=Sum(line_total),
+    )
+    subtotal = items["subtotal"] or Decimal("0")
+    if draft.discount_rate and draft.discount_rate > 0:
+        discount = subtotal * draft.discount_rate / Decimal("100")
+    else:
+        discount = draft.overall_discount_amount or Decimal("0")
+    discount = min(subtotal, max(Decimal("0"), discount))
+    total = max(Decimal("0"), subtotal - discount)
+    return {
+        "id": draft.id,
+        "customer": draft.customer.ad if draft.customer else "Müşteri seçilmedi",
+        "product_count": items["product_count"] or 0,
+        "total_qty": items["total_qty"] or 0,
+        "subtotal": str(subtotal.quantize(Decimal("0.01"))),
+        "discount": str(discount.quantize(Decimal("0.01"))),
+        "total": str(total.quantize(Decimal("0.01"))),
+        "updated_at": timezone.localtime(draft.updated_at).strftime("%d.%m.%Y %H:%M"),
+        "status": draft.status,
     }
 
 
@@ -233,3 +265,88 @@ def showroom_draft_discount_save(request):
         "discount_rate": str(draft.discount_rate),
         "discount_amount": str(draft.overall_discount_amount),
     })
+
+
+@login_required
+@require_GET
+def showroom_archive_list(request):
+    if not _can_manage(request.user):
+        return JsonResponse({"ok": False, "message": "Yetkiniz yok."}, status=403)
+
+    kind = request.GET.get("kind")
+    status = "PENDING" if kind == "draft" else "APPROVED" if kind == "approved" else None
+    if not status:
+        return JsonResponse({"ok": False, "message": "Liste türü geçersiz."}, status=400)
+
+    drafts = (
+        ShowroomDraft.objects.filter(created_by=request.user, status=status)
+        .select_related("customer")
+        .prefetch_related("items")
+        .order_by("-updated_at", "-id")
+    )
+    return JsonResponse({
+        "ok": True,
+        "kind": kind,
+        "items": [_draft_summary(draft) for draft in drafts],
+    })
+
+
+@login_required
+@require_POST
+def showroom_draft_action(request):
+    if not _can_manage(request.user):
+        return JsonResponse({"ok": False, "message": "Yetkiniz yok."}, status=403)
+
+    try:
+        payload = json.loads(request.body.decode("utf-8") or "{}")
+    except (json.JSONDecodeError, UnicodeDecodeError):
+        return JsonResponse({"ok": False, "message": "Geçersiz veri."}, status=400)
+
+    action = payload.get("action")
+
+    with transaction.atomic():
+        if action in {"save_draft", "approve", "delete"}:
+            draft = _active_draft(request.user)
+            if not draft:
+                return JsonResponse({"ok": False, "message": "Açık bir Föy bulunmuyor."}, status=400)
+
+            if action != "delete" and not draft.items.exists():
+                return JsonResponse({"ok": False, "message": "Boş Föy kaydedilemez."}, status=400)
+
+            if action == "delete":
+                draft.delete()
+                return JsonResponse({"ok": True, "message": "Taslak silindi."})
+
+            draft.status = "PENDING" if action == "save_draft" else "APPROVED"
+            draft.save(update_fields=["status", "updated_at"])
+            return JsonResponse({
+                "ok": True,
+                "draft": draft.id,
+                "status": draft.status,
+                "message": "Taslak kaydedildi." if action == "save_draft" else "Föy onaylananlara kaydedildi.",
+            })
+
+        if action == "open_saved":
+            draft_id = payload.get("draft_id")
+            target = ShowroomDraft.objects.filter(
+                id=draft_id,
+                created_by=request.user,
+                status="PENDING",
+            ).first()
+            if not target:
+                return JsonResponse({"ok": False, "message": "Taslak bulunamadı."}, status=404)
+
+            active = _active_draft(request.user)
+            if active and active.id != target.id:
+                if active.items.exists():
+                    return JsonResponse({
+                        "ok": False,
+                        "message": "Önce açık Föyü taslak kaydedin, onaylayın veya silin.",
+                    }, status=409)
+                active.delete()
+
+            target.status = "DRAFT"
+            target.save(update_fields=["status", "updated_at"])
+            return JsonResponse({"ok": True, "draft": target.id, "message": "Taslak açıldı."})
+
+    return JsonResponse({"ok": False, "message": "İşlem geçersiz."}, status=400)
