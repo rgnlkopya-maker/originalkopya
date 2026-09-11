@@ -228,6 +228,7 @@ class ShowroomDraftItem(models.Model):
     product_card=models.ForeignKey(ProductCard,on_delete=models.PROTECT,related_name="showroom_draft_items")
     color=models.CharField(max_length=120,blank=True,default="")
     size=models.CharField(max_length=120,blank=True,default="")
+    description=models.CharField(max_length=500,blank=True,default="")
     quantity=models.PositiveIntegerField(default=1)
     unit_price=models.DecimalField(max_digits=16,decimal_places=2)
     discount_selected=models.BooleanField(default=True)
