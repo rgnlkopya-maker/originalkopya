@@ -1,10 +1,15 @@
 from django.urls import path
-from . import views, status_views, finance_views, price_list_views
+from . import views, status_views, finance_views, price_list_views, showroom_views
 
 urlpatterns = [
     path("", views.product_card_list, name="product_card_list"),
     path("kur-guncelle/", views.refresh_exchange_rate, name="refresh_exchange_rate"),
     path("fiyat-listesi/", price_list_views.price_list, name="price_list"),
+    path("showroom-foyu/", showroom_views.showroom_page, name="showroom_page"),
+    path("showroom-foyu/kaydet/", showroom_views.showroom_save, name="showroom_save"),
+    path("showroom-foyu/urun-ekle/", showroom_views.showroom_add_item, name="showroom_add_item"),
+    path("showroom-foyu/urun-guncelle/", showroom_views.showroom_update_item, name="showroom_update_item"),
+    path("showroom-foyu/urun-sil/", showroom_views.showroom_delete_item, name="showroom_delete_item"),
     path("fiyat-listesi/kaydet/", price_list_views.save_price_list_settings, name="save_price_list_settings"),
     path("fiyat-listesi/excel/", price_list_views.export_price_list_excel, name="export_price_list_excel"),
     path("fiyat-listesi/durum/", price_list_views.toggle_price_list_status, name="toggle_price_list_status"),
