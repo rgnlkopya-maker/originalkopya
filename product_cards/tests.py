@@ -410,3 +410,12 @@ class PriceListTests(TestCase):
         self.assertEqual(response["Content-Type"], "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
         self.assertIn(b"PK", response.content[:4])
 
+
+    def test_price_list_passive_page_does_not_hide_card_by_general_product_status(self):
+        product = UrunKod.objects.create(kod="7042-TEST", urun_tipi="DIGER", aktif=False)
+        ProductCard.objects.create(urun=product, price_list_active=False)
+
+        response = self.client.get(reverse("price_list") + "?durum=pasif")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "7042-TEST")
