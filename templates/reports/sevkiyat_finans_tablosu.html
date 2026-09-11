@@ -5,7 +5,7 @@
 {% block extra_css %}
 <style>
 .table-modern { width: 100%; border-collapse: separate !important; border-spacing: 0 10px !important; }
-.table-modern thead th { background: #f5f7fb; color: #6b7280; font-size: 12px; font-weight: 600; text-transform: uppercase; padding: 14px 18px; padding-left: 22px !important; border: none !important; text-align: left !important; }
+.table-modern thead th { background: #f5f7fb; color: #6b7280; font-size: 12px; font-weight: 600; text-transform: uppercase; padding: 14px 18px; padding-left: 22px !important; border: none !important; text-align: left !important; }.sortable-head{cursor:pointer;user-select:none;white-space:nowrap}.sortable-head:hover{color:#395bff;background:#eef1ff}.sort-arrow{display:inline-block;margin-left:5px;font-size:11px;color:#395bff;min-width:10px}
 .table-modern tbody tr { background: #fff; border-radius: 12px; box-shadow: 0 2px 6px rgba(0,0,0,0.05); transition: all .15s ease; }
 .table-modern tbody tr:hover { transform: translateY(-2px); box-shadow: 0 6px 16px rgba(0,0,0,0.1); }
 .table-modern tbody td { padding: 16px 18px; font-size: 14px; border: none !important; }
@@ -53,8 +53,8 @@
     <table class="table-modern" id="financeTable">
       <thead>
         <tr>
-          <th>Sipariş No</th><th>Müşteri</th><th>Ürün Kodu</th><th>Adet</th><th>Sevk Tarihi</th>
-          <th class="text-end">Sevk Satışı</th><th class="text-end">Kesinleşen Satış</th><th class="text-end">Kesinleşen Maliyet</th><th class="text-end">Kâr</th><th>Durum</th><th>İşlem</th>
+          <th class="sortable-head" data-column="0" data-type="text">Sipariş No<span class="sort-arrow"></span></th><th class="sortable-head" data-column="1" data-type="text">Müşteri<span class="sort-arrow"></span></th><th class="sortable-head" data-column="2" data-type="text">Ürün Kodu<span class="sort-arrow"></span></th><th class="sortable-head" data-column="3" data-type="number">Adet<span class="sort-arrow"></span></th><th class="sortable-head" data-column="4" data-type="date">Sevk Tarihi<span class="sort-arrow"></span></th>
+          <th class="text-end sortable-head" data-column="5" data-type="number">Sevk Satışı<span class="sort-arrow"></span></th><th class="text-end sortable-head" data-column="6" data-type="number">Kesinleşen Satış<span class="sort-arrow"></span></th><th class="text-end sortable-head" data-column="7" data-type="number">Kesinleşen Maliyet<span class="sort-arrow"></span></th><th class="text-end sortable-head" data-column="8" data-type="number">Kâr<span class="sort-arrow"></span></th><th class="sortable-head" data-column="9" data-type="text">Durum<span class="sort-arrow"></span></th><th>İşlem</th>
         </tr>
       </thead>
       <tbody>
@@ -85,6 +85,39 @@
 {% block extra_js %}
 <script>
 document.addEventListener("DOMContentLoaded", function () {
+  const table = document.getElementById("financeTable");
+  const tbody = table.querySelector("tbody");
+  let activeHead = null, ascending = true;
+  const valueOf = (cell, type) => {
+    const text = (cell.textContent || "").trim();
+    if (type === "number") {
+      if (!text || text === "-") return Number.NEGATIVE_INFINITY;
+      const value = parseFloat(text.replace(/\s/g, "").replace(/TL|USD|EUR/gi, "").replace(/\./g, "").replace(",", ".").replace(/[^0-9.-]/g, ""));
+      return Number.isNaN(value) ? Number.NEGATIVE_INFINITY : value;
+    }
+    if (type === "date") {
+      const parts = text.split(".");
+      return parts.length === 3 ? new Date(Number(parts[2]), Number(parts[1]) - 1, Number(parts[0])).getTime() : 0;
+    }
+    return text;
+  };
+  document.querySelectorAll(".sortable-head").forEach(head => head.addEventListener("click", function () {
+    const column = Number(this.dataset.column), type = this.dataset.type;
+    ascending = activeHead === this ? !ascending : true;
+    activeHead = this;
+    document.querySelectorAll(".sort-arrow").forEach(arrow => arrow.textContent = "");
+    this.querySelector(".sort-arrow").textContent = ascending ? "▲" : "▼";
+    const rows = Array.from(tbody.querySelectorAll("tr.finance-row"));
+    rows.sort((a, b) => {
+      const av = valueOf(a.cells[column], type), bv = valueOf(b.cells[column], type);
+      const result = type === "text"
+        ? String(av).localeCompare(String(bv), "tr", {numeric:true, sensitivity:"base"})
+        : av - bv;
+      return ascending ? result : -result;
+    });
+    rows.forEach(row => tbody.appendChild(row));
+  }));
+
   let adet = 0, ciro = 0, maliyet = 0, kar = 0;
   document.querySelectorAll(".finance-row").forEach(row => {
     if (row.dataset.final !== "1") return;
