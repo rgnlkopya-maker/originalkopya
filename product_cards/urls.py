@@ -1,5 +1,5 @@
 from django.urls import path
-from . import views, status_views, finance_views, price_list_views, showroom_views
+from . import views, status_views, finance_views, price_list_views, showroom_views, showroom_print_views
 
 urlpatterns = [
     path("", views.product_card_list, name="product_card_list"),
@@ -9,6 +9,7 @@ urlpatterns = [
     path("showroom-foyu/taslaklar/", showroom_views.showroom_drafts_page, name="showroom_drafts_page"),
     path("showroom-foyu/onaylananlar/", showroom_views.showroom_approved_page, name="showroom_approved_page"),
     path("showroom-foyu/kayit/<int:draft_id>/", showroom_views.showroom_detail_page, name="showroom_detail_page"),
+    path("showroom-foyu/kayit/<int:draft_id>/yazdir/", showroom_print_views.showroom_print_page, name="showroom_print_page"),
     path("showroom-foyu/kayit/<int:draft_id>/duzenle/", showroom_views.showroom_edit_page, name="showroom_edit_page"),
     path("showroom-foyu/kayit/<int:draft_id>/duzenle/kaydet/", showroom_views.showroom_edit_save, name="showroom_edit_save"),
     path("showroom-foyu/taslak/", showroom_views.showroom_draft_load, name="showroom_draft_load"),
