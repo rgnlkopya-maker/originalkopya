@@ -2,6 +2,12 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
 from django.test import TestCase
 from django.urls import reverse
+from django.utils import timezone
+
+from datetime import datetime, time
+
+from .models import AttendanceRecord, WorkplaceSettings
+from .views import _recalculate
 
 
 class AttendanceDashboardRoleFilterTests(TestCase):
@@ -48,3 +54,32 @@ class AttendanceDashboardRoleFilterTests(TestCase):
         self.assertIn(self.employee.id, listed_user_ids)
         self.assertNotIn(self.mustafa.id, listed_user_ids)
         self.assertNotIn(self.emine.id, listed_user_ids)
+
+
+class LateToleranceTests(TestCase):
+    def setUp(self):
+        self.user = get_user_model().objects.create_user(username="gecikme-testi")
+        self.workplace = WorkplaceSettings.objects.create(
+            pk=1,
+            work_start=time(8, 30),
+            work_end=time(19, 0),
+            late_tolerance_minutes=5,
+        )
+
+    def _record_at(self, hour, minute):
+        day = timezone.localdate()
+        check_in = timezone.make_aware(
+            datetime.combine(day, time(hour, minute)),
+            timezone.get_current_timezone(),
+        )
+        return AttendanceRecord(user=self.user, work_date=day, check_in=check_in)
+
+    def test_five_minutes_late_is_within_tolerance(self):
+        record = self._record_at(8, 35)
+        _recalculate(record, self.workplace)
+        self.assertEqual(record.late_minutes, 0)
+
+    def test_six_minutes_late_records_full_six_minutes(self):
+        record = self._record_at(8, 36)
+        _recalculate(record, self.workplace)
+        self.assertEqual(record.late_minutes, 6)
