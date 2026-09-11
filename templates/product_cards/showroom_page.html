@@ -20,8 +20,6 @@ document.addEventListener('DOMContentLoaded',function(){
  const modalEl=document.getElementById('showroomAddModal');
  const rows=document.getElementById('showroomRows');
  const productInput=document.getElementById('showroomProductCode');
- const productSelect=document.getElementById('urun_kodu_select');
- const customer=document.getElementById('musteri_select');
  let rowIndex=0;
  const colorOptions=`<option></option>{% for r in renkler %}<option value="{{ r.ad|escapejs }}">{{ r.ad|escapejs }}</option>{% endfor %}`;
  const sizeOptions=`{% for b in bedenler %}<option value="{{ b.ad|escapejs }}">{{ b.ad|escapejs }}</option>{% endfor %}`;
@@ -38,20 +36,22 @@ document.addEventListener('DOMContentLoaded',function(){
    card.innerHTML=`<div class="showroom-row-grid"><div><label>Renk</label><select class="form-select renk-select">${colorOptions}</select></div><div><label>Beden</label><select class="form-select beden-select" multiple>${sizeOptions}</select></div><div><label>Adet</label><input type="number" min="1" value="1" class="form-control showroom-qty"></div><div><label>Açıklama</label><input type="text" class="form-control showroom-description" placeholder="Opsiyonel"></div><button type="button" class="btn btn-danger showroom-row-delete">Sil</button></div>`;
    rows.appendChild(card);initSelects(card);
  }
- function resetPopup(){rows.innerHTML='';rowIndex=0;customer.value='';if(window.jQuery)$(customer).trigger('change');addRow();}
+ function resetPopup(){rows.innerHTML='';rowIndex=0;addRow();}
 
- if(window.jQuery&&$.fn.select2){$(customer).select2({placeholder:'Müşteri seçiniz',allowClear:true,width:'100%',dropdownParent:$(modalEl)});}
  document.querySelectorAll('.showroom-add').forEach(btn=>btn.addEventListener('click',function(){
-   const tr=this.closest('.price-row');const code=tr.querySelector('.product-code-link').textContent.trim();productInput.value=code;productSelect.value=code;resetPopup();bootstrap.Modal.getOrCreateInstance(modalEl).show();
+   const tr=this.closest('.price-row');
+   const code=tr.querySelector('.product-code-link').textContent.trim();
+   productInput.value=code;
+   resetPopup();
+   bootstrap.Modal.getOrCreateInstance(modalEl).show();
  }));
  document.getElementById('showroomAddRow').addEventListener('click',addRow);
- rows.addEventListener('click',function(e){if(!e.target.classList.contains('showroom-row-delete'))return;const cards=rows.querySelectorAll('.showroom-row-card');if(cards.length===1){cards[0].querySelector('.renk-select').value='';$(cards[0].querySelector('.renk-select')).trigger('change');$(cards[0].querySelector('.beden-select')).val(null).trigger('change');cards[0].querySelector('.showroom-qty').value=1;cards[0].querySelector('.showroom-description').value='';return;}e.target.closest('.showroom-row-card').remove();});
+ rows.addEventListener('click',function(e){if(!e.target.classList.contains('showroom-row-delete'))return;const cards=rows.querySelectorAll('.showroom-row-card');if(cards.length===1){cards[0].querySelector('.renk-select').value='';if(window.jQuery)$(cards[0].querySelector('.renk-select')).trigger('change');if(window.jQuery)$(cards[0].querySelector('.beden-select')).val(null).trigger('change');cards[0].querySelector('.showroom-qty').value=1;cards[0].querySelector('.showroom-description').value='';return;}e.target.closest('.showroom-row-card').remove();});
  document.getElementById('showroomSaveItem').addEventListener('click',function(){
-   if(!customer.value){alert('Lütfen müşteri seçin.');return;}
    const data=[];let invalid=false;
    rows.querySelectorAll('.showroom-row-card').forEach(card=>{const color=card.querySelector('.renk-select').value;const sizes=[...card.querySelector('.beden-select').selectedOptions].map(o=>o.value);const qty=Math.max(1,parseInt(card.querySelector('.showroom-qty').value||'1'));const description=card.querySelector('.showroom-description').value.trim();if(!color||!sizes.length){invalid=true;return;}data.push({renk:color,bedenler:sizes,adet:qty,aciklama:description});});
    if(invalid||!data.length){alert('Her satırda renk ve beden seçin.');return;}
-   window.showroomPendingItem={siparis_tipi:'SERI',musteri_id:customer.value,musteri:customer.options[customer.selectedIndex].text,urun_kodu:productInput.value,satirlar:data};
+   window.showroomPendingItem={siparis_tipi:'SERI',urun_kodu:productInput.value,satirlar:data};
    bootstrap.Modal.getOrCreateInstance(modalEl).hide();
  });
 });
