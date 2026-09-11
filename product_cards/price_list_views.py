@@ -1,12 +1,15 @@
 from decimal import Decimal, InvalidOperation
+from io import BytesIO
 import urllib.request
 import xml.etree.ElementTree as ET
 
 from django.contrib.auth.decorators import login_required
-from django.http import HttpResponseForbidden, JsonResponse
-from django.shortcuts import render
+from django.http import HttpResponse, HttpResponseForbidden, JsonResponse
+from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.views.decorators.http import require_POST
+from openpyxl import Workbook
+from openpyxl.styles import Alignment, Font, PatternFill
 
 from .models import ExchangeRate, PriceListSettings, ProductCard
 
@@ -88,7 +91,7 @@ def _real_profit_rate(profit_rate, discount_rate):
     return ((multiplier - Decimal("1")) * Decimal("100")).quantize(Decimal("0.01"))
 
 
-def _price_rows(settings):
+def _price_rows(settings, active=True):
     profit = settings.profit_rate / Decimal("100")
     discount = settings.discount_rate / Decimal("100")
     monthly = settings.monthly_term_rate / Decimal("100")
@@ -97,7 +100,7 @@ def _price_rows(settings):
     cards = (
         ProductCard.objects.select_related("urun")
         .prefetch_related("materials__material")
-        .filter(urun__aktif=True)
+        .filter(urun__aktif=True, price_list_active=active)
         .order_by("urun__kod")
     )
     rows = []
@@ -128,9 +131,12 @@ def price_list(request):
         settings.discount_rate = Decimal("0")
         settings.save(update_fields=["discount_rate", "updated_at"])
     rate_error = _ensure_price_rates(settings)
+    show_inactive = request.GET.get("durum") == "pasif"
     return render(request, "product_cards/price_list.html", {
         "settings": settings,
-        "rows": _price_rows(settings),
+        "rows": _price_rows(settings, active=not show_inactive),
+        "show_inactive": show_inactive,
+        "inactive_count": ProductCard.objects.filter(urun__aktif=True, price_list_active=False).count(),
         "rate_error": rate_error,
         "real_profit_rate": _real_profit_rate(settings.profit_rate, settings.discount_rate),
     })
@@ -190,3 +196,48 @@ def save_price_list_settings(request):
             for row in _price_rows(settings)
         ],
     })
+
+
+@login_required
+@require_POST
+def toggle_price_list_status(request):
+    if not _can_manage(request.user):
+        return HttpResponseForbidden("Bu işlem için yetkiniz yok.")
+
+    card = get_object_or_404(ProductCard, pk=request.POST.get("card_id"))
+    card.price_list_active = request.POST.get("active") == "1"
+    card.save(update_fields=["price_list_active", "updated_at"])
+    if request.POST.get("return_status") == "pasif":
+        return redirect("%s?durum=pasif" % request.build_absolute_uri(reverse("price_list")).replace(request.build_absolute_uri("/"), "/", 1))
+    return redirect("price_list")
+
+
+@login_required
+def export_price_list_excel(request):
+    if not _can_manage(request.user):
+        return HttpResponseForbidden("Bu işlem için yetkiniz yok.")
+
+    settings = PriceListSettings.get_solo()
+    rows = _price_rows(settings, active=True)
+    workbook = Workbook()
+    sheet = workbook.active
+    sheet.title = "Fiyat Listesi"
+    headers = ["Ürün Kodu", "Nakit TL", "3 Ay TL", "6 Ay TL", "9 Ay TL", "USD", "EUR"]
+    sheet.append(headers)
+    for cell in sheet[1]:
+        cell.font = Font(bold=True, color="FFFFFF")
+        cell.fill = PatternFill("solid", fgColor="4A63FF")
+        cell.alignment = Alignment(horizontal="center")
+    for row in rows:
+        sheet.append([row["code"], row["cash"], row["term3"], row["term6"], row["term9"], row["usd"], row["eur"]])
+    for column, width in {"A": 22, "B": 16, "C": 16, "D": 16, "E": 16, "F": 14, "G": 14}.items():
+        sheet.column_dimensions[column].width = width
+    for cells in sheet.iter_rows(min_row=2, min_col=2, max_col=7):
+        for cell in cells:
+            cell.number_format = '#,##0.00'
+    sheet.freeze_panes = "A2"
+    output = BytesIO()
+    workbook.save(output)
+    response = HttpResponse(output.getvalue(), content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+    response["Content-Disposition"] = 'attachment; filename="fiyat-listesi.xlsx"'
+    return response
