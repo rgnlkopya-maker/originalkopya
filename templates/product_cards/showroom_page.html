@@ -1,0 +1,59 @@
+{% extends "product_cards/price_list.html" %}
+
+{% block extra_css %}
+{{ block.super }}
+<style>
+.showroom-modal-content{border:0;border-radius:16px;overflow:hidden}.showroom-modal-content .form-control,.showroom-modal-content .form-select{background:#f9fafb;border:1px solid #e5e7eb;border-radius:10px;min-height:44px;padding:10px 12px}.showroom-fixed-field{display:flex;align-items:center;font-weight:700}.showroom-manage-row{display:flex;gap:8px;flex-wrap:wrap}.manage-btn{background:#eef1ff;border:1px solid #dce2ff;color:#3b45d9;font-weight:600;padding:6px 12px;border-radius:10px}.manage-btn:hover{background:#e2e6ff}.showroom-row-card{background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:16px;margin-bottom:12px;box-shadow:0 2px 6px rgba(0,0,0,.05)}.showroom-row-grid{display:grid;grid-template-columns:1.1fr 1.5fr .65fr 1.6fr auto;gap:12px;align-items:end}.showroom-row-grid label{font-size:13px;font-weight:600;color:#374151;margin-bottom:6px}.showroom-row-delete{height:44px;border-radius:10px}.showroom-modal-content .btn-success{background:#10b981;border:0;border-radius:10px}.showroom-modal-content .btn-primary{background:#4f46e5;border:0;border-radius:10px}.showroom-modal-content .select2-container{width:100%!important}.showroom-modal-content .select2-selection--single,.showroom-modal-content .select2-selection--multiple{background:#f9fafb!important;border:1px solid #e5e7eb!important;border-radius:10px!important;min-height:44px!important;padding:6px 10px!important}.showroom-modal-content .select2-selection--multiple{height:auto!important}@media(max-width:800px){.showroom-row-grid{grid-template-columns:1fr 1fr}.showroom-row-delete{width:100%}.showroom-manage-row{display:grid;grid-template-columns:1fr 1fr}.showroom-manage-row .manage-btn{font-size:12px;padding:7px 5px}}
+</style>
+{% endblock %}
+
+{% block content %}
+{{ block.super }}
+{% include "product_cards/_showroom_add_modal.html" %}
+{% endblock %}
+
+{% block extra_js %}
+{{ block.super }}
+{% include "multi_order/_ajax_handlers.html" %}
+<script>
+document.addEventListener('DOMContentLoaded',function(){
+ const modalEl=document.getElementById('showroomAddModal');
+ const rows=document.getElementById('showroomRows');
+ const productInput=document.getElementById('showroomProductCode');
+ const productSelect=document.getElementById('urun_kodu_select');
+ const customer=document.getElementById('musteri_select');
+ let rowIndex=0;
+ const colorOptions=`<option></option>{% for r in renkler %}<option value="{{ r.ad|escapejs }}">{{ r.ad|escapejs }}</option>{% endfor %}`;
+ const sizeOptions=`{% for b in bedenler %}<option value="{{ b.ad|escapejs }}">{{ b.ad|escapejs }}</option>{% endfor %}`;
+
+ function initSelects(scope){
+   if(window.jQuery&&$.fn.select2){
+     $(scope).find('.renk-select').each(function(){if($(this).hasClass('select2-hidden-accessible'))$(this).select2('destroy');$(this).select2({placeholder:'Renk seçiniz',allowClear:true,width:'100%',dropdownParent:$(modalEl)});});
+     $(scope).find('.beden-select').each(function(){if($(this).hasClass('select2-hidden-accessible'))$(this).select2('destroy');$(this).select2({placeholder:'Beden seçiniz',allowClear:true,closeOnSelect:false,width:'100%',dropdownParent:$(modalEl)});});
+   }
+ }
+ function addRow(){
+   const i=rowIndex++;
+   const card=document.createElement('div');card.className='showroom-row-card';card.dataset.index=i;
+   card.innerHTML=`<div class="showroom-row-grid"><div><label>Renk</label><select class="form-select renk-select">${colorOptions}</select></div><div><label>Beden</label><select class="form-select beden-select" multiple>${sizeOptions}</select></div><div><label>Adet</label><input type="number" min="1" value="1" class="form-control showroom-qty"></div><div><label>Açıklama</label><input type="text" class="form-control showroom-description" placeholder="Opsiyonel"></div><button type="button" class="btn btn-danger showroom-row-delete">Sil</button></div>`;
+   rows.appendChild(card);initSelects(card);
+ }
+ function resetPopup(){rows.innerHTML='';rowIndex=0;customer.value='';if(window.jQuery)$(customer).trigger('change');addRow();}
+
+ if(window.jQuery&&$.fn.select2){$(customer).select2({placeholder:'Müşteri seçiniz',allowClear:true,width:'100%',dropdownParent:$(modalEl)});}
+ document.querySelectorAll('.showroom-add').forEach(btn=>btn.addEventListener('click',function(){
+   const tr=this.closest('.price-row');const code=tr.querySelector('.product-code-link').textContent.trim();productInput.value=code;productSelect.value=code;resetPopup();bootstrap.Modal.getOrCreateInstance(modalEl).show();
+ }));
+ document.getElementById('showroomAddRow').addEventListener('click',addRow);
+ rows.addEventListener('click',function(e){if(!e.target.classList.contains('showroom-row-delete'))return;const cards=rows.querySelectorAll('.showroom-row-card');if(cards.length===1){cards[0].querySelector('.renk-select').value='';$(cards[0].querySelector('.renk-select')).trigger('change');$(cards[0].querySelector('.beden-select')).val(null).trigger('change');cards[0].querySelector('.showroom-qty').value=1;cards[0].querySelector('.showroom-description').value='';return;}e.target.closest('.showroom-row-card').remove();});
+ document.getElementById('showroomSaveItem').addEventListener('click',function(){
+   if(!customer.value){alert('Lütfen müşteri seçin.');return;}
+   const data=[];let invalid=false;
+   rows.querySelectorAll('.showroom-row-card').forEach(card=>{const color=card.querySelector('.renk-select').value;const sizes=[...card.querySelector('.beden-select').selectedOptions].map(o=>o.value);const qty=Math.max(1,parseInt(card.querySelector('.showroom-qty').value||'1'));const description=card.querySelector('.showroom-description').value.trim();if(!color||!sizes.length){invalid=true;return;}data.push({renk:color,bedenler:sizes,adet:qty,aciklama:description});});
+   if(invalid||!data.length){alert('Her satırda renk ve beden seçin.');return;}
+   window.showroomPendingItem={siparis_tipi:'SERI',musteri_id:customer.value,musteri:customer.options[customer.selectedIndex].text,urun_kodu:productInput.value,satirlar:data};
+   bootstrap.Modal.getOrCreateInstance(modalEl).hide();
+ });
+});
+</script>
+{% endblock %}
