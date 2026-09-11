@@ -452,5 +452,34 @@ class OrderSeen(models.Model):
     def __str__(self):
         return f"{self.user} → {self.order}"
 
+class AuditLog(models.Model):
+    user = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="audit_logs",
+    )
+    username_snapshot = models.CharField(max_length=150, blank=True)
+    action = models.CharField(max_length=160)
+    method = models.CharField(max_length=10)
+    path = models.CharField(max_length=500)
+    object_ref = models.CharField(max_length=200, blank=True)
+    details = models.JSONField(default=dict, blank=True)
+    ip_address = models.GenericIPAddressField(null=True, blank=True)
+    user_agent = models.CharField(max_length=500, blank=True)
+    status_code = models.PositiveSmallIntegerField(default=200)
+    success = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
 
+    class Meta:
+        ordering = ["-created_at", "-id"]
+        indexes = [
+            models.Index(fields=["user", "created_at"]),
+            models.Index(fields=["action", "created_at"]),
+        ]
+
+    def __str__(self):
+        actor = self.username_snapshot or "Bilinmeyen kullanıcı"
+        return f"{actor} · {self.action} · {self.created_at:%d.%m.%Y %H:%M}"
 
