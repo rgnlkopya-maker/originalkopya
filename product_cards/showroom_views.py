@@ -5,7 +5,7 @@ from django.contrib.auth.decorators import login_required
 from django.db import transaction
 from django.db.models import Count, DecimalField, ExpressionWrapper, F, Sum
 from django.http import HttpResponseForbidden, JsonResponse
-from django.shortcuts import render
+from django.shortcuts import get_object_or_404, render
 from django.utils import timezone
 from django.views.decorators.http import require_GET, require_POST
 
@@ -271,3 +271,26 @@ def showroom_approved_page(request):
     if not _can_manage(request.user):
         return HttpResponseForbidden("Bu sayfaya erişim yetkiniz yok.")
     return render(request, "product_cards/showroom_archive.html", {"archive_kind": "approved", "archive_title": "Onaylanan Föyler"})
+
+
+@login_required
+def showroom_detail_page(request, draft_id):
+    if not _can_manage(request.user):
+        return HttpResponseForbidden("Bu sayfaya erişim yetkiniz yok.")
+    draft = get_object_or_404(
+        ShowroomDraft.objects.select_related("customer").prefetch_related("items__product_card__urun"),
+        id=draft_id,
+        created_by=request.user,
+        status__in=["PENDING", "APPROVED"],
+    )
+    data = _serialize_draft(draft)
+    summary = _draft_summary(draft)
+    status_label = "Taslak" if draft.status == "PENDING" else "Onaylanan"
+    back_url_name = "showroom_drafts_page" if draft.status == "PENDING" else "showroom_approved_page"
+    return render(request, "product_cards/showroom_detail.html", {
+        "draft": draft,
+        "items": data["items"],
+        "summary": summary,
+        "status_label": status_label,
+        "back_url_name": back_url_name,
+    })
