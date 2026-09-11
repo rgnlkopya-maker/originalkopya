@@ -117,6 +117,9 @@ def price_list(request):
         return HttpResponseForbidden("Bu sayfaya erişim yetkiniz yok.")
 
     settings = PriceListSettings.get_solo()
+    if settings.profit_rate <= 0 and settings.discount_rate > 0:
+        settings.discount_rate = Decimal("0")
+        settings.save(update_fields=["discount_rate", "updated_at"])
     rate_error = _ensure_price_rates(settings)
     return render(request, "product_cards/price_list.html", {
         "settings": settings,
@@ -143,6 +146,8 @@ def save_price_list_settings(request):
     try:
         for field, label in fields.items():
             raw = (request.POST.get(field) or "").strip().replace(",", ".")
+            if not raw and field in {"profit_rate", "discount_rate", "monthly_term_rate"}:
+                raw = "0"
             value = Decimal(raw)
             if value < 0:
                 raise ValueError(f"{label} negatif olamaz.")
