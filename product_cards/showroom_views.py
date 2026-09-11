@@ -23,9 +23,32 @@ def _decimal(value, default="0"):
         return Decimal(default)
 
 
+def _create_draft(user, customer=None):
+    settings = PriceListSettings.get_solo()
+    return ShowroomDraft.objects.create(
+        created_by=user,
+        customer=customer,
+        status="DRAFT",
+        currency="TRY",
+        profit_rate=settings.profit_rate,
+        discount_rate=Decimal("0"),
+        monthly_term_rate=settings.monthly_term_rate,
+        usd_try=settings.usd_try,
+        eur_try=settings.eur_try,
+        overall_discount_amount=Decimal("0"),
+    )
+
+
 def _serialize_draft(draft):
     if not draft:
-        return {"ok": True, "draft": None, "customer_id": "", "items": []}
+        return {
+            "ok": True,
+            "draft": None,
+            "customer_id": "",
+            "items": [],
+            "discount_rate": "0",
+            "discount_amount": "0",
+        }
 
     groups = []
     group_map = {}
@@ -35,8 +58,6 @@ def _serialize_draft(draft):
     for db_item in items:
         code = db_item.product_card.urun.kod
         unit_price = str(db_item.unit_price)
-        # Existing schema has no explicit product-group id. Group by product + agreed price,
-        # while preserving first-seen order. All color/size rows remain intact.
         group_key = (db_item.product_card_id, unit_price)
         if group_key not in group_map:
             group = {
@@ -67,6 +88,8 @@ def _serialize_draft(draft):
         "draft": draft.id,
         "customer_id": str(draft.customer_id or ""),
         "items": groups,
+        "discount_rate": str(draft.discount_rate or 0),
+        "discount_amount": str(draft.overall_discount_amount or 0),
         "updated_at": draft.updated_at.isoformat() if draft.updated_at else None,
     }
 
@@ -132,28 +155,12 @@ def showroom_draft_autosave(request):
     if not isinstance(raw_items, list):
         return JsonResponse({"ok": False, "message": "Ürün verisi geçersiz."}, status=400)
 
-    customer = None
-    if customer_id:
-        customer = Musteri.objects.filter(pk=customer_id).first()
+    customer = Musteri.objects.filter(pk=customer_id).first() if customer_id else None
 
     with transaction.atomic():
-        draft = _active_draft(request.user)
-        if not draft:
-            settings = PriceListSettings.get_solo()
-            draft = ShowroomDraft.objects.create(
-                created_by=request.user,
-                customer=customer,
-                status="DRAFT",
-                currency="TRY",
-                profit_rate=settings.profit_rate,
-                discount_rate=settings.discount_rate,
-                monthly_term_rate=settings.monthly_term_rate,
-                usd_try=settings.usd_try,
-                eur_try=settings.eur_try,
-            )
-        else:
-            draft.customer = customer
-            draft.save(update_fields=["customer", "updated_at"])
+        draft = _active_draft(request.user) or _create_draft(request.user, customer)
+        draft.customer = customer
+        draft.save(update_fields=["customer", "updated_at"])
 
         draft.items.all().delete()
         create_rows = []
@@ -198,4 +205,31 @@ def showroom_draft_autosave(request):
         "ok": True,
         "draft": draft.id,
         "updated_at": draft.updated_at.isoformat() if draft.updated_at else None,
+    })
+
+
+@login_required
+@require_POST
+def showroom_draft_discount_save(request):
+    if not _can_manage(request.user):
+        return JsonResponse({"ok": False, "message": "Yetkiniz yok."}, status=403)
+
+    try:
+        payload = json.loads(request.body.decode("utf-8") or "{}")
+    except (json.JSONDecodeError, UnicodeDecodeError):
+        return JsonResponse({"ok": False, "message": "Geçersiz veri."}, status=400)
+
+    discount_rate = max(Decimal("0"), min(Decimal("100"), _decimal(payload.get("discount_rate"), "0")))
+    discount_amount = max(Decimal("0"), _decimal(payload.get("discount_amount"), "0"))
+
+    draft = _active_draft(request.user) or _create_draft(request.user)
+    draft.discount_rate = discount_rate
+    draft.overall_discount_amount = discount_amount
+    draft.save(update_fields=["discount_rate", "overall_discount_amount", "updated_at"])
+
+    return JsonResponse({
+        "ok": True,
+        "draft": draft.id,
+        "discount_rate": str(draft.discount_rate),
+        "discount_amount": str(draft.overall_discount_amount),
     })
