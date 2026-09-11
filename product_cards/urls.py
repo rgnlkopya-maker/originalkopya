@@ -8,6 +8,7 @@ urlpatterns = [
     path("showroom-foyu/", showroom_views.showroom_page, name="showroom_page"),
     path("showroom-foyu/taslaklar/", showroom_views.showroom_drafts_page, name="showroom_drafts_page"),
     path("showroom-foyu/onaylananlar/", showroom_views.showroom_approved_page, name="showroom_approved_page"),
+    path("showroom-foyu/kayit/<int:draft_id>/", showroom_views.showroom_detail_page, name="showroom_detail_page"),
     path("showroom-foyu/taslak/", showroom_views.showroom_draft_load, name="showroom_draft_load"),
     path("showroom-foyu/taslak/otomatik-kaydet/", showroom_views.showroom_draft_autosave, name="showroom_draft_autosave"),
     path("showroom-foyu/taslak/indirim-kaydet/", showroom_views.showroom_draft_discount_save, name="showroom_draft_discount_save"),
