@@ -9,9 +9,24 @@
   height:92vh;
   border-radius:18px;
   overflow:hidden;
+  display:flex;
+  flex-direction:column;
 }
 #showroomAddModal .modal-body{
   overflow-y:auto;
+  flex:1 1 auto;
+  min-height:0;
+  padding-bottom:24px;
+}
+#showroomAddModal .modal-footer{
+  position:sticky;
+  bottom:0;
+  z-index:30;
+  flex:0 0 auto;
+  background:#fff;
+  border-top:1px solid #e5e7eb;
+  padding:12px 16px calc(12px + env(safe-area-inset-bottom));
+  box-shadow:0 -8px 20px rgba(15,23,42,.08);
 }
 #showroomAddModal .select2-search__field,
 #showroomAddModal .select2-selection__rendered{
@@ -21,11 +36,11 @@
   #showroomAddModal .modal-dialog{
     width:96vw;
     max-width:96vw;
-    height:94vh;
-    margin:3vh auto;
+    height:90vh;
+    margin:5vh auto;
   }
   #showroomAddModal .modal-content{
-    height:94vh;
+    height:90vh;
     border-radius:14px;
   }
   #showroomAddModal input,
@@ -33,6 +48,12 @@
   #showroomAddModal textarea,
   .select2-container--open .select2-search__field{
     font-size:16px !important;
+  }
+  #showroomAddModal .modal-footer{
+    gap:8px;
+  }
+  #showroomAddModal .modal-footer .btn{
+    min-height:44px;
   }
 }
 </style>
