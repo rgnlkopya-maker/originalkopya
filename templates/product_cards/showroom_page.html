@@ -3,7 +3,8 @@
 {% block extra_css %}
 {{ block.super }}
 <style>
-.showroom-modal-content{border:0;border-radius:16px;overflow:hidden}.showroom-modal-content .form-control,.showroom-modal-content .form-select{background:#f9fafb;border:1px solid #e5e7eb;border-radius:10px;min-height:44px;padding:10px 12px}.showroom-fixed-field{display:flex;align-items:center;font-weight:700}.showroom-manage-row{display:flex;gap:8px;flex-wrap:wrap}.manage-btn{background:#eef1ff;border:1px solid #dce2ff;color:#3b45d9;font-weight:600;padding:6px 12px;border-radius:10px}.manage-btn:hover{background:#e2e6ff}.showroom-row-card{background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:16px;margin-bottom:12px;box-shadow:0 2px 6px rgba(0,0,0,.05)}.showroom-row-grid{display:grid;grid-template-columns:1.1fr 1.5fr .65fr 1.6fr auto;gap:12px;align-items:end}.showroom-row-grid label{font-size:13px;font-weight:600;color:#374151;margin-bottom:6px}.showroom-row-delete{height:44px;border-radius:10px}.showroom-modal-content .btn-success{background:#10b981;border:0;border-radius:10px}.showroom-modal-content .btn-primary{background:#4f46e5;border:0;border-radius:10px}.showroom-modal-content .select2-container{width:100%!important}.showroom-modal-content .select2-selection--single,.showroom-modal-content .select2-selection--multiple{background:#f9fafb!important;border:1px solid #e5e7eb!important;border-radius:10px!important;min-height:44px!important;padding:6px 10px!important}.showroom-modal-content .select2-selection--multiple{height:auto!important}@media(max-width:800px){.showroom-row-grid{grid-template-columns:1fr 1fr}.showroom-row-delete{width:100%}.showroom-manage-row{display:grid;grid-template-columns:1fr 1fr}.showroom-manage-row .manage-btn{font-size:12px;padding:7px 5px}}
+.showroom-modal-content{border:0;border-radius:16px;overflow:hidden}.showroom-modal-content .form-control,.showroom-modal-content .form-select{background:#f9fafb;border:1px solid #e5e7eb;border-radius:10px;min-height:44px;padding:10px 12px}.showroom-fixed-field{display:flex;align-items:center;font-weight:700}.showroom-manage-row{display:flex;gap:8px;flex-wrap:wrap}.manage-btn{background:#eef1ff;border:1px solid #dce2ff;color:#3b45d9;font-weight:600;padding:6px 12px;border-radius:10px}.manage-btn:hover{background:#e2e6ff}.showroom-row-card{background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:16px;margin-bottom:12px;box-shadow:0 2px 6px rgba(0,0,0,.05)}.showroom-row-grid{display:grid;grid-template-columns:1.1fr 1.5fr .65fr 1.6fr auto;gap:12px;align-items:end}.showroom-row-grid label{font-size:13px;font-weight:600;color:#374151;margin-bottom:6px}.showroom-row-delete{height:44px;border-radius:10px}.showroom-modal-content .btn-success{background:#10b981;border:0;border-radius:10px}.showroom-modal-content .btn-primary{background:#4f46e5;border:0;border-radius:10px}.showroom-modal-content .select2-container{width:100%!important}.showroom-modal-content .select2-selection--single,.showroom-modal-content .select2-selection--multiple{background:#f9fafb!important;border:1px solid #e5e7eb!important;border-radius:10px!important;min-height:44px!important;padding:6px 10px!important}.showroom-modal-content .select2-selection--multiple{height:auto!important}
+.showroom-sheet{overflow:auto}.showroom-sheet-inner{padding:24px 26px 48px;min-height:100%;background:#f7f9fc}.showroom-sheet-head{background:#fff;border:1px solid #e5eaf2;border-radius:16px;padding:16px 18px;margin-bottom:14px}.showroom-sheet-title{font-size:22px;font-weight:850;color:#20283b;margin:0 0 14px}.showroom-customer-wrap{max-width:520px}.showroom-customer-wrap label{display:block;font-size:12px;font-weight:800;color:#667085;margin-bottom:6px}.showroom-customer{width:100%;min-height:44px;border:1px solid #e1e6ef;border-radius:10px;background:#fff;padding:9px 12px}.showroom-empty{background:#fff;border:1px dashed #cfd7e6;border-radius:16px;padding:40px 20px;text-align:center;color:#8a94a6}.sheet-product{background:#fff;border:1px solid #e4e9f1;border-radius:16px;margin-bottom:14px;overflow:hidden;box-shadow:0 5px 16px rgba(15,23,42,.04)}.sheet-product-head{display:grid;grid-template-columns:minmax(120px,1fr) auto minmax(125px,180px) auto minmax(145px,190px);gap:12px;align-items:center;padding:14px 16px;background:#fbfcfe;border-bottom:1px solid #edf0f5}.sheet-product-code{font-size:18px;font-weight:900;color:#263044}.sheet-product-qty{font-weight:800;color:#566177;white-space:nowrap}.sheet-product-price{height:42px;border:1px solid #dfe5ef;border-radius:10px;padding:0 10px;min-width:0}.sheet-math{font-size:18px;font-weight:800;color:#7a8597}.sheet-product-total{font-size:17px;font-weight:900;text-align:right;color:#263044;white-space:nowrap}.sheet-lines{padding:8px 16px 14px}.sheet-line{display:grid;grid-template-columns:1.15fr 1.35fr .55fr 1.8fr;gap:10px;padding:10px 0;border-bottom:1px solid #edf0f5;align-items:center}.sheet-line:last-child{border-bottom:0}.sheet-line-labels{font-size:10px;text-transform:uppercase;font-weight:800;color:#8a94a6}.sheet-description{position:relative;border:0;background:transparent;padding:0;text-align:left;color:#39445a;font-weight:700;cursor:pointer;max-width:100%;overflow:visible}.sheet-desc-pop{position:absolute;z-index:13050;left:0;top:calc(100% + 7px);min-width:180px;max-width:360px;background:#20283b;color:#fff;border-radius:10px;padding:9px 11px;font-size:12px;font-weight:500;line-height:1.4;box-shadow:0 8px 24px rgba(15,23,42,.24);display:none}.sheet-description.open .sheet-desc-pop{display:block}@media(max-width:800px){.showroom-row-grid{grid-template-columns:1fr 1fr}.showroom-row-delete{width:100%}.showroom-manage-row{display:grid;grid-template-columns:1fr 1fr}.showroom-manage-row .manage-btn{font-size:12px;padding:7px 5px}.showroom-sheet-inner{padding:16px 12px 36px}.sheet-product-head{grid-template-columns:1fr auto;gap:8px}.sheet-product-price{width:100%}.sheet-math{display:none}.sheet-product-total{text-align:left}.sheet-line{grid-template-columns:1fr 1fr}.sheet-line-labels{display:none}}
 </style>
 {% endblock %}
 
@@ -20,46 +21,54 @@ document.addEventListener('DOMContentLoaded',function(){
  const modalEl=document.getElementById('showroomAddModal');
  const rows=document.getElementById('showroomRows');
  const productInput=document.getElementById('showroomProductCode');
+ const sheet=document.getElementById('showroomSheet');
  let rowIndex=0;
  const colorOptions=`<option></option>{% for r in renkler %}<option value="{{ r.ad|escapejs }}">{{ r.ad|escapejs }}</option>{% endfor %}`;
  const sizeOptions=`{% for b in bedenler %}<option value="{{ b.ad|escapejs }}">{{ b.ad|escapejs }}</option>{% endfor %}`;
+ const customerOptions=`<option value="">Müşteri seçilmedi</option>{% for m in musteriler %}<option value="{{ m.id }}">{{ m.ad|escapejs }}</option>{% endfor %}`;
+ const showroomItems=[];
 
+ function escapeHtml(value){return String(value??'').replace(/[&<>'"]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[ch]));}
+ function money(value){return new Intl.NumberFormat('tr-TR',{minimumFractionDigits:2,maximumFractionDigits:2}).format(Number(value)||0)+' TL';}
+ function shortText(value){const text=String(value||'');return text.length>6?text.slice(0,6)+'…':text;}
+ function totalQty(item){return item.satirlar.reduce((sum,row)=>sum+(Math.max(1,parseInt(row.adet||1))*Math.max(1,row.bedenler.length)),0);}
+ function renderSheet(){
+   if(!sheet)return;
+   if(!sheet.dataset.ready){sheet.innerHTML=`<div class="showroom-sheet-inner"><div class="showroom-sheet-head"><h3 class="showroom-sheet-title">Sipariş Föyü</h3><div class="showroom-customer-wrap"><label>Müşteri</label><select id="showroomSheetCustomer" class="showroom-customer">${customerOptions}</select></div></div><div id="showroomSheetItems"></div></div>`;sheet.dataset.ready='1';}
+   const list=sheet.querySelector('#showroomSheetItems');
+   if(!showroomItems.length){list.innerHTML='<div class="showroom-empty">Henüz föye ürün eklenmedi.</div>';return;}
+   list.innerHTML=showroomItems.map((item,index)=>{
+     const qty=totalQty(item),unit=Number(item.anlasilan_fiyat)||0,total=qty*unit;
+     const lines=item.satirlar.flatMap(row=>row.bedenler.map(size=>({renk:row.renk,beden:size,adet:row.adet,aciklama:row.aciklama}))).map(line=>`<div class="sheet-line"><div><div class="sheet-line-labels">Renk</div>${escapeHtml(line.renk)}</div><div><div class="sheet-line-labels">Beden</div>${escapeHtml(line.beden)}</div><div><div class="sheet-line-labels">Adet</div>${escapeHtml(line.adet)}</div><div><div class="sheet-line-labels">Açıklama</div>${line.aciklama?`<button type="button" class="sheet-description" data-description="${escapeHtml(line.aciklama)}">${escapeHtml(shortText(line.aciklama))}<span class="sheet-desc-pop">${escapeHtml(line.aciklama)}</span></button>`:'-'}</div></div>`).join('');
+     return `<section class="sheet-product" data-sheet-index="${index}"><div class="sheet-product-head"><div class="sheet-product-code">${escapeHtml(item.urun_kodu)}</div><div class="sheet-product-qty">${qty} adet</div><div><input type="number" min="0" step="0.01" class="sheet-product-price" data-price-index="${index}" value="${unit||''}" placeholder="Anlaşılan fiyat"></div><div class="sheet-math">=</div><div class="sheet-product-total" data-total-index="${index}">${money(total)}</div></div><div class="sheet-lines">${lines}</div></section>`;
+   }).join('');
+ }
+ function openSheetAfterAdd(){const createBtn=document.getElementById('showroomCreateBtn');if(createBtn)createBtn.click();}
  function initSelects(scope){
    if(window.jQuery&&$.fn.select2){
      $(scope).find('.renk-select').each(function(){if($(this).hasClass('select2-hidden-accessible'))$(this).select2('destroy');$(this).select2({placeholder:'Renk seçiniz',allowClear:true,width:'100%',dropdownParent:$(modalEl)});});
-     $(scope).find('.beden-select').each(function(){
-       if($(this).hasClass('select2-hidden-accessible'))$(this).select2('destroy');
-       $(this).select2({placeholder:'Beden seçiniz',allowClear:true,closeOnSelect:false,width:'100%',dropdownParent:$(modalEl)});
-       $(this).off('select2:select.showroomClose').on('select2:select.showroomClose',function(){
-         $(this).select2('close');
-       });
-     });
+     $(scope).find('.beden-select').each(function(){if($(this).hasClass('select2-hidden-accessible'))$(this).select2('destroy');$(this).select2({placeholder:'Beden seçiniz',allowClear:true,closeOnSelect:false,width:'100%',dropdownParent:$(modalEl)});$(this).off('select2:select.showroomClose').on('select2:select.showroomClose',function(){$(this).select2('close');});});
    }
  }
- function addRow(){
-   const i=rowIndex++;
-   const card=document.createElement('div');card.className='showroom-row-card';card.dataset.index=i;
-   card.innerHTML=`<div class="showroom-row-grid"><div><label>Renk</label><select class="form-select renk-select">${colorOptions}</select></div><div><label>Beden</label><select class="form-select beden-select" multiple>${sizeOptions}</select></div><div><label>Adet</label><input type="number" min="1" value="1" class="form-control showroom-qty"></div><div><label>Açıklama</label><input type="text" class="form-control showroom-description" placeholder="Opsiyonel"></div><button type="button" class="btn btn-danger showroom-row-delete">Sil</button></div>`;
-   rows.appendChild(card);initSelects(card);
- }
+ function addRow(){const i=rowIndex++;const card=document.createElement('div');card.className='showroom-row-card';card.dataset.index=i;card.innerHTML=`<div class="showroom-row-grid"><div><label>Renk</label><select class="form-select renk-select">${colorOptions}</select></div><div><label>Beden</label><select class="form-select beden-select" multiple>${sizeOptions}</select></div><div><label>Adet</label><input type="number" min="1" value="1" class="form-control showroom-qty"></div><div><label>Açıklama</label><input type="text" class="form-control showroom-description" placeholder="Opsiyonel"></div><button type="button" class="btn btn-danger showroom-row-delete">Sil</button></div>`;rows.appendChild(card);initSelects(card);}
  function resetPopup(){rows.innerHTML='';rowIndex=0;addRow();}
 
- document.querySelectorAll('.showroom-add').forEach(btn=>btn.addEventListener('click',function(){
-   const tr=this.closest('.price-row');
-   const code=tr.querySelector('.product-code-link').textContent.trim();
-   productInput.value=code;
-   resetPopup();
-   bootstrap.Modal.getOrCreateInstance(modalEl).show();
- }));
+ renderSheet();
+ document.querySelectorAll('.showroom-add').forEach(btn=>btn.addEventListener('click',function(){const tr=this.closest('.price-row');const code=tr.querySelector('.product-code-link').textContent.trim();productInput.value=code;resetPopup();bootstrap.Modal.getOrCreateInstance(modalEl).show();}));
  document.getElementById('showroomAddRow').addEventListener('click',addRow);
  rows.addEventListener('click',function(e){if(!e.target.classList.contains('showroom-row-delete'))return;const cards=rows.querySelectorAll('.showroom-row-card');if(cards.length===1){cards[0].querySelector('.renk-select').value='';if(window.jQuery)$(cards[0].querySelector('.renk-select')).trigger('change');if(window.jQuery)$(cards[0].querySelector('.beden-select')).val(null).trigger('change');cards[0].querySelector('.showroom-qty').value=1;cards[0].querySelector('.showroom-description').value='';return;}e.target.closest('.showroom-row-card').remove();});
  document.getElementById('showroomSaveItem').addEventListener('click',function(){
    const data=[];let invalid=false;
    rows.querySelectorAll('.showroom-row-card').forEach(card=>{const color=card.querySelector('.renk-select').value;const sizes=[...card.querySelector('.beden-select').selectedOptions].map(o=>o.value);const qty=Math.max(1,parseInt(card.querySelector('.showroom-qty').value||'1'));const description=card.querySelector('.showroom-description').value.trim();if(!color||!sizes.length){invalid=true;return;}data.push({renk:color,bedenler:sizes,adet:qty,aciklama:description});});
    if(invalid||!data.length){alert('Her satırda renk ve beden seçin.');return;}
-   window.showroomPendingItem={siparis_tipi:'SERI',urun_kodu:productInput.value,satirlar:data};
+   showroomItems.push({siparis_tipi:'SERI',urun_kodu:productInput.value,satirlar:data,anlasilan_fiyat:0});
+   renderSheet();
    bootstrap.Modal.getOrCreateInstance(modalEl).hide();
+   setTimeout(openSheetAfterAdd,180);
  });
+ sheet&&sheet.addEventListener('input',function(e){if(!e.target.classList.contains('sheet-product-price'))return;const index=parseInt(e.target.dataset.priceIndex);showroomItems[index].anlasilan_fiyat=Math.max(0,parseFloat(e.target.value||'0'));const total=totalQty(showroomItems[index])*showroomItems[index].anlasilan_fiyat;const out=sheet.querySelector('[data-total-index="'+index+'"]');if(out)out.textContent=money(total);});
+ sheet&&sheet.addEventListener('click',function(e){const btn=e.target.closest('.sheet-description');document.querySelectorAll('.sheet-description.open').forEach(el=>{if(el!==btn)el.classList.remove('open');});if(btn){e.stopPropagation();btn.classList.toggle('open');}});
+ document.addEventListener('click',function(){document.querySelectorAll('.sheet-description.open').forEach(el=>el.classList.remove('open'));});
 });
 </script>
 {% endblock %}
