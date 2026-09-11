@@ -293,18 +293,29 @@ class PriceListTests(TestCase):
         product = UrunKod.objects.create(kod="PRICE-FISH", urun_tipi="BALIK")
         ProductCard.objects.get_or_create(urun=product)
 
-        response = self.client.get(reverse("price_list"), {"grup": "balik"})
+        response = self.client.get(reverse("price_list"))
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "PRICE-FISH")
 
-    def test_helen_product_does_not_appear_in_fish_group(self):
+    def test_all_product_cards_appear_without_group_filter(self):
         product = UrunKod.objects.create(kod="PRICE-HELEN", urun_tipi="HELEN")
         ProductCard.objects.get_or_create(urun=product)
 
-        response = self.client.get(reverse("price_list"), {"grup": "balik"})
+        response = self.client.get(reverse("price_list"))
 
-        self.assertNotContains(response, "PRICE-HELEN")
+        self.assertContains(response, "PRICE-HELEN")
+        self.assertNotContains(response, "Güncel Maliyet")
+
+    def test_product_codes_are_sorted_alphabetically(self):
+        for code in ("ZZ-PRICE", "AA-PRICE"):
+            product = UrunKod.objects.create(kod=code, urun_tipi="DIGER")
+            ProductCard.objects.get_or_create(urun=product)
+
+        response = self.client.get(reverse("price_list"))
+        content = response.content.decode()
+
+        self.assertLess(content.index("AA-PRICE"), content.index("ZZ-PRICE"))
 
     def test_settings_are_saved_automatically_by_endpoint(self):
         response = self.client.post(reverse("save_price_list_settings"), {
