@@ -6,7 +6,7 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
 from openpyxl import load_workbook
 
-from .models import Musteri, Order, OrderEvent, UrunKod
+from .models import AuditLog, Musteri, Order, OrderEvent, UrunKod
 from .qr import ensure_order_qr
 
 
@@ -269,5 +269,61 @@ class StockTransferAccessTests(TestCase):
         response = self.client.get(f"/order/{self.order.id}/stok-ekle/")
 
         self.assertEqual(response.status_code, 200)
+
+
+class UserActionAuditTests(TestCase):
+    def setUp(self):
+        self.employee = get_user_model().objects.create_user(
+            "audit-employee", password="safe-test-password"
+        )
+        self.manager = get_user_model().objects.create_user(
+            "audit-manager", password="safe-test-password"
+        )
+        manager_group, _ = Group.objects.get_or_create(name="mudur")
+        self.manager.groups.add(manager_group)
+
+    def test_important_authenticated_action_is_recorded(self):
+        self.client.force_login(self.employee)
+
+        self.client.post("/attendance/punch/", {})
+
+        log = AuditLog.objects.filter(user=self.employee).latest("created_at")
+        self.assertEqual(log.action, "Puantaj giriş/çıkış işlemi")
+        self.assertFalse(log.success)
+
+    def test_password_is_never_stored_in_audit_details(self):
+        self.client.post(
+            "/login/",
+            {"username": self.employee.username, "password": "safe-test-password"},
+        )
+
+        log = AuditLog.objects.filter(action="Oturum açma denemesi").latest("created_at")
+        self.assertNotIn("safe-test-password", str(log.details))
+
+    def test_regular_employee_cannot_view_audit_history(self):
+        self.client.force_login(self.employee)
+
+        response = self.client.get(
+            f"/users/{self.employee.id}/islem-kayitlari/"
+        )
+
+        self.assertEqual(response.status_code, 403)
+
+    def test_manager_can_view_employee_audit_history(self):
+        AuditLog.objects.create(
+            user=self.employee,
+            username_snapshot=self.employee.username,
+            action="Test işlemi",
+            method="POST",
+            path="/test/",
+        )
+        self.client.force_login(self.manager)
+
+        response = self.client.get(
+            f"/users/{self.employee.id}/islem-kayitlari/"
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Test işlemi")
 
 # Create your tests here.
