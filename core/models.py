@@ -475,8 +475,8 @@ class AuditLog(models.Model):
     class Meta:
         ordering = ["-created_at", "-id"]
         indexes = [
-            models.Index(fields=["user", "created_at"]),
-            models.Index(fields=["action", "created_at"]),
+            models.Index(fields=["user", "created_at"], name="core_audit_user_created_idx"),
+            models.Index(fields=["action", "created_at"], name="core_audit_action_created_idx"),
         ]
 
     def __str__(self):
