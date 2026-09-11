@@ -140,6 +140,7 @@ def price_list(request):
         "inactive_count": ProductCard.objects.filter(price_list_active=False).count(),
         "rate_error": rate_error,
         "real_profit_rate": _real_profit_rate(settings.profit_rate, settings.discount_rate),
+        "showroom_mode": bool(getattr(request, "_showroom_mode", False)),
     })
 
 
