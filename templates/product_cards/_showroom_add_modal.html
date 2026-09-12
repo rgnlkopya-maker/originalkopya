@@ -14,6 +14,20 @@
 
 {% include "multi_order/_modals.html" %}
 <script>
+(function(){
+ const BASE_KEY='moli_showroom_active_draft_v1';
+ const USER_KEY=BASE_KEY+':user:{{ request.user.id|default:"anon" }}';
+ if(window.__moliShowroomStorageIsolated)return;
+ window.__moliShowroomStorageIsolated=true;
+ const proto=Storage.prototype;
+ const nativeGet=proto.getItem,nativeSet=proto.setItem,nativeRemove=proto.removeItem;
+ function mapped(key){return key===BASE_KEY?USER_KEY:key;}
+ proto.getItem=function(key){return nativeGet.call(this,mapped(key));};
+ proto.setItem=function(key,value){return nativeSet.call(this,mapped(key),value);};
+ proto.removeItem=function(key){return nativeRemove.call(this,mapped(key));};
+ try{nativeRemove.call(localStorage,BASE_KEY);}catch(e){}
+})();
+
 document.addEventListener('DOMContentLoaded',function(){
  const STORAGE_KEY='moli_showroom_active_draft_v1',ACTION_URL='{% url "showroom_draft_action" %}',LOAD_URL='{% url "showroom_draft_load" %}',CUSTOMER_URL='{% url "ajax_musteri_ekle" %}';
  try{const x=new XMLHttpRequest();x.open('GET',LOAD_URL,false);x.send(null);if(x.status>=200&&x.status<300){const d=JSON.parse(x.responseText||'{}');if(!d.draft)localStorage.removeItem(STORAGE_KEY)}}catch(e){}
