@@ -5,36 +5,31 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>{{ product.kod }} | Moli</title>
   <style>
-    *{box-sizing:border-box} body{margin:0;background:#f5f1ec;color:#241d1a;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
-    .page{min-height:100vh;padding:22px 16px 36px;display:flex;justify-content:center}.card{width:100%;max-width:520px}
-    .brand{text-align:center;font-size:13px;letter-spacing:.22em;font-weight:800;margin:5px 0 18px}.photo{background:#e8e0d8;border-radius:22px;overflow:hidden;aspect-ratio:4/5;display:flex;align-items:center;justify-content:center;box-shadow:0 12px 34px rgba(35,25,20,.08)}
-    .photo img{width:100%;height:100%;object-fit:cover}.placeholder{text-align:center;color:#81756d;padding:24px}.placeholder strong{display:block;font-size:48px;margin-bottom:8px;color:#443a35}
-    .info{text-align:center;padding:22px 8px 14px}.code{font-size:32px;font-weight:850;letter-spacing:.04em}.type{margin-top:6px;color:#756b65;font-size:15px}.action{display:block;width:100%;border:0;border-radius:16px;padding:17px 18px;font-size:17px;font-weight:800;text-align:center;background:#241d1a;color:white;box-shadow:0 8px 20px rgba(36,29,26,.15)}
-    .note{text-align:center;color:#81756d;font-size:12px;margin-top:12px;line-height:1.45}.test{display:inline-block;margin-bottom:9px;padding:5px 9px;border-radius:999px;background:#e9e1d9;color:#665a53;font-size:11px;font-weight:700}.success{margin:0 0 14px;padding:12px 14px;border-radius:14px;background:#e4f3e7;color:#285c32;text-align:center;font-size:14px;font-weight:750}
+    *{box-sizing:border-box} body{margin:0;background:#f5f1ec;color:#241d1a;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}.page{min-height:100vh;padding:22px 16px 36px;display:flex;justify-content:center}.card{width:100%;max-width:520px}.brand{text-align:center;font-size:13px;letter-spacing:.22em;font-weight:800;margin:5px 0 18px}.photo{background:#e8e0d8;border-radius:22px;overflow:hidden;aspect-ratio:4/5;display:flex;align-items:center;justify-content:center;box-shadow:0 12px 34px rgba(35,25,20,.08)}.photo img{width:100%;height:100%;object-fit:cover}.placeholder{text-align:center;color:#81756d;padding:24px}.placeholder strong{display:block;font-size:48px;margin-bottom:8px;color:#443a35}.info{text-align:center;padding:22px 8px 14px}.code{font-size:32px;font-weight:850;letter-spacing:.04em}.type{margin-top:6px;color:#756b65;font-size:15px}.action{display:block;width:100%;border:0;border-radius:16px;padding:17px 18px;font-size:17px;font-weight:800;text-align:center;background:#241d1a;color:white;box-shadow:0 8px 20px rgba(36,29,26,.15)}.secondary{background:#fff;color:#241d1a;border:1px solid #d9d0c8;box-shadow:none;margin-top:10px}.note{text-align:center;color:#81756d;font-size:12px;margin-top:12px;line-height:1.45}.test{display:inline-block;margin-bottom:9px;padding:5px 9px;border-radius:999px;background:#e9e1d9;color:#665a53;font-size:11px;font-weight:700}.success{margin:0 0 14px;padding:12px 14px;border-radius:14px;background:#e4f3e7;color:#285c32;text-align:center;font-size:14px;font-weight:750}.details{margin:12px 0 0;padding:16px;border-radius:18px;background:#fff;border:1px solid #e3dbd4}.details-title{font-size:14px;font-weight:800;margin-bottom:12px}.field{margin-bottom:11px}.field label{display:block;font-size:12px;font-weight:750;margin-bottom:5px;color:#665a53}.field select,.field input{width:100%;min-height:46px;border:1px solid #d9d0c8;border-radius:12px;background:#fff;padding:10px 12px;font-size:16px;color:#241d1a}.detail-save{margin-top:5px}
   </style>
 </head>
 <body>
   <main class="page"><section class="card">
     <div class="brand">MOLİ</div>
-    <div class="photo">
-      {% if card and card.image_url %}<img src="{{ card.image_url }}" alt="{{ product.kod }}">{% else %}<div class="placeholder"><strong>{{ product.kod }}</strong>Ürün görseli henüz eklenmemiş</div>{% endif %}
-    </div>
-    <div class="info">
-      <span class="test">QR DENEME</span>
-      <div class="code">{{ product.kod }}</div>
-      {% if product.get_urun_tipi_display %}<div class="type">{{ product.get_urun_tipi_display }}</div>{% endif %}
-    </div>
+    <div class="photo">{% if card and card.image_url %}<img src="{{ card.image_url }}" alt="{{ product.kod }}">{% else %}<div class="placeholder"><strong>{{ product.kod }}</strong>Ürün görseli henüz eklenmemiş</div>{% endif %}</div>
+    <div class="info"><span class="test">QR DENEME</span><div class="code">{{ product.kod }}</div>{% if product.get_urun_tipi_display %}<div class="type">{{ product.get_urun_tipi_display }}</div>{% endif %}</div>
     {% if is_manager %}
-      {% if added_to_sheet %}<div class="success">7167 açık Sipariş Föyünüze eklendi.</div>{% endif %}
-      <form method="post" action="{% url 'public_product_add_to_sheet' product.kod %}">
-        {% csrf_token %}
-        <button class="action" type="submit">Föye Ekle</button>
+      {% if added_to_sheet %}<div class="success">{{ product.kod }} {% if added_with_details %}detaylarıyla{% else %}detay girmeden{% endif %} açık Sipariş Föyünüze eklendi.</div>{% endif %}
+      <form method="post" action="{% url 'public_product_add_to_sheet' product.kod %}">{% csrf_token %}<input type="hidden" name="mode" value="quick"><button class="action" type="submit">Detay Girmeden Föye Kaydet</button></form>
+      <button class="action secondary" type="button" id="showDetails">Detayları Girerek Kaydet</button>
+      <form class="details" id="detailsForm" method="post" action="{% url 'public_product_add_to_sheet' product.kod %}" hidden>
+        {% csrf_token %}<input type="hidden" name="mode" value="detailed">
+        <div class="details-title">Ürün Detayları</div>
+        <div class="field"><label>Renk</label><select name="renk"><option value="">Seçmek zorunda değilsiniz</option>{% for renk in renkler %}<option value="{{ renk.ad }}">{{ renk.ad }}</option>{% endfor %}</select></div>
+        <div class="field"><label>Beden</label><select name="beden"><option value="">Seçmek zorunda değilsiniz</option>{% for beden in bedenler %}<option value="{{ beden.ad }}">{{ beden.ad }}</option>{% endfor %}</select></div>
+        <div class="field"><label>Adet</label><input name="adet" type="number" min="1" value="1" inputmode="numeric"></div>
+        <button class="action detail-save" type="submit">Detaylarla Föye Kaydet</button>
       </form>
-      <div class="note">Ürün, sizin açık Sipariş Föyünüze 1 adet olarak eklenir.</div>
+      <div class="note">Aceleniz varsa ilk butonla hemen kaydedin; renk ve bedeni Föyden daha sonra tamamlayabilirsiniz.</div>
     {% else %}
-      <button class="action" type="button">Sepete Ekle</button>
-      <div class="note">Giriş yapmadan görüntülüyorsunuz. Misafir sepetini sonraki aşamada bağlayacağız.</div>
+      <button class="action" type="button">Sepete Ekle</button><div class="note">Giriş yapmadan görüntülüyorsunuz. Misafir sepetini sonraki aşamada bağlayacağız.</div>
     {% endif %}
   </section></main>
+  <script>const b=document.getElementById('showDetails'),f=document.getElementById('detailsForm');if(b&&f){b.addEventListener('click',()=>{f.hidden=!f.hidden;b.textContent=f.hidden?'Detayları Girerek Kaydet':'Detayları Kapat';});}</script>
 </body>
 </html>
