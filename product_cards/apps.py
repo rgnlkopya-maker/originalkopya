@@ -6,4 +6,5 @@ class ProductCardsConfig(AppConfig):
     name = "product_cards"
 
     def ready(self):
+        from . import payment_models  # noqa: F401
         from . import signals  # noqa: F401
