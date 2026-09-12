@@ -23,7 +23,7 @@ def showroom_print_page(request, draft_id):
         return HttpResponseForbidden("Bu sayfaya erişim yetkiniz yok.")
 
     draft = get_object_or_404(
-        ShowroomDraft.objects.select_related("customer").prefetch_related("items__product_card__urun"),
+        ShowroomDraft.objects.select_related("customer").prefetch_related("items__product_card__urun", "payments"),
         id=draft_id,
         created_by=request.user,
         status__in=["PENDING", "APPROVED"],
@@ -51,25 +51,14 @@ def showroom_print_page(request, draft_id):
             for size in sizes:
                 line_total = unit_price * qty
                 item_total += line_total
-                lines.append({
-                    "renk": row.get("renk") or "",
-                    "beden": size or "",
-                    "adet": qty,
-                    "aciklama": row.get("aciklama") or "",
-                    "unit_price": unit_price,
-                    "line_total": line_total,
-                })
-        print_items.append({
-            "urun_kodu": item.get("urun_kodu") or "",
-            "unit_price": unit_price,
-            "item_total": item_total,
-            "lines": lines,
-        })
+                lines.append({"renk": row.get("renk") or "", "beden": size or "", "adet": qty, "aciklama": row.get("aciklama") or "", "unit_price": unit_price, "line_total": line_total})
+        print_items.append({"urun_kodu": item.get("urun_kodu") or "", "unit_price": unit_price, "item_total": item_total, "lines": lines})
 
     return render(request, "product_cards/showroom_print.html", {
         "draft": draft,
         "customer_detail": customer_detail,
         "items": print_items,
+        "payments": draft.payments.all().order_by("due_date", "payment_date", "id"),
         "summary": summary,
         "status_label": status_label,
     })
