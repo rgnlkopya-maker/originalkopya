@@ -11,6 +11,7 @@ from django.views.decorators.http import require_GET, require_POST
 
 from core.models import Beden, Musteri, Renk, URUN_TIPI_CHOICES, UrunKod
 from .models import PriceListSettings, ProductCard, ShowroomDraft, ShowroomDraftItem
+from .payment_models import ShowroomPayment
 from .price_list_views import _can_manage, _ensure_price_rates, _price_rows, _real_profit_rate
 
 
@@ -50,7 +51,14 @@ def _draft_summary(draft):
     items=draft.items.aggregate(product_count=Count("product_card",distinct=True),total_qty=Sum("quantity"),subtotal=Sum(line_total)); subtotal=items["subtotal"] or Decimal("0")
     discount=subtotal*draft.discount_rate/Decimal("100") if draft.discount_rate and draft.discount_rate>0 else draft.overall_discount_amount or Decimal("0")
     discount=min(subtotal,max(Decimal("0"),discount)); total=max(Decimal("0"),subtotal-discount)
-    return {"id":draft.id,"customer":draft.customer.ad if draft.customer else "Müşteri seçilmedi","product_count":items["product_count"] or 0,"total_qty":items["total_qty"] or 0,"subtotal":str(subtotal.quantize(Decimal("0.01"))),"discount":str(discount.quantize(Decimal("0.01"))),"total":str(total.quantize(Decimal("0.01"))),"updated_at":timezone.localtime(draft.updated_at).strftime("%d.%m.%Y %H:%M"),"status":draft.status}
+    collected=draft.payments.filter(entry_type="COLLECTION").aggregate(v=Sum("amount"))["v"] or Decimal("0")
+    promised=draft.payments.filter(entry_type="PROMISE").aggregate(v=Sum("amount"))["v"] or Decimal("0")
+    remaining=max(Decimal("0"),total-collected)
+    return {"id":draft.id,"customer":draft.customer.ad if draft.customer else "Müşteri seçilmedi","product_count":items["product_count"] or 0,"total_qty":items["total_qty"] or 0,"subtotal":str(subtotal.quantize(Decimal("0.01"))),"discount":str(discount.quantize(Decimal("0.01"))),"total":str(total.quantize(Decimal("0.01"))),"collected":str(collected.quantize(Decimal("0.01"))),"promised":str(promised.quantize(Decimal("0.01"))),"remaining":str(remaining.quantize(Decimal("0.01"))),"updated_at":timezone.localtime(draft.updated_at).strftime("%d.%m.%Y %H:%M"),"status":draft.status}
+
+
+def _payment_rows(draft):
+    return list(draft.payments.all().order_by("due_date","payment_date","id"))
 
 
 @login_required
@@ -113,7 +121,7 @@ def showroom_archive_list(request):
     if not _can_manage(request.user): return JsonResponse({"ok":False,"message":"Yetkiniz yok."},status=403)
     kind=request.GET.get("kind"); status="PENDING" if kind=="draft" else "APPROVED" if kind=="approved" else None
     if not status: return JsonResponse({"ok":False,"message":"Liste türü geçersiz."},status=400)
-    drafts=ShowroomDraft.objects.filter(created_by=request.user,status=status).select_related("customer").prefetch_related("items").order_by("-updated_at","-id")
+    drafts=ShowroomDraft.objects.filter(created_by=request.user,status=status).select_related("customer").prefetch_related("items","payments").order_by("-updated_at","-id")
     return JsonResponse({"ok":True,"kind":kind,"items":[_draft_summary(d) for d in drafts]})
 
 
@@ -161,15 +169,15 @@ def showroom_approved_page(request):
 @login_required
 def showroom_detail_page(request,draft_id):
     if not _can_manage(request.user): return HttpResponseForbidden("Bu sayfaya erişim yetkiniz yok.")
-    draft=get_object_or_404(ShowroomDraft.objects.select_related("customer").prefetch_related("items__product_card__urun"),id=draft_id,created_by=request.user,status__in=["PENDING","APPROVED"]); data=_serialize_draft(draft); summary=_draft_summary(draft); status_label="Taslak" if draft.status=="PENDING" else "Onaylanan"; back_url_name="showroom_drafts_page" if draft.status=="PENDING" else "showroom_approved_page"
-    return render(request,"product_cards/showroom_detail.html",{"draft":draft,"items":data["items"],"summary":summary,"status_label":status_label,"back_url_name":back_url_name})
+    draft=get_object_or_404(ShowroomDraft.objects.select_related("customer").prefetch_related("items__product_card__urun","payments"),id=draft_id,created_by=request.user,status__in=["PENDING","APPROVED"]); data=_serialize_draft(draft); summary=_draft_summary(draft); status_label="Taslak" if draft.status=="PENDING" else "Onaylanan"; back_url_name="showroom_drafts_page" if draft.status=="PENDING" else "showroom_approved_page"
+    return render(request,"product_cards/showroom_detail.html",{"draft":draft,"items":data["items"],"summary":summary,"payments":_payment_rows(draft),"status_label":status_label,"back_url_name":back_url_name})
 
 
 @login_required
 def showroom_edit_page(request,draft_id):
     if not _can_manage(request.user): return HttpResponseForbidden("Bu sayfaya erişim yetkiniz yok.")
-    draft=get_object_or_404(ShowroomDraft.objects.select_related("customer").prefetch_related("items__product_card__urun"),id=draft_id,created_by=request.user,status__in=["PENDING","APPROVED"]); data=_serialize_draft(draft)
-    return render(request,"product_cards/showroom_edit.html",{"draft":draft,"items":data["items"],"musteriler":Musteri.objects.filter(aktif=True).order_by("ad"),"renkler":Renk.objects.filter(aktif=True).order_by("ad"),"bedenler":Beden.objects.filter(aktif=True).order_by("ad")})
+    draft=get_object_or_404(ShowroomDraft.objects.select_related("customer").prefetch_related("items__product_card__urun","payments"),id=draft_id,created_by=request.user,status__in=["PENDING","APPROVED"]); data=_serialize_draft(draft)
+    return render(request,"product_cards/showroom_edit.html",{"draft":draft,"items":data["items"],"payments":_payment_rows(draft),"musteriler":Musteri.objects.filter(aktif=True).order_by("ad"),"renkler":Renk.objects.filter(aktif=True).order_by("ad"),"bedenler":Beden.objects.filter(aktif=True).order_by("ad")})
 
 
 @login_required
@@ -179,8 +187,9 @@ def showroom_edit_save(request,draft_id):
     draft=get_object_or_404(ShowroomDraft,id=draft_id,created_by=request.user,status__in=["PENDING","APPROVED"])
     try: payload=json.loads(request.body.decode("utf-8") or "{}")
     except (json.JSONDecodeError,UnicodeDecodeError): return JsonResponse({"ok":False,"message":"Geçersiz veri."},status=400)
-    customer_id=payload.get("customer_id") or None; raw_items=payload.get("items") or []
+    customer_id=payload.get("customer_id") or None; raw_items=payload.get("items") or []; raw_payments=payload.get("payments") or []
     if not isinstance(raw_items,list) or not raw_items: return JsonResponse({"ok":False,"message":"Föyde en az bir ürün olmalı."},status=400)
+    if not isinstance(raw_payments,list): return JsonResponse({"ok":False,"message":"Tahsilat verisi geçersiz."},status=400)
     customer=Musteri.objects.filter(pk=customer_id).first() if customer_id else None; rate=max(Decimal("0"),min(Decimal("100"),_decimal(payload.get("discount_rate"),"0"))); amount=max(Decimal("0"),_decimal(payload.get("discount_amount"),"0")); create_rows=[]
     for item in raw_items:
         code=str(item.get("urun_kodu") or "").strip(); card=ProductCard.objects.select_related("urun").filter(urun__kod__iexact=code).first() if code else None
@@ -191,6 +200,16 @@ def showroom_edit_save(request,draft_id):
             except (TypeError,ValueError): qty=1
             for size in row.get("bedenler") or []: create_rows.append(ShowroomDraftItem(draft=draft,product_card=card,color=str(row.get("renk") or "")[:120],size=str(size or "")[:120],description=str(row.get("aciklama") or "")[:500],quantity=qty,unit_price=price))
     if not create_rows: return JsonResponse({"ok":False,"message":"Geçerli ürün satırı bulunamadı."},status=400)
+    payment_rows=[]
+    for p in raw_payments:
+        entry_type=str(p.get("entry_type") or "").upper()
+        if entry_type not in {"COLLECTION","PROMISE"}: continue
+        payment_amount=max(Decimal("0"),_decimal(p.get("amount"),"0"))
+        if payment_amount<=0: continue
+        method=str(p.get("method") or "").upper()
+        if method not in {"CASH","CARD","CHECK","NOTE"}: method=""
+        payment_rows.append(ShowroomPayment(draft=draft,entry_type=entry_type,method=method,amount=payment_amount,payment_date=p.get("payment_date") or None,due_date=p.get("due_date") or None,note=str(p.get("note") or "")[:300]))
     with transaction.atomic():
-        draft.customer=customer; draft.discount_rate=rate; draft.overall_discount_amount=amount; draft.save(update_fields=["customer","discount_rate","overall_discount_amount","updated_at"]); draft.items.all().delete(); ShowroomDraftItem.objects.bulk_create(create_rows)
+        draft.customer=customer; draft.discount_rate=rate; draft.overall_discount_amount=amount; draft.save(update_fields=["customer","discount_rate","overall_discount_amount","updated_at"]); draft.items.all().delete(); ShowroomDraftItem.objects.bulk_create(create_rows); draft.payments.all().delete()
+        if payment_rows: ShowroomPayment.objects.bulk_create(payment_rows)
     return JsonResponse({"ok":True,"message":"Föy güncellendi."})
