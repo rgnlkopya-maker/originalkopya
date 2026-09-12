@@ -2,7 +2,14 @@ from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
 from django.views.decorators.http import require_POST
 
+from .customer_models import CustomerDetail
 from .models import Beden, Musteri, Renk, URUN_TIPI_CHOICES, UrunKod
+
+
+CUSTOMER_DETAIL_FIELDS = (
+    "yetkili_kisi", "telefon", "telefon_2", "email", "ulke", "adres",
+    "teslimat_adresi", "fatura_adresi", "dis_ticaret_firmasi", "notlar",
+)
 
 
 def _reactivate_or_create(model, lookup_field, value, extra_defaults=None):
@@ -23,6 +30,18 @@ def _reactivate_or_create(model, lookup_field, value, extra_defaults=None):
     return obj, True, False
 
 
+def _save_customer_detail_from_post(customer, post):
+    has_detail = any((post.get(field) or "").strip() for field in CUSTOMER_DETAIL_FIELDS)
+    if not has_detail:
+        return
+    detail, _ = CustomerDetail.objects.get_or_create(customer=customer)
+    for field in CUSTOMER_DETAIL_FIELDS:
+        value = (post.get(field) or "").strip()
+        if value:
+            setattr(detail, field, value)
+    detail.save()
+
+
 @require_POST
 @login_required
 def musteri_ekle_veya_aktif_et(request):
@@ -38,6 +57,8 @@ def musteri_ekle_veya_aktif_et(request):
             "id": musteri.id,
             "ad": musteri.ad,
         })
+
+    _save_customer_detail_from_post(musteri, request.POST)
 
     return JsonResponse({
         "success": True,
