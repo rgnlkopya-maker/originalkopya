@@ -10,7 +10,7 @@
     .brand{text-align:center;font-size:13px;letter-spacing:.22em;font-weight:800;margin:5px 0 18px}.photo{background:#e8e0d8;border-radius:22px;overflow:hidden;aspect-ratio:4/5;display:flex;align-items:center;justify-content:center;box-shadow:0 12px 34px rgba(35,25,20,.08)}
     .photo img{width:100%;height:100%;object-fit:cover}.placeholder{text-align:center;color:#81756d;padding:24px}.placeholder strong{display:block;font-size:48px;margin-bottom:8px;color:#443a35}
     .info{text-align:center;padding:22px 8px 14px}.code{font-size:32px;font-weight:850;letter-spacing:.04em}.type{margin-top:6px;color:#756b65;font-size:15px}.action{display:block;width:100%;border:0;border-radius:16px;padding:17px 18px;font-size:17px;font-weight:800;text-align:center;background:#241d1a;color:white;box-shadow:0 8px 20px rgba(36,29,26,.15)}
-    .note{text-align:center;color:#81756d;font-size:12px;margin-top:12px;line-height:1.45}.test{display:inline-block;margin-bottom:9px;padding:5px 9px;border-radius:999px;background:#e9e1d9;color:#665a53;font-size:11px;font-weight:700}
+    .note{text-align:center;color:#81756d;font-size:12px;margin-top:12px;line-height:1.45}.test{display:inline-block;margin-bottom:9px;padding:5px 9px;border-radius:999px;background:#e9e1d9;color:#665a53;font-size:11px;font-weight:700}.success{margin:0 0 14px;padding:12px 14px;border-radius:14px;background:#e4f3e7;color:#285c32;text-align:center;font-size:14px;font-weight:750}
   </style>
 </head>
 <body>
@@ -25,11 +25,15 @@
       {% if product.get_urun_tipi_display %}<div class="type">{{ product.get_urun_tipi_display }}</div>{% endif %}
     </div>
     {% if is_manager %}
-      <button class="action" type="button">Föye Ekle</button>
-      <div class="note">MoliApp hesabınız açık. Bu buton sonraki aşamada aktif Föyünüze bağlanacak.</div>
+      {% if added_to_sheet %}<div class="success">7167 açık Sipariş Föyünüze eklendi.</div>{% endif %}
+      <form method="post" action="{% url 'public_product_add_to_sheet' product.kod %}">
+        {% csrf_token %}
+        <button class="action" type="submit">Föye Ekle</button>
+      </form>
+      <div class="note">Ürün, sizin açık Sipariş Föyünüze 1 adet olarak eklenir.</div>
     {% else %}
       <button class="action" type="button">Sepete Ekle</button>
-      <div class="note">Giriş yapmadan görüntülüyorsunuz. Bu buton sonraki aşamada misafir sepetine bağlanacak.</div>
+      <div class="note">Giriş yapmadan görüntülüyorsunuz. Misafir sepetini sonraki aşamada bağlayacağız.</div>
     {% endif %}
   </section></main>
 </body>
