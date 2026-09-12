@@ -41,12 +41,14 @@ function musteriKaydet() {
     .then(data => {
         if (data.success) {
             const select = document.getElementById("musteri_select");
-            const opt = new Option(data.ad, data.id, true, true);
-            select.add(opt);
-            $("#musteri_select").trigger("change");
+            if (select) {
+                const opt = new Option(data.ad, data.id, true, true);
+                select.add(opt);
+                $("#musteri_select").trigger("change");
+            }
 
             const modalSelect = document.getElementById("modal_musteri_listesi");
-            modalSelect.add(new Option(data.ad, data.id));
+            if (modalSelect) modalSelect.add(new Option(data.ad, data.id));
 
             document.getElementById("modal_musteri_ad").value = "";
             bootstrap.Modal.getInstance(document.getElementById("musteriModal")).hide();
@@ -193,13 +195,22 @@ function urunKodKaydet() {
     .then(data => {
         if (data.success) {
             const select = document.getElementById("urun_kodu_select");
-            const opt = new Option(data.kod, data.kod, true, true);
-            opt.dataset.urunTipi = data.urun_tipi;
-            select.add(opt);
-            $("#urun_kodu_select").trigger("change");
+            if (select) {
+                const opt = new Option(data.kod, data.kod, true, true);
+                opt.dataset.urunTipi = data.urun_tipi;
+                select.add(opt);
+                $("#urun_kodu_select").trigger("change");
+            }
+
+            const showroomInput = document.getElementById("showroomProductCode");
+            const showroomList = document.getElementById("showroomProductCodeList");
+            if (showroomList && !Array.from(showroomList.options).some(opt => opt.value === data.kod)) {
+                const opt = document.createElement("option"); opt.value = data.kod; showroomList.appendChild(opt);
+            }
+            if (showroomInput && document.body.classList.contains("showroom-manual-product")) showroomInput.value = data.kod;
 
             const modalSelect = document.getElementById("modal_urun_kod_listesi");
-            modalSelect.add(new Option(data.kod, data.id));
+            if (modalSelect && !Array.from(modalSelect.options).some(opt => String(opt.value) === String(data.id))) modalSelect.add(new Option(data.kod, data.id));
 
             document.getElementById("modal_urun_kod").value = "";
             document.getElementById("modal_urun_tipi").value = "";
@@ -226,4 +237,86 @@ function urunKodPasifYap() {
         } else { alert(data.message || "Hata oluştu."); }
     });
 }
+
+/* ----------------- SİPARİŞ FÖYÜ: MANUEL ÜRÜN EKLE ----------------- */
+document.addEventListener("DOMContentLoaded", function () {
+    const sheet = document.getElementById("showroomSheet");
+    const productInput = document.getElementById("showroomProductCode");
+    const productModal = document.getElementById("showroomAddModal");
+    if (!sheet || !productInput || !productModal) return;
+
+    const datalist = document.createElement("datalist");
+    datalist.id = "showroomProductCodeList";
+    const modalProductList = document.getElementById("modal_urun_kod_listesi");
+    if (modalProductList) {
+        Array.from(modalProductList.options).forEach(function (opt) {
+            if (!opt.value || !opt.textContent.trim()) return;
+            const item = document.createElement("option");
+            item.value = opt.textContent.trim();
+            datalist.appendChild(item);
+        });
+    }
+    productInput.insertAdjacentElement("afterend", datalist);
+    productInput.setAttribute("list", "showroomProductCodeList");
+    productInput.setAttribute("autocomplete", "off");
+
+    const manageRow = productModal.querySelector(".showroom-manage-row");
+    if (manageRow && !document.getElementById("showroomProductManageBtn")) {
+        const manage = document.createElement("button");
+        manage.type = "button";
+        manage.id = "showroomProductManageBtn";
+        manage.className = "manage-btn";
+        manage.innerHTML = "📦 Ürün Kodu Yönet";
+        manage.addEventListener("click", function () {
+            bootstrap.Modal.getOrCreateInstance(productModal).hide();
+            setTimeout(function () { bootstrap.Modal.getOrCreateInstance(document.getElementById("urunKodModal")).show(); }, 180);
+        });
+        manageRow.appendChild(manage);
+    }
+
+    function installManualButton() {
+        if (document.getElementById("showroomManualProductBtn")) return;
+        const customerWrap = sheet.querySelector(".showroom-customer-wrap");
+        if (!customerWrap) return;
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.id = "showroomManualProductBtn";
+        btn.className = "showroom-customer-add-btn";
+        btn.style.marginTop = "10px";
+        btn.innerHTML = '<i class="bi bi-plus-lg"></i> Ürün Ekle';
+        customerWrap.appendChild(btn);
+        btn.addEventListener("click", function () {
+            document.body.classList.add("showroom-manual-product");
+            productInput.removeAttribute("readonly");
+            productInput.value = "";
+            const rows = document.getElementById("showroomRows");
+            if (rows) rows.innerHTML = "";
+            const addRow = document.getElementById("showroomAddRow");
+            if (addRow) addRow.click();
+            bootstrap.Modal.getOrCreateInstance(productModal).show();
+            setTimeout(function () { productInput.focus(); }, 250);
+        });
+    }
+
+    new MutationObserver(installManualButton).observe(sheet, {childList:true, subtree:true});
+    installManualButton();
+    setTimeout(installManualButton, 400);
+
+    document.querySelectorAll(".showroom-add").forEach(function (btn) {
+        btn.addEventListener("click", function () {
+            document.body.classList.remove("showroom-manual-product");
+            productInput.setAttribute("readonly", "readonly");
+        }, true);
+    });
+
+    productModal.addEventListener("hidden.bs.modal", function () {
+        document.body.classList.remove("showroom-manual-product");
+        productInput.setAttribute("readonly", "readonly");
+    });
+
+    const urunKodModal = document.getElementById("urunKodModal");
+    if (urunKodModal) urunKodModal.addEventListener("hidden.bs.modal", function () {
+        if (document.body.classList.contains("showroom-manual-product")) setTimeout(function () { bootstrap.Modal.getOrCreateInstance(productModal).show(); }, 160);
+    });
+});
 </script>
