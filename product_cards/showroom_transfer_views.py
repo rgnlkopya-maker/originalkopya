@@ -80,18 +80,19 @@ def showroom_transfer_create(request, draft_id):
     if not _can_manage(request.user):
         return HttpResponseForbidden("Bu işlem için yetkiniz yok.")
 
-    # Satırı kilitlemek çift tıklama / iki sekme gibi durumlarda aynı Föyün iki kez aktarılmasını engeller.
+    # Yalnızca Föy satırını kilitle. Nullable customer FK'yi aynı SELECT FOR UPDATE
+    # sorgusuna katmak PostgreSQL'de outer join kilit hatasına yol açabilir.
     draft = get_object_or_404(
-        ShowroomDraft.objects.select_for_update().select_related("customer"),
+        ShowroomDraft.objects.select_for_update(),
         id=draft_id,
         created_by=request.user,
     )
     if draft.status == "TRANSFERRED":
         messages.warning(request, "Bu Föy daha önce siparişe aktarılmış.")
-        return redirect("showroom_detail_page", draft_id=draft.id)
+        return redirect("order_list")
     if draft.status != "APPROVED":
         messages.warning(request, "Yalnızca onaylanan Föyler siparişe aktarılabilir.")
-        return redirect("showroom_detail_page", draft_id=draft.id)
+        return redirect("showroom_approved_page")
     if not draft.customer_id:
         messages.error(request, "Sipariş oluşturmak için Föyde müşteri seçilmiş olmalıdır.")
         return redirect("showroom_transfer_preview", draft_id=draft.id)
@@ -101,6 +102,7 @@ def showroom_transfer_create(request, draft_id):
         messages.error(request, "Siparişe dönüştürülecek ürün bulunamadı.")
         return redirect("showroom_transfer_preview", draft_id=draft.id)
 
+    customer = draft.customer
     cost_cache = {}
     created = 0
     for row in rows:
@@ -115,7 +117,7 @@ def showroom_transfer_create(request, draft_id):
         for _ in range(row["adet"]):
             Order.objects.create(
                 siparis_tipi="SERI",
-                musteri=draft.customer,
+                musteri=customer,
                 urun_kodu=code,
                 urun_tipi=row["urun_tipi"],
                 renk=row["renk"] or None,
@@ -129,9 +131,9 @@ def showroom_transfer_create(request, draft_id):
             )
             created += 1
 
-    # Tüm Order kayıtları başarıyla oluşmadan Föy aktarılmış sayılmaz; transaction hata halinde tamamını geri alır.
     if created != total_orders:
         raise RuntimeError("Föy sipariş adetleri ile oluşturulan sipariş adetleri eşleşmedi.")
+
     draft.status = "TRANSFERRED"
     draft.save(update_fields=["status", "updated_at"])
     messages.success(request, f"Föyden {created} adet sipariş başarıyla oluşturuldu.")
