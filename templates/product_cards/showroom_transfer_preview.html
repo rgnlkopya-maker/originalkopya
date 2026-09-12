@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block content %}
+<style>
+.transfer-page{max-width:1180px;margin:0 auto;padding:24px 14px 50px}.transfer-head{display:flex;justify-content:space-between;align-items:flex-start;gap:14px;margin-bottom:16px}.transfer-head h2{margin:3px 0 0;font-weight:900}.back-btn{border:1px solid #dfe5ee;background:#fff;color:#39445a;border-radius:22px;padding:10px 16px;text-decoration:none;font-weight:800}.cardx{background:#fff;border:1px solid #e4e9f1;border-radius:16px;padding:17px;margin-bottom:13px}.summary-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}.summary-box{background:#f7f8fc;border-radius:12px;padding:12px}.summary-box span{display:block;font-size:10px;font-weight:850;color:#7c879b;text-transform:uppercase;margin-bottom:4px}.summary-box b{font-size:18px;color:#253047}.notice{border:1px solid #dce2ff;background:#f5f7ff;color:#39405a;border-radius:12px;padding:12px 14px;font-size:12px}.warn{border-color:#f2d3a7;background:#fff9ef;color:#7a5320}.rows{overflow:auto}.rows table{width:100%;min-width:900px;border-collapse:collapse}.rows th{background:#f7f8fb;color:#727d91;font-size:10px;text-transform:uppercase;text-align:left;padding:10px;border-bottom:1px solid #e5e9f0}.rows td{padding:11px 10px;border-bottom:1px solid #edf0f5;font-weight:650;font-size:12px}.money{text-align:right;white-space:nowrap}.qty{text-align:center}.preview-actions{display:flex;justify-content:flex-end;gap:10px;align-items:center}.disabled-create{border:0;border-radius:22px;padding:11px 18px;background:#cfd5e0;color:#fff;font-weight:850;cursor:not-allowed}.hint{font-size:11px;color:#8a94a6}.tag{display:inline-flex;padding:4px 8px;border-radius:12px;background:#eef1ff;color:#4650d8;font-size:10px;font-weight:800}@media(max-width:760px){.transfer-head{flex-direction:column}.summary-grid{grid-template-columns:1fr 1fr}.preview-actions{align-items:stretch;flex-direction:column}.disabled-create,.back-btn{text-align:center}.cardx{padding:13px}}
+</style>
+<main class="transfer-page">
+  <div class="transfer-head">
+    <div><div class="text-muted small">SİPARİŞ FÖYÜ · #{{ draft.id }}</div><h2>Sipariş Oluşturma Kontrolü</h2><div class="text-muted small">Bu sayfa yalnızca önizlemedir; henüz gerçek sipariş oluşturulmaz.</div></div>
+    <a class="back-btn" href="{% url 'showroom_detail_page' draft.id %}">Föye Dön</a>
+  </div>
+
+  <section class="cardx summary-grid">
+    <div class="summary-box"><span>Müşteri</span><b>{{ draft.customer.ad|default:"Seçilmedi" }}</b></div>
+    <div class="summary-box"><span>Ürün Çeşidi</span><b>{{ product_count }}</b></div>
+    <div class="summary-box"><span>Oluşacak Sipariş</span><b>{{ total_orders }} adet</b></div>
+    <div class="summary-box"><span>Satır Toplamı</span><b>{{ total_value|floatformat:2 }} TL</b></div>
+  </section>
+
+  <div class="notice mb-3"><strong>Kontrol:</strong> Föydeki adetler tek tek gerçek sipariş kaydına dönüşecek. Örneğin bir satırda adet 3 ise sistem ikinci aşamada 3 ayrı sipariş oluşturacak.</div>
+
+  {% for warning in warnings %}<div class="notice warn mb-2"><strong>Dikkat:</strong> {{ warning }}</div>{% endfor %}
+
+  <section class="cardx">
+    <div class="d-flex justify-content-between align-items-center gap-2 mb-3"><div><strong>Oluşacak Siparişler</strong><div class="hint">Föyden okunarak hazırlanmış kontrol listesi</div></div><span class="tag">ÖNİZLEME</span></div>
+    <div class="rows"><table><thead><tr><th>Ürün Kodu</th><th>Ürün Tipi</th><th>Renk</th><th>Beden</th><th class="qty">Adet</th><th>Açıklama</th><th class="money">Birim Fiyat</th><th class="money">Satır Toplamı</th></tr></thead><tbody>
+      {% for row in rows %}<tr><td><strong>{{ row.urun_kodu }}</strong></td><td>{{ row.urun_tipi_label }}</td><td>{{ row.renk|default:"—" }}</td><td>{{ row.beden|default:"—" }}</td><td class="qty">{{ row.adet }}</td><td>{{ row.aciklama|default:"—" }}</td><td class="money">{{ row.birim_fiyat|floatformat:2 }} TL</td><td class="money">{{ row.satir_toplami|floatformat:2 }} TL</td></tr>{% empty %}<tr><td colspan="8" class="text-muted text-center py-4">Siparişe dönüştürülecek satır bulunamadı.</td></tr>{% endfor %}
+    </tbody></table></div>
+  </section>
+
+  <section class="cardx preview-actions">
+    <div class="hint">Bir sonraki aşamada bu butonu gerçek Order kayıtlarını güvenli şekilde oluşturacak biçimde bağlayacağız.</div>
+    <button type="button" class="disabled-create" disabled>Siparişleri Oluştur</button>
+  </section>
+</main>
+{% endblock %}
