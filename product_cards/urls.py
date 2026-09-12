@@ -20,6 +20,7 @@ urlpatterns = [
     path("showroom-foyu/kayitlar/", showroom_views.showroom_archive_list, name="showroom_archive_list"),
     path("showroom-foyu/islem/", showroom_views.showroom_draft_action, name="showroom_draft_action"),
     path("qr/urun/<str:code>/", public_product_views.public_product_page, name="public_product_page"),
+    path("qr/urun/<str:code>/foye-ekle/", public_product_views.public_product_add_to_sheet, name="public_product_add_to_sheet"),
     path("fiyat-listesi/kaydet/", price_list_views.save_price_list_settings, name="save_price_list_settings"),
     path("fiyat-listesi/excel/", price_list_views.export_price_list_excel, name="export_price_list_excel"),
     path("fiyat-listesi/durum/", price_list_views.toggle_price_list_status, name="toggle_price_list_status"),
