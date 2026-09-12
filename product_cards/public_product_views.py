@@ -4,7 +4,7 @@ from django.http import Http404, HttpResponseForbidden
 from django.shortcuts import redirect, render
 from django.views.decorators.http import require_POST
 
-from core.models import UrunKod
+from core.models import Beden, Renk, UrunKod
 from .models import PriceListSettings, ProductCard, ShowroomDraftItem
 from .price_list_views import _price_rows
 from .showroom_views import _active_draft, _create_draft
@@ -40,12 +40,20 @@ def public_product_page(request, code):
         "is_manager": _manager_user(request.user),
         "is_authenticated": request.user.is_authenticated,
         "added_to_sheet": request.GET.get("eklendi") == "1",
+        "added_with_details": request.GET.get("detayli") == "1",
+        "renkler": Renk.objects.filter(aktif=True).order_by("ad"),
+        "bedenler": Beden.objects.filter(aktif=True).order_by("ad"),
     })
 
 
 @require_POST
 def public_product_add_to_sheet(request, code):
-    """QR ürününü müdür/patronun mevcut açık Föyüne ekler."""
+    """QR ürününü müdür/patronun mevcut açık Föyüne ekler.
+
+    İki kullanım desteklenir:
+    - quick: renk/beden seçmeden 1 adet hızlı ekleme
+    - detailed: seçilen renk, beden ve adet ile ekleme
+    """
     if not _manager_user(request.user):
         return HttpResponseForbidden("Bu işlem için müdür veya patron girişi gerekir.")
 
@@ -59,14 +67,33 @@ def public_product_add_to_sheet(request, code):
     if not price_row:
         raise Http404("Ürün fiyatı bulunamadı.")
 
+    mode = (request.POST.get("mode") or "quick").strip().lower()
+    color = ""
+    size = ""
+    quantity = 1
+
+    if mode == "detailed":
+        color = (request.POST.get("renk") or "").strip()
+        size = (request.POST.get("beden") or "").strip()
+        try:
+            quantity = max(1, int(request.POST.get("adet") or 1))
+        except (TypeError, ValueError):
+            quantity = 1
+
+        if color and not Renk.objects.filter(ad__iexact=color, aktif=True).exists():
+            color = ""
+        if size and not Beden.objects.filter(ad__iexact=size, aktif=True).exists():
+            size = ""
+
     draft = _active_draft(request.user) or _create_draft(request.user)
     ShowroomDraftItem.objects.create(
         draft=draft,
         product_card=card,
-        color="",
-        size="",
+        color=color,
+        size=size,
         description="",
-        quantity=1,
+        quantity=quantity,
         unit_price=price_row.get("cash") or Decimal("0"),
     )
-    return redirect(f"/urun-kartlari/qr/urun/{product.kod}/?eklendi=1")
+    suffix = "&detayli=1" if mode == "detailed" else ""
+    return redirect(f"/urun-kartlari/qr/urun/{product.kod}/?eklendi=1{suffix}")
