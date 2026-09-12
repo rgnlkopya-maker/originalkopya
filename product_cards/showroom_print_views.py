@@ -4,6 +4,7 @@ from django.contrib.auth.decorators import login_required
 from django.http import HttpResponseForbidden
 from django.shortcuts import get_object_or_404, render
 
+from core.customer_models import CustomerDetail
 from .models import ShowroomDraft
 from .price_list_views import _can_manage
 from .showroom_views import _serialize_draft, _draft_summary
@@ -27,6 +28,10 @@ def showroom_print_page(request, draft_id):
         created_by=request.user,
         status__in=["PENDING", "APPROVED"],
     )
+
+    customer_detail = None
+    if draft.customer_id:
+        customer_detail = CustomerDetail.objects.filter(customer_id=draft.customer_id).first()
 
     data = _serialize_draft(draft)
     summary = _draft_summary(draft)
@@ -63,6 +68,7 @@ def showroom_print_page(request, draft_id):
 
     return render(request, "product_cards/showroom_print.html", {
         "draft": draft,
+        "customer_detail": customer_detail,
         "items": print_items,
         "summary": summary,
         "status_label": status_label,
