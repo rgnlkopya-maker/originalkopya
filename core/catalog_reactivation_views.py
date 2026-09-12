@@ -32,7 +32,12 @@ def musteri_ekle_veya_aktif_et(request):
 
     musteri, created, reactivated = _reactivate_or_create(Musteri, "ad", ad)
     if not created and not reactivated:
-        return JsonResponse({"success": False, "message": "Bu müşteri zaten aktif."})
+        return JsonResponse({
+            "success": False,
+            "message": "Bu müşteri zaten aktif.",
+            "id": musteri.id,
+            "ad": musteri.ad,
+        })
 
     return JsonResponse({
         "success": True,
