@@ -1,12 +1,16 @@
+import io
 from decimal import Decimal
 
-from django.http import Http404, HttpResponseForbidden
+import qrcode
+from django.contrib.auth.decorators import login_required
+from django.http import Http404, HttpResponse, HttpResponseForbidden
 from django.shortcuts import redirect, render
+from django.urls import reverse
 from django.views.decorators.http import require_POST
 
 from core.models import Beden, Renk, UrunKod
 from .models import PriceListSettings, ProductCard, ShowroomDraftItem
-from .price_list_views import _price_rows
+from .price_list_views import _can_manage, _price_rows
 from .showroom_views import _active_draft, _create_draft
 from .public_product_views import (
     GUEST_CART_SESSION_KEY,
@@ -29,6 +33,15 @@ def _active_product(code):
     return product, card
 
 
+def _card_for_qr(card_id):
+    return ProductCard.objects.select_related("urun").filter(id=card_id).first()
+
+
+def _product_public_url(request, card):
+    path = reverse("public_product_page", args=[card.urun.kod])
+    return request.build_absolute_uri(path)
+
+
 def public_product_page(request, code):
     product, card = _active_product(code)
     return render(request, "product_cards/public_product.html", {
@@ -42,6 +55,49 @@ def public_product_page(request, code):
         "cart_count": _guest_cart_count(request),
         "renkler": Renk.objects.filter(aktif=True).order_by("ad"),
         "bedenler": Beden.objects.filter(aktif=True).order_by("ad"),
+    })
+
+
+@login_required
+def product_qr_png(request, card_id):
+    if not _can_manage(request.user):
+        return HttpResponseForbidden("Bu işlem için yetkiniz yok.")
+    card = _card_for_qr(card_id)
+    if not card:
+        raise Http404("Ürün kartı bulunamadı.")
+    image = qrcode.make(_product_public_url(request, card))
+    buffer = io.BytesIO()
+    image.save(buffer, format="PNG")
+    response = HttpResponse(buffer.getvalue(), content_type="image/png")
+    response["Content-Disposition"] = f'inline; filename="moli-{card.urun.kod}-qr.png"'
+    return response
+
+
+@login_required
+def product_qr_download(request, card_id):
+    if not _can_manage(request.user):
+        return HttpResponseForbidden("Bu işlem için yetkiniz yok.")
+    card = _card_for_qr(card_id)
+    if not card:
+        raise Http404("Ürün kartı bulunamadı.")
+    image = qrcode.make(_product_public_url(request, card))
+    buffer = io.BytesIO()
+    image.save(buffer, format="PNG")
+    response = HttpResponse(buffer.getvalue(), content_type="image/png")
+    response["Content-Disposition"] = f'attachment; filename="moli-{card.urun.kod}-qr.png"'
+    return response
+
+
+@login_required
+def product_qr_label(request, card_id):
+    if not _can_manage(request.user):
+        return HttpResponseForbidden("Bu işlem için yetkiniz yok.")
+    card = _card_for_qr(card_id)
+    if not card:
+        raise Http404("Ürün kartı bulunamadı.")
+    return render(request, "product_cards/product_qr_label.html", {
+        "card": card,
+        "public_url": _product_public_url(request, card),
     })
 
 
