@@ -1,5 +1,5 @@
 from django.urls import path
-from . import views, status_views, finance_views, price_list_views, showroom_views, showroom_print_views, showroom_transfer_views, public_product_views, public_qr_views
+from . import views, status_views, finance_views, price_list_views, showroom_views, showroom_print_views, showroom_transfer_views, public_product_views, public_qr_views, guest_saved_views
 
 urlpatterns = [
     path("", views.product_card_list, name="product_card_list"),
@@ -25,6 +25,8 @@ urlpatterns = [
     path("qr/sepetim/", public_product_views.public_guest_cart, name="public_guest_cart"),
     path("qr/sepetim/<str:code>/sil/", public_product_views.public_guest_cart_remove, name="public_guest_cart_remove"),
     path("qr/sepetim/temizle/", public_product_views.public_guest_cart_clear, name="public_guest_cart_clear"),
+    path("qr/sepetim/foyumu-kaydet/", guest_saved_views.guest_saved_sheet_create, name="guest_saved_sheet_create"),
+    path("qr/foyum/<str:token>/", guest_saved_views.guest_saved_sheet, name="guest_saved_sheet"),
     path("qr/sepetim/aktarim-olustur/", public_product_views.public_guest_transfer_create, name="public_guest_transfer_create"),
     path("qr/sepetim/aktarim-qr/", public_product_views.public_guest_transfer_qr, name="public_guest_transfer_qr"),
     path("qr/sepet-aktar/<str:session_key>/<str:token>/", public_product_views.staff_guest_transfer_preview, name="staff_guest_transfer_preview"),
