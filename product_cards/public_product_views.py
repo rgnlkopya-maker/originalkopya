@@ -1,6 +1,6 @@
 import io
 import secrets
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 
 import qrcode
 from django.contrib.auth.decorators import login_required
@@ -22,10 +22,7 @@ GUEST_TRANSFER_SESSION_KEY = "moli_guest_cart_transfer_v1"
 
 
 def _manager_user(user):
-    return bool(
-        user.is_authenticated
-        and user.groups.filter(name__in=["patron", "mudur"]).exists()
-    )
+    return bool(user.is_authenticated and user.groups.filter(name__in=["patron", "mudur"]).exists())
 
 
 def _test_product(code):
@@ -43,13 +40,38 @@ def _guest_cart(request):
     return cart if isinstance(cart, dict) else {}
 
 
+def _normalize_rows(value):
+    if isinstance(value, dict) and isinstance(value.get("rows"), list):
+        rows = value.get("rows") or []
+    elif isinstance(value, list):
+        rows = value
+    else:
+        try:
+            qty = max(1, int(value or 1))
+        except (TypeError, ValueError):
+            qty = 1
+        rows = [{"color": "", "size": "", "quantity": qty, "description": ""}]
+    result = []
+    for row in rows:
+        if not isinstance(row, dict):
+            continue
+        try:
+            qty = max(1, int(row.get("quantity") or row.get("adet") or 1))
+        except (TypeError, ValueError):
+            qty = 1
+        result.append({
+            "color": str(row.get("color") or row.get("renk") or "").strip(),
+            "size": str(row.get("size") or row.get("beden") or "").strip(),
+            "quantity": qty,
+            "description": str(row.get("description") or row.get("aciklama") or "").strip(),
+        })
+    return result or [{"color": "", "size": "", "quantity": 1, "description": ""}]
+
+
 def _guest_cart_count(request):
     total = 0
-    for qty in _guest_cart(request).values():
-        try:
-            total += max(0, int(qty))
-        except (TypeError, ValueError):
-            pass
+    for value in _guest_cart(request).values():
+        total += sum(r["quantity"] for r in _normalize_rows(value))
     return total
 
 
@@ -58,22 +80,20 @@ def _transfer_valid(transfer):
 
 
 def _cart_rows(cart):
-    rows = []
+    items = []
     total_qty = 0
     if not isinstance(cart, dict):
-        return rows, total_qty
-    for code, raw_qty in cart.items():
-        try:
-            qty = max(1, int(raw_qty))
-        except (TypeError, ValueError):
-            qty = 1
+        return items, total_qty
+    for code, raw_value in cart.items():
         product = UrunKod.objects.filter(kod__iexact=code, aktif=True).first()
         if not product:
             continue
         card = ProductCard.objects.filter(urun=product).first()
-        rows.append({"product": product, "card": card, "qty": qty})
+        rows = _normalize_rows(raw_value)
+        qty = sum(r["quantity"] for r in rows)
+        items.append({"product": product, "card": card, "qty": qty, "rows": rows})
         total_qty += qty
-    return rows, total_qty
+    return items, total_qty
 
 
 def public_product_page(request, code):
@@ -133,13 +153,32 @@ def public_product_add_to_cart(request, code):
     product = _test_product(code)
     if not ProductCard.objects.filter(urun=product, price_list_active=True).exists():
         raise Http404("Bu ürün aktif değil.")
+
+    colors = request.POST.getlist("renk")
+    sizes = request.POST.getlist("beden")
+    quantities = request.POST.getlist("adet")
+    descriptions = request.POST.getlist("aciklama")
+    row_count = max(len(colors), len(sizes), len(quantities), len(descriptions), 1)
+    new_rows = []
+    for i in range(row_count):
+        color = (colors[i] if i < len(colors) else "").strip()
+        size = (sizes[i] if i < len(sizes) else "").strip()
+        desc = (descriptions[i] if i < len(descriptions) else "").strip()
+        try:
+            qty = max(1, int(quantities[i] if i < len(quantities) else 1))
+        except (TypeError, ValueError):
+            qty = 1
+        if color and not Renk.objects.filter(ad__iexact=color, aktif=True).exists():
+            color = ""
+        if size and not Beden.objects.filter(ad__iexact=size, aktif=True).exists():
+            size = ""
+        new_rows.append({"color": color, "size": size, "quantity": qty, "description": desc})
+
     cart = _guest_cart(request)
-    try:
-        current = int(cart.get(product.kod, 0))
-    except (TypeError, ValueError):
-        current = 0
-    cart[product.kod] = max(0, current) + 1
+    existing = _normalize_rows(cart.get(product.kod, {"rows": []})) if product.kod in cart else []
+    cart[product.kod] = {"rows": existing + new_rows}
     request.session[GUEST_CART_SESSION_KEY] = cart
+    request.session.pop(GUEST_TRANSFER_SESSION_KEY, None)
     request.session.modified = True
     return redirect(f"/urun-kartlari/qr/urun/{product.kod}/?sepete=1")
 
@@ -232,35 +271,56 @@ def staff_guest_transfer_to_sheet(request, session_key, token):
     if not transfer:
         raise Http404("Aktarım kodu geçersiz veya daha önce kullanılmış.")
 
-    items, _ = _cart_rows(transfer.get("cart", {}))
+    items, total_qty = _cart_rows(transfer.get("cart", {}))
     if not items:
         raise Http404("Aktarılacak ürün bulunamadı.")
 
-    settings = PriceListSettings.get_solo()
-    price_map = {row["id"]: row for row in _price_rows(settings, active=True)}
+    prices = {}
+    price_error = ""
+    for item in items:
+        code = item["product"].kod
+        raw = (request.POST.get(f"price_{code}") or "").strip().replace(",", ".")
+        try:
+            price = Decimal(raw)
+            if price < 0:
+                raise InvalidOperation
+        except (InvalidOperation, ValueError):
+            price_error = f"{code} için anlaşılan fiyatı girin."
+            break
+        prices[code] = price
+
+    if price_error:
+        return render(request, "product_cards/public_guest_transfer_preview.html", {
+            "items": items,
+            "total_qty": total_qty,
+            "transfer_code": transfer.get("code"),
+            "session_key": session_key,
+            "token": token,
+            "price_error": price_error,
+            "entered_prices": request.POST,
+        })
+
     draft = _active_draft(request.user) or _create_draft(request.user)
     added = 0
-
     for item in items:
         card = item["card"]
         if not card or not card.price_list_active:
             continue
-        price_row = price_map.get(card.id)
-        if not price_row:
-            continue
-        ShowroomDraftItem.objects.create(
-            draft=draft,
-            product_card=card,
-            color="",
-            size="",
-            description="",
-            quantity=max(1, int(item["qty"] or 1)),
-            unit_price=price_row.get("cash") or Decimal("0"),
-        )
-        added += max(1, int(item["qty"] or 1))
+        unit_price = prices[item["product"].kod]
+        for row in item["rows"]:
+            ShowroomDraftItem.objects.create(
+                draft=draft,
+                product_card=card,
+                color=row["color"],
+                size=row["size"],
+                description=row["description"],
+                quantity=row["quantity"],
+                unit_price=unit_price,
+            )
+            added += row["quantity"]
 
     if not added:
-        raise Http404("Sepette aktif fiyat listesine aktarılabilecek ürün bulunamadı.")
+        raise Http404("Sepette aktarılabilecek ürün bulunamadı.")
 
     data = session.get_decoded()
     transfer["used"] = True
@@ -270,7 +330,6 @@ def staff_guest_transfer_to_sheet(request, session_key, token):
     data[GUEST_CART_SESSION_KEY] = {}
     session.session_data = Session.objects.encode(data)
     session.save(update_fields=["session_data"])
-
     return redirect("showroom_page")
 
 
