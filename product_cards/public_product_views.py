@@ -1,6 +1,5 @@
 import io
 import secrets
-from datetime import timedelta
 from decimal import Decimal
 
 import qrcode
@@ -20,7 +19,6 @@ from .showroom_views import _active_draft, _create_draft
 TEST_PUBLIC_PRODUCT_CODE = "7167"
 GUEST_CART_SESSION_KEY = "moli_guest_showroom_cart_v1"
 GUEST_TRANSFER_SESSION_KEY = "moli_guest_cart_transfer_v1"
-TRANSFER_TTL_MINUTES = 30
 
 
 def _manager_user(user):
@@ -56,18 +54,7 @@ def _guest_cart_count(request):
 
 
 def _transfer_valid(transfer):
-    if not isinstance(transfer, dict) or transfer.get("used"):
-        return False
-    raw_expiry = transfer.get("expires_at")
-    if not raw_expiry:
-        return False
-    try:
-        expiry = timezone.datetime.fromisoformat(raw_expiry)
-        if timezone.is_naive(expiry):
-            expiry = timezone.make_aware(expiry)
-    except (TypeError, ValueError):
-        return False
-    return expiry > timezone.now()
+    return isinstance(transfer, dict) and not transfer.get("used") and bool(transfer.get("token"))
 
 
 def _cart_rows(cart):
@@ -110,17 +97,14 @@ def public_product_page(request, code):
 def public_product_add_to_sheet(request, code):
     if not _manager_user(request.user):
         return HttpResponseForbidden("Bu işlem için müdür veya patron girişi gerekir.")
-
     product = _test_product(code)
     card = ProductCard.objects.filter(urun=product, price_list_active=True).first()
     if not card:
         raise Http404("Bu ürün aktif fiyat listesinde bulunamadı.")
-
     settings = PriceListSettings.get_solo()
     price_row = next((row for row in _price_rows(settings, active=True) if row["id"] == card.id), None)
     if not price_row:
         raise Http404("Ürün fiyatı bulunamadı.")
-
     mode = (request.POST.get("mode") or "quick").strip().lower()
     color = ""
     size = ""
@@ -136,17 +120,8 @@ def public_product_add_to_sheet(request, code):
             color = ""
         if size and not Beden.objects.filter(ad__iexact=size, aktif=True).exists():
             size = ""
-
     draft = _active_draft(request.user) or _create_draft(request.user)
-    ShowroomDraftItem.objects.create(
-        draft=draft,
-        product_card=card,
-        color=color,
-        size=size,
-        description="",
-        quantity=quantity,
-        unit_price=price_row.get("cash") or Decimal("0"),
-    )
+    ShowroomDraftItem.objects.create(draft=draft, product_card=card, color=color, size=size, description="", quantity=quantity, unit_price=price_row.get("cash") or Decimal("0"))
     suffix = "&detayli=1" if mode == "detailed" else ""
     return redirect(f"/urun-kartlari/qr/urun/{product.kod}/?eklendi=1{suffix}")
 
@@ -158,7 +133,6 @@ def public_product_add_to_cart(request, code):
     product = _test_product(code)
     if not ProductCard.objects.filter(urun=product, price_list_active=True).exists():
         raise Http404("Bu ürün aktif değil.")
-
     cart = _guest_cart(request)
     try:
         current = int(cart.get(product.kod, 0))
@@ -173,11 +147,7 @@ def public_product_add_to_cart(request, code):
 def public_guest_cart(request):
     items, total_qty = _cart_rows(_guest_cart(request))
     transfer = request.session.get(GUEST_TRANSFER_SESSION_KEY)
-    return render(request, "product_cards/public_guest_cart.html", {
-        "items": items,
-        "total_qty": total_qty,
-        "transfer": transfer if _transfer_valid(transfer) else None,
-    })
+    return render(request, "product_cards/public_guest_cart.html", {"items": items, "total_qty": total_qty, "transfer": transfer if _transfer_valid(transfer) else None})
 
 
 @require_POST
@@ -205,14 +175,7 @@ def public_guest_transfer_create(request):
         return redirect("public_guest_cart")
     if not request.session.session_key:
         request.session.save()
-    transfer = {
-        "code": f"{secrets.randbelow(900000) + 100000}",
-        "token": secrets.token_urlsafe(24),
-        "cart": dict(cart),
-        "created_at": timezone.now().isoformat(),
-        "expires_at": (timezone.now() + timedelta(minutes=TRANSFER_TTL_MINUTES)).isoformat(),
-        "used": False,
-    }
+    transfer = {"code": f"{secrets.randbelow(900000) + 100000}", "token": secrets.token_urlsafe(24), "cart": dict(cart), "created_at": timezone.now().isoformat(), "used": False}
     request.session[GUEST_TRANSFER_SESSION_KEY] = transfer
     request.session.modified = True
     return redirect("public_guest_cart")
@@ -221,10 +184,8 @@ def public_guest_transfer_create(request):
 def public_guest_transfer_qr(request):
     transfer = request.session.get(GUEST_TRANSFER_SESSION_KEY)
     if not _transfer_valid(transfer) or not request.session.session_key:
-        raise Http404("Aktarım kodu bulunamadı veya süresi doldu.")
-    url = request.build_absolute_uri(
-        f"/urun-kartlari/qr/sepet-aktar/{request.session.session_key}/{transfer['token']}/"
-    )
+        raise Http404("Aktarım kodu bulunamadı veya artık geçerli değil.")
+    url = request.build_absolute_uri(f"/urun-kartlari/qr/sepet-aktar/{request.session.session_key}/{transfer['token']}/")
     image = qrcode.make(url)
     buffer = io.BytesIO()
     image.save(buffer, format="PNG")
@@ -251,16 +212,9 @@ def staff_guest_transfer_preview(request, session_key, token):
         return HttpResponseForbidden("Bu ekran yalnızca müdür/patron içindir.")
     _, transfer = _load_transfer(session_key, token)
     if not transfer:
-        raise Http404("Aktarım kodu geçersiz veya süresi dolmuş.")
+        raise Http404("Aktarım kodu geçersiz veya artık kullanılamıyor.")
     items, total_qty = _cart_rows(transfer.get("cart", {}))
-    return render(request, "product_cards/public_guest_transfer_preview.html", {
-        "items": items,
-        "total_qty": total_qty,
-        "transfer_code": transfer.get("code"),
-        "expires_at": transfer.get("expires_at"),
-        "session_key": session_key,
-        "token": token,
-    })
+    return render(request, "product_cards/public_guest_transfer_preview.html", {"items": items, "total_qty": total_qty, "transfer_code": transfer.get("code"), "session_key": session_key, "token": token})
 
 
 @login_required
