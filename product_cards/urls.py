@@ -28,6 +28,7 @@ urlpatterns = [
     path("qr/sepetim/aktarim-olustur/", public_product_views.public_guest_transfer_create, name="public_guest_transfer_create"),
     path("qr/sepetim/aktarim-qr/", public_product_views.public_guest_transfer_qr, name="public_guest_transfer_qr"),
     path("qr/sepet-aktar/<str:session_key>/<str:token>/", public_product_views.staff_guest_transfer_preview, name="staff_guest_transfer_preview"),
+    path("qr/sepet-aktar/<str:session_key>/<str:token>/foye-aktar/", public_product_views.staff_guest_transfer_to_sheet, name="staff_guest_transfer_to_sheet"),
     path("qr/sepet-kodu/", public_product_views.staff_guest_transfer_code, name="staff_guest_transfer_code"),
     path("fiyat-listesi/kaydet/", price_list_views.save_price_list_settings, name="save_price_list_settings"),
     path("fiyat-listesi/excel/", price_list_views.export_price_list_excel, name="export_price_list_excel"),
