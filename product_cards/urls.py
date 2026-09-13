@@ -1,5 +1,5 @@
 from django.urls import path
-from . import views, status_views, finance_views, price_list_views, showroom_views, showroom_print_views, showroom_transfer_views, public_product_views
+from . import views, status_views, finance_views, price_list_views, showroom_views, showroom_print_views, showroom_transfer_views, public_product_views, public_qr_views
 
 urlpatterns = [
     path("", views.product_card_list, name="product_card_list"),
@@ -19,9 +19,9 @@ urlpatterns = [
     path("showroom-foyu/taslak/indirim-kaydet/", showroom_views.showroom_draft_discount_save, name="showroom_draft_discount_save"),
     path("showroom-foyu/kayitlar/", showroom_views.showroom_archive_list, name="showroom_archive_list"),
     path("showroom-foyu/islem/", showroom_views.showroom_draft_action, name="showroom_draft_action"),
-    path("qr/urun/<str:code>/", public_product_views.public_product_page, name="public_product_page"),
-    path("qr/urun/<str:code>/foye-ekle/", public_product_views.public_product_add_to_sheet, name="public_product_add_to_sheet"),
-    path("qr/urun/<str:code>/sepete-ekle/", public_product_views.public_product_add_to_cart, name="public_product_add_to_cart"),
+    path("qr/urun/<str:code>/", public_qr_views.public_product_page, name="public_product_page"),
+    path("qr/urun/<str:code>/foye-ekle/", public_qr_views.public_product_add_to_sheet, name="public_product_add_to_sheet"),
+    path("qr/urun/<str:code>/sepete-ekle/", public_qr_views.public_product_add_to_cart, name="public_product_add_to_cart"),
     path("qr/sepetim/", public_product_views.public_guest_cart, name="public_guest_cart"),
     path("qr/sepetim/<str:code>/sil/", public_product_views.public_guest_cart_remove, name="public_guest_cart_remove"),
     path("qr/sepetim/temizle/", public_product_views.public_guest_cart_clear, name="public_guest_cart_clear"),
