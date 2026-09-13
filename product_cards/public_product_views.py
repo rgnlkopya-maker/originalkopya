@@ -214,7 +214,64 @@ def staff_guest_transfer_preview(request, session_key, token):
     if not transfer:
         raise Http404("Aktarım kodu geçersiz veya artık kullanılamıyor.")
     items, total_qty = _cart_rows(transfer.get("cart", {}))
-    return render(request, "product_cards/public_guest_transfer_preview.html", {"items": items, "total_qty": total_qty, "transfer_code": transfer.get("code"), "session_key": session_key, "token": token})
+    return render(request, "product_cards/public_guest_transfer_preview.html", {
+        "items": items,
+        "total_qty": total_qty,
+        "transfer_code": transfer.get("code"),
+        "session_key": session_key,
+        "token": token,
+    })
+
+
+@login_required
+@require_POST
+def staff_guest_transfer_to_sheet(request, session_key, token):
+    if not _manager_user(request.user):
+        return HttpResponseForbidden("Bu işlem yalnızca müdür/patron içindir.")
+    session, transfer = _load_transfer(session_key, token)
+    if not transfer:
+        raise Http404("Aktarım kodu geçersiz veya daha önce kullanılmış.")
+
+    items, _ = _cart_rows(transfer.get("cart", {}))
+    if not items:
+        raise Http404("Aktarılacak ürün bulunamadı.")
+
+    settings = PriceListSettings.get_solo()
+    price_map = {row["id"]: row for row in _price_rows(settings, active=True)}
+    draft = _active_draft(request.user) or _create_draft(request.user)
+    added = 0
+
+    for item in items:
+        card = item["card"]
+        if not card or not card.price_list_active:
+            continue
+        price_row = price_map.get(card.id)
+        if not price_row:
+            continue
+        ShowroomDraftItem.objects.create(
+            draft=draft,
+            product_card=card,
+            color="",
+            size="",
+            description="",
+            quantity=max(1, int(item["qty"] or 1)),
+            unit_price=price_row.get("cash") or Decimal("0"),
+        )
+        added += max(1, int(item["qty"] or 1))
+
+    if not added:
+        raise Http404("Sepette aktif fiyat listesine aktarılabilecek ürün bulunamadı.")
+
+    data = session.get_decoded()
+    transfer["used"] = True
+    transfer["used_at"] = timezone.now().isoformat()
+    transfer["used_by"] = request.user.id
+    data[GUEST_TRANSFER_SESSION_KEY] = transfer
+    data[GUEST_CART_SESSION_KEY] = {}
+    session.session_data = Session.objects.encode(data)
+    session.save(update_fields=["session_data"])
+
+    return redirect("showroom_page")
 
 
 @login_required
