@@ -206,4 +206,68 @@ hr {
 {% block extra_js %}
     {% include "multi_order/_form_js.html" %}
     {% include "multi_order/_ajax_handlers.html" %}
+<script>
+$(document).ready(function () {
+    // _form_js içindeki eski satır ekleme yapısı ilk satırdan farklıydı.
+    // Bu handler sonradan bağlanır ve yeni satırları ilk satırla aynı kart yapısında üretir.
+    let fixedRowIndex = 1;
+    document.querySelectorAll('.renk-beden-row').forEach(function (row) {
+        const n = parseInt(row.dataset.index || '0', 10);
+        if (!Number.isNaN(n)) fixedRowIndex = Math.max(fixedRowIndex, n + 1);
+    });
+
+    $('#add-row').off('click').on('click', function () {
+        const i = fixedRowIndex++;
+        const row = `
+        <div class="renk-beden-card renk-beden-row" data-index="${i}">
+            <div class="row">
+                <div class="col-md-3">
+                    <label class="form-label">Renk</label>
+                    <select name="renk_row_${i}" class="form-select select2 renk-select">
+                        <option></option>
+                        {% for r in renkler %}<option value="{{ r.ad }}">{{ r.ad }}</option>{% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Bedenler</label>
+                    <select name="beden_row_${i}[]" class="form-select select2 beden-select" multiple>
+                        {% for b in bedenler %}<option value="{{ b.ad }}">{{ b.ad }}</option>{% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">Adet</label>
+                    <input type="number" min="1" value="1" name="adet_row_${i}" class="form-control">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Müşteri Referansı</label>
+                    <input type="text" name="musteri_ref_row_${i}" class="form-control" placeholder="Örn: PO123">
+                </div>
+            </div>
+            <div class="mt-3 text-end">
+                <button type="button" class="btn btn-danger remove-row">Sil</button>
+            </div>
+        </div>`;
+
+        $('#rows-container').append(row);
+        const $row = $(`#rows-container .renk-beden-row[data-index="${i}"]`);
+
+        $row.find('.beden-select').select2({
+            placeholder: 'Beden seçiniz',
+            closeOnSelect: false,
+            allowClear: true,
+            width: '100%',
+            minimumResultsForSearch: 0
+        }).off('select2:select.closeSize').on('select2:select.closeSize', function () {
+            $(this).select2('close');
+        });
+
+        $row.find('.renk-select').select2({
+            placeholder: 'Renk seçiniz',
+            allowClear: true,
+            width: '100%',
+            minimumResultsForSearch: 0
+        });
+    });
+});
+</script>
 {% endblock %}
