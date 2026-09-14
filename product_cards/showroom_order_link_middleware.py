@@ -2,6 +2,7 @@ import json
 import re
 
 from django.http import JsonResponse
+from django.middleware.csrf import get_token
 from django.urls import reverse
 
 from .models import ShowroomDraft
@@ -11,17 +12,19 @@ from .showroom_link_models import ShowroomOrderLink, ensure_showroom_folio
 class ShowroomOrderLinkMiddleware:
     ORDER_RE = re.compile(r"^/order/(\d+)/$")
     SHOWROOM_RE = re.compile(r"^/urun-kartlari/showroom-foyu/kayit/(\d+)/$")
+    SHOWROOM_EDIT_RE = re.compile(r"^/urun-kartlari/showroom-foyu/kayit/(\d+)/duzenle/$")
+    SHOWROOM_EDIT_SAVE_RE = re.compile(r"^/urun-kartlari/showroom-foyu/kayit/(\d+)/duzenle/kaydet/$")
     SHOWROOM_ACTION_PATH = "/urun-kartlari/showroom-foyu/islem/"
 
     def __init__(self, get_response):
         self.get_response = get_response
 
     def __call__(self, request):
-        # Normal showroom action view only deletes PENDING / APPROVED sheets.
-        # Keep that behavior, but also allow the owner to delete a sheet after
-        # it has already been converted to orders. Orders themselves are NOT
-        # deleted; only the folio and its ShowroomOrderLink rows disappear.
-        if request.method == "POST" and (request.path or "") == self.SHOWROOM_ACTION_PATH:
+        path = request.path or ""
+
+        # Silme işlemi tüm Föy durumlarında çalışsın. Siparişe dönüştürülmüş
+        # Föy silinirse daha önce oluşturulmuş siparişler korunur.
+        if request.method == "POST" and path == self.SHOWROOM_ACTION_PATH:
             try:
                 payload = json.loads(request.body.decode("utf-8") or "{}")
             except (json.JSONDecodeError, UnicodeDecodeError):
@@ -42,7 +45,27 @@ class ShowroomOrderLinkMiddleware:
                             "message": "Föy silindi. Oluşturulmuş siparişler korunuyor.",
                         })
 
-        response = self.get_response(request)
+        # Eski edit view TRANSFERRED Föyleri kabul etmiyordu. Düzenleme isteği
+        # boyunca geçici olarak APPROVED gösterip yanıt üretildikten sonra eski
+        # durumuna döndürüyoruz. Böylece Föy düzenlenebilir ama sipariş geçmişi
+        # ve 'siparişe dönüştürüldü' bilgisi kaybolmaz.
+        edit_match = self.SHOWROOM_EDIT_RE.match(path) or self.SHOWROOM_EDIT_SAVE_RE.match(path)
+        restore_transferred_id = None
+        if edit_match and getattr(request, "user", None) and request.user.is_authenticated:
+            draft = ShowroomDraft.objects.filter(
+                pk=int(edit_match.group(1)),
+                created_by=request.user,
+                status="TRANSFERRED",
+            ).first()
+            if draft:
+                restore_transferred_id = draft.id
+                ShowroomDraft.objects.filter(pk=draft.id).update(status="APPROVED")
+
+        try:
+            response = self.get_response(request)
+        finally:
+            if restore_transferred_id:
+                ShowroomDraft.objects.filter(pk=restore_transferred_id).update(status="TRANSFERRED")
 
         if getattr(response, "status_code", 200) != 200:
             return response
@@ -50,7 +73,6 @@ class ShowroomOrderLinkMiddleware:
         if not content_type.startswith("text/html"):
             return response
 
-        path = request.path or ""
         html = response.content.decode(response.charset or "utf-8")
         changed = False
 
@@ -88,18 +110,42 @@ class ShowroomOrderLinkMiddleware:
                     html = new_html
                     changed = True
 
-                # The template intentionally hides edit/delete actions after
-                # transfer. Re-add only the delete action for transferred sheets.
-                if draft.status == "TRANSFERRED" and 'id="foyDeleteBtn"' not in html:
-                    transferred_note = '<div class="foy-transferred-note">✓ Siparişe Dönüştürüldü</div>'
-                    delete_action = (
-                        transferred_note
-                        + '<div class="foy-action-divider"></div>'
-                        + '<button type="button" id="foyDeleteBtn" class="foy-action-item danger">'
-                        + '<i class="bi bi-trash"></i>Sil</button>'
+                if draft.status == "TRANSFERRED":
+                    # Müşteri ile paylaş butonunu tekrar göster.
+                    actions_marker = '<div class="foy-actions-menu">'
+                    share_url = reverse("staff_draft_share", kwargs={"draft_id": draft.id})
+                    share_button = (
+                        f'<a class="foy-share" href="{share_url}" target="_blank" rel="noopener">'
+                        '<i class="bi bi-send"></i>Müşteri ile Paylaş</a>'
                     )
+                    if actions_marker in html and share_url not in html:
+                        html = html.replace(actions_marker, share_button + actions_marker, 1)
+                        changed = True
+
+                    # İşlemler menüsündeki tüm aksiyonları tekrar aç.
+                    transferred_note = '<div class="foy-transferred-note">✓ Siparişe Dönüştürüldü</div>'
                     if transferred_note in html:
-                        html = html.replace(transferred_note, delete_action, 1)
+                        csrf = get_token(request)
+                        status_url = reverse("showroom_change_status", kwargs={"draft_id": draft.id})
+                        transfer_url = reverse("showroom_transfer_preview", kwargs={"draft_id": draft.id})
+                        edit_url = reverse("showroom_edit_page", kwargs={"draft_id": draft.id})
+                        full_actions = (
+                            transferred_note
+                            + '<form method="post" action="' + status_url + '" '
+                              'onsubmit="return confirm(\'Bu Föy tekrar taslağa alınsın mı? Daha önce oluşturulmuş siparişler korunur.\')">'
+                            + '<input type="hidden" name="csrfmiddlewaretoken" value="' + csrf + '">'
+                            + '<input type="hidden" name="target_status" value="PENDING">'
+                            + '<button class="foy-action-item success" type="submit">'
+                              '<i class="bi bi-arrow-repeat"></i>Taslağa Çevir</button></form>'
+                            + '<a class="foy-action-item primary" href="' + transfer_url + '">'
+                              '<i class="bi bi-bag-check"></i>Siparişleri Oluştur</a>'
+                            + '<a class="foy-action-item" href="' + edit_url + '">'
+                              '<i class="bi bi-pencil"></i>Düzenle</a>'
+                            + '<div class="foy-action-divider"></div>'
+                            + '<button type="button" id="foyDeleteBtn" class="foy-action-item danger">'
+                              '<i class="bi bi-trash"></i>Sil</button>'
+                        )
+                        html = html.replace(transferred_note, full_actions, 1)
                         changed = True
 
         if changed:
