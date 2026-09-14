@@ -14,21 +14,31 @@ from .multi_order_views import _upload_order_image
 
 @login_required
 def order_edit_persistent(request, pk):
-    uploaded = request.FILES.get("resim") if request.method == "POST" else None
+    uploaded_files = request.FILES.getlist("resim") if request.method == "POST" else []
     response = core_views.order_edit(request, pk)
 
-    if uploaded is not None and getattr(response, "status_code", 200) in (301, 302):
+    if uploaded_files and getattr(response, "status_code", 200) in (301, 302):
         order = get_object_or_404(Order, pk=pk)
-        try:
-            uploaded.seek(0)
-            public_url = _upload_order_image(uploaded, order.siparis_numarasi)
-            OrderImage.objects.create(order=order, image_url=public_url)
-            if order.resim:
-                order.resim = None
-                order.save(update_fields=["resim"])
-            messages.success(request, "Sipariş görseli kalıcı olarak yüklendi ✅")
-        except Exception as exc:
-            messages.error(request, f"Sipariş görseli kalıcı depoya yüklenemedi: {exc}")
+        uploaded_count = 0
+        errors = []
+
+        for uploaded in uploaded_files:
+            try:
+                uploaded.seek(0)
+                public_url = _upload_order_image(uploaded, order.siparis_numarasi)
+                OrderImage.objects.create(order=order, image_url=public_url)
+                uploaded_count += 1
+            except Exception as exc:
+                errors.append(str(exc))
+
+        if order.resim:
+            order.resim = None
+            order.save(update_fields=["resim"])
+
+        if uploaded_count:
+            messages.success(request, f"{uploaded_count} sipariş görseli başarıyla yüklendi ✅")
+        if errors:
+            messages.error(request, f"{len(errors)} görsel yüklenemedi. İlk hata: {errors[0]}")
 
     return response
 
