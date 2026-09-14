@@ -19,6 +19,7 @@ FINANCIAL_MOVEMENT_LABELS = {
     "EK_UCRET": "Ek ücret / fiyat artışı",
     "FIYAT_DUZELT": "Nihai satış fiyatını düzelt",
     "EK_MALIYET": "Ek maliyet",
+    "MALIYET_DUZELT": "Nihai maliyeti düzelt",
 }
 
 # Eski kayitlari okuyabilmek icin onceki operasyon kodlari korunur; yeni ekranda gosterilmez.
@@ -101,7 +102,6 @@ def calculate_finance_result(order):
 
     for event in events:
         if event.stage == "sevkiyat_durum":
-            # Operasyonel hareketler Order List / uretim gecmisini yonetir.
             if event.value == "gonderildi":
                 if status in {"IADE", "KARGO_GERI", "YANLIS_SEVKIYAT"}:
                     if satis_tl == 0:
@@ -137,7 +137,6 @@ def calculate_finance_result(order):
         movement_type = event.value
         tl_amount = Decimal(str(data.get("tl_amount") or "0"))
 
-        # Finans ekraninda sadece parasal hareketler listelensin.
         if movement_type in FINANCIAL_MOVEMENT_LABELS:
             movements.append(data)
 
@@ -149,8 +148,8 @@ def calculate_finance_result(order):
             satis_tl = max(Decimal("0"), tl_amount)
         elif movement_type == "EK_MALIYET":
             maliyet_tl += tl_amount
-
-        # Eski sistemde finans_hareketi olarak kaydedilmis operasyonlari geriye donuk oku.
+        elif movement_type == "MALIYET_DUZELT":
+            maliyet_tl = max(Decimal("0"), tl_amount)
         elif movement_type == "KISMI_IADE":
             satis_tl = max(Decimal("0"), satis_tl - tl_amount)
         elif movement_type == "IADE":
@@ -235,16 +234,47 @@ def add_order_finance_movement(request, order_id):
     rate_obj = ExchangeRate.objects.order_by("-rate_date", "-fetched_at").first()
     usd_try = rate_obj.usd_try if rate_obj else None
     tl_amount = _to_tl(amount, currency, usd_try) if amount is not None else Decimal("0")
+    if tl_amount is None:
+        messages.error(request, "USD işlemi için güncel kur bulunamadı.")
+        return redirect("order_finance_movements", order_id=order.id)
 
     payload = {
         "amount": str(amount) if amount is not None else None,
         "currency": currency,
         "usd_try": str(usd_try) if usd_try is not None else None,
-        "tl_amount": str(tl_amount.quantize(Decimal("0.01"))) if tl_amount is not None else "0.00",
+        "tl_amount": str(tl_amount.quantize(Decimal("0.01"))),
         "note": (request.POST.get("note") or "").strip(),
     }
 
-    # order_update olarak tutulur: Order List'teki operasyonel Son Durum'u DEGISTIRMEZ.
+    # Maliyet düzeltmesinde eski sevkiyat değeri event içinde korunur,
+    # snapshot ise raporların tamamında yeni doğru maliyeti göstermesi için güncellenir.
+    if movement_type == "MALIYET_DUZELT":
+        snapshot = getattr(order, "shipment_financial_snapshot", None)
+        if snapshot is None:
+            messages.error(request, "Bu sipariş için sevkiyat finans kaydı bulunamadı.")
+            return redirect("order_finance_movements", order_id=order.id)
+
+        old_total = Decimal(snapshot.toplam_maliyet_tl or 0)
+        payload["old_total_cost_tl"] = str(old_total.quantize(Decimal("0.01")))
+
+        new_total = tl_amount.quantize(Decimal("0.01"))
+        extra = Decimal(snapshot.sevkiyat_ekstra_maliyet_tl or 0)
+        new_product_cost = max(Decimal("0"), new_total - extra)
+        sale = Decimal(snapshot.satis_tl or 0)
+        profit = sale - new_total
+        profit_rate = (profit / sale * Decimal("100")) if sale else None
+
+        snapshot.urun_maliyeti_tl = new_product_cost.quantize(Decimal("0.01"))
+        snapshot.toplam_maliyet_tl = new_total
+        snapshot.gerceklesen_kar_tl = profit.quantize(Decimal("0.01"))
+        snapshot.gerceklesen_kar_orani = profit_rate.quantize(Decimal("0.01")) if profit_rate is not None else None
+        snapshot.save(update_fields=[
+            "urun_maliyeti_tl",
+            "toplam_maliyet_tl",
+            "gerceklesen_kar_tl",
+            "gerceklesen_kar_orani",
+        ])
+
     OrderEvent.objects.create(
         order=order,
         user=request.user.username,
