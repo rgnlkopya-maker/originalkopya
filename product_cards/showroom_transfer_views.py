@@ -9,6 +9,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from core.models import Order, ProductCost, URUN_TIPI_CHOICES
 from .models import ShowroomDraft
 from .price_list_views import _can_manage
+from .showroom_link_models import ShowroomOrderLink, ensure_showroom_folio
 
 
 def _draft_rows(draft):
@@ -54,6 +55,7 @@ def showroom_transfer_preview(request, draft_id):
         created_by=request.user,
         status="APPROVED",
     )
+    ensure_showroom_folio(draft)
     rows, total_orders, total_value, product_count = _draft_rows(draft)
     warnings = []
     if not draft.customer_id:
@@ -80,15 +82,14 @@ def showroom_transfer_create(request, draft_id):
     if not _can_manage(request.user):
         return HttpResponseForbidden("Bu işlem için yetkiniz yok.")
 
-    # Yalnızca Föy satırını kilitle. Nullable customer FK'yi aynı SELECT FOR UPDATE
-    # sorgusuna katmak PostgreSQL'de outer join kilit hatasına yol açabilir.
     draft = get_object_or_404(
         ShowroomDraft.objects.select_for_update(),
         id=draft_id,
         created_by=request.user,
     )
+    folio = ensure_showroom_folio(draft)
     if draft.status == "TRANSFERRED":
-        messages.warning(request, "Bu Föy daha önce siparişe aktarılmış.")
+        messages.warning(request, f"Föy #{folio.number} daha önce siparişe aktarılmış.")
         return redirect("order_list")
     if draft.status != "APPROVED":
         messages.warning(request, "Yalnızca onaylanan Föyler siparişe aktarılabilir.")
@@ -115,7 +116,7 @@ def showroom_transfer_create(request, draft_id):
             )
         cost, cost_currency = cost_cache[code]
         for _ in range(row["adet"]):
-            Order.objects.create(
+            order = Order.objects.create(
                 siparis_tipi="SERI",
                 musteri=customer,
                 urun_kodu=code,
@@ -129,6 +130,7 @@ def showroom_transfer_create(request, draft_id):
                 maliyet_uygulanan=cost,
                 maliyet_para_birimi=cost_currency,
             )
+            ShowroomOrderLink.objects.create(draft=draft, order=order)
             created += 1
 
     if created != total_orders:
@@ -136,5 +138,5 @@ def showroom_transfer_create(request, draft_id):
 
     draft.status = "TRANSFERRED"
     draft.save(update_fields=["status", "updated_at"])
-    messages.success(request, f"Föyden {created} adet sipariş başarıyla oluşturuldu.")
+    messages.success(request, f"Föy #{folio.number} üzerinden {created} adet sipariş başarıyla oluşturuldu.")
     return redirect("order_list")
