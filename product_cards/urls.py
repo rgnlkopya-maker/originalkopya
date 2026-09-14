@@ -1,5 +1,5 @@
 from django.urls import path
-from . import views, status_views, finance_views, price_list_views, showroom_views, showroom_print_views, showroom_transfer_views, showroom_status_views, public_product_views, public_qr_views, guest_saved_views
+from . import views, status_views, finance_views, price_list_views, showroom_views, showroom_print_views, showroom_transfer_views, showroom_status_views, showroom_archive_views, public_product_views, public_qr_views, guest_saved_views
 
 urlpatterns = [
     path("", views.product_card_list, name="product_card_list"),
@@ -8,7 +8,7 @@ urlpatterns = [
     path("showroom-foyu/", showroom_views.showroom_page, name="showroom_page"),
     path("showroom-foyu/taslaklar/", showroom_views.showroom_drafts_page, name="showroom_drafts_page"),
     path("showroom-foyu/onaylananlar/", showroom_views.showroom_approved_page, name="showroom_approved_page"),
-    path("showroom-foyu/kayit/<int:draft_id>/", showroom_views.showroom_detail_page, name="showroom_detail_page"),
+    path("showroom-foyu/kayit/<int:draft_id>/", showroom_archive_views.showroom_detail_page, name="showroom_detail_page"),
     path("showroom-foyu/kayit/<int:draft_id>/durum-degistir/", showroom_status_views.showroom_change_status, name="showroom_change_status"),
     path("showroom-foyu/kayit/<int:draft_id>/musteriyle-paylas/", guest_saved_views.staff_draft_share, name="staff_draft_share"),
     path("showroom-foyu/kayit/<int:draft_id>/yazdir/", showroom_print_views.showroom_print_page, name="showroom_print_page"),
@@ -19,7 +19,7 @@ urlpatterns = [
     path("showroom-foyu/taslak/", showroom_views.showroom_draft_load, name="showroom_draft_load"),
     path("showroom-foyu/taslak/otomatik-kaydet/", showroom_views.showroom_draft_autosave, name="showroom_draft_autosave"),
     path("showroom-foyu/taslak/indirim-kaydet/", showroom_views.showroom_draft_discount_save, name="showroom_draft_discount_save"),
-    path("showroom-foyu/kayitlar/", showroom_views.showroom_archive_list, name="showroom_archive_list"),
+    path("showroom-foyu/kayitlar/", showroom_archive_views.showroom_archive_list, name="showroom_archive_list"),
     path("showroom-foyu/islem/", showroom_views.showroom_draft_action, name="showroom_draft_action"),
     path("qr/urun/<str:code>/", public_qr_views.public_product_page, name="public_product_page"),
     path("qr/urun/<str:code>/foye-ekle/", public_qr_views.public_product_add_to_sheet, name="public_product_add_to_sheet"),
