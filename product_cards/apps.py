@@ -7,4 +7,5 @@ class ProductCardsConfig(AppConfig):
 
     def ready(self):
         from . import payment_models  # noqa: F401
+        from . import showroom_link_models  # noqa: F401
         from . import signals  # noqa: F401
