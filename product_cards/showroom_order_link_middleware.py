@@ -1,5 +1,7 @@
+import json
 import re
 
+from django.http import JsonResponse
 from django.urls import reverse
 
 from .models import ShowroomDraft
@@ -9,11 +11,37 @@ from .showroom_link_models import ShowroomOrderLink, ensure_showroom_folio
 class ShowroomOrderLinkMiddleware:
     ORDER_RE = re.compile(r"^/order/(\d+)/$")
     SHOWROOM_RE = re.compile(r"^/urun-kartlari/showroom-foyu/kayit/(\d+)/$")
+    SHOWROOM_ACTION_PATH = "/urun-kartlari/showroom-foyu/islem/"
 
     def __init__(self, get_response):
         self.get_response = get_response
 
     def __call__(self, request):
+        # Normal showroom action view only deletes PENDING / APPROVED sheets.
+        # Keep that behavior, but also allow the owner to delete a sheet after
+        # it has already been converted to orders. Orders themselves are NOT
+        # deleted; only the folio and its ShowroomOrderLink rows disappear.
+        if request.method == "POST" and (request.path or "") == self.SHOWROOM_ACTION_PATH:
+            try:
+                payload = json.loads(request.body.decode("utf-8") or "{}")
+            except (json.JSONDecodeError, UnicodeDecodeError):
+                payload = {}
+
+            if payload.get("action") == "delete_saved":
+                draft_id = payload.get("draft_id")
+                if getattr(request, "user", None) and request.user.is_authenticated:
+                    target = ShowroomDraft.objects.filter(
+                        id=draft_id,
+                        created_by=request.user,
+                        status="TRANSFERRED",
+                    ).first()
+                    if target:
+                        target.delete()
+                        return JsonResponse({
+                            "ok": True,
+                            "message": "Föy silindi. Oluşturulmuş siparişler korunuyor.",
+                        })
+
         response = self.get_response(request)
 
         if getattr(response, "status_code", 200) != 200:
@@ -59,6 +87,20 @@ class ShowroomOrderLinkMiddleware:
                 if new_html != html:
                     html = new_html
                     changed = True
+
+                # The template intentionally hides edit/delete actions after
+                # transfer. Re-add only the delete action for transferred sheets.
+                if draft.status == "TRANSFERRED" and 'id="foyDeleteBtn"' not in html:
+                    transferred_note = '<div class="foy-transferred-note">✓ Siparişe Dönüştürüldü</div>'
+                    delete_action = (
+                        transferred_note
+                        + '<div class="foy-action-divider"></div>'
+                        + '<button type="button" id="foyDeleteBtn" class="foy-action-item danger">'
+                        + '<i class="bi bi-trash"></i>Sil</button>'
+                    )
+                    if transferred_note in html:
+                        html = html.replace(transferred_note, delete_action, 1)
+                        changed = True
 
         if changed:
             response.content = html.encode(response.charset or "utf-8")
