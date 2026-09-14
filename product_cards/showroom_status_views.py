@@ -17,16 +17,18 @@ def showroom_change_status(request, draft_id):
         ShowroomDraft,
         id=draft_id,
         created_by=request.user,
-        status__in=["PENDING", "APPROVED"],
+        status__in=["PENDING", "APPROVED", "TRANSFERRED"],
     )
 
     target_status = (request.POST.get("target_status") or "").strip().upper()
-    allowed_transition = {
-        "PENDING": "APPROVED",
-        "APPROVED": "PENDING",
-    }
+    if target_status not in {"PENDING", "APPROVED"}:
+        return HttpResponseBadRequest("Geçersiz durum değişikliği.")
 
-    if allowed_transition.get(draft.status) != target_status:
+    if draft.status == target_status:
+        return redirect("showroom_detail_page", draft_id=draft.id)
+    if draft.status == "PENDING" and target_status != "APPROVED":
+        return HttpResponseBadRequest("Geçersiz durum değişikliği.")
+    if draft.status == "APPROVED" and target_status != "PENDING":
         return HttpResponseBadRequest("Geçersiz durum değişikliği.")
 
     draft.status = target_status
