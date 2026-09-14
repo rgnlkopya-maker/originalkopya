@@ -44,6 +44,7 @@ MIDDLEWARE = [
     "core.audit_middleware.UserActionAuditMiddleware",
     "app_settings.middleware.MoliAccessMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
+    "product_cards.showroom_order_link_middleware.ShowroomOrderLinkMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
 ROOT_URLCONF = "demo_app.urls"
