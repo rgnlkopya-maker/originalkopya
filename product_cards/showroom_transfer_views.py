@@ -53,11 +53,13 @@ def showroom_transfer_preview(request, draft_id):
         ShowroomDraft.objects.select_related("customer").prefetch_related("items__product_card__urun"),
         id=draft_id,
         created_by=request.user,
-        status="APPROVED",
+        status__in=["APPROVED", "TRANSFERRED"],
     )
     ensure_showroom_folio(draft)
     rows, total_orders, total_value, product_count = _draft_rows(draft)
     warnings = []
+    if draft.status == "TRANSFERRED":
+        warnings.append("Bu Föyden daha önce sipariş oluşturuldu. Devam ederseniz yeni siparişler ayrıca oluşturulur.")
     if not draft.customer_id:
         warnings.append("Bu Föyde müşteri seçilmemiş. Siparişe aktarmadan önce müşteri seçilmesi gerekir.")
     if not rows:
@@ -86,14 +88,9 @@ def showroom_transfer_create(request, draft_id):
         ShowroomDraft.objects.select_for_update(),
         id=draft_id,
         created_by=request.user,
+        status__in=["APPROVED", "TRANSFERRED"],
     )
     folio = ensure_showroom_folio(draft)
-    if draft.status == "TRANSFERRED":
-        messages.warning(request, f"Föy #{folio.number} daha önce siparişe aktarılmış.")
-        return redirect("order_list")
-    if draft.status != "APPROVED":
-        messages.warning(request, "Yalnızca onaylanan Föyler siparişe aktarılabilir.")
-        return redirect("showroom_approved_page")
     if not draft.customer_id:
         messages.error(request, "Sipariş oluşturmak için Föyde müşteri seçilmiş olmalıdır.")
         return redirect("showroom_transfer_preview", draft_id=draft.id)
