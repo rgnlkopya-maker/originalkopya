@@ -203,10 +203,6 @@ function urunKodKaydet() {
             }
 
             const showroomInput = document.getElementById("showroomProductCode");
-            const showroomList = document.getElementById("showroomProductCodeList");
-            if (showroomList && !Array.from(showroomList.options).some(opt => opt.value === data.kod)) {
-                const opt = document.createElement("option"); opt.value = data.kod; showroomList.appendChild(opt);
-            }
             if (showroomInput && document.body.classList.contains("showroom-manual-product")) showroomInput.value = data.kod;
 
             const modalSelect = document.getElementById("modal_urun_kod_listesi");
@@ -245,20 +241,12 @@ document.addEventListener("DOMContentLoaded", function () {
     const productModal = document.getElementById("showroomAddModal");
     if (!sheet || !productInput || !productModal) return;
 
-    const datalist = document.createElement("datalist");
-    datalist.id = "showroomProductCodeList";
-    const modalProductList = document.getElementById("modal_urun_kod_listesi");
-    if (modalProductList) {
-        Array.from(modalProductList.options).forEach(function (opt) {
-            if (!opt.value || !opt.textContent.trim()) return;
-            const item = document.createElement("option");
-            item.value = opt.textContent.trim();
-            datalist.appendChild(item);
-        });
-    }
-    productInput.insertAdjacentElement("afterend", datalist);
-    productInput.setAttribute("list", "showroomProductCodeList");
+    /* Föy kendi özel ürün arama menüsünü kullanıyor. Tarayıcının datalist penceresi
+       ikinci bir liste açtığı için burada datalist oluşturulmuyor. */
+    productInput.removeAttribute("list");
     productInput.setAttribute("autocomplete", "off");
+    const staleDatalist = document.getElementById("showroomProductCodeList");
+    if (staleDatalist) staleDatalist.remove();
 
     const manageRow = productModal.querySelector(".showroom-manage-row");
     if (manageRow && !document.getElementById("showroomProductManageBtn")) {
