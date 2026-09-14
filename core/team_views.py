@@ -64,7 +64,18 @@ def _event_label(stage,value): return STATUS_LABELS.get((stage,value),f"{(stage 
 @login_required
 def user_management_view(request):
     if not _is_manager(request.user):return HttpResponseForbidden("Bu sayfaya erişim yetkiniz yok.")
-    all_users=User.objects.all().order_by("username");departed_users=all_users.filter(Q(is_active=False)|Q(hr_profile__employment_end_date__isnull=False)).distinct();users=all_users.exclude(pk__in=departed_users.values_list("pk",flat=True));profiles={p.user_id:p for p in UserProfile.objects.filter(user__in=all_users)};hr_profiles={p.user_id:p for p in EmployeeHRProfile.objects.filter(user__in=all_users)}
+    all_users=User.objects.all().order_by("username")
+    departed_users=all_users.filter(Q(is_active=False)|Q(hr_profile__employment_end_date__isnull=False)).distinct()
+    users=all_users.exclude(pk__in=departed_users.values_list("pk",flat=True))
+    profiles={p.user_id:p for p in UserProfile.objects.filter(user__in=all_users)}
+    hr_profiles={p.user_id:p for p in EmployeeHRProfile.objects.filter(user__in=all_users)}
+    valid_roles={"personel","mudur","patron"}
+    unassigned_users=[]
+    for u in users:
+        role_names=set(u.groups.values_list("name",flat=True))
+        prof=profiles.get(u.id)
+        if not role_names.intersection(valid_roles) or not prof or prof.gorev in {"", "yok", None}:
+            unassigned_users.append(u)
     if request.method=="POST":
         action=request.POST.get("action","").strip()
         if action=="create_user":
@@ -72,13 +83,24 @@ def user_management_view(request):
             if not username or not password or not role:messages.error(request,"Kullanıcı adı, şifre ve rol zorunludur.");return redirect("user_management")
             if User.objects.filter(username=username).exists():messages.warning(request,f"{username} zaten mevcut ⏸️");return redirect("user_management")
             user=User.objects.create_user(username=username,password=password,first_name=first_name,last_name=last_name)
-            if role in {"personel","mudur","patron"}:group,_=Group.objects.get_or_create(name=role);user.groups.add(group)
+            if role in valid_roles:group,_=Group.objects.get_or_create(name=role);user.groups.add(group)
             valid_gorevler={value for value,_label in TEAM_CHOICES};profile,_=UserProfile.objects.get_or_create(user=user);profile.gorev=gorev if gorev in valid_gorevler else "yok";profile.save()
             def new_date(name):
                 raw=request.POST.get(name,"").strip();return date.fromisoformat(raw) if raw else None
             hr=EmployeeHRProfile.objects.create(user=user,phone_number=request.POST.get("phone_number","").strip(),national_id=request.POST.get("national_id","").strip(),emergency_contact_name=request.POST.get("emergency_contact_name","").strip(),emergency_contact_phone=request.POST.get("emergency_contact_phone","").strip(),employment_start_date=new_date("employment_start_date"),employment_end_date=new_date("employment_end_date"),sgk_start_date=new_date("sgk_start_date"))
             if hr.employment_end_date:user.is_active=False;user.save(update_fields=["is_active"])
             messages.success(request,f"{user.get_full_name() or username} eklendi ✅");return redirect("user_management")
+        if action=="assign_user_setup":
+            u=get_object_or_404(User,pk=request.POST.get("user_id"))
+            role=(request.POST.get("role") or "personel").strip()
+            gorev=(request.POST.get("gorev") or "yok").strip()
+            if role not in valid_roles:role="personel"
+            valid_gorevler={value for value,_label in TEAM_CHOICES}
+            u.groups.remove(*Group.objects.filter(name__in=valid_roles))
+            group,_=Group.objects.get_or_create(name=role);u.groups.add(group)
+            profile,_=UserProfile.objects.get_or_create(user=u);profile.gorev=gorev if gorev in valid_gorevler else "yok";profile.save(update_fields=["gorev"])
+            messages.success(request,f"{u.get_full_name() or u.username} için rol ve ekip tanımlandı ✅")
+            return redirect("user_management")
         if action=="reset_password":
             u=get_object_or_404(User,pk=request.POST.get("user_id"));new_password=request.POST.get("new_password","").strip()
             if new_password:u.set_password(new_password);u.save();messages.success(request,f"{u.username} için şifre güncellendi 🔐")
@@ -91,7 +113,7 @@ def user_management_view(request):
             if u==request.user:messages.warning(request,"Kendinizi silemezsiniz.")
             else:u.delete();messages.success(request,"Kullanıcı silindi 🗑️")
             return redirect("user_management")
-    return render(request,"user_management.html",{"users":users,"departed_users":departed_users,"profiles":profiles,"hr_profiles":hr_profiles,"GOREVLER":TEAM_CHOICES})
+    return render(request,"user_management.html",{"users":users,"departed_users":departed_users,"unassigned_users":unassigned_users,"profiles":profiles,"hr_profiles":hr_profiles,"GOREVLER":TEAM_CHOICES})
 
 @login_required
 def employee_detail(request,user_id):
