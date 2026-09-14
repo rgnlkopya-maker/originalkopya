@@ -74,7 +74,10 @@ def user_management_view(request):
     for u in users:
         role_names=set(u.groups.values_list("name",flat=True))
         prof=profiles.get(u.id)
-        if not role_names.intersection(valid_roles) or not prof or prof.gorev in {"", "yok", None}:
+        has_valid_role=bool(role_names.intersection(valid_roles))
+        is_manager_role=bool(role_names.intersection({"mudur","patron"}))
+        personel_missing_team="personel" in role_names and (not prof or prof.gorev in {"", "yok", None})
+        if not has_valid_role or (personel_missing_team and not is_manager_role):
             unassigned_users.append(u)
     if request.method=="POST":
         action=request.POST.get("action","").strip()
