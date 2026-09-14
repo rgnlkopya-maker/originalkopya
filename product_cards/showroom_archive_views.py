@@ -6,6 +6,7 @@ from django.views.decorators.http import require_GET
 from .models import ShowroomDraft
 from .price_list_views import _can_manage
 from .showroom_views import _draft_summary, _payment_rows, _serialize_draft
+from .showroom_link_models import ensure_showroom_folio
 
 
 @login_required
@@ -28,7 +29,13 @@ def showroom_archive_list(request):
         .prefetch_related("items", "payments")
         .order_by("-updated_at", "-id")
     )
-    return JsonResponse({"ok": True, "kind": kind, "items": [_draft_summary(d) for d in drafts]})
+    items = []
+    for draft in drafts:
+        folio = ensure_showroom_folio(draft)
+        row = _draft_summary(draft)
+        row["foy_no"] = folio.number
+        items.append(row)
+    return JsonResponse({"ok": True, "kind": kind, "items": items})
 
 
 @login_required
@@ -41,9 +48,9 @@ def showroom_detail_page(request, draft_id):
             "items__product_card__urun", "payments"
         ),
         id=draft_id,
-        created_by=request.user,
         status__in=["PENDING", "APPROVED", "TRANSFERRED"],
     )
+    folio = ensure_showroom_folio(draft)
     data = _serialize_draft(draft)
     summary = _draft_summary(draft)
     if draft.status == "PENDING":
@@ -58,6 +65,7 @@ def showroom_detail_page(request, draft_id):
 
     return render(request, "product_cards/showroom_detail.html", {
         "draft": draft,
+        "foy_no": folio.number,
         "items": data["items"],
         "summary": summary,
         "payments": _payment_rows(draft),
