@@ -61,7 +61,7 @@ def staff_draft_share(request, draft_id):
         ShowroomDraft,
         id=draft_id,
         created_by=request.user,
-        status__in=["PENDING", "APPROVED"],
+        status__in=["PENDING", "APPROVED", "TRANSFERRED"],
     )
     token = signing.dumps(
         {"v": 1, "draft_id": draft.id},
@@ -86,12 +86,17 @@ def public_draft_sheet(request, token):
             "items__product_card__urun", "payments"
         ),
         id=draft_id,
-        status__in=["PENDING", "APPROVED"],
+        status__in=["PENDING", "APPROVED", "TRANSFERRED"],
     )
 
     data = _serialize_draft(draft)
     summary = _draft_summary(draft)
-    status_label = "Taslak Teklif" if draft.status == "PENDING" else "Onaylanan Föy"
+    if draft.status == "PENDING":
+        status_label = "Taslak Teklif"
+    elif draft.status == "TRANSFERRED":
+        status_label = "Siparişe Dönüştürüldü"
+    else:
+        status_label = "Onaylanan Föy"
 
     return render(request, "product_cards/public_shared_draft.html", {
         "draft": draft,
