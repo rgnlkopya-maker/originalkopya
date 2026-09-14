@@ -17,6 +17,20 @@ def order_edit_persistent(request, pk):
     uploaded_files = request.FILES.getlist("resim") if request.method == "POST" else []
     response = core_views.order_edit(request, pk)
 
+    if (
+        getattr(response, "status_code", 200) == 200
+        and response.get("Content-Type", "").startswith("text/html")
+    ):
+        html = response.content.decode(response.charset or "utf-8")
+        html = html.replace('id="id_resim"', 'id="id_resim" multiple')
+        html = html.replace(
+            "Görsel eklemek veya mevcut görseli değiştirmek için buradan dosya seçebilirsiniz.",
+            "Birden fazla görseli aynı anda seçip yükleyebilirsiniz."
+        )
+        response.content = html.encode(response.charset or "utf-8")
+        if response.has_header("Content-Length"):
+            del response["Content-Length"]
+
     if uploaded_files and getattr(response, "status_code", 200) in (301, 302):
         order = get_object_or_404(Order, pk=pk)
         uploaded_count = 0
