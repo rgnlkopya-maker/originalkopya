@@ -75,6 +75,13 @@ def _build_payment_rows(draft, raw_payments):
         rows.append(ShowroomPayment(draft=draft,entry_type=entry_type,method=method,amount=value,payment_date=p.get("payment_date") or None,due_date=p.get("due_date") or None,note=str(p.get("note") or "")[:300]))
     return rows
 
+
+def _delete_draft_safely(draft):
+    with transaction.atomic():
+        ShowroomPayment.objects.filter(draft=draft).delete()
+        ShowroomDraftItem.objects.filter(draft=draft).delete()
+        ShowroomDraft.objects.filter(pk=draft.pk).delete()
+
 @login_required
 def showroom_page(request):
     if not _can_manage(request.user): return HttpResponseForbidden("Bu sayfaya erişim yetkiniz yok.")
@@ -142,26 +149,32 @@ def showroom_draft_action(request):
     try: payload=json.loads(request.body.decode("utf-8") or "{}")
     except (json.JSONDecodeError,UnicodeDecodeError): return JsonResponse({"ok":False,"message":"Geçersiz veri."},status=400)
     action=payload.get("action")
-    with transaction.atomic():
-        if action in {"save_draft","approve","delete"}:
-            draft=_active_draft(request.user)
-            if not draft: return JsonResponse({"ok":False,"message":"Açık bir Föy bulunmuyor."},status=400)
-            if action!="delete" and not draft.items.exists(): return JsonResponse({"ok":False,"message":"Boş Föy kaydedilemez."},status=400)
-            if action=="delete": draft.delete(); return JsonResponse({"ok":True,"message":"Taslak silindi."})
-            draft.status="PENDING" if action=="save_draft" else "APPROVED"; draft.save(update_fields=["status","updated_at"]); return JsonResponse({"ok":True,"draft":draft.id,"status":draft.status,"message":"Taslak kaydedildi." if action=="save_draft" else "Föy onaylananlara kaydedildi."})
-        if action=="open_saved":
-            draft_id=payload.get("draft_id"); target=ShowroomDraft.objects.filter(id=draft_id,created_by=request.user,status="PENDING").first()
-            if not target: return JsonResponse({"ok":False,"message":"Föy bulunamadı."},status=404)
-            active=_active_draft(request.user)
-            if active and active.id!=target.id:
-                if active.items.exists(): return JsonResponse({"ok":False,"message":"Önce açık Föyü taslak kaydedin, onaylayın veya silin."},status=409)
-                active.delete()
-            target.status="DRAFT"; target.save(update_fields=["status","updated_at"]); return JsonResponse({"ok":True,"draft":target.id,"message":"Taslak açıldı."})
-        if action=="delete_saved":
-            draft_id=payload.get("draft_id"); target=ShowroomDraft.objects.filter(id=draft_id,created_by=request.user,status__in=["PENDING","APPROVED"]).first()
-            if not target: return JsonResponse({"ok":False,"message":"Föy bulunamadı."},status=404)
-            target.delete(); return JsonResponse({"ok":True,"message":"Föy silindi."})
-    return JsonResponse({"ok":False,"message":"İşlem geçersiz."},status=400)
+    try:
+        with transaction.atomic():
+            if action in {"save_draft","approve","delete"}:
+                draft=_active_draft(request.user)
+                if not draft: return JsonResponse({"ok":False,"message":"Açık bir Föy bulunmuyor."},status=400)
+                if action!="delete" and not draft.items.exists(): return JsonResponse({"ok":False,"message":"Boş Föy kaydedilemez."},status=400)
+                if action=="delete":
+                    _delete_draft_safely(draft)
+                    return JsonResponse({"ok":True,"message":"Taslak silindi."})
+                draft.status="PENDING" if action=="save_draft" else "APPROVED"; draft.save(update_fields=["status","updated_at"]); return JsonResponse({"ok":True,"draft":draft.id,"status":draft.status,"message":"Taslak kaydedildi." if action=="save_draft" else "Föy onaylananlara kaydedildi."})
+            if action=="open_saved":
+                draft_id=payload.get("draft_id"); target=ShowroomDraft.objects.filter(id=draft_id,created_by=request.user,status="PENDING").first()
+                if not target: return JsonResponse({"ok":False,"message":"Föy bulunamadı."},status=404)
+                active=_active_draft(request.user)
+                if active and active.id!=target.id:
+                    if active.items.exists(): return JsonResponse({"ok":False,"message":"Önce açık Föyü taslak kaydedin, onaylayın veya silin."},status=409)
+                    _delete_draft_safely(active)
+                target.status="DRAFT"; target.save(update_fields=["status","updated_at"]); return JsonResponse({"ok":True,"draft":target.id,"message":"Taslak açıldı."})
+            if action=="delete_saved":
+                draft_id=payload.get("draft_id"); target=ShowroomDraft.objects.filter(id=draft_id,created_by=request.user,status__in=["PENDING","APPROVED"]).first()
+                if not target: return JsonResponse({"ok":False,"message":"Föy bulunamadı."},status=404)
+                _delete_draft_safely(target)
+                return JsonResponse({"ok":True,"message":"Föy silindi."})
+        return JsonResponse({"ok":False,"message":"İşlem geçersiz."},status=400)
+    except Exception as exc:
+        return JsonResponse({"ok":False,"message":f"Föy işlemi sunucuda tamamlanamadı ({exc.__class__.__name__})."},status=500)
 
 @login_required
 def showroom_drafts_page(request):
