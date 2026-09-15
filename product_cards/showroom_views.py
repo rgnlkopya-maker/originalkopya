@@ -19,6 +19,10 @@ def _active_draft(user):
     return ShowroomDraft.objects.filter(created_by=user, status="DRAFT").order_by("-updated_at", "-id").first()
 
 
+def _lock_showroom_user(user):
+    user.__class__.objects.select_for_update().get(pk=user.pk)
+
+
 def _decimal(value, default="0"):
     try:
         return Decimal(str(value if value not in (None, "") else default))
@@ -77,10 +81,9 @@ def _build_payment_rows(draft, raw_payments):
 
 
 def _delete_draft_safely(draft):
-    with transaction.atomic():
-        ShowroomPayment.objects.filter(draft=draft).delete()
-        ShowroomDraftItem.objects.filter(draft=draft).delete()
-        ShowroomDraft.objects.filter(pk=draft.pk).delete()
+    ShowroomPayment.objects.filter(draft=draft).delete()
+    ShowroomDraftItem.objects.filter(draft=draft).delete()
+    ShowroomDraft.objects.filter(pk=draft.pk).delete()
 
 @login_required
 def showroom_page(request):
@@ -106,6 +109,7 @@ def showroom_draft_autosave(request):
     if not isinstance(raw_items,list) or not isinstance(raw_payments,list): return JsonResponse({"ok":False,"message":"Föy verisi geçersiz."},status=400)
     customer=Musteri.objects.filter(pk=customer_id).first() if customer_id else None
     with transaction.atomic():
+        _lock_showroom_user(request.user)
         draft=_active_draft(request.user) or _create_draft(request.user,customer); draft.customer=customer; draft.save(update_fields=["customer","updated_at"]); draft.items.all().delete(); create_rows=[]
         for item in raw_items:
             code=str(item.get("urun_kodu") or "").strip(); product_card=ProductCard.objects.select_related("urun").filter(urun__kod__iexact=code).first() if code else None
@@ -130,7 +134,10 @@ def showroom_draft_discount_save(request):
     if not _can_manage(request.user): return JsonResponse({"ok":False,"message":"Yetkiniz yok."},status=403)
     try: payload=json.loads(request.body.decode("utf-8") or "{}")
     except (json.JSONDecodeError,UnicodeDecodeError): return JsonResponse({"ok":False,"message":"Geçersiz veri."},status=400)
-    discount_rate=max(Decimal("0"),min(Decimal("100"),_decimal(payload.get("discount_rate"),"0"))); discount_amount=max(Decimal("0"),_decimal(payload.get("discount_amount"),"0")); draft=_active_draft(request.user) or _create_draft(request.user); draft.discount_rate=discount_rate; draft.overall_discount_amount=discount_amount; draft.save(update_fields=["discount_rate","overall_discount_amount","updated_at"])
+    discount_rate=max(Decimal("0"),min(Decimal("100"),_decimal(payload.get("discount_rate"),"0"))); discount_amount=max(Decimal("0"),_decimal(payload.get("discount_amount"),"0"))
+    with transaction.atomic():
+        _lock_showroom_user(request.user)
+        draft=_active_draft(request.user) or _create_draft(request.user); draft.discount_rate=discount_rate; draft.overall_discount_amount=discount_amount; draft.save(update_fields=["discount_rate","overall_discount_amount","updated_at"])
     return JsonResponse({"ok":True,"draft":draft.id,"discount_rate":str(draft.discount_rate),"discount_amount":str(draft.overall_discount_amount)})
 
 @login_required
@@ -151,6 +158,7 @@ def showroom_draft_action(request):
     action=payload.get("action")
     try:
         with transaction.atomic():
+            _lock_showroom_user(request.user)
             if action in {"save_draft","approve","delete"}:
                 draft=_active_draft(request.user)
                 if not draft: return JsonResponse({"ok":False,"message":"Açık bir Föy bulunmuyor."},status=400)
