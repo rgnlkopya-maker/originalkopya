@@ -19,6 +19,7 @@ FINANCIAL_MOVEMENT_LABELS = {
     "EK_UCRET": "Ek ücret / fiyat artışı",
     "FIYAT_DUZELT": "Nihai satış fiyatını düzelt",
     "EK_MALIYET": "Ek maliyet",
+    "NIHAI_MALIYET": "Nihai maliyet",
 }
 
 # Eski kayitlari okuyabilmek icin onceki operasyon kodlari korunur; yeni ekranda gosterilmez.
@@ -149,6 +150,8 @@ def calculate_finance_result(order):
             satis_tl = max(Decimal("0"), tl_amount)
         elif movement_type == "EK_MALIYET":
             maliyet_tl += tl_amount
+        elif movement_type == "NIHAI_MALIYET":
+            maliyet_tl = max(Decimal("0"), tl_amount)
 
         # Eski sistemde finans_hareketi olarak kaydedilmis operasyonlari geriye donuk oku.
         elif movement_type == "KISMI_IADE":
