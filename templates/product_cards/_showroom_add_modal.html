@@ -24,9 +24,12 @@
  const nativeGet=proto.getItem,nativeSet=proto.setItem,nativeRemove=proto.removeItem;
  function mapped(key){return key===BASE_KEY?USER_KEY:key;}
  proto.getItem=function(key){return nativeGet.call(this,mapped(key));};
- proto.setItem=function(key,value){return nativeSet.call(this,mapped(key),value);};
+ proto.setItem=function(key,value){if(window.__moliShowroomFinalizing&&key===BASE_KEY)return;return nativeSet.call(this,mapped(key),value);};
  proto.removeItem=function(key){return nativeRemove.call(this,mapped(key));};
  try{nativeRemove.call(localStorage,BASE_KEY);}catch(e){}
+ if(navigator.sendBeacon){
+   try{const nativeBeacon=navigator.sendBeacon.bind(navigator);navigator.sendBeacon=function(url,data){if(window.__moliShowroomFinalizing)return true;return nativeBeacon(url,data);};}catch(e){}
+ }
 })();
 
 document.addEventListener('DOMContentLoaded',function(){
@@ -92,13 +95,13 @@ document.addEventListener('DOMContentLoaded',function(){
    if(!save&&!del&&!approve)return;
    if(del&&!confirm('Açık taslak tamamen silinsin mi?'))return;
    if(approve&&!confirm('Bu Föy onaylanan sipariş olarak kaydedilsin mi?'))return;
-   const btn=save||del||approve;btn.disabled=true;
+   const btn=save||del||approve;btn.disabled=true;window.__moliShowroomFinalizing=true;
    try{
      const data=await runAction(save?'save_draft':del?'delete':'approve');
      await clearAnyRecreatedDraft();
      alert(data.message);
      window.location.href='{% url "showroom_page" %}';
-   }catch(err){alert(err.message);btn.disabled=false}
+   }catch(err){window.__moliShowroomFinalizing=false;alert(err.message);btn.disabled=false}
  });
  if(window.jQuery){$(document).on('select2:open',function(){setTimeout(function(){const search=document.querySelector('.select2-container--open .select2-search__field');if(search)search.style.fontSize='16px'},0)})}
 });
