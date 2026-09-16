@@ -255,6 +255,7 @@ def showroom_customer_folios_data(request, customer_id):
                 "id": draft.id,
                 "status": draft.status,
                 "status_label": status_labels[draft.status],
+                "currency": draft.currency,
                 "updated_at": timezone.localtime(draft.updated_at).strftime("%d.%m.%Y %H:%M"),
                 "summary": _draft_summary(draft),
                 "items": data["items"],

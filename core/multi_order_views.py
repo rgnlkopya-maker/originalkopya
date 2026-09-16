@@ -5,10 +5,11 @@ import uuid
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.db import transaction
 from django.shortcuts import redirect, render
 from supabase import create_client
 
-from .models import Beden, Musteri, Order, OrderImage, ProductCost, Renk, URUN_TIPI_CHOICES, UrunKod
+from .models import Beden, CustomerPricingRule, Musteri, Order, OrderImage, ProductCost, Renk, URUN_TIPI_CHOICES, UrunKod
 
 
 def _to_decimal(value):
@@ -32,6 +33,21 @@ def _upload_order_image(uploaded_file, order_number):
     return bucket.get_public_url(path)
 
 
+def _pricing_rules_payload():
+    rules = {}
+    for rule in CustomerPricingRule.objects.filter(active=True).select_related("customer"):
+        rules[str(rule.customer_id)] = {
+            "customer_name": rule.customer.ad,
+            "base_size": rule.base_size,
+            "base_hip_max": str(rule.base_hip_max),
+            "hip_step": str(rule.hip_step),
+            "size_step": rule.size_step,
+            "price_group_size": rule.price_group_size,
+            "price_step": str(rule.price_step),
+        }
+    return rules
+
+
 @login_required
 def order_multi_create(request):
     if request.method == "POST":
@@ -47,6 +63,11 @@ def order_multi_create(request):
         ekstra_maliyet = _to_decimal(request.POST.get("ekstra_maliyet")) or Decimal("0")
         para_birimi = request.POST.get("para_birimi") or "TRY"
         maliyet_para_birimi = request.POST.get("maliyet_para_birimi") or "TRY"
+        pricing_rule = CustomerPricingRule.objects.filter(customer=musteri, active=True).first() if musteri else None
+
+        if pricing_rule and satis_fiyati <= 0:
+            messages.error(request, "MODAZEHRADA siparişinde baz anlaşılan fiyat girilmelidir.")
+            return redirect("order_multi_create")
 
         if maliyet_uygulanan == 0 and urun_kodu:
             pc = ProductCost.objects.filter(urun_kodu__iexact=urun_kodu).first()
@@ -57,26 +78,49 @@ def order_multi_create(request):
         uploaded_images = request.FILES.getlist("order_images")
         created_orders = []
         row_indices = {int(key.replace("renk_row_", "")) for key in request.POST.keys() if key.startswith("renk_row_") and key.replace("renk_row_", "").isdigit()}
+        prepared_rows = []
 
         for i in sorted(row_indices):
             renk = request.POST.get(f"renk_row_{i}")
-            bedenler = request.POST.getlist(f"beden_row_{i}[]")
             musteri_ref = request.POST.get(f"musteri_ref_row_{i}", "").strip()
-            if not renk or not bedenler:
+            if not renk:
                 continue
             try:
                 adet_input = max(1, int(request.POST.get(f"adet_row_{i}") or 1))
             except Exception:
                 adet_input = 1
-            for beden in bedenler:
-                for _ in range(adet_input):
-                    created_orders.append(Order.objects.create(
-                        siparis_tipi=siparis_tipi, musteri=musteri, urun_kodu=urun_kodu, urun_tipi=urun_tipi,
-                        renk=renk, beden=beden, adet=1, teslim_tarihi=teslim_tarihi or None, aciklama=aciklama,
-                        musteri_referans=musteri_ref or None, satis_fiyati=satis_fiyati, para_birimi=para_birimi,
-                        maliyet_uygulanan=maliyet_uygulanan, maliyet_para_birimi=maliyet_para_birimi,
-                        maliyet_override=maliyet_override, ekstra_maliyet=ekstra_maliyet,
-                    ))
+
+            hip_measurement = None
+            adjustment = None
+            row_price = satis_fiyati
+            if pricing_rule:
+                hip_measurement = _to_decimal(request.POST.get(f"basen_row_{i}"))
+                if hip_measurement is None or hip_measurement <= 0:
+                    messages.error(request, f"{i + 1}. satır için geçerli bir basen ölçüsü girilmelidir.")
+                    return redirect("order_multi_create")
+                calculated_size, adjustment, row_price = pricing_rule.calculate(hip_measurement, satis_fiyati)
+                bedenler = [str(calculated_size)]
+            else:
+                bedenler = request.POST.getlist(f"beden_row_{i}[]")
+                if not bedenler:
+                    continue
+            prepared_rows.append((renk, bedenler, musteri_ref, adet_input, hip_measurement, adjustment, row_price))
+
+        with transaction.atomic():
+            for renk, bedenler, musteri_ref, adet_input, hip_measurement, adjustment, row_price in prepared_rows:
+                for beden in bedenler:
+                    for _ in range(adet_input):
+                        created_orders.append(Order.objects.create(
+                            siparis_tipi=siparis_tipi, musteri=musteri, urun_kodu=urun_kodu, urun_tipi=urun_tipi,
+                            renk=renk, beden=beden, adet=1, teslim_tarihi=teslim_tarihi or None, aciklama=aciklama,
+                            musteri_referans=musteri_ref or None, satis_fiyati=row_price, para_birimi=para_birimi,
+                            customer_base_price=satis_fiyati if pricing_rule else None,
+                            customer_price_adjustment=adjustment,
+                            hip_measurement=hip_measurement,
+                            customer_pricing_rule="Basen ölçüsü ve üç bedenlik fiyat grubu" if pricing_rule else "",
+                            maliyet_uygulanan=maliyet_uygulanan, maliyet_para_birimi=maliyet_para_birimi,
+                            maliyet_override=maliyet_override, ekstra_maliyet=ekstra_maliyet,
+                        ))
 
         image_errors = 0
         if uploaded_images and created_orders:
@@ -104,9 +148,10 @@ def order_multi_create(request):
     renkler_qs = Renk.objects.filter(aktif=True).order_by("ad")
     bedenler_qs = Beden.objects.filter(aktif=True).order_by("ad")
     urun_kodlari_qs = UrunKod.objects.filter(aktif=True).order_by("kod")
-    is_manager = request.user.groups.filter(name__in=["patron", "mudur"]).exists()
+    is_manager = request.user.is_superuser or request.user.groups.filter(name__in=["patron", "mudur"]).exists()
     return render(request, "multi_order/multi_order_create.html", {
         "musteriler": musteriler_qs, "renkler": renkler_qs, "bedenler": bedenler_qs, "urun_kodlari": urun_kodlari_qs,
         "aktif_musteriler": musteriler_qs, "aktif_renkler": renkler_qs, "aktif_bedenler": bedenler_qs,
         "aktif_urun_kodlari": urun_kodlari_qs, "is_manager": is_manager, "urun_tipi_secenekleri": URUN_TIPI_CHOICES,
+        "customer_pricing_rules": _pricing_rules_payload(),
     })

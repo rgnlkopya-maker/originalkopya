@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Musteri, Order, Nakisci, Fasoncu, UrunKod
+from .models import CustomerPricingRule, Musteri, Order, Nakisci, Fasoncu, UrunKod
 
 # Order için gelişmiş görünüm (filtre + liste alanları)
 @admin.register(Order)
@@ -20,6 +20,13 @@ class OrderAdmin(admin.ModelAdmin):
 admin.site.register(Musteri)
 admin.site.register(Nakisci)
 admin.site.register(Fasoncu)
+
+
+@admin.register(CustomerPricingRule)
+class CustomerPricingRuleAdmin(admin.ModelAdmin):
+    list_display = ("customer", "active", "base_hip_max", "base_size", "price_step")
+    list_filter = ("active",)
+    search_fields = ("customer__ad",)
 
 
 @admin.register(UrunKod)

@@ -3,7 +3,7 @@ from django.utils import timezone
 from django.contrib.auth import get_user_model
 from django.db.models.signals import post_save
 from django.dispatch import receiver
-from decimal import Decimal
+from decimal import Decimal, ROUND_CEILING
 
 
 User = get_user_model()
@@ -79,6 +79,41 @@ class Musteri(models.Model):
 
     def __str__(self):
         return self.ad
+
+
+class CustomerPricingRule(models.Model):
+    customer = models.OneToOneField(
+        Musteri,
+        on_delete=models.CASCADE,
+        related_name="pricing_rule",
+    )
+    active = models.BooleanField(default=True)
+    base_size = models.PositiveSmallIntegerField(default=38)
+    base_hip_max = models.DecimalField(max_digits=6, decimal_places=2, default=Decimal("102"))
+    hip_step = models.DecimalField(max_digits=6, decimal_places=2, default=Decimal("4"))
+    size_step = models.PositiveSmallIntegerField(default=2)
+    price_group_size = models.PositiveSmallIntegerField(default=3)
+    price_step = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("250"))
+
+    def size_for_hip(self, hip_measurement):
+        hip = Decimal(str(hip_measurement))
+        if hip <= self.base_hip_max:
+            return self.base_size
+        steps = ((hip - self.base_hip_max) / self.hip_step).to_integral_value(rounding=ROUND_CEILING)
+        return self.base_size + int(steps) * self.size_step
+
+    def price_adjustment_for_size(self, size):
+        size_position = max(0, (int(size) - self.base_size) // self.size_step)
+        group_number = size_position // self.price_group_size + 1
+        return self.price_step * group_number
+
+    def calculate(self, hip_measurement, base_price):
+        size = self.size_for_hip(hip_measurement)
+        adjustment = self.price_adjustment_for_size(size)
+        return size, adjustment, Decimal(str(base_price)) + adjustment
+
+    def __str__(self):
+        return f"{self.customer.ad} özel fiyat kuralı"
 
 
 class Nakisci(models.Model):
@@ -200,6 +235,10 @@ class Order(models.Model):
     nakis_durumu = models.CharField(max_length=20, choices=[('yok', 'Yok'), ('verildi', 'Nakışa Verildi'), ('alindi', 'Nakıştan Alındı')], default='yok')
 
     satis_fiyati = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
+    customer_base_price = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
+    customer_price_adjustment = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
+    hip_measurement = models.DecimalField(max_digits=6, decimal_places=2, null=True, blank=True)
+    customer_pricing_rule = models.CharField(max_length=150, blank=True, default="")
     para_birimi = models.CharField(max_length=3, choices=CURRENCY_CHOICES, default="TRY")
     maliyet_uygulanan = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
     maliyet_para_birimi = models.CharField(max_length=3, choices=CURRENCY_CHOICES, default="TRY")
@@ -482,4 +521,3 @@ class AuditLog(models.Model):
     def __str__(self):
         actor = self.username_snapshot or "Bilinmeyen kullanıcı"
         return f"{actor} · {self.action} · {self.created_at:%d.%m.%Y %H:%M}"
-

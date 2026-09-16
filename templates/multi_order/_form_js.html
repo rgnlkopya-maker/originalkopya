@@ -1,5 +1,64 @@
 <script>
 $(document).ready(function () {
+    const pricingRulesData = document.getElementById("customer-pricing-rules-data");
+    const customerPricingRules = pricingRulesData ? JSON.parse(pricingRulesData.textContent) : {};
+
+    function activeCustomerPricingRule() {
+        return customerPricingRules[String($("#musteri_select").val() || "")] || null;
+    }
+
+    function calculateCustomerPrice(rule, hipValue) {
+        const hip = Number(hipValue);
+        if (!rule || !Number.isFinite(hip) || hip <= 0) return null;
+        const baseSize = Number(rule.base_size);
+        const baseHipMax = Number(rule.base_hip_max);
+        const hipStep = Number(rule.hip_step);
+        const sizeStep = Number(rule.size_step);
+        const groupSize = Number(rule.price_group_size);
+        const priceStep = Number(rule.price_step);
+        const steps = hip <= baseHipMax ? 0 : Math.ceil((hip - baseHipMax) / hipStep);
+        const size = baseSize + steps * sizeStep;
+        const group = Math.floor(steps / groupSize) + 1;
+        const adjustment = priceStep * group;
+        const basePrice = Number($("#base-sales-price").val());
+        return {size, adjustment, finalPrice: Number.isFinite(basePrice) ? basePrice + adjustment : null};
+    }
+
+    function refreshCustomerPricePreview(row) {
+        const rule = activeCustomerPricingRule();
+        const preview = row.querySelector(".customer-price-preview");
+        if (!preview || !rule) return;
+        const hipInput = row.querySelector(".hip-measurement");
+        const result = calculateCustomerPrice(rule, hipInput ? hipInput.value : "");
+        if (!result) {
+            preview.textContent = "Ölçü girildiğinde beden ve fiyat hesaplanır.";
+            return;
+        }
+        const finalText = result.finalPrice == null ? "Baz fiyat bekleniyor" : result.finalPrice.toLocaleString("tr-TR", {minimumFractionDigits: 2, maximumFractionDigits: 2}) + " TL";
+        preview.innerHTML = '<strong>Beden ' + result.size + '</strong> · Fark +' + result.adjustment.toLocaleString("tr-TR", {minimumFractionDigits: 2, maximumFractionDigits: 2}) + ' TL · <strong>' + finalText + '</strong>';
+    }
+
+    function refreshAllCustomerPricePreviews() {
+        document.querySelectorAll(".renk-beden-row").forEach(refreshCustomerPricePreview);
+    }
+
+    function applyCustomerPricingMode() {
+        const rule = activeCustomerPricingRule();
+        const enabled = Boolean(rule);
+        $("#customer-pricing-note").toggleClass("d-none", !enabled);
+        $("#sales-price-label").text(enabled ? "Baz Anlaşılan Fiyat" : "Satış Fiyatı");
+        $("#base-price-help").toggleClass("d-none", !enabled);
+        document.querySelectorAll(".renk-beden-row").forEach(function (row) {
+            const standard = row.querySelector(".standard-size-field");
+            const custom = row.querySelector(".hip-pricing-field");
+            const hip = row.querySelector(".hip-measurement");
+            if (standard) standard.classList.toggle("d-none", enabled);
+            if (custom) custom.classList.toggle("d-none", !enabled);
+            if (hip) hip.required = enabled;
+            refreshCustomerPricePreview(row);
+        });
+    }
+
     function normalizeText(value) {
         return (value || "").toLocaleLowerCase("tr").trim();
     }
@@ -270,6 +329,8 @@ $(document).ready(function () {
             });
     }
     $("#musteri_select, #urun_kodu_select").on("change", refreshPriceHistory);
+    $("#musteri_select").on("change", applyCustomerPricingMode);
+    $(document).on("input", ".hip-measurement, #base-sales-price", refreshAllCustomerPricePreviews);
 
     $("#priceHistoryModal").on("show.bs.modal", function () {
         const customerName = $("#musteri_select option:selected").text();
@@ -299,11 +360,12 @@ $(document).ready(function () {
 
     let index = 1;
     $("#add-row").click(function () {
-        let row = `<div class="row mb-3 renk-beden-row" data-index="${index}"><div class="col-md-3"><label class="form-label">Renk</label><select name="renk_row_${index}" class="form-select renk-select"><option></option>{% for r in renkler %}<option value="{{ r.ad }}">{{ r.ad }}</option>{% endfor %}</select></div><div class="col-md-4"><label class="form-label">Bedenler</label><select name="beden_row_${index}[]" class="form-select select2 beden-select" multiple>{% for b in bedenler %}<option value="{{ b.ad }}">{{ b.ad }}</option>{% endfor %}</select></div><div class="col-md-2"><label class="form-label">Adet</label><input type="number" min="1" value="1" name="adet_row_${index}" class="form-control"></div><div class="col-md-3"><label class="form-label">Müşteri Ref</label><input type="text" name="musteri_ref_row_${index}" class="form-control"></div><div class="col-12 mt-2"><button type="button" class="btn btn-danger remove-row">Sil</button></div></div>`;
+        let row = `<div class="renk-beden-card renk-beden-row" data-index="${index}"><div class="row"><div class="col-md-3"><label class="form-label">Renk</label><select name="renk_row_${index}" class="form-select renk-select"><option></option>{% for r in renkler %}<option value="{{ r.ad }}">{{ r.ad }}</option>{% endfor %}</select></div><div class="col-md-4 standard-size-field"><label class="form-label">Bedenler</label><select name="beden_row_${index}[]" class="form-select select2 beden-select" multiple>{% for b in bedenler %}<option value="{{ b.ad }}">{{ b.ad }}</option>{% endfor %}</select></div><div class="col-md-4 hip-pricing-field d-none"><label class="form-label">Basen Ölçüsü (cm)</label><input type="number" min="1" step="0.1" name="basen_row_${index}" class="form-control hip-measurement" placeholder="Örn: 113"><div class="small mt-2 customer-price-preview text-muted">Ölçü girildiğinde beden ve fiyat hesaplanır.</div></div><div class="col-md-2"><label class="form-label">Adet</label><input type="number" min="1" value="1" name="adet_row_${index}" class="form-control"></div><div class="col-md-3"><label class="form-label">Müşteri Ref</label><input type="text" name="musteri_ref_row_${index}" class="form-control"></div></div><div class="mt-3 text-end"><button type="button" class="btn btn-danger remove-row">Sil</button></div></div>`;
         $("#rows-container").append(row);
         const rowEl = document.querySelector(`.renk-beden-row[data-index="${index}"]`);
         initSelect2(rowEl);
         initAutocomplete(rowEl);
+        applyCustomerPricingMode();
         index++;
     });
 
@@ -340,7 +402,28 @@ $(document).ready(function () {
                 alert("Lütfen listeden bir ürün kodu seçin.");
                 return;
             }
+            if (activeCustomerPricingRule()) {
+                const basePrice = Number($("#base-sales-price").val());
+                if (!Number.isFinite(basePrice) || basePrice <= 0) {
+                    e.preventDefault();
+                    alert("Lütfen föyde anlaşılan baz fiyatı girin.");
+                    document.getElementById("base-sales-price").focus();
+                    return;
+                }
+                const missingHip = Array.from(document.querySelectorAll(".renk-beden-row")).find(function (row) {
+                    const color = row.querySelector(".renk-select");
+                    const hip = row.querySelector(".hip-measurement");
+                    return color && color.value && (!hip || Number(hip.value) <= 0);
+                });
+                if (missingHip) {
+                    e.preventDefault();
+                    alert("Her renk satırı için basen ölçüsü girin.");
+                    missingHip.querySelector(".hip-measurement").focus();
+                    return;
+                }
+            }
         });
     }
+    applyCustomerPricingMode();
 });
 </script>
