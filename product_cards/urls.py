@@ -9,6 +9,7 @@ urlpatterns = [
     path("showroom-foyu/taslaklar/", showroom_views.showroom_drafts_page, name="showroom_drafts_page"),
     path("showroom-foyu/onaylananlar/", showroom_views.showroom_approved_page, name="showroom_approved_page"),
     path("showroom-foyu/musteri/<int:customer_id>/", showroom_views.showroom_customer_folios, name="showroom_customer_folios"),
+    path("showroom-foyu/musteri/<int:customer_id>/veri/", showroom_views.showroom_customer_folios_data, name="showroom_customer_folios_data"),
     path("showroom-foyu/kayit/<int:draft_id>/", showroom_views.showroom_detail_page, name="showroom_detail_page"),
     path("showroom-foyu/kayit/<int:draft_id>/durum-degistir/", showroom_views.showroom_toggle_approval, name="showroom_toggle_approval"),
     path("showroom-foyu/kayit/<int:draft_id>/yazdir/", showroom_print_views.showroom_print_page, name="showroom_print_page"),

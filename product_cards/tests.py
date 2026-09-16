@@ -536,3 +536,23 @@ class ShowroomStatusToggleTests(TestCase):
             response, reverse("showroom_detail_page", args=[self.draft.pk])
         )
         self.assertNotContains(response, "Başka Müşteri")
+
+    def test_customer_folios_popup_data_contains_current_prices(self):
+        other_customer = Musteri.objects.create(ad="Popup Dışındaki Müşteri")
+        ShowroomDraft.objects.create(
+            created_by=self.manager,
+            customer=other_customer,
+            status="APPROVED",
+        )
+
+        response = self.client.get(
+            reverse("showroom_customer_folios_data", args=[self.customer.pk])
+        )
+
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertTrue(data["ok"])
+        self.assertEqual(data["customer"]["name"], "Föy Test Müşterisi")
+        self.assertEqual([folio["id"] for folio in data["folios"]], [self.draft.pk])
+        self.assertEqual(data["folios"][0]["items"][0]["urun_kodu"], "STATUS-TEST")
+        self.assertEqual(data["folios"][0]["items"][0]["anlasilan_fiyat"], "100.00")

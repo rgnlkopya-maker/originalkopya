@@ -1,0 +1,5 @@
+{% if folio_button_popup %}
+<button type="button"{% if folio_button_id %} id="{{ folio_button_id }}"{% endif %} class="{{ folio_button_class|default:'btnf' }} customer-folios-button" data-folios-popup data-customer-id="{{ folio_button_customer_id|default:'' }}"{% if folio_button_select %} data-customer-select="{{ folio_button_select }}"{% endif %}{% if not folio_button_customer_id %} hidden{% endif %}><i class="bi bi-receipt me-1"></i> Sipariş Föyleri</button>
+{% else %}
+<a{% if folio_button_id %} id="{{ folio_button_id }}"{% endif %} class="{{ folio_button_class|default:'btnf' }} customer-folios-button" href="{% url 'showroom_customer_folios' folio_button_customer_id %}"><i class="bi bi-receipt me-1"></i> Sipariş Föyleri</a>
+{% endif %}

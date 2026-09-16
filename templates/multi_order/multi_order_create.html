@@ -200,6 +200,8 @@ hr {
         {% include "multi_order/_form_content.html" %}
     </div>
 
+    {% if is_manager %}{% include "product_cards/_customer_folios_modal.html" %}{% endif %}
+
 </div>
 {% endblock %}
 

@@ -66,6 +66,19 @@ def _draft_summary(draft):
 
 def _payment_rows(draft): return list(draft.payments.all().order_by("due_date","payment_date","id"))
 
+
+def _customer_folios(user, customer):
+    return (
+        ShowroomDraft.objects.filter(
+            created_by=user,
+            customer=customer,
+            status__in=["PENDING", "APPROVED", "TRANSFERRED"],
+        )
+        .select_related("customer")
+        .prefetch_related("items__product_card__urun", "payments")
+        .order_by("-updated_at", "-id")
+    )
+
 def _build_payment_rows(draft, raw_payments):
     rows=[]
     if not isinstance(raw_payments,list): return rows
@@ -202,16 +215,7 @@ def showroom_customer_folios(request, customer_id):
     if not _can_manage(request.user):
         return HttpResponseForbidden("Bu sayfaya erişim yetkiniz yok.")
     customer = get_object_or_404(Musteri, pk=customer_id)
-    drafts = (
-        ShowroomDraft.objects.filter(
-            created_by=request.user,
-            customer=customer,
-            status__in=["PENDING", "APPROVED", "TRANSFERRED"],
-        )
-        .select_related("customer")
-        .prefetch_related("items", "payments")
-        .order_by("-updated_at", "-id")
-    )
+    drafts = _customer_folios(request.user, customer)
     status_labels = {
         "PENDING": "Taslak",
         "APPROVED": "Onaylanan",
@@ -230,6 +234,33 @@ def showroom_customer_folios(request, customer_id):
         "product_cards/showroom_customer_folios.html",
         {"customer": customer, "folios": folios},
     )
+
+
+@login_required
+@require_GET
+def showroom_customer_folios_data(request, customer_id):
+    if not _can_manage(request.user):
+        return JsonResponse({"ok": False, "message": "Bu bilgilere erişim yetkiniz yok."}, status=403)
+    customer = get_object_or_404(Musteri, pk=customer_id)
+    status_labels = {
+        "PENDING": "Taslak",
+        "APPROVED": "Onaylanan",
+        "TRANSFERRED": "Siparişe Aktarıldı",
+    }
+    folios = []
+    for draft in _customer_folios(request.user, customer):
+        data = _serialize_draft(draft)
+        folios.append(
+            {
+                "id": draft.id,
+                "status": draft.status,
+                "status_label": status_labels[draft.status],
+                "updated_at": timezone.localtime(draft.updated_at).strftime("%d.%m.%Y %H:%M"),
+                "summary": _draft_summary(draft),
+                "items": data["items"],
+            }
+        )
+    return JsonResponse({"ok": True, "customer": {"id": customer.id, "name": customer.ad}, "folios": folios})
 
 @login_required
 def showroom_detail_page(request,draft_id):

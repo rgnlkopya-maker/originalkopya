@@ -11,6 +11,7 @@
         <div class="col-md-4">
             <label class="form-label">Müşteri</label>
             <select id="musteri_select" name="musteri" class="form-select select2" required><option></option>{% for m in musteriler %}<option value="{{ m.id }}">{{ m.ad }}</option>{% endfor %}</select>
+            {% if is_manager %}<div class="mt-2">{% include "product_cards/_customer_folios_button.html" with folio_button_popup=True folio_button_id="orderCustomerFoliosBtn" folio_button_class="manage-btn" folio_button_select="#musteri_select" %}</div>{% endif %}
         </div>
         <div class="col-md-4">
             <label class="form-label">Ürün Kodu</label>
