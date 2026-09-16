@@ -26,7 +26,7 @@ def showroom_print_page(request, draft_id):
         ShowroomDraft.objects.select_related("customer").prefetch_related("items__product_card__urun", "payments"),
         id=draft_id,
         created_by=request.user,
-        status__in=["PENDING", "APPROVED"],
+        status__in=["PENDING", "APPROVED", "TRANSFERRED"],
     )
 
     customer_detail = None
@@ -35,7 +35,11 @@ def showroom_print_page(request, draft_id):
 
     data = _serialize_draft(draft)
     summary = _draft_summary(draft)
-    status_label = "Taslak" if draft.status == "PENDING" else "Onaylanan"
+    status_label = {
+        "PENDING": "Taslak",
+        "APPROVED": "Onaylanan",
+        "TRANSFERRED": "Siparişe Aktarıldı",
+    }[draft.status]
 
     print_items = []
     for item in data["items"]:

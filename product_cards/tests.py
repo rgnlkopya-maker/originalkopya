@@ -478,3 +478,31 @@ class ShowroomStatusToggleTests(TestCase):
         self.assertEqual(response.status_code, 400)
         self.draft.refresh_from_db()
         self.assertEqual(self.draft.status, "PENDING")
+
+    def test_transferred_draft_remains_in_approved_archive(self):
+        self.draft.status = "TRANSFERRED"
+        self.draft.save(update_fields=["status", "updated_at"])
+
+        response = self.client.get(
+            reverse("showroom_archive_list"), {"kind": "approved"}
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["items"][0]["id"], self.draft.id)
+        self.assertEqual(response.json()["items"][0]["status"], "TRANSFERRED")
+
+    def test_transferred_draft_detail_and_print_remain_accessible(self):
+        self.draft.status = "TRANSFERRED"
+        self.draft.save(update_fields=["status", "updated_at"])
+
+        detail = self.client.get(
+            reverse("showroom_detail_page", args=[self.draft.pk])
+        )
+        printed = self.client.get(
+            reverse("showroom_print_page", args=[self.draft.pk])
+        )
+
+        self.assertEqual(detail.status_code, 200)
+        self.assertContains(detail, "Siparişe Aktarıldı")
+        self.assertEqual(printed.status_code, 200)
+        self.assertContains(printed, "Siparişe Aktarıldı")
