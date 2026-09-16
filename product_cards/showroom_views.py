@@ -4,8 +4,8 @@ from decimal import Decimal, InvalidOperation
 from django.contrib.auth.decorators import login_required
 from django.db import transaction
 from django.db.models import Count, DecimalField, ExpressionWrapper, F, Sum
-from django.http import HttpResponseForbidden, JsonResponse
-from django.shortcuts import get_object_or_404, render
+from django.http import HttpResponseBadRequest, HttpResponseForbidden, JsonResponse
+from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.views.decorators.http import require_GET, require_POST
 
@@ -201,6 +201,28 @@ def showroom_detail_page(request,draft_id):
     if not _can_manage(request.user): return HttpResponseForbidden("Bu sayfaya erişim yetkiniz yok.")
     draft=get_object_or_404(ShowroomDraft.objects.select_related("customer").prefetch_related("items__product_card__urun","payments"),id=draft_id,created_by=request.user,status__in=["PENDING","APPROVED"]); data=_serialize_draft(draft); summary=_draft_summary(draft); status_label="Taslak" if draft.status=="PENDING" else "Onaylanan"; back_url_name="showroom_drafts_page" if draft.status=="PENDING" else "showroom_approved_page"
     return render(request,"product_cards/showroom_detail.html",{"draft":draft,"items":data["items"],"summary":summary,"payments":_payment_rows(draft),"status_label":status_label,"back_url_name":back_url_name})
+
+
+@login_required
+@require_POST
+def showroom_toggle_approval(request, draft_id):
+    if not _can_manage(request.user):
+        return HttpResponseForbidden("Bu işlem için yetkiniz yok.")
+    with transaction.atomic():
+        draft = get_object_or_404(
+            ShowroomDraft.objects.select_for_update(),
+            id=draft_id,
+            created_by=request.user,
+            status__in=["PENDING", "APPROVED"],
+        )
+        if draft.status == "PENDING":
+            if not draft.items.exists():
+                return HttpResponseBadRequest("Boş Föy onaylanamaz.")
+            draft.status = "APPROVED"
+        else:
+            draft.status = "PENDING"
+        draft.save(update_fields=["status", "updated_at"])
+    return redirect("showroom_detail_page", draft_id=draft.id)
 
 @login_required
 def showroom_edit_page(request,draft_id):

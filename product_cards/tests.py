@@ -10,7 +10,7 @@ from django.utils import timezone
 
 from core.models import Musteri, Order, OrderEvent, ProductCost, UrunKod
 from .finance_views import calculate_finance_result
-from .models import ExchangeRate, Material, OrderFinancialSnapshot, PriceListSettings, ProductCard, ProductMaterial, ShipmentFinancialSnapshot
+from .models import ExchangeRate, Material, OrderFinancialSnapshot, PriceListSettings, ProductCard, ProductMaterial, ShipmentFinancialSnapshot, ShowroomDraft, ShowroomDraftItem
 
 
 class MaterialCostEditTests(TestCase):
@@ -419,3 +419,62 @@ class PriceListTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "7042-TEST")
+
+
+class ShowroomStatusToggleTests(TestCase):
+    def setUp(self):
+        self.manager = get_user_model().objects.create_user(
+            "showroom-status-manager", password="test-password"
+        )
+        patron, _ = Group.objects.get_or_create(name="patron")
+        self.manager.groups.add(patron)
+        self.client.force_login(self.manager)
+        product = UrunKod.objects.create(kod="STATUS-TEST", urun_tipi="DIGER")
+        card, _ = ProductCard.objects.get_or_create(urun=product)
+        self.draft = ShowroomDraft.objects.create(
+            created_by=self.manager, status="PENDING"
+        )
+        ShowroomDraftItem.objects.create(
+            draft=self.draft,
+            product_card=card,
+            color="Siyah",
+            size="M",
+            quantity=1,
+            unit_price=Decimal("100.00"),
+        )
+
+    def test_pending_draft_can_be_approved(self):
+        response = self.client.post(
+            reverse("showroom_toggle_approval", args=[self.draft.pk])
+        )
+
+        self.assertRedirects(
+            response, reverse("showroom_detail_page", args=[self.draft.pk])
+        )
+        self.draft.refresh_from_db()
+        self.assertEqual(self.draft.status, "APPROVED")
+
+    def test_approved_draft_can_be_moved_back_to_pending(self):
+        self.draft.status = "APPROVED"
+        self.draft.save(update_fields=["status", "updated_at"])
+
+        response = self.client.post(
+            reverse("showroom_toggle_approval", args=[self.draft.pk])
+        )
+
+        self.assertRedirects(
+            response, reverse("showroom_detail_page", args=[self.draft.pk])
+        )
+        self.draft.refresh_from_db()
+        self.assertEqual(self.draft.status, "PENDING")
+
+    def test_empty_pending_draft_cannot_be_approved(self):
+        self.draft.items.all().delete()
+
+        response = self.client.post(
+            reverse("showroom_toggle_approval", args=[self.draft.pk])
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.draft.refresh_from_db()
+        self.assertEqual(self.draft.status, "PENDING")
