@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block content %}
+<style>
+.customer-folios{max-width:1250px;margin:0 auto;padding:24px 14px 50px}.customer-folios-head{display:flex;justify-content:space-between;gap:14px;align-items:center;margin-bottom:18px}.customer-folios-head h2{margin:0;font-weight:850}.customer-folios-back{border:1px solid #e1e7f0;border-radius:22px;background:#fff;color:#39405a;text-decoration:none;padding:10px 17px;font-weight:700}.customer-folios-list{display:grid;gap:12px}.customer-folio{background:#fff;border:1px solid #e4e9f1;border-radius:16px;padding:16px 18px;display:grid;grid-template-columns:minmax(105px,.6fr) minmax(145px,.8fr) repeat(3,minmax(100px,.7fr)) auto;gap:14px;align-items:center}.folio-label{display:block;font-size:10px;font-weight:800;text-transform:uppercase;color:#8a94a6;margin-bottom:3px}.folio-value{font-weight:800;color:#39445a}.folio-status{display:inline-flex;border-radius:16px;padding:5px 9px;background:#f0f2ff;color:#4650d8;font-size:11px;font-weight:850}.folio-status.transferred{background:#edf8f1;color:#247348}.folio-actions{display:flex;gap:7px}.folio-detail,.folio-print{border-radius:10px;padding:9px 13px;font-weight:800;text-decoration:none;text-align:center;white-space:nowrap}.folio-detail{border:1px solid #dce2ff;background:#eef1ff;color:#3b45d9}.folio-print{border:1px solid #d8e2dc;background:#f3f8f5;color:#2d6b48}.customer-folios-empty{background:#fff;border:1px dashed #cfd7e6;border-radius:16px;padding:45px 20px;text-align:center;color:#8a94a6}@media(max-width:850px){.customer-folio{grid-template-columns:1fr 1fr}.folio-actions{grid-column:1/-1}.folio-actions a{flex:1}}@media(max-width:560px){.customer-folios-head{align-items:flex-start;flex-direction:column}.customer-folios-back{width:100%;text-align:center}.customer-folio{grid-template-columns:1fr}}
+</style>
+<main class="customer-folios">
+ <div class="customer-folios-head"><div><div class="text-muted small">MÜŞTERİ · SİPARİŞ FÖYLERİ</div><h2>{{ customer.ad }}</h2><div class="text-muted small">Bu müşteriye ait taslak, onaylanan ve siparişe aktarılan föyler.</div></div><a class="customer-folios-back" href="{% url 'customer_detail_report' customer.id %}"><i class="bi bi-arrow-left"></i> Müşteri Kartına Dön</a></div>
+ <section class="customer-folios-list">
+  {% for folio in folios %}
+  <article class="customer-folio">
+   <div><span class="folio-label">Föy No</span><span class="folio-value">#{{ folio.draft.id }}</span></div>
+   <div><span class="folio-label">Durum</span><span class="folio-status{% if folio.draft.status == 'TRANSFERRED' %} transferred{% endif %}">{{ folio.status_label }}</span></div>
+   <div><span class="folio-label">Ürün Çeşidi</span><span class="folio-value">{{ folio.summary.product_count }}</span></div>
+   <div><span class="folio-label">Toplam Adet</span><span class="folio-value">{{ folio.summary.total_qty }}</span></div>
+   <div><span class="folio-label">Genel Toplam</span><span class="folio-value">{{ folio.summary.total|floatformat:2 }} TL</span><div class="text-muted small">{{ folio.draft.updated_at|date:"d.m.Y H:i" }}</div></div>
+   <div class="folio-actions"><a class="folio-detail" href="{% url 'showroom_detail_page' folio.draft.id %}">Detay</a><a class="folio-print" href="{% url 'showroom_print_page' folio.draft.id %}">Yazdır</a></div>
+  </article>
+  {% empty %}<div class="customer-folios-empty">Bu müşteriye ait kayıtlı sipariş föyü bulunmuyor.</div>{% endfor %}
+ </section>
+</main>
+{% endblock %}

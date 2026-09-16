@@ -196,6 +196,41 @@ def showroom_approved_page(request):
     if not _can_manage(request.user): return HttpResponseForbidden("Bu sayfaya erişim yetkiniz yok.")
     return render(request,"product_cards/showroom_archive.html",{"archive_kind":"approved","archive_title":"Onaylanan Föyler"})
 
+
+@login_required
+def showroom_customer_folios(request, customer_id):
+    if not _can_manage(request.user):
+        return HttpResponseForbidden("Bu sayfaya erişim yetkiniz yok.")
+    customer = get_object_or_404(Musteri, pk=customer_id)
+    drafts = (
+        ShowroomDraft.objects.filter(
+            created_by=request.user,
+            customer=customer,
+            status__in=["PENDING", "APPROVED", "TRANSFERRED"],
+        )
+        .select_related("customer")
+        .prefetch_related("items", "payments")
+        .order_by("-updated_at", "-id")
+    )
+    status_labels = {
+        "PENDING": "Taslak",
+        "APPROVED": "Onaylanan",
+        "TRANSFERRED": "Siparişe Aktarıldı",
+    }
+    folios = [
+        {
+            "draft": draft,
+            "summary": _draft_summary(draft),
+            "status_label": status_labels[draft.status],
+        }
+        for draft in drafts
+    ]
+    return render(
+        request,
+        "product_cards/showroom_customer_folios.html",
+        {"customer": customer, "folios": folios},
+    )
+
 @login_required
 def showroom_detail_page(request,draft_id):
     if not _can_manage(request.user): return HttpResponseForbidden("Bu sayfaya erişim yetkiniz yok.")

@@ -429,10 +429,11 @@ class ShowroomStatusToggleTests(TestCase):
         patron, _ = Group.objects.get_or_create(name="patron")
         self.manager.groups.add(patron)
         self.client.force_login(self.manager)
+        self.customer = Musteri.objects.create(ad="Föy Test Müşterisi")
         product = UrunKod.objects.create(kod="STATUS-TEST", urun_tipi="DIGER")
         card, _ = ProductCard.objects.get_or_create(urun=product)
         self.draft = ShowroomDraft.objects.create(
-            created_by=self.manager, status="PENDING"
+            created_by=self.manager, customer=self.customer, status="PENDING"
         )
         ShowroomDraftItem.objects.create(
             draft=self.draft,
@@ -506,3 +507,32 @@ class ShowroomStatusToggleTests(TestCase):
         self.assertContains(detail, "Siparişe Aktarıldı")
         self.assertEqual(printed.status_code, 200)
         self.assertContains(printed, "Siparişe Aktarıldı")
+
+    def test_customer_page_links_to_customer_folios(self):
+        response = self.client.get(
+            reverse("customer_detail_report", args=[self.customer.pk])
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(
+            response, reverse("showroom_customer_folios", args=[self.customer.pk])
+        )
+
+    def test_customer_folios_are_filtered_and_clickable(self):
+        other_customer = Musteri.objects.create(ad="Başka Müşteri")
+        ShowroomDraft.objects.create(
+            created_by=self.manager,
+            customer=other_customer,
+            status="APPROVED",
+        )
+
+        response = self.client.get(
+            reverse("showroom_customer_folios", args=[self.customer.pk])
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Föy Test Müşterisi")
+        self.assertContains(
+            response, reverse("showroom_detail_page", args=[self.draft.pk])
+        )
+        self.assertNotContains(response, "Başka Müşteri")

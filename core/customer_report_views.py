@@ -274,4 +274,5 @@ def customer_detail_report(request, customer_id):
         "period_counts_json": json.dumps(period_counts),
         "period_revenue_json": json.dumps(period_revenue),
         "period_profit_json": json.dumps(period_profit),
+        "can_view_showroom_folios": request.user.is_superuser or request.user.groups.filter(name__in=["patron", "mudur"]).exists(),
     })
