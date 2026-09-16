@@ -116,6 +116,16 @@ class CustomerPricingRule(models.Model):
         return f"{self.customer.ad} özel fiyat kuralı"
 
 
+def _normalized_customer_name(value):
+    return "".join(character for character in (value or "").upper() if character.isalnum())
+
+
+@receiver(post_save, sender=Musteri)
+def create_modazehra_pricing_rule(sender, instance, **kwargs):
+    if _normalized_customer_name(instance.ad) in {"MODAZEHRA", "MODAZEHRADA"}:
+        CustomerPricingRule.objects.get_or_create(customer=instance)
+
+
 class Nakisci(models.Model):
     ad = models.CharField(max_length=100)
     telefon = models.CharField(max_length=20, blank=True, null=True)

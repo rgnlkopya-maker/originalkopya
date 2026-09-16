@@ -11,7 +11,7 @@ from .models import CustomerPricingRule, Musteri, Order, Renk, UrunKod
 class CustomerPricingRuleTests(TestCase):
     def setUp(self):
         self.customer = Musteri.objects.create(ad="MODAZEHRADA")
-        self.rule = CustomerPricingRule.objects.create(customer=self.customer)
+        self.rule, _ = CustomerPricingRule.objects.get_or_create(customer=self.customer)
 
     def test_hip_measurement_and_price_groups(self):
         cases = [
@@ -30,6 +30,13 @@ class CustomerPricingRuleTests(TestCase):
                 self.assertEqual(adjustment, Decimal(expected_adjustment))
                 self.assertEqual(final_price, Decimal("10000") + Decimal(expected_adjustment))
 
+    def test_modazehra_name_variants_create_rule_automatically(self):
+        spaced_customer = Musteri.objects.create(ad="Moda Zehra")
+        compact_customer = Musteri.objects.create(ad="modazehra")
+
+        self.assertTrue(CustomerPricingRule.objects.filter(customer=spaced_customer).exists())
+        self.assertTrue(CustomerPricingRule.objects.filter(customer=compact_customer).exists())
+
 
 class ModazehraOrderCreateTests(TestCase):
     def setUp(self):
@@ -38,7 +45,7 @@ class ModazehraOrderCreateTests(TestCase):
         self.user.groups.add(manager_group)
         self.client.force_login(self.user)
         self.customer = Musteri.objects.create(ad="MODAZEHRADA")
-        CustomerPricingRule.objects.create(customer=self.customer)
+        CustomerPricingRule.objects.get_or_create(customer=self.customer)
         Renk.objects.create(ad="Siyah")
         UrunKod.objects.create(kod="MODA-X", urun_tipi="DIGER")
 
