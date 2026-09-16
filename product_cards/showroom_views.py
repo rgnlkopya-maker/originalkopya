@@ -182,7 +182,9 @@ def showroom_draft_action(request):
                 return JsonResponse({"ok":True,"message":"Föy silindi."})
         return JsonResponse({"ok":False,"message":"İşlem geçersiz."},status=400)
     except Exception as exc:
-        return JsonResponse({"ok":False,"message":f"Föy işlemi sunucuda tamamlanamadı ({exc.__class__.__name__})."},status=500)
+        detail=str(exc).replace("\n"," ").strip()
+        if len(detail)>500: detail=detail[-500:]
+        return JsonResponse({"ok":False,"message":f"Föy işlemi tamamlanamadı [{action or 'bilinmiyor'}] {exc.__class__.__name__}: {detail}"},status=500)
 
 @login_required
 def showroom_drafts_page(request):
