@@ -456,6 +456,23 @@ class ShowroomStatusToggleTests(TestCase):
         self.draft.refresh_from_db()
         self.assertEqual(self.draft.status, "APPROVED")
 
+    def test_vat_is_calculated_after_discount(self):
+        self.draft.discount_rate = Decimal("10.00")
+        self.draft.vat_rate = Decimal("20.00")
+        self.draft.save(update_fields=["discount_rate", "vat_rate", "updated_at"])
+
+        response = self.client.get(
+            reverse("showroom_archive_list"), {"kind": "draft"}
+        )
+
+        self.assertEqual(response.status_code, 200)
+        summary = response.json()["items"][0]
+        self.assertEqual(summary["subtotal"], "100.00")
+        self.assertEqual(summary["discount"], "10.00")
+        self.assertEqual(summary["vat_rate"], "20.00")
+        self.assertEqual(summary["vat"], "18.00")
+        self.assertEqual(summary["total"], "108.00")
+
     def test_approved_draft_can_be_moved_back_to_pending(self):
         self.draft.status = "APPROVED"
         self.draft.save(update_fields=["status", "updated_at"])

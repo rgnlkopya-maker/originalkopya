@@ -216,6 +216,7 @@ class ShowroomDraft(models.Model):
     usd_try=models.DecimalField(max_digits=12,decimal_places=6,default=1)
     eur_try=models.DecimalField(max_digits=12,decimal_places=6,default=1)
     overall_discount_amount=models.DecimalField(max_digits=16,decimal_places=2,default=0)
+    vat_rate=models.DecimalField(max_digits=7,decimal_places=2,default=0)
     discount_scope=models.CharField(max_length=10,choices=DISCOUNT_SCOPE_CHOICES,default="ALL")
     orders_created=models.BooleanField(default=False)
     created_at=models.DateTimeField(auto_now_add=True)
