@@ -68,7 +68,7 @@ def _payment_data(draft):
 
 def _serialize_draft(draft):
     if not draft:
-        return {"ok": True, "draft": None, "customer_id": "", "items": [], "payments": [], "discount_rate": "0", "discount_amount": "0", "vat_rate": "0"}
+        return {"ok": True, "draft": None, "customer_id": "", "order_taken_by": "", "items": [], "payments": [], "discount_rate": "0", "discount_amount": "0", "vat_rate": "0"}
     groups=[]; group_map={}; row_maps={}
     for db_item in draft.items.select_related("product_card__urun").order_by("created_at", "id"):
         code=db_item.product_card.urun.kod; unit_price=str(db_item.unit_price); group_key=(db_item.product_card_id,unit_price)
@@ -78,7 +78,7 @@ def _serialize_draft(draft):
         if row_key not in row_maps[group_key]:
             row_maps[group_key][row_key]=len(group["satirlar"]); group["satirlar"].append({"renk":db_item.color,"bedenler":[],"adet":db_item.quantity,"aciklama":db_item.description})
         group["satirlar"][row_maps[group_key][row_key]]["bedenler"].append(db_item.size)
-    return {"ok":True,"draft":draft.id,"customer_id":str(draft.customer_id or ""),"items":groups,"payments":_payment_data(draft),"discount_rate":str(draft.discount_rate or 0),"discount_amount":str(draft.overall_discount_amount or 0),"vat_rate":str(draft.vat_rate or 0),"updated_at":draft.updated_at.isoformat() if draft.updated_at else None}
+    return {"ok":True,"draft":draft.id,"customer_id":str(draft.customer_id or ""),"order_taken_by":draft.order_taken_by or "","items":groups,"payments":_payment_data(draft),"discount_rate":str(draft.discount_rate or 0),"discount_amount":str(draft.overall_discount_amount or 0),"vat_rate":str(draft.vat_rate or 0),"updated_at":draft.updated_at.isoformat() if draft.updated_at else None}
 
 
 def _draft_summary(draft):
@@ -144,7 +144,7 @@ def showroom_draft_autosave(request):
     if not _can_manage(request.user): return JsonResponse({"ok":False,"message":"Yetkiniz yok."},status=403)
     try: payload=json.loads(request.body.decode("utf-8") or "{}")
     except (json.JSONDecodeError,UnicodeDecodeError): return JsonResponse({"ok":False,"message":"Geçersiz veri."},status=400)
-    customer_id=payload.get("customer_id") or None; raw_items=payload.get("items") or []; raw_payments=payload.get("payments") or []; vat_rate=max(Decimal("0"),min(Decimal("100"),_decimal(payload.get("vat_rate"),"0")))
+    customer_id=payload.get("customer_id") or None; order_taken_by=str(payload.get("order_taken_by") or "").strip()[:120]; raw_items=payload.get("items") or []; raw_payments=payload.get("payments") or []; vat_rate=max(Decimal("0"),min(Decimal("100"),_decimal(payload.get("vat_rate"),"0")))
     if not isinstance(raw_items,list) or not isinstance(raw_payments,list): return JsonResponse({"ok":False,"message":"Föy verisi geçersiz."},status=400)
     customer=Musteri.objects.filter(pk=customer_id).first() if customer_id else None
     validation_error = _validate_customer_base_price_rows(customer, raw_items)
@@ -152,7 +152,7 @@ def showroom_draft_autosave(request):
         return JsonResponse({"ok":False,"message":validation_error},status=400)
     with transaction.atomic():
         _lock_showroom_user(request.user)
-        draft=_active_draft(request.user) or _create_draft(request.user,customer); draft.customer=customer; draft.vat_rate=vat_rate; draft.save(update_fields=["customer","vat_rate","updated_at"]); draft.items.all().delete(); create_rows=[]
+        draft=_active_draft(request.user) or _create_draft(request.user,customer); draft.customer=customer; draft.order_taken_by=order_taken_by; draft.vat_rate=vat_rate; draft.save(update_fields=["customer","order_taken_by","vat_rate","updated_at"]); draft.items.all().delete(); create_rows=[]
         for item in raw_items:
             code=str(item.get("urun_kodu") or "").strip(); product_card=ProductCard.objects.select_related("urun").filter(urun__kod__iexact=code).first() if code else None
             if not product_card: continue
@@ -285,6 +285,7 @@ def showroom_customer_folios_data(request, customer_id):
                 "status": draft.status,
                 "status_label": status_labels[draft.status],
                 "currency": draft.currency,
+                "order_taken_by": draft.order_taken_by or "",
                 "updated_at": timezone.localtime(draft.updated_at).strftime("%d.%m.%Y %H:%M"),
                 "summary": _draft_summary(draft),
                 "items": data["items"],
@@ -383,7 +384,7 @@ def showroom_edit_save(request,draft_id):
     draft=get_object_or_404(ShowroomDraft,id=draft_id,created_by=request.user,status__in=["PENDING","APPROVED","TRANSFERRED"])
     try: payload=json.loads(request.body.decode("utf-8") or "{}")
     except (json.JSONDecodeError,UnicodeDecodeError): return JsonResponse({"ok":False,"message":"Geçersiz veri."},status=400)
-    customer_id=payload.get("customer_id") or None; raw_items=payload.get("items") or []; raw_payments=payload.get("payments") or []
+    customer_id=payload.get("customer_id") or None; order_taken_by=str(payload.get("order_taken_by") or "").strip()[:120]; raw_items=payload.get("items") or []; raw_payments=payload.get("payments") or []
     if not isinstance(raw_items,list) or not raw_items: return JsonResponse({"ok":False,"message":"Föyde en az bir ürün olmalı."},status=400)
     if not isinstance(raw_payments,list): return JsonResponse({"ok":False,"message":"Tahsilat verisi geçersiz."},status=400)
     customer=Musteri.objects.filter(pk=customer_id).first() if customer_id else None
@@ -402,6 +403,6 @@ def showroom_edit_save(request,draft_id):
     if not create_rows: return JsonResponse({"ok":False,"message":"Geçerli ürün satırı bulunamadı."},status=400)
     payment_rows=_build_payment_rows(draft,raw_payments)
     with transaction.atomic():
-        draft.customer=customer; draft.discount_rate=rate; draft.overall_discount_amount=amount; draft.vat_rate=vat_rate; draft.save(update_fields=["customer","discount_rate","overall_discount_amount","vat_rate","updated_at"]); draft.items.all().delete(); ShowroomDraftItem.objects.bulk_create(create_rows); draft.payments.all().delete()
+        draft.customer=customer; draft.order_taken_by=order_taken_by; draft.discount_rate=rate; draft.overall_discount_amount=amount; draft.vat_rate=vat_rate; draft.save(update_fields=["customer","order_taken_by","discount_rate","overall_discount_amount","vat_rate","updated_at"]); draft.items.all().delete(); ShowroomDraftItem.objects.bulk_create(create_rows); draft.payments.all().delete()
         if payment_rows: ShowroomPayment.objects.bulk_create(payment_rows)
     return JsonResponse({"ok":True,"message":"Föy güncellendi."})

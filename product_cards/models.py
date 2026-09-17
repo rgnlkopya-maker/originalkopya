@@ -208,6 +208,7 @@ class ShowroomDraft(models.Model):
     DISCOUNT_SCOPE_CHOICES=[("ALL","Tüm ürünler"),("SELECTED","Seçili ürünler")]
     created_by=models.ForeignKey(settings.AUTH_USER_MODEL,on_delete=models.PROTECT,related_name="showroom_drafts")
     customer=models.ForeignKey("core.Musteri",on_delete=models.SET_NULL,null=True,blank=True,related_name="showroom_drafts")
+    order_taken_by=models.CharField(max_length=120,blank=True,default="")
     status=models.CharField(max_length=12,choices=STATUS_CHOICES,default="DRAFT")
     currency=models.CharField(max_length=3,choices=CURRENCY_CHOICES,default="TRY")
     profit_rate=models.DecimalField(max_digits=7,decimal_places=2,default=0)

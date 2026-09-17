@@ -473,6 +473,18 @@ class ShowroomStatusToggleTests(TestCase):
         self.assertEqual(summary["vat"], "18.00")
         self.assertEqual(summary["total"], "108.00")
 
+    def test_order_taken_by_is_shown_on_folio_detail(self):
+        self.draft.order_taken_by = "Mehmet Şener"
+        self.draft.save(update_fields=["order_taken_by", "updated_at"])
+
+        response = self.client.get(
+            reverse("showroom_detail_page", args=[self.draft.pk])
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Siparişi Alan")
+        self.assertContains(response, "Mehmet Şener")
+
     def test_approved_draft_can_be_moved_back_to_pending(self):
         self.draft.status = "APPROVED"
         self.draft.save(update_fields=["status", "updated_at"])
