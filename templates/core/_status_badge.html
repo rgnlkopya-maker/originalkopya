@@ -121,6 +121,7 @@ document.addEventListener('DOMContentLoaded', function () {
         {% endif %}
         <table class="table table-sm table-bordered bg-white align-middle mb-0">
             <tr><th style="width:42%">Satış Fiyatı</th><td>{{ order.financial_snapshot.satis_fiyati|floatformat:2 }} {{ order.financial_snapshot.satis_para_birimi }}</td></tr>
+            <tr><th>KDV Oranı</th><td>%{{ order.vat_rate|floatformat:2 }}</td></tr>
             <tr><th>Sipariş Günü USD/TL Kuru</th><td>{% if order.financial_snapshot.usd_try %}{{ order.financial_snapshot.usd_try|floatformat:4 }} TL{% else %}<span class="text-muted">Kur kaydı yok</span>{% endif %}</td></tr>
             <tr><th>Satışın TL Karşılığı</th><td>{% if order.financial_snapshot.satis_tl is not None %}<strong>{{ order.financial_snapshot.satis_tl|floatformat:2 }} TL</strong>{% else %}<span class="text-muted">Hesaplanamadı</span>{% endif %}</td></tr>
             <tr><th>{% if order.shipment_financial_snapshot %}Sevkiyatta Sabitlenen Ürün Maliyeti{% else %}Güncel Ürün Maliyeti{% endif %}</th><td>{% if order.financial_snapshot.maliyet_tl is not None %}{{ order.financial_snapshot.maliyet_tl|floatformat:2 }} TL{% else %}<span class="text-warning">Ürün maliyeti sipariş anında tanımlı değildi</span>{% endif %}</td></tr>
@@ -128,6 +129,9 @@ document.addEventListener('DOMContentLoaded', function () {
         </table>`;
     {% else %}
     box.innerHTML = `
+        <table class="table table-sm table-bordered bg-white align-middle mb-2">
+            <tr><th style="width:42%">KDV Oranı</th><td>%{{ order.vat_rate|floatformat:2 }}</td></tr>
+        </table>
         <div class="alert alert-light border mb-0">Bu sipariş finans snapshot sistemi kurulmadan önce oluşturulmuş. Geçmiş tarihli kur veya maliyet uydurulmadığı için sipariş günü kârı otomatik gösterilmiyor.</div>`;
     {% endif %}
 });
