@@ -297,6 +297,7 @@ document.addEventListener("DOMContentLoaded", function () {
     });
 
     productModal.addEventListener("hidden.bs.modal", function () {
+        if (window.__moliShowroomManageReturnPending) return;
         document.body.classList.remove("showroom-manual-product");
         productInput.setAttribute("readonly", "readonly");
     });
