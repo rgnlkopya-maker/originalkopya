@@ -292,6 +292,56 @@ def showroom_customer_folios_data(request, customer_id):
         )
     return JsonResponse({"ok": True, "customer": {"id": customer.id, "name": customer.ad}, "folios": folios})
 
+
+@login_required
+@require_GET
+def showroom_customer_product_base_price(request):
+    if not _can_manage(request.user):
+        return JsonResponse({"ok": False, "message": "Bu bilgilere erişim yetkiniz yok."}, status=403)
+
+    customer_id = request.GET.get("customer_id")
+    product_code = str(request.GET.get("product_code") or "").strip()
+    if not customer_id or not product_code:
+        return JsonResponse({"ok": False, "message": "Müşteri ve ürün kodu gereklidir."}, status=400)
+    try:
+        customer_id = int(customer_id)
+    except (TypeError, ValueError):
+        return JsonResponse({"ok": False, "message": "Geçersiz müşteri."}, status=400)
+    if not Musteri.objects.filter(pk=customer_id, aktif=True).exists():
+        return JsonResponse({"ok": False, "message": "Müşteri bulunamadı."}, status=404)
+
+    pricing_rule_exists = CustomerPricingRule.objects.filter(
+        customer_id=customer_id,
+        active=True,
+    ).exists()
+    if not pricing_rule_exists:
+        return JsonResponse({"ok": True, "applies": False, "found": False})
+
+    item = (
+        ShowroomDraftItem.objects.select_related("draft")
+        .filter(
+            draft__created_by=request.user,
+            draft__customer_id=customer_id,
+            draft__status__in=["APPROVED", "TRANSFERRED"],
+            product_card__urun__kod__iexact=product_code,
+            size__iexact=CUSTOMER_BASE_PRICE_SIZE,
+        )
+        .order_by("-draft__updated_at", "-draft_id", "-id")
+        .first()
+    )
+    if not item:
+        return JsonResponse({"ok": True, "applies": True, "found": False})
+
+    return JsonResponse({
+        "ok": True,
+        "applies": True,
+        "found": True,
+        "base_price": str(item.unit_price),
+        "currency": item.draft.currency or "TRY",
+        "folio_id": item.draft_id,
+        "folio_updated_at": timezone.localtime(item.draft.updated_at).strftime("%d.%m.%Y %H:%M"),
+    })
+
 @login_required
 def showroom_detail_page(request,draft_id):
     if not _can_manage(request.user): return HttpResponseForbidden("Bu sayfaya erişim yetkiniz yok.")

@@ -2,6 +2,8 @@
 $(document).ready(function () {
     const pricingRulesData = document.getElementById("customer-pricing-rules-data");
     const customerPricingRules = pricingRulesData ? JSON.parse(pricingRulesData.textContent) : {};
+    const folioBasePriceUrl = "{% url 'showroom_customer_product_base_price' %}";
+    let folioBasePriceRequest = 0;
 
     function activeCustomerPricingRule() {
         return customerPricingRules[String($("#musteri_select").val() || "")] || null;
@@ -57,6 +59,55 @@ $(document).ready(function () {
             if (hip) hip.required = enabled;
             refreshCustomerPricePreview(row);
         });
+    }
+
+    function refreshFolioBasePrice() {
+        const requestId = ++folioBasePriceRequest;
+        const rule = activeCustomerPricingRule();
+        const customerId = $("#musteri_select").val();
+        const productCode = $("#urun_kodu_select").val();
+        const input = $("#base-sales-price");
+        const help = $("#base-price-help");
+        if (!input.length) return;
+
+        if (!rule) {
+            if (input.attr("data-folio-auto") === "1") input.val("");
+            input.attr("data-folio-auto", "0");
+            help.text("Föyde anlaşılan baz fiyatı girin; beden farkları satırlara otomatik eklenir.");
+            refreshAllCustomerPricePreviews();
+            return;
+        }
+
+        help.removeClass("d-none");
+        if (!customerId || !productCode) {
+            if (input.attr("data-folio-auto") === "1") input.val("");
+            input.attr("data-folio-auto", "0");
+            help.text("Müşteri ve ürün seçildiğinde son onaylı föydeki baz fiyat otomatik aranır.");
+            refreshAllCustomerPricePreviews();
+            return;
+        }
+
+        if (input.attr("data-folio-auto") === "1") input.val("");
+        input.attr("data-folio-auto", "0");
+        help.text("Son onaylı föyde baz fiyat aranıyor...");
+        refreshAllCustomerPricePreviews();
+
+        $.get(folioBasePriceUrl, {customer_id: customerId, product_code: productCode})
+            .done(function (data) {
+                if (requestId !== folioBasePriceRequest) return;
+                if (data.found) {
+                    input.val(data.base_price).attr("data-folio-auto", "1");
+                    $("input[name='para_birimi']").val(data.currency || "TRY");
+                    help.text("Baz fiyat Föy #" + data.folio_id + " kaydından otomatik getirildi · " + data.folio_updated_at);
+                } else {
+                    help.text("Bu ürün için onaylı föyde baz fiyat bulunamadı; fiyatı elle girebilirsiniz.");
+                }
+                refreshAllCustomerPricePreviews();
+            })
+            .fail(function () {
+                if (requestId !== folioBasePriceRequest) return;
+                help.text("Föy baz fiyatı alınamadı; fiyatı elle girebilirsiniz.");
+            });
     }
 
     function normalizeText(value) {
@@ -328,9 +379,15 @@ $(document).ready(function () {
                 summary.text("Geçmiş fiyat bilgisi alınamadı.");
             });
     }
-    $("#musteri_select, #urun_kodu_select").on("change", refreshPriceHistory);
+    $("#musteri_select, #urun_kodu_select").on("change", function () {
+        refreshPriceHistory();
+        refreshFolioBasePrice();
+    });
     $("#musteri_select").on("change", applyCustomerPricingMode);
-    $(document).on("input", ".hip-measurement, #base-sales-price", refreshAllCustomerPricePreviews);
+    $(document).on("input", ".hip-measurement, #base-sales-price", function (event) {
+        if (event.target.id === "base-sales-price") $(event.target).attr("data-folio-auto", "0");
+        refreshAllCustomerPricePreviews();
+    });
 
     $("#priceHistoryModal").on("show.bs.modal", function () {
         const customerName = $("#musteri_select option:selected").text();
@@ -425,5 +482,6 @@ $(document).ready(function () {
         });
     }
     applyCustomerPricingMode();
+    refreshFolioBasePrice();
 });
 </script>

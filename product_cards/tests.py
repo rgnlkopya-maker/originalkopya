@@ -1,4 +1,5 @@
 import json
+from datetime import timedelta
 from decimal import Decimal
 from unittest.mock import patch
 
@@ -634,3 +635,75 @@ class ShowroomStatusToggleTests(TestCase):
             response, reverse("showroom_transfer_preview", args=[self.draft.pk])
         )
         self.assertFalse(Order.objects.filter(urun_kodu="STATUS-TEST").exists())
+
+    def test_latest_approved_customer_folio_base_price_is_returned(self):
+        pricing_customer = Musteri.objects.create(ad="MODAZEHRADA")
+        card = self.draft.items.first().product_card
+        now = timezone.now()
+
+        older = ShowroomDraft.objects.create(
+            created_by=self.manager,
+            customer=pricing_customer,
+            status="APPROVED",
+        )
+        ShowroomDraftItem.objects.create(
+            draft=older,
+            product_card=card,
+            color="Siyah",
+            size="BAZ FİYAT (BEDENSİZ)",
+            quantity=1,
+            unit_price=Decimal("9000"),
+        )
+        ShowroomDraft.objects.filter(pk=older.pk).update(updated_at=now - timedelta(days=2))
+
+        latest = ShowroomDraft.objects.create(
+            created_by=self.manager,
+            customer=pricing_customer,
+            status="TRANSFERRED",
+        )
+        ShowroomDraftItem.objects.create(
+            draft=latest,
+            product_card=card,
+            color="Siyah",
+            size="BAZ FİYAT (BEDENSİZ)",
+            quantity=1,
+            unit_price=Decimal("10000"),
+        )
+        ShowroomDraft.objects.filter(pk=latest.pk).update(updated_at=now - timedelta(days=1))
+
+        pending = ShowroomDraft.objects.create(
+            created_by=self.manager,
+            customer=pricing_customer,
+            status="PENDING",
+        )
+        ShowroomDraftItem.objects.create(
+            draft=pending,
+            product_card=card,
+            color="Siyah",
+            size="BAZ FİYAT (BEDENSİZ)",
+            quantity=1,
+            unit_price=Decimal("12000"),
+        )
+
+        response = self.client.get(
+            reverse("showroom_customer_product_base_price"),
+            {"customer_id": pricing_customer.pk, "product_code": "status-test"},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertTrue(data["found"])
+        self.assertEqual(data["base_price"], "10000.00")
+        self.assertEqual(data["folio_id"], latest.pk)
+
+    def test_customer_folio_base_price_reports_missing_product(self):
+        pricing_customer = Musteri.objects.create(ad="MODAZEHRADA")
+
+        response = self.client.get(
+            reverse("showroom_customer_product_base_price"),
+            {"customer_id": pricing_customer.pk, "product_code": "UNKNOWN"},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.json()["applies"])
+        self.assertFalse(response.json()["found"])
