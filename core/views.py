@@ -2289,6 +2289,7 @@ def order_print(request):
 def order_label_print(request):
     ids = request.GET.getlist("ids")
     orders = Order.objects.filter(id__in=ids)
+    orders.update(cikti_alindi=True)
     return render(request, "orders/order_label_print.html", {"orders": orders})
 
 

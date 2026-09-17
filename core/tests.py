@@ -118,6 +118,39 @@ class OrderListDescriptionTests(TestCase):
         self.assertContains(response, "Kutusunda özel etiket kullanılacak")
 
 
+class OrderLabelPrintStatusTests(TestCase):
+    def setUp(self):
+        self.user = get_user_model().objects.create_user("label-user", password="test")
+        self.client.force_login(self.user)
+
+    @patch("core.signals_qr.ensure_order_qr")
+    def test_opening_label_page_marks_all_selected_orders_as_printed(self, _qr):
+        first = Order.objects.create(siparis_tipi="SERI")
+        second = Order.objects.create(siparis_tipi="SERI")
+        untouched = Order.objects.create(siparis_tipi="SERI")
+
+        response = self.client.get(
+            "/orders/label/print/", {"ids": [first.pk, second.pk]}
+        )
+
+        self.assertEqual(response.status_code, 200)
+        first.refresh_from_db()
+        second.refresh_from_db()
+        untouched.refresh_from_db()
+        self.assertTrue(first.cikti_alindi)
+        self.assertTrue(second.cikti_alindi)
+        self.assertFalse(untouched.cikti_alindi)
+
+    @patch("core.signals_qr.ensure_order_qr")
+    def test_order_list_shows_printed_note_under_order_number(self, _qr):
+        Order.objects.create(siparis_tipi="SERI", cikti_alindi=True)
+
+        response = self.client.get("/")
+
+        self.assertContains(response, "Etiket yazdırıldı")
+        self.assertContains(response, 'class="label-printed-note"')
+
+
 class DeleteOrderEventTests(TestCase):
     def setUp(self):
         self.user = get_user_model().objects.create_user("patron-test", password="test")
