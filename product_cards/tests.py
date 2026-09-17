@@ -8,7 +8,7 @@ from django.test import TestCase
 from django.urls import reverse
 from django.utils import timezone
 
-from core.models import Musteri, Order, OrderEvent, ProductCost, UrunKod
+from core.models import CustomerPricingRule, Musteri, Order, OrderEvent, ProductCost, UrunKod
 from .finance_views import calculate_finance_result
 from .models import ExchangeRate, Material, OrderFinancialSnapshot, PriceListSettings, ProductCard, ProductMaterial, ShipmentFinancialSnapshot, ShowroomDraft, ShowroomDraftItem
 
@@ -556,3 +556,81 @@ class ShowroomStatusToggleTests(TestCase):
         self.assertEqual([folio["id"] for folio in data["folios"]], [self.draft.pk])
         self.assertEqual(data["folios"][0]["items"][0]["urun_kodu"], "STATUS-TEST")
         self.assertEqual(data["folios"][0]["items"][0]["anlasilan_fiyat"], "100.00")
+
+    def test_customer_base_price_size_is_saved_for_pricing_customer(self):
+        pricing_customer = Musteri.objects.create(ad="MODAZEHRADA")
+        self.assertTrue(
+            CustomerPricingRule.objects.filter(customer=pricing_customer, active=True).exists()
+        )
+
+        response = self.client.post(
+            reverse("showroom_draft_autosave"),
+            data=json.dumps({
+                "customer_id": pricing_customer.pk,
+                "items": [{
+                    "urun_kodu": "STATUS-TEST",
+                    "anlasilan_fiyat": "10000",
+                    "satirlar": [{
+                        "renk": "Siyah",
+                        "bedenler": ["BAZ FİYAT (BEDENSİZ)"],
+                        "adet": 1,
+                        "aciklama": "",
+                    }],
+                }],
+                "payments": [],
+            }),
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        saved_item = ShowroomDraftItem.objects.get(
+            draft__created_by=self.manager,
+            draft__status="DRAFT",
+        )
+        self.assertEqual(saved_item.size, "BAZ FİYAT (BEDENSİZ)")
+        self.assertEqual(saved_item.unit_price, Decimal("10000"))
+
+    def test_customer_base_price_size_is_rejected_for_regular_customer(self):
+        response = self.client.post(
+            reverse("showroom_draft_autosave"),
+            data=json.dumps({
+                "customer_id": self.customer.pk,
+                "items": [{
+                    "urun_kodu": "STATUS-TEST",
+                    "anlasilan_fiyat": "10000",
+                    "satirlar": [{
+                        "renk": "Siyah",
+                        "bedenler": ["BAZ FİYAT (BEDENSİZ)"],
+                        "adet": 1,
+                        "aciklama": "",
+                    }],
+                }],
+                "payments": [],
+            }),
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("yalnızca özel fiyat", response.json()["message"])
+        self.assertFalse(
+            ShowroomDraft.objects.filter(created_by=self.manager, status="DRAFT").exists()
+        )
+
+    def test_customer_base_price_rows_cannot_be_transferred_as_real_orders(self):
+        self.draft.status = "APPROVED"
+        self.draft.save(update_fields=["status", "updated_at"])
+        self.draft.items.update(size="BAZ FİYAT (BEDENSİZ)")
+
+        preview = self.client.get(
+            reverse("showroom_transfer_preview", args=[self.draft.pk])
+        )
+        response = self.client.post(
+            reverse("showroom_transfer_create", args=[self.draft.pk])
+        )
+
+        self.assertContains(preview, "doğrudan siparişe aktarılamaz")
+        self.assertContains(preview, "disabled")
+        self.assertRedirects(
+            response, reverse("showroom_transfer_preview", args=[self.draft.pk])
+        )
+        self.assertFalse(Order.objects.filter(urun_kodu="STATUS-TEST").exists())

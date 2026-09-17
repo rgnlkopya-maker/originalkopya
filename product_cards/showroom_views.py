@@ -9,10 +9,36 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.views.decorators.http import require_GET, require_POST
 
-from core.models import Beden, Musteri, Renk, URUN_TIPI_CHOICES, UrunKod
+from core.models import Beden, CustomerPricingRule, Musteri, Renk, URUN_TIPI_CHOICES, UrunKod
 from .models import PriceListSettings, ProductCard, ShowroomDraft, ShowroomDraftItem
 from .payment_models import ShowroomPayment
 from .price_list_views import _can_manage, _ensure_price_rates, _price_rows, _real_profit_rate
+
+
+CUSTOMER_BASE_PRICE_SIZE = "BAZ FİYAT (BEDENSİZ)"
+
+
+def _pricing_customer_ids():
+    return list(
+        CustomerPricingRule.objects.filter(active=True).values_list("customer_id", flat=True)
+    )
+
+
+def _validate_customer_base_price_rows(customer, raw_items):
+    has_pricing_rule = bool(
+        customer
+        and CustomerPricingRule.objects.filter(customer=customer, active=True).exists()
+    )
+    for item in raw_items:
+        for row in item.get("satirlar") or []:
+            sizes = row.get("bedenler") or []
+            if CUSTOMER_BASE_PRICE_SIZE not in sizes:
+                continue
+            if not has_pricing_rule:
+                return "Baz fiyat (bedensiz) yalnızca özel fiyat kuralı bulunan müşterilerde kullanılabilir."
+            if len(sizes) != 1:
+                return "Baz fiyat (bedensiz) ile gerçek beden aynı satırda seçilemez."
+    return None
 
 
 def _active_draft(user):
@@ -104,7 +130,7 @@ def showroom_page(request):
     settings=PriceListSettings.get_solo()
     if settings.profit_rate<=0 and settings.discount_rate>0: settings.discount_rate=Decimal("0"); settings.save(update_fields=["discount_rate","updated_at"])
     rate_error=_ensure_price_rates(settings); show_inactive=request.GET.get("durum")=="pasif"; musteriler=Musteri.objects.filter(aktif=True).order_by("ad"); renkler=Renk.objects.filter(aktif=True).order_by("ad"); bedenler=Beden.objects.filter(aktif=True).order_by("ad"); urun_kodlari=UrunKod.objects.filter(aktif=True).order_by("kod")
-    return render(request,"product_cards/showroom_page.html",{"settings":settings,"rows":_price_rows(settings,active=not show_inactive),"show_inactive":show_inactive,"inactive_count":ProductCard.objects.filter(price_list_active=False).count(),"rate_error":rate_error,"real_profit_rate":_real_profit_rate(settings.profit_rate,settings.discount_rate),"showroom_mode":True,"musteriler":musteriler,"renkler":renkler,"bedenler":bedenler,"urun_kodlari":urun_kodlari,"aktif_musteriler":musteriler,"aktif_renkler":renkler,"aktif_bedenler":bedenler,"aktif_urun_kodlari":urun_kodlari,"urun_tipi_secenekleri":URUN_TIPI_CHOICES})
+    return render(request,"product_cards/showroom_page.html",{"settings":settings,"rows":_price_rows(settings,active=not show_inactive),"show_inactive":show_inactive,"inactive_count":ProductCard.objects.filter(price_list_active=False).count(),"rate_error":rate_error,"real_profit_rate":_real_profit_rate(settings.profit_rate,settings.discount_rate),"showroom_mode":True,"musteriler":musteriler,"renkler":renkler,"bedenler":bedenler,"urun_kodlari":urun_kodlari,"aktif_musteriler":musteriler,"aktif_renkler":renkler,"aktif_bedenler":bedenler,"aktif_urun_kodlari":urun_kodlari,"urun_tipi_secenekleri":URUN_TIPI_CHOICES,"pricing_customer_ids":_pricing_customer_ids(),"customer_base_price_size":CUSTOMER_BASE_PRICE_SIZE})
 
 @login_required
 @require_GET
@@ -121,6 +147,9 @@ def showroom_draft_autosave(request):
     customer_id=payload.get("customer_id") or None; raw_items=payload.get("items") or []; raw_payments=payload.get("payments") or []
     if not isinstance(raw_items,list) or not isinstance(raw_payments,list): return JsonResponse({"ok":False,"message":"Föy verisi geçersiz."},status=400)
     customer=Musteri.objects.filter(pk=customer_id).first() if customer_id else None
+    validation_error = _validate_customer_base_price_rows(customer, raw_items)
+    if validation_error:
+        return JsonResponse({"ok":False,"message":validation_error},status=400)
     with transaction.atomic():
         _lock_showroom_user(request.user)
         draft=_active_draft(request.user) or _create_draft(request.user,customer); draft.customer=customer; draft.save(update_fields=["customer","updated_at"]); draft.items.all().delete(); create_rows=[]
@@ -295,7 +324,7 @@ def showroom_toggle_approval(request, draft_id):
 def showroom_edit_page(request,draft_id):
     if not _can_manage(request.user): return HttpResponseForbidden("Bu sayfaya erişim yetkiniz yok.")
     draft=get_object_or_404(ShowroomDraft.objects.select_related("customer").prefetch_related("items__product_card__urun","payments"),id=draft_id,created_by=request.user,status__in=["PENDING","APPROVED"]); data=_serialize_draft(draft)
-    return render(request,"product_cards/showroom_edit.html",{"draft":draft,"items":data["items"],"payments":_payment_rows(draft),"musteriler":Musteri.objects.filter(aktif=True).order_by("ad"),"renkler":Renk.objects.filter(aktif=True).order_by("ad"),"bedenler":Beden.objects.filter(aktif=True).order_by("ad")})
+    return render(request,"product_cards/showroom_edit.html",{"draft":draft,"items":data["items"],"payments":_payment_rows(draft),"musteriler":Musteri.objects.filter(aktif=True).order_by("ad"),"renkler":Renk.objects.filter(aktif=True).order_by("ad"),"bedenler":Beden.objects.filter(aktif=True).order_by("ad"),"pricing_customer_ids":_pricing_customer_ids(),"customer_base_price_size":CUSTOMER_BASE_PRICE_SIZE})
 
 @login_required
 @require_POST
@@ -307,7 +336,11 @@ def showroom_edit_save(request,draft_id):
     customer_id=payload.get("customer_id") or None; raw_items=payload.get("items") or []; raw_payments=payload.get("payments") or []
     if not isinstance(raw_items,list) or not raw_items: return JsonResponse({"ok":False,"message":"Föyde en az bir ürün olmalı."},status=400)
     if not isinstance(raw_payments,list): return JsonResponse({"ok":False,"message":"Tahsilat verisi geçersiz."},status=400)
-    customer=Musteri.objects.filter(pk=customer_id).first() if customer_id else None; rate=max(Decimal("0"),min(Decimal("100"),_decimal(payload.get("discount_rate"),"0"))); amount=max(Decimal("0"),_decimal(payload.get("discount_amount"),"0")); create_rows=[]
+    customer=Musteri.objects.filter(pk=customer_id).first() if customer_id else None
+    validation_error = _validate_customer_base_price_rows(customer, raw_items)
+    if validation_error:
+        return JsonResponse({"ok":False,"message":validation_error},status=400)
+    rate=max(Decimal("0"),min(Decimal("100"),_decimal(payload.get("discount_rate"),"0"))); amount=max(Decimal("0"),_decimal(payload.get("discount_amount"),"0")); create_rows=[]
     for item in raw_items:
         code=str(item.get("urun_kodu") or "").strip(); card=ProductCard.objects.select_related("urun").filter(urun__kod__iexact=code).first() if code else None
         if not card: continue

@@ -9,6 +9,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from core.models import Order, ProductCost, URUN_TIPI_CHOICES
 from .models import ShowroomDraft
 from .price_list_views import _can_manage
+from .showroom_views import CUSTOMER_BASE_PRICE_SIZE
 
 
 def _draft_rows(draft):
@@ -60,6 +61,12 @@ def showroom_transfer_preview(request, draft_id):
         warnings.append("Bu Föyde müşteri seçilmemiş. Siparişe aktarmadan önce müşteri seçilmesi gerekir.")
     if not rows:
         warnings.append("Bu Föyde siparişe dönüştürülecek ürün satırı bulunmuyor.")
+    has_base_price_rows = any(row["beden"] == CUSTOMER_BASE_PRICE_SIZE for row in rows)
+    if has_base_price_rows:
+        warnings.append(
+            "Baz fiyat (bedensiz) satırları doğrudan siparişe aktarılamaz. "
+            "Gerçek siparişi girerken her satırın basen ölçüsünü yazın."
+        )
 
     return render(request, "product_cards/showroom_transfer_preview.html", {
         "draft": draft,
@@ -68,7 +75,7 @@ def showroom_transfer_preview(request, draft_id):
         "product_count": product_count,
         "total_value": total_value,
         "warnings": warnings,
-        "can_transfer": bool(draft.customer_id and rows),
+        "can_transfer": bool(draft.customer_id and rows and not has_base_price_rows),
     })
 
 
@@ -100,6 +107,13 @@ def showroom_transfer_create(request, draft_id):
     rows, total_orders, _, _ = _draft_rows(draft)
     if not rows:
         messages.error(request, "Siparişe dönüştürülecek ürün bulunamadı.")
+        return redirect("showroom_transfer_preview", draft_id=draft.id)
+    if any(row["beden"] == CUSTOMER_BASE_PRICE_SIZE for row in rows):
+        messages.error(
+            request,
+            "Baz fiyat (bedensiz) satırları siparişe aktarılamaz. "
+            "Siparişleri basen ölçülerini girerek oluşturun.",
+        )
         return redirect("showroom_transfer_preview", draft_id=draft.id)
 
     customer = draft.customer
