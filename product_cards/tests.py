@@ -485,6 +485,24 @@ class ShowroomStatusToggleTests(TestCase):
         self.assertContains(response, "Siparişi Alan")
         self.assertContains(response, "Mehmet Şener")
 
+    def test_previous_balance_is_added_after_vat(self):
+        self.draft.discount_rate = Decimal("10.00")
+        self.draft.vat_rate = Decimal("20.00")
+        self.draft.previous_balance = Decimal("50.00")
+        self.draft.save(
+            update_fields=["discount_rate", "vat_rate", "previous_balance", "updated_at"]
+        )
+
+        response = self.client.get(
+            reverse("showroom_archive_list"), {"kind": "draft"}
+        )
+
+        summary = response.json()["items"][0]
+        self.assertEqual(summary["folio_total"], "108.00")
+        self.assertEqual(summary["previous_balance"], "50.00")
+        self.assertEqual(summary["total"], "158.00")
+        self.assertEqual(summary["remaining"], "158.00")
+
     def test_approved_draft_can_be_moved_back_to_pending(self):
         self.draft.status = "APPROVED"
         self.draft.save(update_fields=["status", "updated_at"])
