@@ -554,6 +554,62 @@ def order_detail(request, pk):
     # 📌 Önce siparişi çek
     order = get_object_or_404(Order.objects.select_related("musteri"), pk=pk)
 
+    # Finans özeti eski bir fiyatla kaydedilmiş olsa bile detay ekranında siparişin
+    # güncel satış fiyatını ve buna bağlı kârı göster. Veritabanındaki eski kayıtları
+    # topluca değiştirmeden mevcut siparişleri de anında doğru gösterir.
+    financial_snapshot = getattr(order, "financial_snapshot", None)
+    if financial_snapshot is not None:
+        current_sale = (
+            Decimal(order.satis_fiyati)
+            if order.satis_fiyati is not None
+            else None
+        )
+        current_currency = order.para_birimi or "TRY"
+        if current_sale is None:
+            current_sale_tl = None
+        elif current_currency == "USD":
+            current_sale_tl = (
+                current_sale * financial_snapshot.usd_try
+                if financial_snapshot.usd_try
+                else None
+            )
+        else:
+            current_sale_tl = current_sale
+
+        snapshot_cost = (
+            Decimal(financial_snapshot.maliyet_tl)
+            if financial_snapshot.maliyet_tl is not None
+            else None
+        )
+        current_profit = (
+            current_sale_tl - snapshot_cost
+            if current_sale_tl is not None and snapshot_cost is not None
+            else None
+        )
+        current_profit_rate = (
+            current_profit / current_sale_tl * Decimal("100")
+            if current_profit is not None and current_sale_tl
+            else None
+        )
+
+        financial_snapshot.satis_fiyati = current_sale
+        financial_snapshot.satis_para_birimi = current_currency
+        financial_snapshot.satis_tl = (
+            current_sale_tl.quantize(Decimal("0.01"))
+            if current_sale_tl is not None
+            else None
+        )
+        financial_snapshot.beklenen_kar_tl = (
+            current_profit.quantize(Decimal("0.01"))
+            if current_profit is not None
+            else None
+        )
+        financial_snapshot.beklenen_kar_orani = (
+            current_profit_rate.quantize(Decimal("0.01"))
+            if current_profit_rate is not None
+            else None
+        )
+
     # 👁️ Kullanıcı bu siparişi gördü olarak işaretle
     OrderSeen.objects.update_or_create(
         user=request.user,

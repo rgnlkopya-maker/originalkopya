@@ -154,6 +154,43 @@ class FinanceSnapshotRegressionTests(TestCase):
         self.assertEqual(snapshot.beklenen_kar_tl, Decimal("3746.48"))
         self.assertEqual(snapshot.beklenen_kar_orani, Decimal("28.82"))
 
+    def test_complete_snapshot_updates_when_sale_price_changes(self):
+        order = self._create_order(maliyet_uygulanan=Decimal("0"))
+        snapshot = OrderFinancialSnapshot.objects.get(order=order)
+
+        order.satis_fiyati = Decimal("14000.00")
+        order.save(update_fields=["satis_fiyati"])
+        snapshot.refresh_from_db()
+
+        self.assertEqual(snapshot.satis_fiyati, Decimal("14000.00"))
+        self.assertEqual(snapshot.satis_tl, Decimal("14000.00"))
+        self.assertEqual(snapshot.maliyet_tl, Decimal("9253.52"))
+        self.assertEqual(snapshot.beklenen_kar_tl, Decimal("4746.48"))
+        self.assertEqual(snapshot.beklenen_kar_orani, Decimal("33.90"))
+
+    def test_sale_price_change_after_shipment_keeps_snapshot_cost_frozen(self):
+        order = self._create_order(maliyet_uygulanan=Decimal("0"))
+        OrderEvent.objects.create(
+            order=order,
+            user="test",
+            stage="sevkiyat_durum",
+            value="gonderildi",
+        )
+        snapshot = OrderFinancialSnapshot.objects.get(order=order)
+
+        ProductCost.objects.filter(urun_kodu="7165", is_active=True).update(
+            maliyet=Decimal("10000.00")
+        )
+        order.satis_fiyati = Decimal("14000.00")
+        order.save(update_fields=["satis_fiyati"])
+        snapshot.refresh_from_db()
+
+        self.assertEqual(snapshot.satis_fiyati, Decimal("14000.00"))
+        self.assertEqual(snapshot.satis_tl, Decimal("14000.00"))
+        self.assertEqual(snapshot.maliyet_tl, Decimal("9253.52"))
+        self.assertEqual(snapshot.beklenen_kar_tl, Decimal("4746.48"))
+        self.assertEqual(snapshot.beklenen_kar_orani, Decimal("33.90"))
+
     def test_shipment_snapshot_uses_current_sale_and_active_product_cost(self):
         order = self._create_order(maliyet_uygulanan=Decimal("0"))
         OrderEvent.objects.create(

@@ -107,7 +107,7 @@ document.addEventListener('DOMContentLoaded', function () {
     {% if order.financial_snapshot %}
     box.innerHTML = `
         <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
-            <h5 class="mb-0">Sipariş Günü Finans Özeti</h5>
+            <h5 class="mb-0">Güncel Finans Özeti</h5>
             {% if order.shipment_financial_snapshot %}
             <span class="badge rounded-pill text-bg-light border">Sevkiyatta Sabitlendi</span>
             {% else %}
@@ -117,7 +117,7 @@ document.addEventListener('DOMContentLoaded', function () {
         {% if order.shipment_financial_snapshot %}
         <div class="small text-muted mb-3">Sipariş sevk edildiği için maliyet sabitlenmiştir ve sonraki değişikliklerden etkilenmez.</div>
         {% else %}
-        <div class="small text-muted mb-3">Satış ve sipariş günü kuru sabittir; ürün maliyeti sevk edilene kadar ürün kartındaki güncel maliyetle yenilenir.</div>
+        <div class="small text-muted mb-3">Satış fiyatı sipariş düzenlendiğinde; ürün maliyeti ise sevk edilene kadar güncellenir.</div>
         {% endif %}
         <table class="table table-sm table-bordered bg-white align-middle mb-0">
             <tr><th style="width:42%">Satış Fiyatı</th><td>{{ order.financial_snapshot.satis_fiyati|floatformat:2 }} {{ order.financial_snapshot.satis_para_birimi }}</td></tr>

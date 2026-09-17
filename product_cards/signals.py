@@ -17,11 +17,11 @@ def _money2(value):
 
 
 @receiver(post_save, sender=Order)
-def repair_incomplete_order_financial_snapshot(sender, instance, created, **kwargs):
-    """Keep the order-day snapshot usable when price/cost are filled just after order creation.
+def sync_order_financial_snapshot(sender, instance, created, **kwargs):
+    """Keep the detail-page finance summary in sync with the current order price.
 
-    Existing complete snapshots stay frozen. This also falls back to the active ProductCost
-    when the order row still has a zero/empty applied cost.
+    Product cost continues to follow the active cost until shipment. After shipment only
+    the cost stays frozen; later sale-price edits still refresh the displayed price/profit.
     """
     rate_obj = ExchangeRate.objects.order_by("-rate_date", "-fetched_at").first()
     usd_try = rate_obj.usd_try if rate_obj else None
@@ -73,23 +73,21 @@ def repair_incomplete_order_financial_snapshot(sender, instance, created, **kwar
     if was_created:
         return
 
-    expected_nonzero_cost = cost_tl is not None and Decimal(cost_tl or 0) != 0
-    snapshot_zero_cost = snapshot.maliyet_tl is not None and Decimal(snapshot.maliyet_tl or 0) == 0
-    incomplete = (
-        snapshot.satis_tl is None
-        or Decimal(snapshot.satis_tl or 0) == 0
-        or snapshot.maliyet_tl is None
-        or (snapshot_zero_cost and expected_nonzero_cost)
-        or snapshot.beklenen_kar_tl is None
-    )
-    if not incomplete:
-        return
-
-    # Once shipped, do not keep mutating an order-day snapshot on later edits.
-    if ShipmentFinancialSnapshot.objects.filter(order=instance).exists() and not created:
-        return
-
     snapshot.usd_try = snapshot.usd_try or usd_try
+    conversion_rate = snapshot.usd_try or usd_try
+    sale_tl = amount_to_try(sale, sale_currency, conversion_rate)
+    shipped = ShipmentFinancialSnapshot.objects.filter(order=instance).exists()
+
+    if shipped:
+        # Sevkiyat sonrası ürün maliyeti kilitli kalır; yalnızca satış ve kâr yenilenir.
+        cost_tl = Decimal(snapshot.maliyet_tl) if snapshot.maliyet_tl is not None else None
+    elif cost is not None:
+        effective_cost = cost + Decimal(instance.ekstra_maliyet or 0)
+        cost_tl = amount_to_try(effective_cost, cost_currency, conversion_rate)
+
+    profit = sale_tl - cost_tl if sale_tl is not None and cost_tl is not None else None
+    profit_rate = (profit / sale_tl * Decimal("100")) if profit is not None and sale_tl else None
+
     snapshot.satis_fiyati = sale
     snapshot.satis_para_birimi = sale_currency
     snapshot.satis_tl = _money2(sale_tl)
