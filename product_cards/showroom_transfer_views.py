@@ -100,6 +100,9 @@ def showroom_transfer_create(request, draft_id):
     if draft.status != "APPROVED":
         messages.warning(request, "Yalnızca onaylanan Föyler siparişe aktarılabilir.")
         return redirect("showroom_approved_page")
+    if draft.orders_created:
+        messages.warning(request, "Bu Föyden daha önce siparişler oluşturulmuş.")
+        return redirect("showroom_detail_page", draft_id=draft.id)
     if not draft.customer_id:
         messages.error(request, "Sipariş oluşturmak için Föyde müşteri seçilmiş olmalıdır.")
         return redirect("showroom_transfer_preview", draft_id=draft.id)
@@ -149,6 +152,7 @@ def showroom_transfer_create(request, draft_id):
         raise RuntimeError("Föy sipariş adetleri ile oluşturulan sipariş adetleri eşleşmedi.")
 
     draft.status = "TRANSFERRED"
-    draft.save(update_fields=["status", "updated_at"])
+    draft.orders_created = True
+    draft.save(update_fields=["status", "orders_created", "updated_at"])
     messages.success(request, f"Föyden {created} adet sipariş başarıyla oluşturuldu.")
     return redirect("order_list")

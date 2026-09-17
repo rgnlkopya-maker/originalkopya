@@ -218,7 +218,7 @@ def showroom_draft_action(request):
                     _delete_draft_safely(active)
                 target.status="DRAFT"; target.save(update_fields=["status","updated_at"]); return JsonResponse({"ok":True,"draft":target.id,"message":"Taslak açıldı."})
             if action=="delete_saved":
-                draft_id=payload.get("draft_id"); target=ShowroomDraft.objects.filter(id=draft_id,created_by=request.user,status__in=["PENDING","APPROVED"]).first()
+                draft_id=payload.get("draft_id"); target=ShowroomDraft.objects.filter(id=draft_id,created_by=request.user,status__in=["PENDING","APPROVED","TRANSFERRED"]).first()
                 if not target: return JsonResponse({"ok":False,"message":"Föy bulunamadı."},status=404)
                 _delete_draft_safely(target)
                 return JsonResponse({"ok":True,"message":"Föy silindi."})
@@ -359,7 +359,7 @@ def showroom_toggle_approval(request, draft_id):
             ShowroomDraft.objects.select_for_update(),
             id=draft_id,
             created_by=request.user,
-            status__in=["PENDING", "APPROVED"],
+            status__in=["PENDING", "APPROVED", "TRANSFERRED"],
         )
         if draft.status == "PENDING":
             if not draft.items.exists():
@@ -373,14 +373,14 @@ def showroom_toggle_approval(request, draft_id):
 @login_required
 def showroom_edit_page(request,draft_id):
     if not _can_manage(request.user): return HttpResponseForbidden("Bu sayfaya erişim yetkiniz yok.")
-    draft=get_object_or_404(ShowroomDraft.objects.select_related("customer").prefetch_related("items__product_card__urun","payments"),id=draft_id,created_by=request.user,status__in=["PENDING","APPROVED"]); data=_serialize_draft(draft)
+    draft=get_object_or_404(ShowroomDraft.objects.select_related("customer").prefetch_related("items__product_card__urun","payments"),id=draft_id,created_by=request.user,status__in=["PENDING","APPROVED","TRANSFERRED"]); data=_serialize_draft(draft)
     return render(request,"product_cards/showroom_edit.html",{"draft":draft,"items":data["items"],"payments":_payment_rows(draft),"musteriler":Musteri.objects.filter(aktif=True).order_by("ad"),"renkler":Renk.objects.filter(aktif=True).order_by("ad"),"bedenler":Beden.objects.filter(aktif=True).order_by("ad"),"pricing_customer_ids":_pricing_customer_ids(),"customer_base_price_size":CUSTOMER_BASE_PRICE_SIZE})
 
 @login_required
 @require_POST
 def showroom_edit_save(request,draft_id):
     if not _can_manage(request.user): return JsonResponse({"ok":False,"message":"Yetkiniz yok."},status=403)
-    draft=get_object_or_404(ShowroomDraft,id=draft_id,created_by=request.user,status__in=["PENDING","APPROVED"])
+    draft=get_object_or_404(ShowroomDraft,id=draft_id,created_by=request.user,status__in=["PENDING","APPROVED","TRANSFERRED"])
     try: payload=json.loads(request.body.decode("utf-8") or "{}")
     except (json.JSONDecodeError,UnicodeDecodeError): return JsonResponse({"ok":False,"message":"Geçersiz veri."},status=400)
     customer_id=payload.get("customer_id") or None; raw_items=payload.get("items") or []; raw_payments=payload.get("payments") or []

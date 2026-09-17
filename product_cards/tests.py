@@ -495,7 +495,8 @@ class ShowroomStatusToggleTests(TestCase):
 
     def test_transferred_draft_detail_and_print_remain_accessible(self):
         self.draft.status = "TRANSFERRED"
-        self.draft.save(update_fields=["status", "updated_at"])
+        self.draft.orders_created = True
+        self.draft.save(update_fields=["status", "orders_created", "updated_at"])
 
         detail = self.client.get(
             reverse("showroom_detail_page", args=[self.draft.pk])
@@ -506,8 +507,46 @@ class ShowroomStatusToggleTests(TestCase):
 
         self.assertEqual(detail.status_code, 200)
         self.assertContains(detail, "Siparişe Aktarıldı")
+        self.assertContains(detail, "Taslağa Çevir")
+        self.assertContains(detail, "Düzenle")
+        self.assertContains(detail, "Sil")
+        self.assertNotContains(detail, "Siparişleri Oluştur")
         self.assertEqual(printed.status_code, 200)
         self.assertContains(printed, "Siparişe Aktarıldı")
+
+    def test_transferred_draft_can_be_moved_back_to_pending_and_edited(self):
+        self.draft.status = "TRANSFERRED"
+        self.draft.orders_created = True
+        self.draft.save(update_fields=["status", "orders_created", "updated_at"])
+
+        edit_response = self.client.get(
+            reverse("showroom_edit_page", args=[self.draft.pk])
+        )
+        toggle_response = self.client.post(
+            reverse("showroom_toggle_approval", args=[self.draft.pk])
+        )
+
+        self.assertEqual(edit_response.status_code, 200)
+        self.assertRedirects(
+            toggle_response, reverse("showroom_detail_page", args=[self.draft.pk])
+        )
+        self.draft.refresh_from_db()
+        self.assertEqual(self.draft.status, "PENDING")
+        self.assertTrue(self.draft.orders_created)
+
+    def test_previously_transferred_folio_cannot_create_orders_again(self):
+        self.draft.status = "APPROVED"
+        self.draft.orders_created = True
+        self.draft.save(update_fields=["status", "orders_created", "updated_at"])
+
+        response = self.client.post(
+            reverse("showroom_transfer_create", args=[self.draft.pk])
+        )
+
+        self.assertRedirects(
+            response, reverse("showroom_detail_page", args=[self.draft.pk])
+        )
+        self.assertFalse(Order.objects.filter(urun_kodu="STATUS-TEST").exists())
 
     def test_customer_page_links_to_customer_folios(self):
         response = self.client.get(
