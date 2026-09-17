@@ -142,6 +142,7 @@ def showroom_transfer_create(request, draft_id):
                 adet=1,
                 aciklama=row["aciklama"] or None,
                 satis_fiyati=row["birim_fiyat"],
+                vat_rate=draft.vat_rate or Decimal("0"),
                 para_birimi=draft.currency or "TRY",
                 maliyet_uygulanan=cost,
                 maliyet_para_birimi=cost_currency,

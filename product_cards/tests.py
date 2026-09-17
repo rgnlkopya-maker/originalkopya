@@ -503,6 +503,20 @@ class ShowroomStatusToggleTests(TestCase):
         self.assertEqual(summary["total"], "158.00")
         self.assertEqual(summary["remaining"], "158.00")
 
+    def test_folio_vat_rate_is_transferred_to_created_order(self):
+        self.draft.status = "APPROVED"
+        self.draft.vat_rate = Decimal("20.00")
+        self.draft.save(update_fields=["status", "vat_rate", "updated_at"])
+
+        response = self.client.post(
+            reverse("showroom_transfer_create", args=[self.draft.pk])
+        )
+
+        self.assertRedirects(response, reverse("order_list"))
+        order = Order.objects.get(urun_kodu="STATUS-TEST")
+        self.assertEqual(order.satis_fiyati, Decimal("100.00"))
+        self.assertEqual(order.vat_rate, Decimal("20.00"))
+
     def test_approved_draft_can_be_moved_back_to_pending(self):
         self.draft.status = "APPROVED"
         self.draft.save(update_fields=["status", "updated_at"])

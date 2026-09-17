@@ -21,6 +21,7 @@ class OrderForm(forms.ModelForm):
             "resim",
             # 💰 Fiyat & Maliyet alanları
             "satis_fiyati",
+            "vat_rate",
             "para_birimi",
             "maliyet_uygulanan",
             "maliyet_para_birimi",
@@ -45,6 +46,7 @@ class OrderForm(forms.ModelForm):
             "siparis_tipi": forms.Select(attrs={"class": "form-control"}),
             "musteri": forms.Select(attrs={"class": "form-control"}),
             "satis_fiyati": forms.NumberInput(attrs={"class": "form-control", "step": "0.01"}),
+            "vat_rate": forms.NumberInput(attrs={"class": "form-control", "step": "0.01", "min": "0"}),
             "para_birimi": forms.Select(attrs={"class": "form-control"}),
             "maliyet_uygulanan": forms.NumberInput(attrs={"class": "form-control", "step": "0.01"}),
             "maliyet_para_birimi": forms.Select(attrs={"class": "form-control"}),
@@ -76,6 +78,7 @@ class OrderForm(forms.ModelForm):
         if user and not any(g in ["patron", "mudur"] for g in user_groups):
             hidden_fields = [
                 "satis_fiyati",
+                "vat_rate",
                 "para_birimi",
                 "maliyet_uygulanan",
                 "maliyet_para_birimi",
@@ -96,6 +99,7 @@ class OrderForm(forms.ModelForm):
         if user and not user.groups.filter(name__in=["patron", "mudur"]).exists():
             for field in [
                 "satis_fiyati",
+                "vat_rate",
                 "para_birimi",
                 "maliyet_uygulanan",
                 "maliyet_para_birimi",

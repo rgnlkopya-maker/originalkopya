@@ -773,6 +773,7 @@ def order_edit(request, pk):
         "musteri_referans": order.musteri_referans,
         "teslim_tarihi": order.teslim_tarihi,
         "satis_fiyati": order.satis_fiyati,
+        "vat_rate": order.vat_rate,
         "ekstra_maliyet": order.ekstra_maliyet,
         "maliyet_override": order.maliyet_override,
     }
@@ -806,6 +807,7 @@ def order_edit(request, pk):
                 "musteri_referans": updated_order.musteri_referans,
                 "teslim_tarihi": updated_order.teslim_tarihi,
                 "satis_fiyati": updated_order.satis_fiyati,
+                "vat_rate": updated_order.vat_rate,
                 "ekstra_maliyet": updated_order.ekstra_maliyet,
                 "maliyet_override": updated_order.maliyet_override,
             }
@@ -846,6 +848,7 @@ def order_edit(request, pk):
                     "musteri_referans": "Müşteri Ref",
                     "teslim_tarihi": "Teslim Tarihi",
                     "satis_fiyati": "Satış Fiyatı",
+                    "vat_rate": "KDV Oranı",
                     "ekstra_maliyet": "Ekstra Maliyet",
                     "maliyet_override": "Manuel Maliyet",
                 }

@@ -245,6 +245,12 @@ class Order(models.Model):
     nakis_durumu = models.CharField(max_length=20, choices=[('yok', 'Yok'), ('verildi', 'Nakışa Verildi'), ('alindi', 'Nakıştan Alındı')], default='yok')
 
     satis_fiyati = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
+    vat_rate = models.DecimalField(
+        max_digits=7,
+        decimal_places=2,
+        default=0,
+        verbose_name="KDV Oranı (%)",
+    )
     customer_base_price = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
     customer_price_adjustment = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
     hip_measurement = models.DecimalField(max_digits=6, decimal_places=2, null=True, blank=True)
