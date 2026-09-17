@@ -48,7 +48,7 @@
 
 document.addEventListener('DOMContentLoaded',function(){
  const STORAGE_KEY='moli_showroom_active_draft_v1',ACTION_URL='{% url "showroom_draft_action" %}',LOAD_URL='{% url "showroom_draft_load" %}',CUSTOMER_URL='{% url "ajax_musteri_ekle" %}';
- try{const x=new XMLHttpRequest();x.open('GET',LOAD_URL,false);x.send(null);if(x.status>=200&&x.status<300){const d=JSON.parse(x.responseText||'{}');if(!d.draft)localStorage.removeItem(STORAGE_KEY)}}catch(e){}
+ if(!window.__moliShowroomEditMode){try{const x=new XMLHttpRequest();x.open('GET',LOAD_URL,false);x.send(null);if(x.status>=200&&x.status<300){const d=JSON.parse(x.responseText||'{}');if(!d.draft)localStorage.removeItem(STORAGE_KEY)}}catch(e){}}
  const addRowBtn=document.getElementById('showroomAddRow');
  if(addRowBtn&&window.jQuery){addRowBtn.addEventListener('click',function(){setTimeout(function(){$('.renk-select').each(function(){if($(this).hasClass('select2-hidden-accessible'))$(this).select2('close')});const $lastColor=$('.renk-select').last();if($lastColor.length)$lastColor.val(null).trigger('change.select2')},0)})}
  const actions=document.querySelector('.price-actions'),openBtn=document.getElementById('showroomCreateBtn');

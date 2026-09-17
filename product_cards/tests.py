@@ -625,12 +625,83 @@ class ShowroomStatusToggleTests(TestCase):
         )
 
         self.assertEqual(edit_response.status_code, 200)
+        self.assertTemplateUsed(edit_response, "product_cards/showroom_page.html")
+        self.assertContains(edit_response, "showroomEditData")
+        self.assertContains(edit_response, "showroomEditSaveBtn")
+        self.assertContains(edit_response, "STATUS-TEST")
         self.assertRedirects(
             toggle_response, reverse("showroom_detail_page", args=[self.draft.pk])
         )
         self.draft.refresh_from_db()
         self.assertEqual(self.draft.status, "PENDING")
         self.assertTrue(self.draft.orders_created)
+
+    def test_full_screen_edit_updates_same_folio_without_changing_status(self):
+        self.draft.status = "TRANSFERRED"
+        self.draft.orders_created = True
+        self.draft.save(update_fields=["status", "orders_created", "updated_at"])
+        payload = {
+            "customer_id": self.customer.pk,
+            "order_taken_by": "Tuba Şener",
+            "items": [
+                {
+                    "urun_kodu": "STATUS-TEST",
+                    "anlasilan_fiyat": "275.50",
+                    "satirlar": [
+                        {
+                            "renk": "Lacivert",
+                            "bedenler": ["L", "XL"],
+                            "adet": 2,
+                            "aciklama": "Güncel",
+                        }
+                    ],
+                }
+            ],
+            "payments": [
+                {
+                    "entry_type": "COLLECTION",
+                    "method": "CASH",
+                    "amount": "100.00",
+                    "payment_date": "2026-09-17",
+                    "due_date": "",
+                    "note": "Kapora",
+                }
+            ],
+            "discount_rate": "10",
+            "discount_amount": "0",
+            "vat_rate": "20",
+            "previous_balance": "50",
+        }
+
+        response = self.client.post(
+            reverse("showroom_edit_save", args=[self.draft.pk]),
+            data=json.dumps(payload),
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.json()["ok"])
+        self.draft.refresh_from_db()
+        self.assertEqual(self.draft.status, "TRANSFERRED")
+        self.assertTrue(self.draft.orders_created)
+        self.assertEqual(self.draft.order_taken_by, "Tuba Şener")
+        self.assertEqual(self.draft.discount_rate, Decimal("10"))
+        self.assertEqual(self.draft.vat_rate, Decimal("20"))
+        self.assertEqual(self.draft.previous_balance, Decimal("50"))
+        self.assertEqual(self.draft.items.count(), 2)
+        self.assertEqual(
+            set(self.draft.items.values_list("size", flat=True)), {"L", "XL"}
+        )
+        self.assertTrue(
+            self.draft.items.filter(
+                color="Lacivert", quantity=2, unit_price=Decimal("275.50")
+            ).exists()
+        )
+        self.assertTrue(
+            self.draft.payments.filter(
+                entry_type="COLLECTION", amount=Decimal("100.00"), note="Kapora"
+            ).exists()
+        )
 
     def test_previously_transferred_folio_cannot_create_orders_again(self):
         self.draft.status = "APPROVED"

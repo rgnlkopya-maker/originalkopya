@@ -124,13 +124,17 @@ def _delete_draft_safely(draft):
     ShowroomDraftItem.objects.filter(draft=draft).delete()
     ShowroomDraft.objects.filter(pk=draft.pk).delete()
 
-@login_required
-def showroom_page(request):
-    if not _can_manage(request.user): return HttpResponseForbidden("Bu sayfaya erişim yetkiniz yok.")
+def _showroom_page_context(request):
     settings=PriceListSettings.get_solo()
     if settings.profit_rate<=0 and settings.discount_rate>0: settings.discount_rate=Decimal("0"); settings.save(update_fields=["discount_rate","updated_at"])
     rate_error=_ensure_price_rates(settings); show_inactive=request.GET.get("durum")=="pasif"; musteriler=Musteri.objects.filter(aktif=True).order_by("ad"); renkler=Renk.objects.filter(aktif=True).order_by("ad"); bedenler=Beden.objects.filter(aktif=True).order_by("ad"); urun_kodlari=UrunKod.objects.filter(aktif=True).order_by("kod")
-    return render(request,"product_cards/showroom_page.html",{"settings":settings,"rows":_price_rows(settings,active=not show_inactive),"show_inactive":show_inactive,"inactive_count":ProductCard.objects.filter(price_list_active=False).count(),"rate_error":rate_error,"real_profit_rate":_real_profit_rate(settings.profit_rate,settings.discount_rate),"showroom_mode":True,"musteriler":musteriler,"renkler":renkler,"bedenler":bedenler,"urun_kodlari":urun_kodlari,"aktif_musteriler":musteriler,"aktif_renkler":renkler,"aktif_bedenler":bedenler,"aktif_urun_kodlari":urun_kodlari,"urun_tipi_secenekleri":URUN_TIPI_CHOICES,"pricing_customer_ids":_pricing_customer_ids(),"customer_base_price_size":CUSTOMER_BASE_PRICE_SIZE})
+    return {"settings":settings,"rows":_price_rows(settings,active=not show_inactive),"show_inactive":show_inactive,"inactive_count":ProductCard.objects.filter(price_list_active=False).count(),"rate_error":rate_error,"real_profit_rate":_real_profit_rate(settings.profit_rate,settings.discount_rate),"showroom_mode":True,"musteriler":musteriler,"renkler":renkler,"bedenler":bedenler,"urun_kodlari":urun_kodlari,"aktif_musteriler":musteriler,"aktif_renkler":renkler,"aktif_bedenler":bedenler,"aktif_urun_kodlari":urun_kodlari,"urun_tipi_secenekleri":URUN_TIPI_CHOICES,"pricing_customer_ids":_pricing_customer_ids(),"customer_base_price_size":CUSTOMER_BASE_PRICE_SIZE}
+
+
+@login_required
+def showroom_page(request):
+    if not _can_manage(request.user): return HttpResponseForbidden("Bu sayfaya erişim yetkiniz yok.")
+    return render(request,"product_cards/showroom_page.html",_showroom_page_context(request))
 
 @login_required
 @require_GET
@@ -375,7 +379,9 @@ def showroom_toggle_approval(request, draft_id):
 def showroom_edit_page(request,draft_id):
     if not _can_manage(request.user): return HttpResponseForbidden("Bu sayfaya erişim yetkiniz yok.")
     draft=get_object_or_404(ShowroomDraft.objects.select_related("customer").prefetch_related("items__product_card__urun","payments"),id=draft_id,created_by=request.user,status__in=["PENDING","APPROVED","TRANSFERRED"]); data=_serialize_draft(draft)
-    return render(request,"product_cards/showroom_edit.html",{"draft":draft,"items":data["items"],"payments":_payment_rows(draft),"musteriler":Musteri.objects.filter(aktif=True).order_by("ad"),"renkler":Renk.objects.filter(aktif=True).order_by("ad"),"bedenler":Beden.objects.filter(aktif=True).order_by("ad"),"pricing_customer_ids":_pricing_customer_ids(),"customer_base_price_size":CUSTOMER_BASE_PRICE_SIZE})
+    context=_showroom_page_context(request)
+    context.update({"showroom_edit_mode":True,"showroom_edit_draft":draft,"showroom_edit_data":data})
+    return render(request,"product_cards/showroom_page.html",context)
 
 @login_required
 @require_POST
