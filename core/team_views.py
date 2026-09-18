@@ -14,6 +14,8 @@ from django.utils import timezone
 
 from attendance.models import AttendanceRecord, EmployeeHRProfile
 from app_settings.models import UserAccess
+from app_settings.access import has_feature_access
+from app_settings.permission_registry import FEATURE_GROUPS
 from core.models import OrderEvent, UserProfile
 from core.services.order_status import FINANCIAL_STAGES, STATUS_LABELS
 from quality_tracking.models import QualityIssue
@@ -21,30 +23,6 @@ from quality_tracking.models import QualityIssue
 User = get_user_model()
 TEAM_CHOICES = list(UserProfile.GOREV_SECENEKLERI)
 
-ACCESS_GROUPS = [
-    ("Siparişler", [
-        ("can_view_orders", "Siparişleri Gör"),
-        ("can_create_orders", "Sipariş Oluştur"),
-        ("can_edit_orders", "Sipariş Düzenle"),
-        ("can_update_production", "Üretim Aşaması Güncelle"),
-        ("can_delete_orders", "Sipariş Sil"),
-    ]),
-    ("Operasyon", [
-        ("can_manage_planning", "Planlama"),
-        ("can_view_depots", "Depolar"),
-        ("can_manage_quality", "Kalite / Hata Takibi"),
-        ("can_view_attendance", "Puantaj & Mesai"),
-    ]),
-    ("Yönetim", [
-        ("can_view_reports", "Raporlar"),
-        ("can_view_costs", "Maliyetler / Ürün Kartları"),
-        ("can_view_personnel", "Personel Raporları"),
-        ("can_view_shipping_finance", "Sevkiyat Finans"),
-        ("can_view_assistant", "Asistan"),
-        ("can_manage_users", "Kullanıcı Yönetimi"),
-        ("can_view_settings", "Ayarlar"),
-    ]),
-]
 for value, label in [("modelleme", "Modelleme"), ("utucu", "Ütücü"), ("yardimci", "Yardımcı Eleman")]:
     if not any(existing == value for existing, _label in TEAM_CHOICES):
         TEAM_CHOICES.append((value, label))
@@ -129,10 +107,12 @@ def employee_detail(request,user_id):
             if employee.groups.filter(name__in=["patron","mudur"]).exists() or employee.is_superuser:
                 messages.info(request,"Patron ve müdür rolleri sistemde tam erişimlidir; tek tek yetki kapatılamaz.")
                 return redirect("employee_detail",user_id=employee.id)
-            for _section, fields in ACCESS_GROUPS:
-                for field_name, _label in fields:
-                    setattr(access, field_name, request.POST.get(field_name)=="on")
-            access.save()
+            explicit = dict(access.feature_permissions or {})
+            for _section, items in FEATURE_GROUPS:
+                for feature_key, _label, _fallback in items:
+                    explicit[feature_key] = request.POST.get(feature_key) == "on"
+            access.feature_permissions = explicit
+            access.save(update_fields=["feature_permissions", "updated_at"])
             messages.success(request,f"{employee.get_full_name() or employee.username} yetkileri güncellendi.")
             return redirect("employee_detail",user_id=employee.id)
         if action=="mark_departed":
@@ -155,11 +135,11 @@ def employee_detail(request,user_id):
         SimpleNamespace(
             title=section,
             fields=[
-                SimpleNamespace(name=field_name, label=label, enabled=bool(getattr(access, field_name)))
-                for field_name, label in fields
+                SimpleNamespace(name=feature_key, label=label, enabled=has_feature_access(employee, feature_key))
+                for feature_key, label, _fallback in items
             ],
         )
-        for section, fields in ACCESS_GROUPS
+        for section, items in FEATURE_GROUPS
     ]
     today=timezone.localdate();range_start,range_end,preset=_selected_range(request,today,profile.employment_start_date,profile.employment_end_date);range_records=AttendanceRecord.objects.filter(user=employee,work_date__range=(range_start,range_end));worked_days=range_records.filter(status="worked").count();leave_days=range_records.filter(status="leave").count();sick_days=range_records.filter(status="sick").count();annual_leave_period=range_records.filter(status="annual_leave").count();late_minutes=range_records.aggregate(v=Sum("late_minutes"))["v"] or 0;overtime_minutes=range_records.aggregate(v=Sum("overtime_minutes"))["v"] or 0;used_annual_leave=AttendanceRecord.objects.filter(user=employee,status="annual_leave",work_date__lte=range_end).count();earned_leave=_annual_leave_entitlement(profile.employment_start_date,range_end);total_leave=earned_leave+profile.annual_leave_carryover;remaining_leave=max(0,total_leave-used_annual_leave);service_years,service_months,service_days=_service_parts(profile.employment_start_date,range_end)
     work_events_qs=OrderEvent.objects.select_related("order","order__musteri").filter(user=employee.username,event_type="stage",timestamp__date__range=(range_start,range_end)).exclude(stage__in=FINANCIAL_STAGES).order_by("-timestamp","-id");raw_counts=list(work_events_qs.values("stage","value").annotate(count=Count("id")).order_by("stage","value"));operation_counts=[{"stage":row["stage"],"value":row["value"],"label":_event_label(row["stage"],row["value"]),"count":row["count"]} for row in raw_counts]
