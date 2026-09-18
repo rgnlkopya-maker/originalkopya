@@ -66,6 +66,7 @@ class UserAccess(models.Model):
     can_manage_planning = models.BooleanField(default=False)
     can_manage_users = models.BooleanField(default=False)
     can_view_settings = models.BooleanField(default=False)
+    feature_permissions = models.JSONField(default=dict, blank=True)
 
     updated_at = models.DateTimeField(auto_now=True)
 
