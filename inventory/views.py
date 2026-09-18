@@ -1,3 +1,4 @@
+from app_settings.access import has_access
 from decimal import Decimal, InvalidOperation
 
 from django.contrib import messages
@@ -13,7 +14,7 @@ from .models import ProductStockMovement, ProductWarehouseStock
 
 
 def _can_manage(user):
-    return user.is_superuser or user.groups.filter(name__in=["patron", "mudur"]).exists()
+    return has_access(user, "can_view_depots")
 
 
 @login_required
