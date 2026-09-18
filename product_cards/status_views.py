@@ -1,3 +1,4 @@
+from app_settings.access import has_access
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponseForbidden
@@ -8,7 +9,7 @@ from .models import ProductCard
 
 
 def _can_manage(user):
-    return user.is_superuser or user.groups.filter(name__in=["patron", "mudur"]).exists()
+    return has_access(user, "can_view_costs")
 
 
 @login_required
