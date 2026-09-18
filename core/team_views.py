@@ -14,7 +14,7 @@ from django.utils import timezone
 
 from attendance.models import AttendanceRecord, EmployeeHRProfile
 from app_settings.models import UserAccess
-from app_settings.access import has_feature_access
+from app_settings.access import has_feature_access, has_access
 from app_settings.permission_registry import FEATURE_GROUPS
 from core.models import OrderEvent, UserProfile
 from core.services.order_status import FINANCIAL_STAGES, STATUS_LABELS
@@ -27,7 +27,7 @@ for value, label in [("modelleme", "Modelleme"), ("utucu", "Ütücü"), ("yardim
     if not any(existing == value for existing, _label in TEAM_CHOICES):
         TEAM_CHOICES.append((value, label))
 
-def _is_manager(user): return user.is_superuser or user.groups.filter(name__in=["patron", "mudur"]).exists()
+def _is_manager(user): return has_access(user, "can_manage_users")
 def _service_parts(start, today):
     if not start or start > today: return 0,0,0
     years=today.year-start.year; anniversary=date(today.year,start.month,min(start.day,monthrange(today.year,start.month)[1]))
