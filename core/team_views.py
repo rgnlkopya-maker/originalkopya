@@ -108,11 +108,19 @@ def employee_detail(request,user_id):
                 messages.info(request,"Patron ve müdür rolleri sistemde tam erişimlidir; tek tek yetki kapatılamaz.")
                 return redirect("employee_detail",user_id=employee.id)
             explicit = dict(access.feature_permissions or {})
+            fallback_values = {}
             for _section, items in FEATURE_GROUPS:
-                for feature_key, _label, _fallback in items:
-                    explicit[feature_key] = request.POST.get(feature_key) == "on"
+                for feature_key, _label, fallback in items:
+                    enabled = request.POST.get(feature_key) == "on"
+                    explicit[feature_key] = enabled
+                    if fallback:
+                        fallback_values[fallback] = fallback_values.get(fallback, False) or enabled
             access.feature_permissions = explicit
-            access.save(update_fields=["feature_permissions", "updated_at"])
+            update_fields = ["feature_permissions", "updated_at"]
+            for fallback, enabled in fallback_values.items():
+                setattr(access, fallback, enabled)
+                update_fields.append(fallback)
+            access.save(update_fields=update_fields)
             messages.success(request,f"{employee.get_full_name() or employee.username} yetkileri güncellendi.")
             return redirect("employee_detail",user_id=employee.id)
         if action=="mark_departed":
