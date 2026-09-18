@@ -1,3 +1,4 @@
+from app_settings.access import has_access
 from decimal import Decimal, InvalidOperation
 import os
 import urllib.request
@@ -19,7 +20,7 @@ from .models import CURRENCY_CHOICES, ExchangeRate, Material, MaterialStockMovem
 
 
 def _can_manage(user):
-    return user.is_superuser or user.groups.filter(name__in=["patron", "mudur"]).exists()
+    return has_access(user, "can_view_costs")
 
 
 def _decimal_from_post(value, default="0"):
