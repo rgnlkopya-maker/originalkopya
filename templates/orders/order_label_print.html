@@ -60,6 +60,23 @@
         }
 
         .row:last-child { margin-bottom: 0; }
+        .product-order-row {
+            display: flex;
+            align-items: baseline;
+            gap: 1mm;
+        }
+        .product-code {
+            min-width: 0;
+            flex: 1 1 auto;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .order-no {
+            flex: 0 0 auto;
+            margin-left: auto;
+            text-align: right;
+            white-space: nowrap;
+        }
         .compact-row {
             font-size: 8pt;
             line-height: 1.05;
@@ -123,7 +140,7 @@
         <div class="label-box">
             <div class="info">
                 <div class="row"><strong>Müşteri:</strong> {{ order.musteri }}</div>
-                <div class="row"><strong>Ürün:</strong> {{ order.urun_kodu }} &nbsp;|&nbsp; <strong>Sipariş:</strong> {{ order.siparis_numarasi }}</div>
+                <div class="row product-order-row"><span class="product-code"><strong>Ürün:</strong> {{ order.urun_kodu }}</span><span class="order-no"><strong>Sipariş:</strong> {{ order.siparis_numarasi }}</span></div>
                 <div class="compact-row"><strong>Renk:</strong> {{ order.renk }} &nbsp;|&nbsp; <strong>Beden:</strong> {{ order.beden }} &nbsp;|&nbsp; <strong>Adet:</strong> {{ order.adet }}</div>
                 <div class="compact-row"><strong>Teslim:</strong> {{ order.teslim_tarihi|date:"d.m.Y" }} &nbsp;|&nbsp; <strong>Ref:</strong> {{ order.musteri_referans|default:"-" }}</div>
                 {% if order.aciklama %}
