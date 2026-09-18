@@ -39,3 +39,20 @@ def access_required(permission_name):
             return view_func(request, *args, **kwargs)
         return wrapped
     return decorator
+
+
+def has_feature_access(user, feature_key):
+    if not getattr(user, "is_authenticated", False):
+        return False
+    if has_full_access(user):
+        return True
+    from .permission_registry import FEATURES
+    access = get_access(user)
+    explicit = access.feature_permissions or {}
+    if feature_key in explicit:
+        return bool(explicit[feature_key])
+    meta = FEATURES.get(feature_key) or {}
+    fallback = meta.get("fallback")
+    if fallback is None:
+        return True
+    return bool(getattr(access, fallback, False))
