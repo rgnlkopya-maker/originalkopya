@@ -1,3 +1,4 @@
+from app_settings.access import has_access
 from collections import Counter, defaultdict
 from decimal import Decimal
 import json
@@ -12,7 +13,7 @@ from .models import Musteri, Order, OrderEvent
 
 
 def _can_view(user):
-    return user.is_superuser or user.groups.filter(name__in=["patron", "mudur"]).exists()
+    return has_access(user, "can_view_reports")
 
 
 def _shipment_finance_rows(start="", end="", customer_query="", customer_id=None):
