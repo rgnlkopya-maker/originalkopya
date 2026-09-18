@@ -40,8 +40,8 @@
             max-width: 76mm;
             min-height: 34mm;
             display: grid;
-            grid-template-columns: minmax(0, 1fr) 26mm;
-            gap: 3mm;
+            grid-template-columns: minmax(0, 1fr) 22mm;
+            gap: 2mm;
             align-items: center;
         }
 
@@ -60,25 +60,45 @@
         }
 
         .row:last-child { margin-bottom: 0; }
-        .description-row {
-            font-size: 6.5pt;
-            line-height: 1;
+        .compact-row {
+            font-size: 8pt;
+            line-height: 1.05;
             margin-bottom: .35mm;
+            white-space: nowrap;
+            overflow: hidden;
+        }
+        .description-block {
+            margin-top: .8mm;
+            padding-top: .7mm;
+            border-top: .25mm solid #bbb;
+            font-size: 7pt;
+            line-height: 1.08;
+            min-height: 7mm;
+            max-height: 10.5mm;
+            overflow: hidden;
+        }
+        .description-text {
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;
+            white-space: normal;
+            overflow: hidden;
+            overflow-wrap: anywhere;
         }
         .info strong { font-weight: 700; }
 
         .qr {
-            width: 26mm;
-            height: 26mm;
+            width: 22mm;
+            height: 22mm;
             display: flex;
             align-items: center;
             justify-content: center;
-            flex: 0 0 26mm;
+            flex: 0 0 22mm;
         }
 
         .qr img {
-            width: 26mm;
-            height: 26mm;
+            width: 22mm;
+            height: 22mm;
             display: block;
             object-fit: contain;
         }
@@ -105,12 +125,13 @@
                 <div class="row"><strong>Sipariş:</strong> {{ order.siparis_numarasi }}</div>
                 <div class="row"><strong>Müşteri:</strong> {{ order.musteri }}</div>
                 <div class="row"><strong>Ürün:</strong> {{ order.urun_kodu }}</div>
-                {% if order.aciklama %}<div class="row description-row"><strong>Açıklama:</strong> {{ order.aciklama }}</div>{% endif %}
-                <div class="row"><strong>Renk:</strong> {{ order.renk }}</div>
-                <div class="row"><strong>Beden:</strong> {{ order.beden }}</div>
-                <div class="row"><strong>Adet:</strong> {{ order.adet }}</div>
-                <div class="row"><strong>Teslim:</strong> {{ order.teslim_tarihi|date:"d.m.Y" }}</div>
-                <div class="row"><strong>Müşteri Ref:</strong> {{ order.musteri_referans|default:"-" }}</div>
+                <div class="compact-row"><strong>Renk:</strong> {{ order.renk }} &nbsp;|&nbsp; <strong>Beden:</strong> {{ order.beden }} &nbsp;|&nbsp; <strong>Adet:</strong> {{ order.adet }}</div>
+                <div class="compact-row"><strong>Teslim:</strong> {{ order.teslim_tarihi|date:"d.m.Y" }} &nbsp;|&nbsp; <strong>Ref:</strong> {{ order.musteri_referans|default:"-" }}</div>
+                {% if order.aciklama %}
+                <div class="description-block">
+                    <div class="description-text"><strong>Açıklama:</strong> {{ order.aciklama }}</div>
+                </div>
+                {% endif %}
             </div>
             <div class="qr">
                 {% if order.qr_code_url %}<img src="{{ order.qr_code_url }}" alt="QR">{% endif %}
