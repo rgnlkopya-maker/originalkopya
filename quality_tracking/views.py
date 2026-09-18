@@ -1,3 +1,4 @@
+from app_settings.access import has_access
 from datetime import datetime, time, timedelta
 
 from django.contrib import messages
@@ -15,7 +16,7 @@ User = get_user_model()
 
 
 def is_manager(user):
-    return user.is_superuser or user.groups.filter(name__in=["patron", "mudur"]).exists()
+    return has_access(user, "can_manage_quality") or has_access(user, "can_view_personnel")
 
 
 def _date_range(request):
