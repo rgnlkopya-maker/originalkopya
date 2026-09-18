@@ -1,3 +1,4 @@
+from app_settings.access import has_access
 from decimal import Decimal, InvalidOperation
 from io import BytesIO
 import urllib.request
@@ -16,7 +17,7 @@ from .models import ExchangeRate, PriceListSettings, ProductCard
 
 
 def _can_manage(user):
-    return user.is_superuser or user.groups.filter(name__in=["patron", "mudur"]).exists()
+    return has_access(user, "can_view_costs")
 
 
 def fetch_price_list_tcmb_rates():
