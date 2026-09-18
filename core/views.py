@@ -1,3 +1,4 @@
+from app_settings.access import has_access
 # ========================
 # ✅ Python
 # ========================
@@ -814,7 +815,7 @@ def order_edit(request, pk):
     order = get_object_or_404(Order, pk=pk)
 
     # 🛡️ Yetki kontrolü
-    if not request.user.groups.filter(name__in=["patron", "mudur"]).exists():
+    if not has_access(request.user, "can_edit_orders"):
         return HttpResponseForbidden("Bu işlemi yapma yetkiniz yok.")
 
     # 📌 Güncellemeden önce eski hali sakla
@@ -1040,7 +1041,7 @@ def delete_order_event(request, event_id):
 def order_delete(request, pk):
 
     # 🛡️ YETKİ KONTROLÜ
-    if not request.user.groups.filter(name__in=["patron", "mudur"]).exists():
+    if not has_access(request.user, "can_delete_orders"):
         return JsonResponse({"status": "error", "message": "Yetki yok"}, status=403)
 
     # 🛠️ SİLME
@@ -1097,7 +1098,7 @@ def reports_view(request):
 @login_required
 def giden_urunler_raporu(request):
     # Sadece patron veya müdür görebilir
-    if not request.user.groups.filter(name__in=["patron", "mudur"]).exists():
+    if not has_access(request.user, "can_view_reports"):
         return HttpResponseForbidden("Bu raporu görme yetkiniz yok.")
 
     orders = list(
@@ -1127,7 +1128,7 @@ def giden_urunler_raporu(request):
 @login_required
 def user_management_view(request):
     # 🛡️ Sadece patron ve müdür erişebilsin
-    if not request.user.groups.filter(name__in=["patron", "mudur"]).exists():
+    if not has_access(request.user, "can_view_costs"):
         return HttpResponseForbidden("Bu sayfaya erişim yetkiniz yok.")
         
     from django.contrib import messages
@@ -1267,7 +1268,7 @@ from django.db.models.functions import Coalesce
 @login_required
 def product_cost_list(request):
     # Sadece patron veya müdür erişebilir
-    if not request.user.groups.filter(name__in=["patron", "mudur"]).exists():
+    if not has_access(request.user, "can_view_shipping_finance"):
         return HttpResponseForbidden("Bu sayfaya erişim yetkiniz yok.")
 
     # 🧩 Yeni kayıt ekleme veya silme işlemleri
@@ -1768,10 +1769,7 @@ def musteri_pasif_yap_ajax(request):
 
 @login_required
 def stok_ekle(request, order_id):
-    if not (
-        request.user.is_superuser
-        or request.user.groups.filter(name__in=["patron", "mudur"]).exists()
-    ):
+    if not has_access(request.user, "can_view_depots"):
         return HttpResponseForbidden("Bu işlemi yapma yetkiniz yok.")
 
     order = get_object_or_404(Order, id=order_id)
@@ -2456,7 +2454,7 @@ from .models import Order, OrderEvent
 def dashboard_view(request):
 
     # ✅ Yetki kontrolü (patron/müdür)
-    if not (request.user.is_superuser or request.user.groups.filter(name__in=["patron", "mudur"]).exists()):
+    if not has_access(request.user, "can_view_reports"):
         return HttpResponseForbidden("Bu sayfaya erişim yetkiniz yok.")
 
 
@@ -2949,7 +2947,7 @@ from core.models import OrderEvent  # senin model yolu neyse ona göre düzenle
 
 
 def is_manager(user):
-    return user.groups.filter(name__in=["patron", "mudur"]).exists()
+    return has_access(user, "can_view_personnel")
 
 
 @login_required
