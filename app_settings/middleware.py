@@ -2,6 +2,13 @@ from django.http import HttpResponseForbidden
 from .access import has_access
 
 
+def _restricted_personnel(user):
+    return (
+        user.groups.filter(name="personel").exists()
+        and user.username.casefold() != "tahir"
+    )
+
+
 class MoliAccessMiddleware:
     def __init__(self, get_response):
         self.get_response = get_response
@@ -12,6 +19,27 @@ class MoliAccessMiddleware:
 
         path = request.path
         permission = None
+
+        if _restricted_personnel(request.user):
+            blocked_paths = {
+                "/orders/print/",
+                "/orders/label/print/",
+                "/ajax/gecmis-fiyatlar/",
+                "/musteri/new/",
+                "/ajax/musteri/ekle/",
+                "/ajax/musteri/pasif-yap/",
+                "/ajax/beden/ekle/",
+                "/ajax/beden/pasif-yap/",
+                "/ajax/urun-kod/ekle/",
+                "/ajax/urun-kod/tip-guncelle/",
+                "/ajax/urun-kod/pasif-yap/",
+                "/ajax/renk/ekle/",
+                "/ajax/renk/pasif-yap/",
+            }
+            if path in blocked_paths or (
+                path.startswith("/order/") and path.endswith("/cikti-alindi/")
+            ):
+                return HttpResponseForbidden("Bu işlem için yetkiniz yok.")
 
         if path.startswith('/ayarlar/'):
             permission = 'can_view_settings'
