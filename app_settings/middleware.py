@@ -20,6 +20,13 @@ class MoliAccessMiddleware:
         path = request.path
         permission = None
 
+        # Tahir: staff reports and historical price lookup are explicitly forbidden.
+        if request.user.username.casefold() == "tahir" and (
+            path.startswith("/staff-reports/")
+            or path == "/ajax/gecmis-fiyatlar/"
+        ):
+            return HttpResponseForbidden("Bu işlem için yetkiniz yok.")
+
         if _restricted_personnel(request.user):
             blocked_paths = {
                 "/orders/print/",
