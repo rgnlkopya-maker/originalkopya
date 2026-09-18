@@ -13,6 +13,7 @@ from core.models import Beden, CustomerPricingRule, Musteri, Renk, URUN_TIPI_CHO
 from .models import PriceListSettings, ProductCard, ShowroomDraft, ShowroomDraftItem
 from .payment_models import ShowroomPayment
 from .price_list_views import _can_manage, _ensure_price_rates, _price_rows, _real_profit_rate
+from .drive_folio_backup import queue_folio_drive_sync
 
 
 CUSTOMER_BASE_PRICE_SIZE = "BAZ FİYAT (BEDENSİZ)"
@@ -212,7 +213,9 @@ def showroom_draft_action(request):
                 if action=="delete":
                     _delete_draft_safely(draft)
                     return JsonResponse({"ok":True,"message":"Taslak silindi."})
-                draft.status="PENDING" if action=="save_draft" else "APPROVED"; draft.save(update_fields=["status","updated_at"]); return JsonResponse({"ok":True,"draft":draft.id,"status":draft.status,"message":"Taslak kaydedildi." if action=="save_draft" else "Föy onaylananlara kaydedildi."})
+                draft.status="PENDING" if action=="save_draft" else "APPROVED"; draft.save(update_fields=["status","updated_at"])
+                if draft.status == "APPROVED": transaction.on_commit(lambda: queue_folio_drive_sync(draft.id))
+                return JsonResponse({"ok":True,"draft":draft.id,"status":draft.status,"message":"Taslak kaydedildi." if action=="save_draft" else "Föy onaylananlara kaydedildi."})
             if action=="open_saved":
                 draft_id=payload.get("draft_id"); target=ShowroomDraft.objects.filter(id=draft_id,created_by=request.user,status="PENDING").first()
                 if not target: return JsonResponse({"ok":False,"message":"Föy bulunamadı."},status=404)
@@ -373,6 +376,8 @@ def showroom_toggle_approval(request, draft_id):
         else:
             draft.status = "PENDING"
         draft.save(update_fields=["status", "updated_at"])
+    if draft.status == "APPROVED":
+        transaction.on_commit(lambda: queue_folio_drive_sync(draft.id))
     return redirect("showroom_detail_page", draft_id=draft.id)
 
 @login_required
@@ -411,4 +416,6 @@ def showroom_edit_save(request,draft_id):
     with transaction.atomic():
         draft.customer=customer; draft.order_taken_by=order_taken_by; draft.discount_rate=rate; draft.overall_discount_amount=amount; draft.vat_rate=vat_rate; draft.previous_balance=previous_balance; draft.save(update_fields=["customer","order_taken_by","discount_rate","overall_discount_amount","vat_rate","previous_balance","updated_at"]); draft.items.all().delete(); ShowroomDraftItem.objects.bulk_create(create_rows); draft.payments.all().delete()
         if payment_rows: ShowroomPayment.objects.bulk_create(payment_rows)
+    if draft.status in {"APPROVED", "TRANSFERRED"}:
+        transaction.on_commit(lambda: queue_folio_drive_sync(draft.id))
     return JsonResponse({"ok":True,"message":"Föy güncellendi."})
