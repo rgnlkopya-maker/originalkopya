@@ -1127,8 +1127,8 @@ def giden_urunler_raporu(request):
 # 👥 Kullanıcı Yönetimi
 @login_required
 def user_management_view(request):
-    # 🛡️ Sadece patron ve müdür erişebilsin
-    if not has_access(request.user, "can_view_costs"):
+    # 🛡️ Kullanıcı yönetimi yetkisi
+    if not has_access(request.user, "can_manage_users"):
         return HttpResponseForbidden("Bu sayfaya erişim yetkiniz yok.")
         
     from django.contrib import messages
@@ -1267,8 +1267,8 @@ from django.db.models.functions import Coalesce
 # 🧾 ÜRÜN MALİYET LİSTESİ YÖNETİMİ
 @login_required
 def product_cost_list(request):
-    # Sadece patron veya müdür erişebilir
-    if not has_access(request.user, "can_view_shipping_finance"):
+    # Ürün maliyetleri yetkisi
+    if not has_access(request.user, "can_view_costs"):
         return HttpResponseForbidden("Bu sayfaya erişim yetkiniz yok.")
 
     # 🧩 Yeni kayıt ekleme veya silme işlemleri
@@ -1305,8 +1305,8 @@ def product_cost_list(request):
 # 📊 RAPORLAR ANA SAYFASI (Raporlara Git →)
 @login_required
 def reports_home(request):
-    # Sadece patron veya müdür görebilsin
-    if not request.user.groups.filter(name__in=["patron", "mudur"]).exists():
+    # Raporlar yetkisi
+    if not has_access(request.user, "can_view_reports"):
         return HttpResponseForbidden("Bu sayfaya erişim yetkiniz yok.")
     
     # reports/reports_home.html şablonunu render et
@@ -2851,8 +2851,8 @@ from core.models import Order, OrderEvent
 @login_required
 @never_cache
 def sevkiyat_finans_tablosu(request):
-    # ✅ Yetki kontrolü (patron/müdür)
-    if not request.user.groups.filter(name__in=["patron", "mudur"]).exists():
+    # ✅ Sevkiyat finans yetkisi
+    if not has_access(request.user, "can_view_shipping_finance"):
         return HttpResponseForbidden("Bu sayfaya erişim yetkiniz yok.")
 
     # ✅ Finans stage'leri son durum event’ini bozmasın
@@ -3068,8 +3068,8 @@ from .models import Order, OrderEvent
 
 @login_required
 def live_shipped_orders(request):
-    # ✅ Yetki kontrolü (patron/müdür)
-    if not request.user.groups.filter(name__in=["patron", "mudur"]).exists():
+    # ✅ Raporlar yetkisi
+    if not has_access(request.user, "can_view_reports"):
         return HttpResponseForbidden("Bu sayfaya erişim yetkiniz yok.")
 
     # ✅ Sevkiyat_durum eventinin en güncel kaydı
