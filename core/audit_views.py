@@ -1,3 +1,4 @@
+from app_settings.access import has_access
 from datetime import date
 
 from django.contrib.auth import get_user_model
@@ -14,7 +15,7 @@ User = get_user_model()
 
 
 def _is_manager(user):
-    return user.is_superuser or user.groups.filter(name__in=["patron", "mudur"]).exists()
+    return has_access(user, "can_manage_users")
 
 
 @login_required
