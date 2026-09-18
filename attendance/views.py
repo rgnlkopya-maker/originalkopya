@@ -1,3 +1,4 @@
+from app_settings.access import has_access
 import hashlib
 import io
 import math
@@ -26,11 +27,11 @@ DEVICE_COOKIE_MAX_AGE = 60 * 60 * 24 * 365 * 3
 
 
 def is_manager(user):
-    return user.is_staff or user.is_superuser or user.groups.filter(name__in=["patron", "mudur"]).exists()
+    return has_access(user, "can_view_attendance")
 
 
 def is_patron(user):
-    return is_manager(user)
+    return has_access(user, "can_view_attendance")
 
 
 def _hash_device_token(token):
