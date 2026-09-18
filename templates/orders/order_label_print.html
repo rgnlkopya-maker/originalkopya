@@ -122,9 +122,8 @@
     <div class="label">
         <div class="label-box">
             <div class="info">
-                <div class="row"><strong>Sipariş:</strong> {{ order.siparis_numarasi }}</div>
                 <div class="row"><strong>Müşteri:</strong> {{ order.musteri }}</div>
-                <div class="row"><strong>Ürün:</strong> {{ order.urun_kodu }}</div>
+                <div class="row"><strong>Ürün:</strong> {{ order.urun_kodu }} &nbsp;|&nbsp; <strong>Sipariş:</strong> {{ order.siparis_numarasi }}</div>
                 <div class="compact-row"><strong>Renk:</strong> {{ order.renk }} &nbsp;|&nbsp; <strong>Beden:</strong> {{ order.beden }} &nbsp;|&nbsp; <strong>Adet:</strong> {{ order.adet }}</div>
                 <div class="compact-row"><strong>Teslim:</strong> {{ order.teslim_tarihi|date:"d.m.Y" }} &nbsp;|&nbsp; <strong>Ref:</strong> {{ order.musteri_referans|default:"-" }}</div>
                 {% if order.aciklama %}
