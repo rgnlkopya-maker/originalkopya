@@ -13,12 +13,38 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 
 from attendance.models import AttendanceRecord, EmployeeHRProfile
+from app_settings.models import UserAccess
 from core.models import OrderEvent, UserProfile
 from core.services.order_status import FINANCIAL_STAGES, STATUS_LABELS
 from quality_tracking.models import QualityIssue
 
 User = get_user_model()
 TEAM_CHOICES = list(UserProfile.GOREV_SECENEKLERI)
+
+ACCESS_GROUPS = [
+    ("Siparişler", [
+        ("can_view_orders", "Siparişleri Gör"),
+        ("can_create_orders", "Sipariş Oluştur"),
+        ("can_edit_orders", "Sipariş Düzenle"),
+        ("can_update_production", "Üretim Aşaması Güncelle"),
+        ("can_delete_orders", "Sipariş Sil"),
+    ]),
+    ("Operasyon", [
+        ("can_manage_planning", "Planlama"),
+        ("can_view_depots", "Depolar"),
+        ("can_manage_quality", "Kalite / Hata Takibi"),
+        ("can_view_attendance", "Puantaj & Mesai"),
+    ]),
+    ("Yönetim", [
+        ("can_view_reports", "Raporlar"),
+        ("can_view_costs", "Maliyetler / Ürün Kartları"),
+        ("can_view_personnel", "Personel Raporları"),
+        ("can_view_shipping_finance", "Sevkiyat Finans"),
+        ("can_view_assistant", "Asistan"),
+        ("can_manage_users", "Kullanıcı Yönetimi"),
+        ("can_view_settings", "Ayarlar"),
+    ]),
+]
 for value, label in [("modelleme", "Modelleme"), ("utucu", "Ütücü"), ("yardimci", "Yardımcı Eleman")]:
     if not any(existing == value for existing, _label in TEAM_CHOICES):
         TEAM_CHOICES.append((value, label))
@@ -96,9 +122,19 @@ def user_management_view(request):
 @login_required
 def employee_detail(request,user_id):
     if not _is_manager(request.user):return HttpResponseForbidden("Bu sayfaya erişim yetkiniz yok.")
-    employee=get_object_or_404(User,pk=user_id);profile,_=EmployeeHRProfile.objects.get_or_create(user=employee);user_profile,_=UserProfile.objects.get_or_create(user=employee)
+    employee=get_object_or_404(User,pk=user_id);profile,_=EmployeeHRProfile.objects.get_or_create(user=employee);user_profile,_=UserProfile.objects.get_or_create(user=employee);access,_=UserAccess.objects.get_or_create(user=employee)
     if request.method=="POST":
         action=request.POST.get("action","edit_employee").strip()
+        if action=="update_permissions":
+            if employee.groups.filter(name__in=["patron","mudur"]).exists() or employee.is_superuser:
+                messages.info(request,"Patron ve müdür rolleri sistemde tam erişimlidir; tek tek yetki kapatılamaz.")
+                return redirect("employee_detail",user_id=employee.id)
+            for _section, fields in ACCESS_GROUPS:
+                for field_name, _label in fields:
+                    setattr(access, field_name, request.POST.get(field_name)=="on")
+            access.save()
+            messages.success(request,f"{employee.get_full_name() or employee.username} yetkileri güncellendi.")
+            return redirect("employee_detail",user_id=employee.id)
         if action=="mark_departed":
             if employee==request.user:messages.error(request,"Kendi hesabınızı işten ayrılanlara taşıyamazsınız.");return redirect("employee_detail",user_id=employee.id)
             if not profile.employment_end_date:profile.employment_end_date=timezone.localdate();profile.save(update_fields=["employment_end_date","updated_at"])
@@ -123,4 +159,4 @@ def employee_detail(request,user_id):
     for event in work_events_qs:activity_items.append(SimpleNamespace(timestamp=event.timestamp,operation_label=_event_label(event.stage,event.value),order=event.order,aciklama=event.aciklama or ""))
     for issue in issue_qs:activity_items.append(SimpleNamespace(timestamp=issue.created_at,operation_label=f"⚠️ Hata: {issue.konu} · {'Açık' if issue.durum=='ACIK' else 'Çözüldü'}",order=issue.order,aciklama=issue.aciklama or ""))
     activity_items.sort(key=lambda item:item.timestamp,reverse=True);work_events_total=len(activity_items);work_events_page=Paginator(activity_items,100).get_page(request.GET.get("work_page"));role=employee.groups.first().name if employee.groups.exists() else "personel";role_labels={"personel":"Personel","mudur":"Müdür","patron":"Patron"};team_label=dict(TEAM_CHOICES).get(user_profile.gorev,user_profile.gorev.title())
-    return render(request,"teams/employee_detail.html",{"employee":employee,"profile":profile,"today":today,"role":role,"role_label":role_labels.get(role,role.title()),"team_label":team_label,"user_profile":user_profile,"gorevler":TEAM_CHOICES,"range_start":range_start,"range_end":range_end,"preset":preset,"service_years":service_years,"service_months":service_months,"service_days":service_days,"earned_leave":earned_leave,"used_annual_leave":used_annual_leave,"total_leave":total_leave,"remaining_leave":remaining_leave,"worked_days":worked_days,"leave_days":leave_days,"sick_days":sick_days,"annual_leave_period":annual_leave_period,"late_minutes":late_minutes,"overtime_minutes":overtime_minutes,"operation_counts":operation_counts,"work_events_total":work_events_total,"work_events_page":work_events_page,"issue_count":issue_count,"open_issue_count":open_issue_count})
+    return render(request,"teams/employee_detail.html",{"employee":employee,"access":access,"access_groups":ACCESS_GROUPS,"role_has_full_access":employee.is_superuser or employee.groups.filter(name__in=["patron","mudur"]).exists(),"profile":profile,"today":today,"role":role,"role_label":role_labels.get(role,role.title()),"team_label":team_label,"user_profile":user_profile,"gorevler":TEAM_CHOICES,"range_start":range_start,"range_end":range_end,"preset":preset,"service_years":service_years,"service_months":service_months,"service_days":service_days,"earned_leave":earned_leave,"used_annual_leave":used_annual_leave,"total_leave":total_leave,"remaining_leave":remaining_leave,"worked_days":worked_days,"leave_days":leave_days,"sick_days":sick_days,"annual_leave_period":annual_leave_period,"late_minutes":late_minutes,"overtime_minutes":overtime_minutes,"operation_counts":operation_counts,"work_events_total":work_events_total,"work_events_page":work_events_page,"issue_count":issue_count,"open_issue_count":open_issue_count})
