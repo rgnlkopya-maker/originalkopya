@@ -104,6 +104,8 @@ def employee_detail(request,user_id):
     if request.method=="POST":
         action=request.POST.get("action","edit_employee").strip()
         if action=="update_permissions":
+            if not has_feature_access(request.user, "critical.manage_permissions"):
+                return HttpResponseForbidden("Kullanıcı yetkilerini değiştirme yetkiniz yok.")
             if employee.groups.filter(name__in=["patron","mudur"]).exists() or employee.is_superuser:
                 messages.info(request,"Patron ve müdür rolleri sistemde tam erişimlidir; tek tek yetki kapatılamaz.")
                 return redirect("employee_detail",user_id=employee.id)
@@ -116,7 +118,11 @@ def employee_detail(request,user_id):
                     if fallback:
                         fallback_values[fallback] = fallback_values.get(fallback, False) or enabled
             access.feature_permissions = explicit
-            update_fields = ["feature_permissions", "updated_at"]
+            access.data_scope = {
+                "orders": request.POST.get("scope_orders", "all") if request.POST.get("scope_orders") in {"all", "active_only"} else "all",
+                "customers": request.POST.get("scope_customers", "all") if request.POST.get("scope_customers") in {"all", "active_only"} else "all",
+            }
+            update_fields = ["feature_permissions", "data_scope", "updated_at"]
             for fallback, enabled in fallback_values.items():
                 setattr(access, fallback, enabled)
                 update_fields.append(fallback)
@@ -139,6 +145,9 @@ def employee_detail(request,user_id):
             profile.phone_number=request.POST.get("phone_number","").strip();profile.national_id=request.POST.get("national_id","").strip();profile.emergency_contact_name=request.POST.get("emergency_contact_name","").strip();profile.emergency_contact_phone=request.POST.get("emergency_contact_phone","").strip();profile.employment_start_date=parse_date("employment_start_date");profile.employment_end_date=parse_date("employment_end_date");profile.sgk_start_date=parse_date("sgk_start_date");profile.birth_date=parse_date("birth_date");profile.annual_leave_carryover=max(0,int(request.POST.get("annual_leave_carryover") or 0));profile.chronic_conditions=request.POST.get("chronic_conditions","").strip();profile.medications=request.POST.get("medications","").strip();profile.note=request.POST.get("note","").strip();profile.save();employee.is_active=not bool(profile.employment_end_date);employee.save(update_fields=["is_active"]);messages.success(request,"Personel bilgileri güncellendi.")
         except (ValueError,TypeError):messages.error(request,"Girilen bilgileri kontrol edin.")
         return redirect("employee_detail",user_id=employee.id)
+    access_scope = access.data_scope or {}
+    scope_orders = access_scope.get("orders", "all")
+    scope_customers = access_scope.get("customers", "all")
     access_sections = [
         SimpleNamespace(
             title=section,
@@ -157,4 +166,4 @@ def employee_detail(request,user_id):
     for event in work_events_qs:activity_items.append(SimpleNamespace(timestamp=event.timestamp,operation_label=_event_label(event.stage,event.value),order=event.order,aciklama=event.aciklama or ""))
     for issue in issue_qs:activity_items.append(SimpleNamespace(timestamp=issue.created_at,operation_label=f"⚠️ Hata: {issue.konu} · {'Açık' if issue.durum=='ACIK' else 'Çözüldü'}",order=issue.order,aciklama=issue.aciklama or ""))
     activity_items.sort(key=lambda item:item.timestamp,reverse=True);work_events_total=len(activity_items);work_events_page=Paginator(activity_items,100).get_page(request.GET.get("work_page"));role=employee.groups.first().name if employee.groups.exists() else "personel";role_labels={"personel":"Personel","mudur":"Müdür","patron":"Patron"};team_label=dict(TEAM_CHOICES).get(user_profile.gorev,user_profile.gorev.title())
-    return render(request,"teams/employee_detail.html",{"employee":employee,"access":access,"access_sections":access_sections,"role_has_full_access":employee.is_superuser or employee.groups.filter(name__in=["patron","mudur"]).exists(),"profile":profile,"today":today,"role":role,"role_label":role_labels.get(role,role.title()),"team_label":team_label,"user_profile":user_profile,"gorevler":TEAM_CHOICES,"range_start":range_start,"range_end":range_end,"preset":preset,"service_years":service_years,"service_months":service_months,"service_days":service_days,"earned_leave":earned_leave,"used_annual_leave":used_annual_leave,"total_leave":total_leave,"remaining_leave":remaining_leave,"worked_days":worked_days,"leave_days":leave_days,"sick_days":sick_days,"annual_leave_period":annual_leave_period,"late_minutes":late_minutes,"overtime_minutes":overtime_minutes,"operation_counts":operation_counts,"work_events_total":work_events_total,"work_events_page":work_events_page,"issue_count":issue_count,"open_issue_count":open_issue_count})
+    return render(request,"teams/employee_detail.html",{"employee":employee,"access":access,"access_sections":access_sections,"scope_orders":scope_orders,"scope_customers":scope_customers,"role_has_full_access":employee.is_superuser or employee.groups.filter(name__in=["patron","mudur"]).exists(),"profile":profile,"today":today,"role":role,"role_label":role_labels.get(role,role.title()),"team_label":team_label,"user_profile":user_profile,"gorevler":TEAM_CHOICES,"range_start":range_start,"range_end":range_end,"preset":preset,"service_years":service_years,"service_months":service_months,"service_days":service_days,"earned_leave":earned_leave,"used_annual_leave":used_annual_leave,"total_leave":total_leave,"remaining_leave":remaining_leave,"worked_days":worked_days,"leave_days":leave_days,"sick_days":sick_days,"annual_leave_period":annual_leave_period,"late_minutes":late_minutes,"overtime_minutes":overtime_minutes,"operation_counts":operation_counts,"work_events_total":work_events_total,"work_events_page":work_events_page,"issue_count":issue_count,"open_issue_count":open_issue_count})
