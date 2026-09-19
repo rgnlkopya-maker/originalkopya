@@ -21,6 +21,18 @@ FEATURE_GROUPS = [
         ("orders.toggle_active", "Sipariş Aktif / Pasif", "can_edit_orders"),
         ("orders.price_history", "Geçmiş Fiyat Sorgula", "can_view_reports"),
     ]),
+    ("Sipariş İçindeki Hassas Alanlar", [
+        ("orders.view_sale_price", "Satış Fiyatını Gör", "can_view_reports"),
+        ("orders.edit_sale_price", "Satış Fiyatını Değiştir", "can_edit_orders"),
+        ("orders.view_cost", "Maliyeti Gör", "can_view_costs"),
+        ("orders.edit_cost", "Maliyeti Değiştir", "can_view_costs"),
+        ("orders.view_profit", "Kârı Gör", "can_view_costs"),
+        ("orders.edit_vat", "KDV / Para Birimi Değiştir", "can_edit_orders"),
+        ("orders.edit_delivery_date", "Teslim Tarihini Değiştir", "can_edit_orders"),
+        ("orders.edit_description", "Açıklamayı Değiştir", "can_edit_orders"),
+        ("orders.edit_customer_ref", "Müşteri Referansını Değiştir", "can_edit_orders"),
+        ("orders.edit_quantity", "Adedi Değiştir", "can_edit_orders"),
+    ]),
     ("Müşteri / Katalog", [
         ("catalog.customers", "Müşteri Listesi / Kartı", "can_view_reports"),
         ("catalog.customer_edit", "Müşteri Düzenle", "can_view_reports"),
@@ -91,6 +103,14 @@ FEATURE_GROUPS = [
         ("quality.actions", "Hata Çöz / Yeniden Aç", "can_manage_quality"),
         ("quality.report", "Kalite Raporu", "can_manage_quality"),
         ("quality.personnel", "Personel Kalite Detayı", "can_view_personnel"),
+    ]),
+    ("Dışa Aktarma / Kritik İşlemler", [
+        ("critical.export_orders", "Sipariş Verisini Dışa Aktar", "can_create_orders"),
+        ("critical.export_prices", "Fiyat Listesini Dışa Aktar", "can_view_costs"),
+        ("critical.delete_history", "Üretim Geçmişi Kaydı Sil", "can_delete_orders"),
+        ("critical.manage_permissions", "Kullanıcı Yetkilerini Değiştir", "can_manage_users"),
+        ("critical.reset_password", "Kullanıcı Şifresi Sıfırla", "can_manage_users"),
+        ("critical.delete_user", "Kullanıcıyı Tamamen Sil", "can_manage_users"),
     ]),
     ("Ekip / Yönetim", [
         ("team.users", "Ekipler / Kullanıcı Yönetimi", "can_manage_users"),
