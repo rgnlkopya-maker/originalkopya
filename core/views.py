@@ -639,9 +639,19 @@ def order_detail(request, pk):
         "aciklama": "Açıklama",
         "musteri_referans": "Müşteri Referansı",
     }
-    change_events = list(
+    raw_change_events = list(
         update_events.filter(stage__in=change_labels.keys()).order_by("-timestamp", "-id")
     )
+
+    def _change_key(raw):
+        if raw in (None, "", "None"):
+            return ""
+        return str(raw).strip()
+
+    change_events = [
+        change for change in raw_change_events
+        if _change_key(change.old_value) != _change_key(change.new_value)
+    ]
 
     def _change_display(stage, raw):
         if raw in (None, "", "None"):
@@ -909,7 +919,13 @@ def order_edit(request, pk):
 
             for field, old_value in old_data.items():
                 new_value = new_data[field]
-                if str(old_value) != str(new_value):
+
+                def _normalized_change_value(value):
+                    if value in (None, "", "None"):
+                        return ""
+                    return str(value).strip()
+
+                if _normalized_change_value(old_value) != _normalized_change_value(new_value):
                     changed_fields.append(field)
 
                     # 🔥 Güncelleme logu
