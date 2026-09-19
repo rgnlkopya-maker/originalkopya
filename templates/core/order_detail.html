@@ -31,6 +31,45 @@ body{background:#f4f6fb}.order-detail-wrap{max-width:1180px;margin:0 auto;paddin
 {% endif %}<div class="production-wrap no-print" id="uretim-paneli">{% include "core/_uretim_paneli.html" with order=order events=events %}</div></div></div>
 <div id="image-viewer" class="image-viewer no-print" aria-hidden="true"><div class="image-viewer-inner"><img id="image-viewer-img" class="image-viewer-img" alt="Sipariş görseli"><div class="image-viewer-actions"><button type="button" id="image-print-btn" class="image-viewer-btn">🖨️ Yazdır</button><button type="button" id="image-close-btn" class="image-viewer-btn">✕</button></div></div></div>
 <script>document.addEventListener('DOMContentLoaded',function(){const viewer=document.getElementById('image-viewer'),viewerImg=document.getElementById('image-viewer-img'),closeBtn=document.getElementById('image-close-btn'),printBtn=document.getElementById('image-print-btn');document.querySelectorAll('.preview-img[data-full-image]').forEach(img=>img.addEventListener('click',()=>{viewerImg.src=img.dataset.fullImage;viewer.classList.add('open');viewer.setAttribute('aria-hidden','false');document.body.style.overflow='hidden'}));function closeViewer(){viewer.classList.remove('open');viewer.setAttribute('aria-hidden','true');viewerImg.src='';document.body.style.overflow=''}closeBtn.addEventListener('click',closeViewer);viewer.addEventListener('click',e=>{if(e.target===viewer)closeViewer()});document.addEventListener('keydown',e=>{if(e.key==='Escape'&&viewer.classList.contains('open'))closeViewer()});printBtn.addEventListener('click',()=>{if(!viewerImg.src)return;const w=window.open('','_blank');if(!w)return;w.document.write('<!doctype html><html><head><title>Sipariş Görseli</title><style>html,body{margin:0;padding:0;background:#fff}body{display:flex;align-items:center;justify-content:center;min-height:100vh}img{max-width:100%;max-height:100vh;object-fit:contain}@page{margin:10mm}</style></head><body><img src="'+viewerImg.src.replace(/"/g,'&quot;')+'"></body></html>');w.document.close();const im=w.document.querySelector('img');im.onload=()=>{w.focus();w.print()}})})</script>
+{% if change_events or order.aciklama %}
+<div class="no-print" style="margin:10px 0">
+  <button type="button" id="orderVoiceReadBtn" class="btn btn-sm btn-outline-primary">🔊 Değişiklik ve açıklamayı dinle</button>
+</div>
+{{ order.aciklama|default:""|json_script:"order-voice-description" }}
+<div id="order-voice-changes" hidden>
+{% for ev in change_events %}<span data-field="{{ ev.field_label }}" data-old="{{ ev.old_display }}" data-new="{{ ev.new_display }}"></span>{% endfor %}
+</div>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  var btn = document.getElementById('orderVoiceReadBtn');
+  if (!btn || !('speechSynthesis' in window)) { if (btn) btn.style.display='none'; return; }
+  function buildSpeech() {
+    var parts = [];
+    document.querySelectorAll('#order-voice-changes span').forEach(function (el) {
+      parts.push('Değişiklik. ' + el.dataset.field + ', ' + el.dataset.old + ' yerine ' + el.dataset.new + '.');
+    });
+    var descEl = document.getElementById('order-voice-description');
+    var desc = '';
+    if (descEl) { try { desc = JSON.parse(descEl.textContent || '""'); } catch(e) {} }
+    if (desc && desc.trim()) parts.push('Açıklama. ' + desc.trim() + '.');
+    return parts.join(' ');
+  }
+  function speak() {
+    var text = buildSpeech(); if (!text) return;
+    window.speechSynthesis.cancel();
+    var u = new SpeechSynthesisUtterance(text);
+    u.lang = 'tr-TR'; u.rate = 0.95;
+    window.speechSynthesis.speak(u);
+  }
+  btn.addEventListener('click', speak);
+  // QR/direct opening: try automatic reading. iPhone may block autoplay;
+  // the visible button remains as a reliable fallback.
+  if (!document.referrer || document.referrer.indexOf(location.host) === -1) {
+    setTimeout(speak, 500);
+  }
+});
+</script>
+{% endif %}
 {% if change_events %}
 <div class="modal fade change-modal no-print" id="orderChangeModal" tabindex="-1" aria-labelledby="orderChangeModalLabel" aria-hidden="true">
   <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
