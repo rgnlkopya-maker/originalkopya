@@ -13,6 +13,12 @@
 .permission-item label{font-size:13px;font-weight:700;color:#2f374a;margin:0}
 .permission-save{border:0;background:#4a63ff;color:#fff;border-radius:11px;padding:10px 16px;font-weight:800}
 .permission-lock{font-size:12px;font-weight:800;color:#55627a;background:#eef1f7;border-radius:999px;padding:7px 10px}
+.scope-box{margin-top:14px;border:1px solid #e7eaf2;border-radius:14px;padding:13px;background:#fff}
+.scope-title{font-size:11px;font-weight:900;color:#65718a;text-transform:uppercase;letter-spacing:.04em;margin-bottom:10px}
+.scope-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.scope-field label{display:block;font-size:12px;font-weight:800;color:#465168;margin-bottom:6px}
+.scope-field select{width:100%;height:40px;border:1px solid #dfe4ed;border-radius:10px;background:#fff;padding:0 10px;font-size:12px}
+@media(max-width:700px){.scope-grid{grid-template-columns:1fr}}
 @media(max-width:900px){.permission-sections{grid-template-columns:1fr}}@media(max-width:1120px){.filter-top{flex-wrap:wrap}.attendance-row{grid-template-columns:repeat(3,1fr)}.operation-grid{grid-template-columns:repeat(3,1fr)}}@media(max-width:800px){.stats{grid-template-columns:repeat(2,1fr)}.quick-group{overflow-x:auto}.date-form{width:100%;justify-content:flex-end}.operation-grid{grid-template-columns:repeat(2,1fr)}}@media(max-width:560px){.attendance-row{grid-template-columns:repeat(2,1fr)}.operation-grid{grid-template-columns:1fr 1fr}}
 </style>{% endblock %}
 {% block content %}<div class="container-fluid emp-wrap"><a class="back-link" href="{% url 'user_management' %}"><i class="bi bi-arrow-left"></i> Ekipler</a>{% if messages %}{% for message in messages %}<div class="alert alert-{{ message.tags }}">{{ message }}</div>{% endfor %}{% endif %}
@@ -45,6 +51,25 @@
       {% endfor %}
     </div>
     {% endfor %}
+  </div>
+  <div class="scope-box">
+    <div class="scope-title">Veri Kapsamı</div>
+    <div class="scope-grid">
+      <div class="scope-field">
+        <label>Siparişlerde Görebileceği Kapsam</label>
+        <select name="scope_orders" {% if role_has_full_access %}disabled{% endif %}>
+          <option value="all" {% if scope_orders == "all" %}selected{% endif %}>Tüm siparişler</option>
+          <option value="active_only" {% if scope_orders == "active_only" %}selected{% endif %}>Yalnız aktif siparişler</option>
+        </select>
+      </div>
+      <div class="scope-field">
+        <label>Müşterilerde Görebileceği Kapsam</label>
+        <select name="scope_customers" {% if role_has_full_access %}disabled{% endif %}>
+          <option value="all" {% if scope_customers == "all" %}selected{% endif %}>Tüm müşteriler</option>
+          <option value="active_only" {% if scope_customers == "active_only" %}selected{% endif %}>Yalnız aktif müşteriler</option>
+        </select>
+      </div>
+    </div>
   </div>
   {% if not role_has_full_access %}
   <div class="d-flex justify-content-end mt-3"><button class="permission-save" type="submit"><i class="bi bi-check2-circle"></i> Yetkileri Kaydet</button></div>
