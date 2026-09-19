@@ -8,6 +8,7 @@ _lock = Lock()
 _samples = defaultdict(lambda: deque(maxlen=200))
 
 SKIP_PREFIXES = ("/static/", "/media/", "/health/", "/sistem-sagligi/data/")
+# Monitoring marker: keep middleware changes in the current deploy.
 
 
 def record_sample(path, method, status, elapsed_ms, queries):
