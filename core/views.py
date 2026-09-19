@@ -628,6 +628,38 @@ def order_detail(request, pk):
     events = OrderEvent.objects.filter(order=order).order_by("-timestamp")
     update_events = events.filter(event_type="order_update")
 
+    # ⚠️ Üretimi etkileyen kalıcı sipariş değişiklikleri.
+    # Finans/maliyet/fiyat değişiklikleri özellikle bu uyarıya dahil edilmez.
+    change_labels = {
+        "urun_kodu": "Ürün Kodu",
+        "renk": "Renk",
+        "beden": "Beden",
+        "adet": "Adet",
+        "teslim_tarihi": "Teslim Tarihi",
+        "aciklama": "Açıklama",
+        "musteri_referans": "Müşteri Referansı",
+    }
+    change_events = list(
+        update_events.filter(stage__in=change_labels.keys()).order_by("-timestamp", "-id")
+    )
+
+    def _change_display(stage, raw):
+        if raw in (None, "", "None"):
+            return "—"
+        value = str(raw)
+        if stage == "teslim_tarihi":
+            try:
+                from datetime import date as _date
+                return _date.fromisoformat(value[:10]).strftime("%d.%m.%Y")
+            except (ValueError, TypeError):
+                return value
+        return value
+
+    for change in change_events:
+        change.field_label = change_labels.get(change.stage, change.stage)
+        change.old_display = _change_display(change.stage, change.old_value)
+        change.new_display = _change_display(change.stage, change.new_value)
+
     # Silme sonrası ekranda, geçmişte gerçekten kalan son aşamayı göster.
     from .services.order_status import latest_status_event, status_label
     current_status = status_label(latest_status_event(order))
@@ -669,6 +701,8 @@ def order_detail(request, pk):
             "fasoncular": fasoncular,
             "events": events,
             "update_events": update_events,
+            "change_events": change_events,
+            "change_count": len(change_events),
             "is_manager": is_manager,
             "uretim_kayitlari": uretim_kayitlari,
             "back_url": return_url,
