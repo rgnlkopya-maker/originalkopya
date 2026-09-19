@@ -2,6 +2,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.http import HttpResponseForbidden
 from django.shortcuts import get_object_or_404, redirect, render
+from app_settings.access import data_scope_value, customer_scope_allows
 
 from .customer_report_views import _can_view
 from .customer_models import CustomerDetail
@@ -68,6 +69,9 @@ def customer_list(request):
     status = (request.GET.get("durum") or "aktif").strip()
 
     customers = Musteri.objects.all().order_by("ad")
+    if data_scope_value(request.user, "customers") == "active_only":
+        customers = customers.filter(aktif=True)
+        status = "aktif"
     if q:
         customers = customers.filter(ad__icontains=q)
     if status == "aktif":
@@ -90,6 +94,8 @@ def customer_edit(request, customer_id):
         return HttpResponseForbidden("Müşteri bilgilerini düzenleme yetkiniz yok.")
 
     customer = get_object_or_404(Musteri, pk=customer_id)
+    if not customer_scope_allows(request.user, customer):
+        return HttpResponseForbidden("Bu müşteriyi görme yetkiniz yok.")
     detail, _ = CustomerDetail.objects.get_or_create(customer=customer)
 
     if request.method == "POST":
