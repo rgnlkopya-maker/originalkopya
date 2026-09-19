@@ -54,8 +54,6 @@ def order_list(request):
     if scope_orders == "active_only":
         all_orders = all_orders.filter(is_active=True)
     total_count = all_orders.count()
-    seen_order_ids=set(OrderSeen.objects.filter(user=request.user).values_list("order_id",flat=True))
-    new_flags={o.id:o.id not in seen_order_ids for o in all_orders}
     if hasattr(request.user,"userprofile"):
         request.user.userprofile.last_seen_orders=timezone.now(); request.user.userprofile.save(update_fields=["last_seen_orders"])
     latest_event=(OrderEvent.objects.filter(order=OuterRef("pk")).exclude(event_type="order_update").exclude(stage__in=["satis_fiyati","ekstra_maliyet","maliyet_override","maliyet_uygulanan"]).order_by("-timestamp","-id")[:1])
@@ -107,8 +105,15 @@ def order_list(request):
     elif kalite=="yok": qs=qs.filter(quality_issues__isnull=True)
     aktif_count=base_qs.filter(is_active=True).count(); pasif_count=base_qs.filter(is_active=False).count(); sevke_count=base_qs.filter(is_active=True,latest_stage="sevkiyat_durum",latest_value="gonderildi").count(); filtered_count=qs.count()
     paginator=Paginator(qs,50); page_obj=paginator.get_page(request.GET.get("page"))
+    # Only check "seen" state for the 50 orders on the current page.
+    # Previously this walked every order on every page load.
+    page_order_ids = [order.id for order in page_obj.object_list]
+    seen_page_ids = set(
+        OrderSeen.objects.filter(user=request.user, order_id__in=page_order_ids)
+        .values_list("order_id", flat=True)
+    )
     for order in page_obj:
-        order.is_new=new_flags.get(order.id,False)
+        order.is_new=order.id not in seen_page_ids
         if not order.latest_stage or not order.latest_value: order.formatted_status="-"; continue
         transfer_status=_transfer_status(order.latest_stage,order.latest_value,order.latest_parca)
         if transfer_status: order.formatted_status=transfer_status; continue
