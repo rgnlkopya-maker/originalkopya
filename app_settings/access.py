@@ -56,3 +56,27 @@ def has_feature_access(user, feature_key):
     if fallback is None:
         return True
     return bool(getattr(access, fallback, False))
+
+
+def data_scope_value(user, key, default="all"):
+    if not getattr(user, "is_authenticated", False):
+        return default
+    if has_full_access(user):
+        return "all"
+    access = get_access(user)
+    scope = access.data_scope or {}
+    return scope.get(key, default)
+
+
+def order_scope_allows(user, order):
+    value = data_scope_value(user, "orders")
+    if value == "active_only":
+        return bool(getattr(order, "is_active", False))
+    return True
+
+
+def customer_scope_allows(user, customer):
+    value = data_scope_value(user, "customers")
+    if value == "active_only":
+        return bool(getattr(customer, "aktif", False))
+    return True
