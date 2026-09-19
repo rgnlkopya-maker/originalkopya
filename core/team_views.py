@@ -84,6 +84,8 @@ def user_management_view(request):
             if hr.employment_end_date:user.is_active=False;user.save(update_fields=["is_active"])
             messages.success(request,f"{user.get_full_name() or username} eklendi ✅");return redirect("user_management")
         if action=="reset_password":
+            if not has_feature_access(request.user, "critical.reset_password"):
+                return HttpResponseForbidden("Şifre sıfırlama yetkiniz yok.")
             u=get_object_or_404(User,pk=request.POST.get("user_id"));new_password=request.POST.get("new_password","").strip()
             if new_password:u.set_password(new_password);u.save();messages.success(request,f"{u.username} için şifre güncellendi 🔐")
             else:messages.error(request,"Yeni şifre boş olamaz.")
@@ -91,6 +93,8 @@ def user_management_view(request):
         if action=="update_gorev":
             u=get_object_or_404(User,pk=request.POST.get("user_id"));profile,_=UserProfile.objects.get_or_create(user=u);gorev=request.POST.get("gorev","yok").strip();valid_gorevler={value for value,_label in TEAM_CHOICES};profile.gorev=gorev if gorev in valid_gorevler else "yok";profile.save();messages.success(request,f"{u.username} görevi güncellendi 🏷️");return redirect("user_management")
         if action=="delete_user":
+            if not has_feature_access(request.user, "critical.delete_user"):
+                return HttpResponseForbidden("Kullanıcı silme yetkiniz yok.")
             u=get_object_or_404(User,pk=request.POST.get("user_id"))
             if u==request.user:messages.warning(request,"Kendinizi silemezsiniz.")
             else:u.delete();messages.success(request,"Kullanıcı silindi 🗑️")
@@ -130,6 +134,8 @@ def employee_detail(request,user_id):
             messages.success(request,f"{employee.get_full_name() or employee.username} yetkileri güncellendi.")
             return redirect("employee_detail",user_id=employee.id)
         if action=="mark_departed":
+            if not has_feature_access(request.user, "critical.mark_departed"):
+                return HttpResponseForbidden("Kullanıcıyı işten ayrıldı olarak kapatma yetkiniz yok.")
             if employee==request.user:messages.error(request,"Kendi hesabınızı işten ayrılanlara taşıyamazsınız.");return redirect("employee_detail",user_id=employee.id)
             if not profile.employment_end_date:profile.employment_end_date=timezone.localdate();profile.save(update_fields=["employment_end_date","updated_at"])
             employee.is_active=False;employee.save(update_fields=["is_active"]);messages.success(request,f"{employee.get_full_name() or employee.username} işyerinden ayrılanlar listesine taşındı.");return redirect("user_management")
