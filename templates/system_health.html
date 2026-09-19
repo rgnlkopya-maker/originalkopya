@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container-fluid px-3 px-md-4 py-3" style="max-width:1500px">
+  <div class="d-flex justify-content-between align-items-center mb-3"><div><h3 class="mb-1">Sistem Sağlığı</h3><div class="text-muted">MoliApp performans ve temel sistem kontrolleri</div></div><button class="btn btn-primary" onclick="location.reload()">Testleri Yenile</button></div>
+  <div class="row g-3 mb-3">
+    {% for c in checks %}<div class="col-md-4"><div class="card border-0 shadow-sm h-100"><div class="card-body"><div class="fw-bold">{% if c.ok %}<span class="text-success">●</span>{% else %}<span class="text-danger">●</span>{% endif %} {{ c.name }}</div><div class="text-muted mt-1">{{ c.detail }}</div></div></div></div>{% endfor %}
+  </div>
+  <div class="card border-0 shadow-sm mb-3"><div class="card-body"><h5>Veri büyüklüğü</h5><div class="row g-2">{% for name,value in counts.items %}<div class="col-6 col-md-3"><div class="border rounded p-3"><div class="text-muted small">{{ name }}</div><div class="fs-4 fw-bold">{{ value }}</div></div></div>{% endfor %}</div></div></div>
+  <div class="card border-0 shadow-sm"><div class="card-body"><h5>Gerçek ekran hızları</h5><p class="text-muted small">Normal kullanım sırasında otomatik ölçülür. Son 200 istek/ekran bellekte tutulur; veritabanına yük bindirmez ve deploy sonrası sıfırlanır.</p>
+  <div class="table-responsive"><table class="table align-middle"><thead><tr><th>Ekran / Yol</th><th>İstek</th><th>Ortalama</th><th>%95</th><th>En yavaş</th><th>DB sorgusu</th><th>500</th><th>Durum</th></tr></thead><tbody>
+  {% for r in rows %}<tr><td>{{ r.path }}</td><td>{{ r.count }}</td><td>{{ r.avg_ms }} ms</td><td>{{ r.p95_ms }} ms</td><td>{{ r.max_ms }} ms</td><td>{{ r.avg_queries|default:"—" }}</td><td>{{ r.errors }}</td><td>{% if r.level == "danger" %}<span class="badge bg-danger">Çok yavaş</span>{% elif r.level == "warn" %}<span class="badge bg-warning text-dark">Yavaş</span>{% else %}<span class="badge bg-success">Normal</span>{% endif %}</td></tr>{% empty %}<tr><td colspan="8" class="text-center text-muted py-4">Henüz ölçüm yok. Uygulamadaki ekranları kullandıkça burada sonuçlar oluşacak.</td></tr>{% endfor %}
+  </tbody></table></div></div></div>
+</div>
+{% endblock %}
