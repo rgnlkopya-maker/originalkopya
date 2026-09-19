@@ -1,3 +1,4 @@
+from app_settings.access import has_feature_access
 from django import forms
 from .models import Order, Musteri
 
@@ -71,43 +72,62 @@ class OrderForm(forms.ModelForm):
         # 🧍 Kullanıcıyı sakla
         self.user = user
 
-        # 🔎 Kullanıcı grupları
-        user_groups = [g.name.lower() for g in user.groups.all()] if user else []
+        if user:
+            if not has_feature_access(user, "orders.view_sale_price"):
+                for field in ["satis_fiyati", "vat_rate", "para_birimi"]:
+                    if field in self.fields:
+                        self.fields[field].widget = forms.HiddenInput()
+            elif not has_feature_access(user, "orders.edit_sale_price"):
+                if "satis_fiyati" in self.fields:
+                    self.fields["satis_fiyati"].disabled = True
 
-        # 🔒 Patron/müdür değilse maliyet & fiyat alanlarını gizle
-        if user and not any(g in ["patron", "mudur"] for g in user_groups):
-            hidden_fields = [
-                "satis_fiyati",
-                "vat_rate",
-                "para_birimi",
-                "maliyet_uygulanan",
-                "maliyet_para_birimi",
-                "maliyet_override",
-                "ekstra_maliyet",
-                "gitti_mi",
-            ]
-            for field in hidden_fields:
-                if field in self.fields:
-                    self.fields[field].widget = forms.HiddenInput()
+            if not has_feature_access(user, "orders.view_cost"):
+                for field in ["maliyet_uygulanan", "maliyet_para_birimi", "maliyet_override", "ekstra_maliyet"]:
+                    if field in self.fields:
+                        self.fields[field].widget = forms.HiddenInput()
+            elif not has_feature_access(user, "orders.edit_cost"):
+                for field in ["maliyet_uygulanan", "maliyet_para_birimi", "maliyet_override", "ekstra_maliyet"]:
+                    if field in self.fields:
+                        self.fields[field].disabled = True
+
+            if "vat_rate" in self.fields and not has_feature_access(user, "orders.edit_vat"):
+                self.fields["vat_rate"].disabled = True
+            if "para_birimi" in self.fields and not has_feature_access(user, "orders.edit_vat"):
+                self.fields["para_birimi"].disabled = True
+
+            if self.instance and self.instance.pk:
+                field_rules = {
+                    "teslim_tarihi": "orders.edit_delivery_date",
+                    "aciklama": "orders.edit_description",
+                    "musteri_referans": "orders.edit_customer_ref",
+                    "adet": "orders.edit_quantity",
+                }
+                for field_name, feature_key in field_rules.items():
+                    if field_name in self.fields and not has_feature_access(user, feature_key):
+                        self.fields[field_name].disabled = True
 
     def save(self, commit=True):
         instance = super().save(commit=False)
 
         user = getattr(self, 'user', None)
 
-        # Patron/müdür değilse gizli alanları dokunma — eski değerleri koru
-        if user and not user.groups.filter(name__in=["patron", "mudur"]).exists():
-            for field in [
-                "satis_fiyati",
-                "vat_rate",
-                "para_birimi",
-                "maliyet_uygulanan",
-                "maliyet_para_birimi",
-                "maliyet_override",
-                "ekstra_maliyet",
-            ]:
-                old_value = getattr(self.instance, field, None)
-                setattr(instance, field, old_value)
+        if user and self.instance and self.instance.pk:
+            preserve = []
+            if not has_feature_access(user, "orders.edit_sale_price"):
+                preserve.append("satis_fiyati")
+            if not has_feature_access(user, "orders.edit_vat"):
+                preserve.extend(["vat_rate", "para_birimi"])
+            if not has_feature_access(user, "orders.edit_cost"):
+                preserve.extend(["maliyet_uygulanan", "maliyet_para_birimi", "maliyet_override", "ekstra_maliyet"])
+            field_rules = {
+                "teslim_tarihi": "orders.edit_delivery_date",
+                "aciklama": "orders.edit_description",
+                "musteri_referans": "orders.edit_customer_ref",
+                "adet": "orders.edit_quantity",
+            }
+            preserve.extend(field for field, feature in field_rules.items() if not has_feature_access(user, feature))
+            for field in set(preserve):
+                setattr(instance, field, getattr(self.instance, field, None))
 
         if commit:
             instance.save()
