@@ -67,21 +67,21 @@ def order_list(request):
         elif "0" in active_values: qs=qs.filter(is_active=False)
     q=request.GET.get("q","").strip()
     if q:
-        search_q=(
-            Q(siparis_numarasi__icontains=q)
-            | Q(musteri__ad__icontains=q)
-            | Q(urun_kodu__icontains=q)
-            | Q(urun_tipi__icontains=q)
-            | Q(siparis_tipi__icontains=q)
-            | Q(musteri_referans__icontains=q)
-            | Q(renk__icontains=q)
-            | Q(beden__icontains=q)
-            | Q(aciklama__icontains=q)
-            | Q(latest_value__icontains=q)
+        # Akıllı arama: boşlukla ayrılan her kelime siparişin herhangi bir
+        # aranabilir alanında bulunmalı. Örn. "7138 taş" => hem 7138 hem taş.
+        # icontains PostgreSQL/Django tarafında büyük-küçük harf duyarsızdır.
+        search_fields = (
+            "siparis_numarasi", "musteri__ad", "urun_kodu", "urun_tipi",
+            "siparis_tipi", "musteri_referans", "renk", "beden", "aciklama",
+            "latest_value",
         )
-        if q.isdigit():
-            search_q |= Q(adet=int(q))
-        qs=qs.filter(search_q)
+        for term in q.split():
+            term_q = Q()
+            for field in search_fields:
+                term_q |= Q(**{f"{field}__icontains": term})
+            if term.isdigit():
+                term_q |= Q(adet=int(term))
+            qs=qs.filter(term_q)
 
     multi_filters={"siparis_numarasi__in":_multi(request,"siparis_no"),"musteri__ad__in":_multi(request,"musteri"),"urun_kodu__in":_multi(request,"urun_kodu"),"urun_tipi__in":_multi(request,"urun_tipi"),"renk__in":_multi(request,"renk"),"beden__in":_multi(request,"beden"),"siparis_tipi__in":_multi(request,"siparis_tipi"),"musteri_referans__in":_multi(request,"musteri_referans")}
     for field,values in multi_filters.items():
