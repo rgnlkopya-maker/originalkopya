@@ -53,10 +53,14 @@ def showroom_print_page(request, draft_id):
 
     data = _serialize_draft(draft)
     summary = _draft_summary(draft)
+    lang = request.GET.get("lang", "tr").lower()
+    if lang not in LANGUAGES:
+        lang = "tr"
+    t = TRANSLATIONS[lang]
     status_label = {
-        "PENDING": "Taslak",
-        "APPROVED": "Onaylanan",
-        "TRANSFERRED": "Siparişe Aktarıldı",
+        "PENDING": t["draft"],
+        "APPROVED": t["approved"],
+        "TRANSFERRED": t["transferred"],
     }[draft.status]
 
     print_items = []
@@ -83,4 +87,8 @@ def showroom_print_page(request, draft_id):
         "payments": draft.payments.all().order_by("due_date", "payment_date", "id"),
         "summary": summary,
         "status_label": status_label,
+        "lang": lang,
+        "dir": "rtl" if lang in ("ar", "fa") else "ltr",
+        "languages": LANGUAGES,
+        "t": t,
     })
