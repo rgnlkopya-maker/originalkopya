@@ -1,4 +1,4 @@
-from app_settings.access import has_access
+from app_settings.access import has_access, order_scope_allows
 # ========================
 # ✅ Python
 # ========================
@@ -554,6 +554,8 @@ def musteri_search(request):
 def order_detail(request, pk):
     # 📌 Önce siparişi çek
     order = get_object_or_404(Order.objects.select_related("musteri"), pk=pk)
+    if not order_scope_allows(request.user, order):
+        return HttpResponseForbidden("Bu siparişi görme yetkiniz yok.")
 
     # Finans özeti eski bir fiyatla kaydedilmiş olsa bile detay ekranında siparişin
     # güncel satış fiyatını ve buna bağlı kârı göster. Veritabanındaki eski kayıtları
