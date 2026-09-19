@@ -1,3 +1,4 @@
+from app_settings.access import data_scope_value
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
 from django.db import close_old_connections
@@ -48,12 +49,20 @@ def _transfer_status(stage, value, parca):
 @login_required
 def order_list(request):
     close_old_connections()
-    all_orders=Order.objects.only("id"); total_count=Order.objects.count(); seen_order_ids=set(OrderSeen.objects.filter(user=request.user).values_list("order_id",flat=True))
+    scope_orders = data_scope_value(request.user, "orders")
+    all_orders = Order.objects.only("id")
+    if scope_orders == "active_only":
+        all_orders = all_orders.filter(is_active=True)
+    total_count = all_orders.count()
+    seen_order_ids=set(OrderSeen.objects.filter(user=request.user).values_list("order_id",flat=True))
     new_flags={o.id:o.id not in seen_order_ids for o in all_orders}
     if hasattr(request.user,"userprofile"):
         request.user.userprofile.last_seen_orders=timezone.now(); request.user.userprofile.save(update_fields=["last_seen_orders"])
     latest_event=(OrderEvent.objects.filter(order=OuterRef("pk")).exclude(event_type="order_update").exclude(stage__in=["satis_fiyati","ekstra_maliyet","maliyet_override","maliyet_uygulanan"]).order_by("-timestamp","-id")[:1])
-    base_qs=(Order.objects.select_related("musteri").annotate(latest_stage=Subquery(latest_event.values("stage")),latest_value=Subquery(latest_event.values("value")),latest_parca=Subquery(latest_event.values("parca")),last_status_date=Subquery(latest_event.values("timestamp"),output_field=DateTimeField())).order_by("-id")); qs=base_qs
+    base_qs=(Order.objects.select_related("musteri").annotate(latest_stage=Subquery(latest_event.values("stage")),latest_value=Subquery(latest_event.values("value")),latest_parca=Subquery(latest_event.values("parca")),last_status_date=Subquery(latest_event.values("timestamp"),output_field=DateTimeField())).order_by("-id"))
+    if scope_orders == "active_only":
+        base_qs = base_qs.filter(is_active=True)
+    qs=base_qs
     active_values=_multi(request,"active") or ["1"]
     if "all" not in active_values and not ("1" in active_values and "0" in active_values):
         if "1" in active_values: qs=qs.filter(is_active=True)
