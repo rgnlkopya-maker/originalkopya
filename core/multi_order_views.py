@@ -1,3 +1,4 @@
+from app_settings.access import has_feature_access
 from decimal import Decimal
 import os
 import uuid
@@ -55,6 +56,9 @@ def order_multi_create(request):
         urun_tipi = (request.POST.get("urun_tipi") or "").strip()
         musteri = Musteri.objects.filter(id=request.POST.get("musteri")).first()
         siparis_tipi = request.POST.get("siparis_tipi") or None
+        if siparis_tipi == "KONSINYE" and not has_feature_access(request.user, "consignment.create_production"):
+            messages.error(request, "KONSİNYE tipinde sipariş oluşturma yetkiniz yok.")
+            return redirect("order_multi_create")
         teslim_tarihi = request.POST.get("teslim_tarihi") or None
         aciklama = request.POST.get("aciklama")
         satis_fiyati = _to_decimal(request.POST.get("satis_fiyati")) or Decimal("0")
