@@ -496,6 +496,7 @@ class ConsignmentMovement(models.Model):
     movement_type = models.CharField(max_length=10, choices=TYPES)
     quantity = models.PositiveIntegerField(default=1)
     target_order = models.ForeignKey(Order, on_delete=models.SET_NULL, null=True, blank=True, related_name="consignment_movements")
+    source_event = models.ForeignKey(OrderEvent, on_delete=models.SET_NULL, null=True, blank=True, related_name="consignment_movements")
     user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True, db_index=True)
     note = models.TextField(blank=True, default="")
