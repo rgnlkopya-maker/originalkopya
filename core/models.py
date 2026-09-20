@@ -462,6 +462,43 @@ class DepoStok(models.Model):
     def __str__(self):
         return f"{self.urun_kodu} - {self.renk}/{self.beden} ({self.depo}) [{self.adet} adet]"
 
+
+class ConsignmentStock(models.Model):
+    customer = models.ForeignKey(Musteri, on_delete=models.PROTECT, related_name="consignment_stocks")
+    source_order = models.ForeignKey(Order, on_delete=models.PROTECT, related_name="consignment_source_stocks")
+    urun_kodu = models.CharField(max_length=100, db_index=True)
+    renk = models.CharField(max_length=50, blank=True, null=True, db_index=True)
+    beden = models.CharField(max_length=50, blank=True, null=True, db_index=True)
+    quantity_sent = models.PositiveIntegerField(default=1)
+    quantity_remaining = models.PositiveIntegerField(default=1)
+    cost_snapshot = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
+    cost_currency = models.CharField(max_length=3, choices=CURRENCY_CHOICES, default="TRY")
+    sent_at = models.DateTimeField(default=timezone.now, db_index=True)
+    note = models.TextField(blank=True, default="")
+    created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name="consignment_stocks_created")
+
+    class Meta:
+        ordering = ["sent_at", "id"]
+        indexes = [models.Index(fields=["customer", "urun_kodu", "renk", "beden"])]
+
+    def __str__(self):
+        return f"{self.customer} - {self.urun_kodu} {self.renk or ''}/{self.beden or ''} ({self.quantity_remaining})"
+
+
+class ConsignmentMovement(models.Model):
+    TYPES = (("IN", "Konsinye Giriş"), ("USE", "Siparişte Kullanıldı"), ("RETURN", "İade"))
+    stock = models.ForeignKey(ConsignmentStock, on_delete=models.PROTECT, related_name="movements")
+    movement_type = models.CharField(max_length=10, choices=TYPES)
+    quantity = models.PositiveIntegerField(default=1)
+    target_order = models.ForeignKey(Order, on_delete=models.SET_NULL, null=True, blank=True, related_name="consignment_movements")
+    user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
+    note = models.TextField(blank=True, default="")
+
+    class Meta:
+        ordering = ["-created_at", "-id"]
+
+
 class UretimGecmisi(models.Model):
     order = models.ForeignKey(
         Order,
