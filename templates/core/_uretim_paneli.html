@@ -1,3 +1,4 @@
+{% load access_tags %}
 {# core/_uretim_paneli.html #}
 
 <style>
@@ -104,6 +105,8 @@
                                         {% elif e.stage == 'susleme_fason_durumu' and e.value == 'verildi' %}Süsleme İçin Fasona Verildi
                                         {% elif e.stage == 'susleme_fason_durumu' and e.value == 'alindi' %}Süsleme Fasoncusundan Alındı
                                         {% elif e.stage == 'sevkiyat_durum' and e.value == 'gonderildi' %}Sevkiyat Gönderildi
+                                        {% elif e.stage == 'konsinye_durum' and e.value == 'verildi' %}Konsinyeye Verildi
+                                        {% elif e.stage == 'konsinye_durum' and e.value == 'geri_geldi' %}Konsinyeden Geri Geldi
                                         {% else %}{{ e.stage|title }} → {{ e.value|title }}{% endif %}
                                     </div>
                                     <div class="timeline-meta">{{ e.timestamp|date:"d.m.Y H:i" }} — 👤 {{ e.user }}</div>
@@ -194,6 +197,18 @@
             <div class="stage-actions">
                 <button type="button" class="soft-btn btn-soft-success" data-bs-toggle="modal" data-bs-target="#stokModal">Depoya Girdi</button>
                 <button class="soft-btn btn-soft-dark" hx-get="{% url 'update_stage' order.id %}" hx-vals='{"stage":"sevkiyat_durum","value":"gonderildi"}' hx-target="#uretim-paneli" hx-swap="innerHTML">🚚 Gönderildi</button>
+                {% if user|can_feature:'consignment.send' %}
+                <form method="post" action="{% url 'consignment_send_order' order.id %}" style="display:inline;">{% csrf_token %}
+                    <input type="hidden" name="quantity" value="1">
+                    <button type="submit" class="soft-btn btn-soft-info" onclick="return confirm('Bu ürün müşteriye konsinye verilsin mi?');">🏷️ Konsinyeye Verildi</button>
+                </form>
+                {% endif %}
+                {% if consignment_active_qty and user|can_feature:'consignment.return' %}
+                <form method="post" action="{% url 'consignment_return_order' order.id %}" style="display:inline;">{% csrf_token %}
+                    <input type="hidden" name="quantity" value="1">
+                    <button type="submit" class="soft-btn btn-soft-warning" onclick="return confirm('Bu ürün konsinyeden geri geldi olarak kaydedilsin mi?');">↩️ Konsinyeden Geri Geldi</button>
+                </form>
+                {% endif %}
             </div>
         </div>
     </div>
