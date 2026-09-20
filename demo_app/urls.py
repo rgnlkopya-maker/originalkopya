@@ -5,6 +5,7 @@ from django.conf.urls.static import static
 from django.contrib.auth import logout
 from django.shortcuts import redirect
 from core import views
+from core.consignment_views import consignment_list, consignment_add, consignment_use
 from core.order_transfer_views import transfer_production_history, search_transfer_targets, order_by_number
 from core.price_history_views import customer_product_price_history
 from core.multi_order_views import order_multi_create
@@ -31,6 +32,7 @@ urlpatterns = [
     path("notifications/", views.notification_list, name="notification_list"), path("admin/", admin.site.urls), path("login/", views.custom_login, name="login"), path("custom-login/", views.custom_login, name="custom_login"), path("logout/", logout_view, name="logout"),
     path("hatirlatmalar/", reminder_management, name="reminder_management"), path("hatirlatmalar/<int:reminder_id>/tamamla/", reminder_complete, name="reminder_complete"), path("hatirlatmalar/<int:reminder_id>/durum/", reminder_toggle, name="reminder_toggle"),
     path("attendance/", include("attendance.urls")), path("planlama/", include("planning.urls")), path("urun-kartlari/", include("product_cards.urls")), path("stok/", include("inventory.urls")), path("kalite/", include("quality_tracking.urls")), path("ayarlar/", include("app_settings.urls")),
+    path("konsinye/", consignment_list, name="consignment_list"), path("konsinye/ekle/", consignment_add, name="consignment_add"), path("order/<int:order_id>/konsinye-karsila/", consignment_use, name="consignment_use"),
     path("", enhanced_order_list, name="order_list"), path("order/new/", views.order_create, name="order_create"), path("order/<int:pk>/", order_detail_persistent, name="order_detail"), path("order/<int:pk>/edit/", order_edit_persistent, name="order_edit"), path("order/<int:pk>/delete-image-by-url/", delete_order_image_by_url, name="delete_order_image_by_url"),
     path("order/<int:source_order_id>/production-transfer/", transfer_production_history, name="transfer_production_history"), path("order/<int:source_order_id>/production-transfer/search/", search_transfer_targets, name="search_transfer_targets"), path("order-no/<str:order_number>/", order_by_number, name="order_by_number"),
     path("orders/<int:pk>/update/", views.update_stage, name="update_stage"), path("order/<int:pk>/delete/", views.order_delete, name="order_delete"), path("orders/<int:pk>/upload-image/", views.order_upload_image, name="order_upload_image"), path("orders/<int:pk>/add-image/", views.order_add_image, name="order_add_image"), path("images/<int:image_id>/delete/", views.delete_order_image, name="delete_order_image"), path("images/<int:image_id>/", views.view_image, name="view_image"), path("orders/multi-create/", order_multi_create, name="order_multi_create"), path("ajax/gecmis-fiyatlar/", customer_product_price_history, name="customer_product_price_history"),
