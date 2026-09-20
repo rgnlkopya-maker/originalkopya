@@ -38,7 +38,7 @@ from django.views.decorators.http import require_POST
 # ✅ App Imports
 # ========================
 from .models import (
-    Order, Musteri, Nakisci, Fasoncu, DepoStok,
+    Order, Musteri, Nakisci, Fasoncu, DepoStok, ConsignmentStock,
     OrderEvent, OrderSeen, UretimGecmisi,
     Notification, ProductCost, OrderImage,
     UserProfile, Renk, Beden, UrunKod, MesaiKayit, URUN_TIPI_CHOICES
@@ -688,6 +688,17 @@ def order_detail(request, pk):
     # 🔥 Depo / Hazırdan Verilen Ürün Hareketleri
     uretim_kayitlari = UretimGecmisi.objects.filter(order=order).order_by("-tarih")
 
+    # Müşterinin bu siparişle birebir eşleşen, elle seçilebilir konsinye stokları.
+    consignment_stocks = ConsignmentStock.objects.none()
+    if order.musteri_id:
+        consignment_stocks = ConsignmentStock.objects.select_related("source_order").filter(
+            customer_id=order.musteri_id,
+            urun_kodu__iexact=(order.urun_kodu or ""),
+            renk__iexact=(order.renk or ""),
+            beden__iexact=(order.beden or ""),
+            quantity_remaining__gt=0,
+        ).order_by("sent_at", "id")
+
     is_manager = request.user.groups.filter(name__in=["patron", "mudur"]).exists()
 
     # 📌 Geri dönüş URL'si (liste, rapor veya QR için akıllı sistem)
@@ -717,6 +728,7 @@ def order_detail(request, pk):
             "uretim_kayitlari": uretim_kayitlari,
             "back_url": return_url,
             "current_status": current_status,
+            "consignment_stocks": consignment_stocks,
         },
     )
 
