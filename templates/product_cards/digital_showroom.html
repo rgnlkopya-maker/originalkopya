@@ -367,6 +367,64 @@ const slots=[
 ];
 products.slice(0,slots.length).forEach((p,i)=>addDisplay(p,i,slots[i].x,slots[i].z,slots[i].r));
 
+
+// Grand drapery, hero logo and richer couture display treatment
+function addCurtain(x,z,scaleX=1){
+  const g=new THREE.Group();g.position.set(x,0,z);scene.add(g);
+  const fabric=new THREE.MeshPhysicalMaterial({color:0x8d735f,roughness:.82,sheen:1,sheenColor:new THREE.Color(0xd8b99c)});
+  for(let i=0;i<13;i++){
+    const px=(i-6)*.23*scaleX;
+    const fold=new THREE.Mesh(new THREE.CylinderGeometry(.14,.19,6.7,18),fabric);
+    fold.scale.x=.62;fold.position.set(px,4.05,0);add(fold,g);
+  }
+  box(3.5*scaleX,.13,.16,MAT.brass,0,7.43,.02,0,g);
+}
+addCurtain(-5.9,-14.65,.8);addCurtain(5.9,-14.65,.8);
+
+function heroWord(text,x,y,z,size=2.8){
+  const c=document.createElement('canvas');c.width=1200;c.height=360;
+  const ctx=c.getContext('2d');ctx.clearRect(0,0,1200,360);
+  ctx.fillStyle='#f4d5a1';ctx.shadowColor='rgba(245,188,112,.45)';ctx.shadowBlur=28;
+  ctx.font='500 190px Georgia';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(text,600,175);
+  const tex=new THREE.CanvasTexture(c);tex.colorSpace=THREE.SRGBColorSpace;
+  const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:tex,transparent:true,toneMapped:false}));
+  sp.position.set(x,y,z);sp.scale.set(size*3.2,size,.1);scene.add(sp);
+}
+heroWord('EDEN',0,6.7,-14.45,1.15);
+heroWord('DİJİTAL SHOWROOM',0,5.72,-14.42,.38);
+
+// chandelier ceiling halo
+const haloMat=new THREE.MeshBasicMaterial({color:0xffc27c,transparent:true,opacity:.35,toneMapped:false});
+for(const rr of [5.45,5.8,6.12]){
+  const h=new THREE.Mesh(new THREE.TorusGeometry(rr,.025,10,128),haloMat);h.rotation.x=Math.PI/2;h.position.set(0,9.25,-5.6);scene.add(h);
+}
+
+// stronger couture silhouettes and sparkle accents on dresses
+scene.traverse(o=>{
+  if(!o.isMesh || !o.material || !o.userData?.product)return;
+  if(o.geometry?.type==='CylinderGeometry' && o.position.y>0.25 && o.position.y<2.8){
+    if(o.material!==MAT.mannequin){
+      o.material=o.material.clone();
+      if('sheen' in o.material)o.material.sheen=1;
+      if('clearcoat' in o.material)o.material.clearcoat=.12;
+    }
+  }
+});
+const sparkleMat=new THREE.MeshBasicMaterial({color:0xffe4b5,toneMapped:false});
+for(const slot of slots.slice(0,11)){
+  for(let j=0;j<12;j++){
+    const a=j*2.3999632,rr=.22+(j%4)*.11;
+    const gem=new THREE.Mesh(new THREE.SphereGeometry(.018+(j%3)*.005,7,6),sparkleMat);
+    gem.position.set(slot.x+Math.cos(a)*rr,1.35+(j%5)*.23,slot.z+Math.sin(a)*rr);scene.add(gem);
+  }
+}
+
+// cinematic entrance pools of light
+for(const x of [-9,0,9]){
+  const spot=new THREE.SpotLight(0xffd3a0,45,18,.38,.55,1.5);
+  spot.position.set(x,8.7,10.5);spot.target.position.set(x*.55,.1,-1);scene.add(spot);scene.add(spot.target);
+}
+
 // movement
 let yaw=0,pitch=-.03;
 const keys={};let moveX=0,moveY=0,dragging=false,lastX=0,lastY=0,dragMoved=false;
