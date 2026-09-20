@@ -5,6 +5,7 @@ urlpatterns = [
     path("", views.product_card_list, name="product_card_list"),
     path("kur-guncelle/", views.refresh_exchange_rate, name="refresh_exchange_rate"),
     path("fiyat-listesi/", price_list_views.price_list, name="price_list"),
+    path("dijital-showroom/", showroom_views.digital_showroom, name="digital_showroom"),
     path("showroom-foyu/", showroom_views.showroom_page, name="showroom_page"),
     path("showroom-foyu/taslaklar/", showroom_views.showroom_drafts_page, name="showroom_drafts_page"),
     path("showroom-foyu/onaylananlar/", showroom_views.showroom_approved_page, name="showroom_approved_page"),
