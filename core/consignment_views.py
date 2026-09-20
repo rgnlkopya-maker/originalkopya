@@ -144,6 +144,15 @@ def consignment_send_order(request, order_id):
         messages.error(request, f"Konsinyeye verilebilecek adet {available_to_send}.")
         return redirect("order_detail", pk=source.pk)
     with transaction.atomic():
+        event = OrderEvent.objects.create(
+            order=source,
+            user=request.user.username,
+            gorev="yok",
+            stage="konsinye_durum",
+            value="verildi",
+            adet=quantity,
+            aciklama=f"{source.musteri} müşterisine konsinye verildi.",
+        )
         stock = ConsignmentStock.objects.create(
             customer=source.musteri,
             source_order=source,
@@ -162,16 +171,8 @@ def consignment_send_order(request, order_id):
             movement_type="IN",
             quantity=quantity,
             user=request.user,
+            source_event=event,
             note="Ürün müşterinin konsinye stoğuna verildi.",
-        )
-        OrderEvent.objects.create(
-            order=source,
-            user=request.user.username,
-            gorev="yok",
-            stage="konsinye_durum",
-            value="verildi",
-            adet=quantity,
-            aciklama=f"{source.musteri} müşterisine konsinye verildi.",
         )
     messages.success(request, f"Ürün {source.musteri} müşterisine konsinye verildi.")
     return redirect("order_detail", pk=source.pk)
@@ -200,6 +201,17 @@ def consignment_return_order(request, order_id):
             messages.error(request, "Bu siparişe ait müşteride yeterli konsinye stok bulunmuyor.")
             return redirect("order_detail", pk=source.pk)
 
+        event = OrderEvent.objects.create(
+            order=source,
+            user=request.user.username,
+            gorev="yok",
+            stage="konsinye_durum",
+            value="geri_geldi",
+            adet=quantity,
+            aciklama="Konsinyeden geri geldi. Normal depoya otomatik eklenmedi.",
+            event_type="stage",
+        )
+
         remaining = quantity
         for stock in stocks:
             if remaining <= 0:
@@ -213,20 +225,10 @@ def consignment_return_order(request, order_id):
                 quantity=take,
                 target_order=source,
                 user=request.user,
+                source_event=event,
                 note="Konsinyeden Moli'ye geri geldi.",
             )
             remaining -= take
-
-        OrderEvent.objects.create(
-            order=source,
-            user=request.user.username,
-            gorev="yok",
-            stage="konsinye_durum",
-            value="geri_geldi",
-            adet=quantity,
-            aciklama="Konsinyeden geri geldi. Normal depoya otomatik eklenmedi.",
-            event_type="stage",
-        )
 
     messages.success(request, "Ürün konsinye stoğundan düşüldü ve 'Konsinyeden Geri Geldi' olarak kaydedildi.")
     return redirect("order_detail", pk=source.pk)
