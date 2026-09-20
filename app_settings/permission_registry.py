@@ -167,6 +167,8 @@ _RULES = [
     (re.compile(r"^/hatirlatmalar/"), "operations.reminders"),
 
     (re.compile(r"^/depolar/hazirdan-ver/"), "stock.ready_transfer"),
+    (re.compile(r"^/konsinye/(?:ekle/)?$"), "stock.inventory"),
+    (re.compile(r"^/order/\d+/konsinye-karsila/$"), "stock.ready_transfer"),
     (re.compile(r"^/order/\d+/stok-ekle/$"), "stock.add_from_order"),
     (re.compile(r"^/depolar/"), "stock.depots"),
     (re.compile(r"^/stok/[^/]+/(?:malzeme|urun)/"), "stock.inventory"),
