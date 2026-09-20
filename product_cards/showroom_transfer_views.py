@@ -1,3 +1,4 @@
+from app_settings.access import has_feature_access
 from decimal import Decimal
 
 from django.contrib import messages
@@ -76,6 +77,7 @@ def showroom_transfer_preview(request, draft_id):
         "total_value": total_value,
         "warnings": warnings,
         "can_transfer": bool(draft.customer_id and rows and not has_base_price_rows),
+        "order_type_label": dict(Order.SIPARIS_TIPLERI).get(draft.order_type or "SERI", draft.order_type or "SERI"),
     })
 
 
@@ -119,6 +121,11 @@ def showroom_transfer_create(request, draft_id):
         )
         return redirect("showroom_transfer_preview", draft_id=draft.id)
 
+    order_type = draft.order_type or "SERI"
+    if order_type == "KONSINYE" and not has_feature_access(request.user, "consignment.create_production"):
+        messages.error(request, "Bu Föyü KONSİNYE siparişine dönüştürme yetkiniz yok.")
+        return redirect("showroom_transfer_preview", draft_id=draft.id)
+
     customer = draft.customer
     cost_cache = {}
     created = 0
@@ -133,7 +140,7 @@ def showroom_transfer_create(request, draft_id):
         cost, cost_currency = cost_cache[code]
         for _ in range(row["adet"]):
             Order.objects.create(
-                siparis_tipi="SERI",
+                siparis_tipi=order_type,
                 musteri=customer,
                 urun_kodu=code,
                 urun_tipi=row["urun_tipi"],
