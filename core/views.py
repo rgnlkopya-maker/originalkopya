@@ -699,11 +699,8 @@ def order_detail(request, pk):
             quantity_remaining__gt=0,
         ).order_by("sent_at", "id")
 
-    consignment_sent_qty = 0
-    consignment_unsent_qty = 0
-    if order.siparis_tipi == "KONSINYE":
-        consignment_sent_qty = ConsignmentStock.objects.filter(source_order=order).aggregate(v=Sum("quantity_sent"))["v"] or 0
-        consignment_unsent_qty = max(0, (order.adet or 1) - consignment_sent_qty)
+    consignment_sent_qty = ConsignmentStock.objects.filter(source_order=order).aggregate(v=Sum("quantity_sent"))["v"] or 0
+    consignment_unsent_qty = max(0, (order.adet or 1) - consignment_sent_qty)
 
     is_manager = request.user.groups.filter(name__in=["patron", "mudur"]).exists()
 
