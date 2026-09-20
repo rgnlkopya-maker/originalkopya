@@ -179,7 +179,8 @@ class Order(models.Model):
         ('OZEL', 'Özel'),
         ('SERI', 'Seri'),
         ('TEKLI', 'Tekli Sipariş'),
-        ('STOK', 'Stoğa Üretim')  # 👈 Hazır üretim / depoya üretim tipi
+        ('STOK', 'Stoğa Üretim'),
+        ('KONSINYE', 'Konsinye')
     ]
 
     siparis_tipi = models.CharField(max_length=20, choices=SIPARIS_TIPLERI, null=True, blank=True, db_index=True)
@@ -281,6 +282,10 @@ class Order(models.Model):
     @property
     def is_tekli_siparis(self) -> bool:
         return self.siparis_tipi == 'TEKLI'
+
+    @property
+    def is_konsinye_siparis(self) -> bool:
+        return self.siparis_tipi == 'KONSINYE'
 
 
     
