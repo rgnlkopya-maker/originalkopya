@@ -1,3 +1,4 @@
+from app_settings.access import has_feature_access
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.db import transaction
@@ -9,16 +10,13 @@ from django.views.decorators.http import require_POST
 from .models import ConsignmentMovement, ConsignmentStock, Musteri, Order, OrderEvent
 
 
-def _can_manage(user):
-    if user.is_superuser:
-        return True
-    access = getattr(user, "access", None)
-    return bool(access and (access.can_view_depots or access.can_edit_orders or access.can_manage_planning))
+def _allowed(user, feature):
+    return has_feature_access(user, feature)
 
 
 @login_required
 def consignment_list(request):
-    if not _can_manage(request.user):
+    if not _allowed(request.user, "consignment.view"):
         return HttpResponseForbidden("Bu sayfaya erişim yetkiniz yok.")
     stocks = ConsignmentStock.objects.select_related("customer", "source_order").filter(quantity_remaining__gt=0)
     customer_id = request.GET.get("musteri")
@@ -28,7 +26,9 @@ def consignment_list(request):
     return render(request, "core/consignment_list.html", {
         "stocks": stocks,
         "customers": Musteri.objects.filter(aktif=True).order_by("ad"),
-        "movements": movements,
+        "movements": movements if _allowed(request.user, "consignment.view_movements") else [],
+        "can_view_movements": _allowed(request.user, "consignment.view_movements"),
+        "can_manual_add": _allowed(request.user, "consignment.manual_add"),
         "selected_customer": str(customer_id or ""),
         "total_remaining": stocks.aggregate(v=Sum("quantity_remaining"))["v"] or 0,
     })
@@ -37,7 +37,7 @@ def consignment_list(request):
 @login_required
 @require_POST
 def consignment_add(request):
-    if not _can_manage(request.user):
+    if not _allowed(request.user, "consignment.manual_add"):
         return HttpResponseForbidden("Bu işlem için yetkiniz yok.")
     order_number = (request.POST.get("source_order") or "").strip()
     customer_id = request.POST.get("customer_id")
@@ -69,7 +69,7 @@ def consignment_add(request):
 @login_required
 @require_POST
 def consignment_use(request, order_id):
-    if not _can_manage(request.user):
+    if not _allowed(request.user, "consignment.use"):
         return HttpResponseForbidden("Bu işlem için yetkiniz yok.")
     target = get_object_or_404(Order.objects.select_related("musteri"), pk=order_id)
     stock_id = request.POST.get("stock_id")
@@ -124,7 +124,7 @@ def consignment_use(request, order_id):
 @login_required
 @require_POST
 def consignment_send_order(request, order_id):
-    if not _can_manage(request.user):
+    if not _allowed(request.user, "consignment.send"):
         return HttpResponseForbidden("Bu işlem için yetkiniz yok.")
     source = get_object_or_404(Order.objects.select_related("musteri"), pk=order_id)
     if source.siparis_tipi != "KONSINYE":
