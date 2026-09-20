@@ -134,35 +134,6 @@ def _showroom_page_context(request):
 
 
 @login_required
-def digital_showroom(request):
-    if not _can_manage(request.user):
-        return HttpResponseForbidden("Bu sayfaya erişim yetkiniz yok.")
-
-    cards = (
-        ProductCard.objects
-        .select_related("urun")
-        .filter(price_list_active=True, urun__aktif=True)
-        .order_by("urun__kod")
-    )
-
-    product_types = {}
-    type_labels = dict(URUN_TIPI_CHOICES)
-    for card in cards:
-        raw_type = getattr(card.urun, "urun_tipi", "") or ""
-        label = type_labels.get(raw_type, raw_type or "Diğer")
-        product_types.setdefault(label, []).append(card)
-
-    return render(
-        request,
-        "product_cards/digital_showroom.html",
-        {
-            "cards": cards,
-            "product_groups": product_types,
-        },
-    )
-
-
-@login_required
 def showroom_page(request):
     if not _can_manage(request.user): return HttpResponseForbidden("Bu sayfaya erişim yetkiniz yok.")
     return render(request,"product_cards/showroom_page.html",_showroom_page_context(request))
