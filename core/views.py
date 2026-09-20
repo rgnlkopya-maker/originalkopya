@@ -701,6 +701,7 @@ def order_detail(request, pk):
 
     consignment_sent_qty = ConsignmentStock.objects.filter(source_order=order).aggregate(v=Sum("quantity_sent"))["v"] or 0
     consignment_unsent_qty = max(0, (order.adet or 1) - consignment_sent_qty)
+    consignment_active_qty = ConsignmentStock.objects.filter(source_order=order).aggregate(v=Sum("quantity_remaining"))["v"] or 0
 
     is_manager = request.user.groups.filter(name__in=["patron", "mudur"]).exists()
 
@@ -734,6 +735,7 @@ def order_detail(request, pk):
             "consignment_stocks": consignment_stocks,
             "consignment_sent_qty": consignment_sent_qty,
             "consignment_unsent_qty": consignment_unsent_qty,
+            "consignment_active_qty": consignment_active_qty,
         },
     )
 
@@ -850,6 +852,7 @@ def update_stage(request, pk):
             "fasoncular": Fasoncu.objects.all(),
             "nakisciler": Nakisci.objects.all(),
             "is_manager": request.user.groups.filter(name__in=["patron", "mudur"]).exists(),
+            "consignment_active_qty": ConsignmentStock.objects.filter(source_order=order).aggregate(v=Sum("quantity_remaining"))["v"] or 0,
         })
 
     # Normal istek → JSON
