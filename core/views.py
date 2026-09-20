@@ -1088,22 +1088,124 @@ def delete_order_image(request, image_id):
 def delete_order_event(request, event_id):
     event = get_object_or_404(OrderEvent, id=event_id)
 
-    # 🛡️ Sadece patron veya müdür silebilir
+    # 🛡️ Sadece patron veya müdür silebilir / geri alabilir
     if not request.user.groups.filter(name__in=["patron", "mudur"]).exists():
         return HttpResponseForbidden("Bu işlemi yapma yetkiniz yok.")
 
     order = event.order
     order_id = order.id
+
+    # Konsinye stok etkileyen kayıtlar doğrudan silinmez.
+    # Stok hareketi ile birlikte atomik olarak geri alınır.
+    if event.event_type == "stage" and event.stage == "konsinye_durum":
+        from django.db import transaction
+        from .models import ConsignmentMovement
+
+        with transaction.atomic():
+            movements = list(
+                ConsignmentMovement.objects.select_for_update()
+                .select_related("stock")
+                .filter(source_event=event)
+                .order_by("created_at", "id")
+            )
+
+            # 0063 öncesinde oluşturulmuş birkaç eski kayıt için güvenli eşleştirme.
+            if not movements:
+                window_start = event.timestamp - timedelta(minutes=5)
+                window_end = event.timestamp + timedelta(minutes=5)
+                if event.value == "verildi":
+                    candidate = (
+                        ConsignmentMovement.objects.select_for_update()
+                        .select_related("stock")
+                        .filter(
+                            source_event__isnull=True,
+                            movement_type="IN",
+                            stock__source_order=order,
+                            created_at__gte=window_start,
+                            created_at__lte=window_end,
+                        )
+                        .order_by("-created_at", "-id")
+                        .first()
+                    )
+                    movements = [candidate] if candidate else []
+                elif event.value == "geri_geldi":
+                    movements = list(
+                        ConsignmentMovement.objects.select_for_update()
+                        .select_related("stock")
+                        .filter(
+                            source_event__isnull=True,
+                            movement_type="RETURN",
+                            target_order=order,
+                            created_at__gte=window_start,
+                            created_at__lte=window_end,
+                        )
+                        .order_by("created_at", "id")
+                    )
+
+            if not movements:
+                messages.error(
+                    request,
+                    "Bu konsinye kaydının stok hareketi bulunamadığı için güvenli şekilde geri alınamadı."
+                )
+                return redirect("order_detail", pk=order_id)
+
+            # Sonraki bir konsinye hareketi varsa geçmişteki işlemi geri almak zinciri bozar.
+            for movement in movements:
+                if ConsignmentMovement.objects.filter(
+                    stock=movement.stock,
+                    created_at__gt=movement.created_at,
+                ).exclude(pk=movement.pk).exists():
+                    messages.error(
+                        request,
+                        "Bu konsinye işleminden sonra başka bir hareket yapıldığı için geri alınamaz. Önce sonraki hareketi geri alın."
+                    )
+                    return redirect("order_detail", pk=order_id)
+
+            if event.value == "verildi":
+                for movement in movements:
+                    if movement.movement_type != "IN":
+                        messages.error(request, "Konsinye giriş hareketi eşleşmedi; işlem geri alınmadı.")
+                        return redirect("order_detail", pk=order_id)
+                    stock = movement.stock
+                    movement.delete()
+                    # Her 'Konsinyeye Verildi' işlemi kendi stok partisini oluşturur.
+                    if stock.movements.exists():
+                        messages.error(request, "Konsinye stok partisinde başka hareket bulundu; işlem geri alınmadı.")
+                        transaction.set_rollback(True)
+                        return redirect("order_detail", pk=order_id)
+                    stock.delete()
+
+                event.delete()
+                cache.clear()
+                messages.success(request, "Konsinyeye Verildi işlemi geri alındı; ürün müşterinin konsinye stoğundan çıkarıldı.")
+                return redirect("order_detail", pk=order_id)
+
+            if event.value == "geri_geldi":
+                for movement in movements:
+                    if movement.movement_type != "RETURN":
+                        messages.error(request, "Konsinye dönüş hareketi eşleşmedi; işlem geri alınmadı.")
+                        return redirect("order_detail", pk=order_id)
+                    stock = movement.stock
+                    stock.quantity_remaining += movement.quantity
+                    stock.save(update_fields=["quantity_remaining"])
+                    movement.delete()
+
+                event.delete()
+                cache.clear()
+                messages.success(request, "Konsinyeden Geri Geldi işlemi geri alındı; ürün müşterinin konsinye stoğuna geri eklendi.")
+                return redirect("order_detail", pk=order_id)
+
+            messages.error(request, "Bu konsinye hareketi geri alınamıyor.")
+            return redirect("order_detail", pk=order_id)
+
     deleted_stage = event.stage if event.event_type == "stage" else None
     event.delete()
 
     if deleted_stage:
         from .services.order_status import sync_order_stage_from_events
-
         sync_order_stage_from_events(order, deleted_stage)
 
     cache.clear()
-
     messages.success(request, "Üretim geçmişi kaydı silindi.")
     return redirect("order_detail", pk=order_id)
 
