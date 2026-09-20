@@ -130,9 +130,6 @@ def consignment_send_order(request, order_id):
     if not source.musteri_id:
         messages.error(request, "Konsinyeye göndermek için siparişte müşteri seçilmiş olmalıdır.")
         return redirect("order_detail", pk=source.pk)
-    if source.hazir_durum != "bitti":
-        messages.error(request, "Ürün Hazır aşaması tamamlanmadan konsinyeye gönderilemez.")
-        return redirect("order_detail", pk=source.pk)
     try:
         quantity = max(1, int(request.POST.get("quantity") or 1))
     except ValueError:
@@ -161,16 +158,71 @@ def consignment_send_order(request, order_id):
             movement_type="IN",
             quantity=quantity,
             user=request.user,
-            note="Siparişten müşterinin konsinye stoğuna gönderildi.",
+            note="Ürün müşterinin konsinye stoğuna verildi.",
         )
         OrderEvent.objects.create(
             order=source,
             user=request.user.username,
             gorev="yok",
-            stage="konsinye",
-            value="konsinyeye_gonderildi",
+            stage="konsinye_durum",
+            value="verildi",
             adet=quantity,
-            aciklama=f"{source.musteri} konsinye stoğuna {quantity} adet gönderildi.",
+            aciklama=f"{source.musteri} müşterisine konsinye verildi.",
         )
-    messages.success(request, f"{quantity} adet ürün {source.musteri} konsinye stoğuna gönderildi.")
+    messages.success(request, f"Ürün {source.musteri} müşterisine konsinye verildi.")
+    return redirect("order_detail", pk=source.pk)
+
+
+@login_required
+@require_POST
+def consignment_return_order(request, order_id):
+    if not _allowed(request.user, "consignment.return"):
+        return HttpResponseForbidden("Bu işlem için yetkiniz yok.")
+
+    source = get_object_or_404(Order.objects.select_related("musteri"), pk=order_id)
+    try:
+        quantity = max(1, int(request.POST.get("quantity") or 1))
+    except (TypeError, ValueError):
+        quantity = 1
+
+    with transaction.atomic():
+        stocks = list(
+            ConsignmentStock.objects.select_for_update()
+            .filter(source_order=source, quantity_remaining__gt=0)
+            .order_by("sent_at", "id")
+        )
+        available = sum(s.quantity_remaining for s in stocks)
+        if available < quantity:
+            messages.error(request, "Bu siparişe ait müşteride yeterli konsinye stok bulunmuyor.")
+            return redirect("order_detail", pk=source.pk)
+
+        remaining = quantity
+        for stock in stocks:
+            if remaining <= 0:
+                break
+            take = min(stock.quantity_remaining, remaining)
+            stock.quantity_remaining -= take
+            stock.save(update_fields=["quantity_remaining"])
+            ConsignmentMovement.objects.create(
+                stock=stock,
+                movement_type="RETURN",
+                quantity=take,
+                target_order=source,
+                user=request.user,
+                note="Konsinyeden Moli'ye geri geldi.",
+            )
+            remaining -= take
+
+        OrderEvent.objects.create(
+            order=source,
+            user=request.user.username,
+            gorev="yok",
+            stage="konsinye_durum",
+            value="geri_geldi",
+            adet=quantity,
+            aciklama="Konsinyeden geri geldi. Normal depoya otomatik eklenmedi.",
+            event_type="stage",
+        )
+
+    messages.success(request, "Ürün konsinye stoğundan düşüldü ve 'Konsinyeden Geri Geldi' olarak kaydedildi.")
     return redirect("order_detail", pk=source.pk)
