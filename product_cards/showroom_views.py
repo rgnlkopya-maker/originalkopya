@@ -132,6 +132,36 @@ def _showroom_page_context(request):
     return {"settings":settings,"rows":_price_rows(settings,active=not show_inactive),"show_inactive":show_inactive,"inactive_count":ProductCard.objects.filter(price_list_active=False).count(),"rate_error":rate_error,"real_profit_rate":_real_profit_rate(settings.profit_rate,settings.discount_rate),"showroom_mode":True,"musteriler":musteriler,"renkler":renkler,"bedenler":bedenler,"urun_kodlari":urun_kodlari,"aktif_musteriler":musteriler,"aktif_renkler":renkler,"aktif_bedenler":bedenler,"aktif_urun_kodlari":urun_kodlari,"urun_tipi_secenekleri":URUN_TIPI_CHOICES,"pricing_customer_ids":_pricing_customer_ids(),"customer_base_price_size":CUSTOMER_BASE_PRICE_SIZE}
 
 
+
+@login_required
+def digital_showroom(request):
+    if not _can_manage(request.user):
+        return HttpResponseForbidden("Bu sayfaya erişim yetkiniz yok.")
+
+    cards = (
+        ProductCard.objects
+        .select_related("urun")
+        .filter(price_list_active=True, urun__aktif=True)
+        .order_by("urun__kod")
+    )
+
+    product_types = {}
+    type_labels = dict(URUN_TIPI_CHOICES)
+    for card in cards:
+        raw_type = getattr(card.urun, "urun_tipi", "") or ""
+        label = type_labels.get(raw_type, raw_type or "Diğer")
+        product_types.setdefault(label, []).append(card)
+
+    return render(
+        request,
+        "product_cards/digital_showroom.html",
+        {
+            "cards": cards,
+            "product_groups": product_types,
+        },
+    )
+
+
 @login_required
 def showroom_page(request):
     if not _can_manage(request.user): return HttpResponseForbidden("Bu sayfaya erişim yetkiniz yok.")
