@@ -59,6 +59,11 @@
 {% elif status == "Sevkiyat → Tekrar Gonderildi" or status == "Tekrar Gönderildi" %}
     <span class="status-badge status-green">Tekrar Gönderildi</span>
 
+{% elif status == "Konsinyeye Verildi" %}
+    <span class="status-badge status-blue">Konsinyeye Verildi</span>
+{% elif status == "Konsinyeden Geri Geldi" %}
+    <span class="status-badge status-yellow">Konsinyeden Geri Geldi</span>
+
 {% comment %} ESKİ FİNANS HAREKETİ KAYITLARI - GERİYE DÖNÜK GÖRÜNÜM {% endcomment %}
 {% elif status == "Finans Hareketi → Indirim" %}
     <span class="status-badge status-yellow">İndirim Yapıldı</span>
