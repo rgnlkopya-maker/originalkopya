@@ -1,103 +1,295 @@
 {% extends "base.html" %}
-{% block content %}
+{% block extra_css %}
 <style>
-.ds-shell{min-height:calc(100vh - 78px);background:linear-gradient(180deg,#f6f2ec 0,#eee7de 100%);padding:18px 14px 30px}
-.ds-top{max-width:1500px;margin:0 auto 14px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
-.ds-title{font-size:clamp(24px,3vw,38px);font-weight:900;letter-spacing:-.03em;color:#1f2633}
-.ds-sub{color:#7a8190;font-size:13px}
-.ds-actions{display:flex;gap:8px;flex-wrap:wrap}.ds-btn{border:0;border-radius:12px;padding:10px 14px;font-weight:800;text-decoration:none;display:inline-flex;align-items:center;gap:7px}.ds-btn.dark{background:#1f2633;color:#fff}.ds-btn.light{background:#fff;color:#303746;border:1px solid #e0d9d0}
-.ds-stage{max-width:1500px;margin:auto;background:radial-gradient(circle at 50% 20%,#fff 0,#f7f3ed 38%,#e6ddd2 100%);border:1px solid #ded6cc;border-radius:24px;min-height:680px;position:relative;overflow:hidden;box-shadow:0 20px 60px rgba(49,39,28,.10)}
-.ds-ceiling{height:70px;background:linear-gradient(180deg,#eee8e1,#f8f5f0);border-bottom:1px solid #e1d9cf;position:relative}.ds-ceiling:after{content:"";position:absolute;left:6%;right:6%;bottom:12px;height:3px;background:linear-gradient(90deg,transparent,#d8c9b7 20%,#d8c9b7 80%,transparent)}
-.ds-floor{position:absolute;left:0;right:0;bottom:0;height:36%;background:linear-gradient(180deg,#e8e0d6,#d8cec2);clip-path:polygon(10% 0,90% 0,100% 100%,0 100%)}
-.ds-wall{position:absolute;top:70px;bottom:0;width:13%;background:linear-gradient(90deg,#e5ddd3,#f4efe8)}.ds-wall.left{left:0;transform:skewY(8deg);transform-origin:top left}.ds-wall.right{right:0;transform:skewY(-8deg);transform-origin:top right}
-.ds-content{position:relative;z-index:3;padding:22px 24px 40px}
-.ds-filter-row{display:flex;gap:8px;overflow:auto;padding-bottom:8px;margin-bottom:14px}.ds-filter{white-space:nowrap;border:1px solid #d9d1c7;background:#fff;color:#4d5461;border-radius:999px;padding:8px 13px;font-size:12px;font-weight:800}.ds-filter.active{background:#222a38;color:#fff;border-color:#222a38}
-.ds-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px;align-items:stretch}
-.ds-card{position:relative;background:#fff;border:1px solid #ddd6ce;border-radius:18px;overflow:hidden;box-shadow:0 8px 22px rgba(47,37,26,.08);cursor:pointer;transition:.18s transform,.18s box-shadow}.ds-card:hover{transform:translateY(-4px);box-shadow:0 14px 28px rgba(47,37,26,.14)}
-.ds-card-image{aspect-ratio:3/4;background:linear-gradient(180deg,#f9f7f3,#eee9e3);display:flex;align-items:center;justify-content:center;overflow:hidden}.ds-card-image img{width:100%;height:100%;object-fit:contain}.ds-noimg{font-size:12px;color:#9b948b}
-.ds-card-body{padding:11px 12px}.ds-code{font-size:17px;font-weight:900;color:#202735}.ds-type{font-size:11px;color:#8b919c;margin-top:2px}.ds-card-chip{position:absolute;top:9px;right:9px;background:rgba(26,31,40,.88);color:#fff;border-radius:999px;padding:5px 8px;font-size:10px;font-weight:800}
-.ds-empty{padding:60px 20px;text-align:center;color:#8a909a}
-.ds-panel{position:fixed;z-index:1090;top:0;right:0;width:min(430px,100vw);height:100vh;background:#fff;box-shadow:-16px 0 50px rgba(22,26,34,.18);transform:translateX(105%);transition:.22s transform;display:flex;flex-direction:column}.ds-panel.open{transform:translateX(0)}
-.ds-panel-head{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid #ece7e1}.ds-panel-close{border:0;background:#f2efeb;border-radius:10px;width:38px;height:38px;font-weight:900}
-.ds-panel-img{height:44vh;background:#f7f4ef;display:flex;align-items:center;justify-content:center}.ds-panel-img img{width:100%;height:100%;object-fit:contain}.ds-panel-body{padding:18px;overflow:auto}.ds-panel-code{font-size:28px;font-weight:950;color:#202735}.ds-panel-type{font-size:12px;color:#8b919d;margin-bottom:14px}.ds-panel-desc{font-size:13px;line-height:1.55;color:#555d6b;white-space:pre-line}.ds-panel-actions{display:grid;gap:9px;margin-top:18px}.ds-action{border:0;border-radius:12px;padding:12px 14px;font-weight:850;text-align:center;text-decoration:none}.ds-action.primary{background:#263246;color:#fff}.ds-action.secondary{background:#f0ece7;color:#343b49}.ds-action.runway{background:#efe4f7;color:#604471}.ds-action[disabled]{opacity:.55;cursor:not-allowed}
-.ds-backdrop{position:fixed;inset:0;background:rgba(19,22,28,.35);z-index:1080;display:none}.ds-backdrop.open{display:block}
-@media(max-width:700px){.ds-shell{padding:10px 8px 20px}.ds-stage{border-radius:18px;min-height:620px}.ds-content{padding:14px 12px 30px}.ds-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.ds-card-body{padding:9px}.ds-code{font-size:15px}}
+  body{background:#0f1115}
+  .page-nav{display:none!important}
+  .vr-shell{position:relative;height:calc(100vh - 64px);min-height:600px;background:#111;overflow:hidden}
+  #showroomCanvas{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none}
+  .vr-topbar{position:absolute;z-index:20;left:16px;right:16px;top:14px;display:flex;justify-content:space-between;align-items:flex-start;gap:12px;pointer-events:none}
+  .vr-brand,.vr-actions{pointer-events:auto}
+  .vr-brand{background:rgba(20,22,28,.74);backdrop-filter:blur(12px);color:#fff;border:1px solid rgba(255,255,255,.13);border-radius:16px;padding:10px 14px;box-shadow:0 10px 35px rgba(0,0,0,.22)}
+  .vr-brand strong{display:block;font-size:16px}.vr-brand span{display:block;font-size:11px;color:#c8cbd2;margin-top:2px}
+  .vr-actions{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+  .vr-action{display:inline-flex;align-items:center;gap:6px;height:42px;padding:0 13px;border-radius:13px;border:1px solid rgba(255,255,255,.15);background:rgba(20,22,28,.76);color:#fff;text-decoration:none;font-size:12px;font-weight:800;backdrop-filter:blur(12px)}
+  .vr-help{position:absolute;z-index:20;left:16px;bottom:16px;background:rgba(17,20,26,.72);backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,.12);color:#f4f5f8;border-radius:14px;padding:10px 12px;font-size:11px;line-height:1.5;max-width:300px}
+  .vr-crosshair{position:absolute;z-index:12;left:50%;top:50%;width:18px;height:18px;transform:translate(-50%,-50%);pointer-events:none}.vr-crosshair:before,.vr-crosshair:after{content:"";position:absolute;background:rgba(255,255,255,.7);border-radius:1px}.vr-crosshair:before{width:12px;height:1px;left:3px;top:8px}.vr-crosshair:after{width:1px;height:12px;left:8px;top:3px}
+  .vr-hint{position:absolute;z-index:19;left:50%;bottom:38px;transform:translateX(-50%);background:rgba(16,18,23,.78);color:#fff;border:1px solid rgba(255,255,255,.13);border-radius:999px;padding:8px 13px;font-size:11px;font-weight:800;opacity:0;transition:.15s;pointer-events:none}.vr-hint.show{opacity:1}
+  .vr-loading{position:absolute;z-index:50;inset:0;background:#101217;color:#fff;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:12px}.vr-loading.hide{display:none}.vr-spinner{width:34px;height:34px;border:3px solid rgba(255,255,255,.2);border-top-color:#fff;border-radius:50%;animation:spin .8s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}
+  .vr-panel{position:absolute;z-index:40;right:14px;top:72px;bottom:14px;width:min(390px,calc(100vw - 28px));background:rgba(250,249,247,.97);border-radius:20px;box-shadow:0 22px 70px rgba(0,0,0,.30);transform:translateX(calc(100% + 30px));transition:.22s;overflow:hidden;display:flex;flex-direction:column}.vr-panel.open{transform:translateX(0)}
+  .vr-panel-head{display:flex;justify-content:space-between;align-items:center;padding:12px 14px;border-bottom:1px solid #ece7e0}.vr-panel-head strong{font-size:13px}.vr-close{border:0;background:#ece8e1;border-radius:10px;width:36px;height:36px;font-weight:900}
+  .vr-product-img{height:43%;min-height:210px;background:#eee9e2;display:flex;align-items:center;justify-content:center}.vr-product-img img{width:100%;height:100%;object-fit:contain}.vr-noimg{font-size:12px;color:#85817b}
+  .vr-panel-body{padding:16px 16px 18px;overflow:auto}.vr-code{font-size:30px;font-weight:950;letter-spacing:-.04em;color:#202630}.vr-type{font-size:12px;color:#8a8f99;margin-top:2px}.vr-desc{font-size:13px;line-height:1.55;color:#545b67;margin-top:14px;white-space:pre-line}
+  .vr-panel-actions{display:grid;gap:9px;margin-top:18px}.vr-btn{border:0;border-radius:12px;padding:12px 14px;font-weight:850;text-decoration:none;text-align:center}.vr-btn.primary{background:#253246;color:#fff}.vr-btn.runway{background:#eee3f6;color:#5b3f70}.vr-btn.secondary{background:#ece9e4;color:#3f4650}.vr-btn:disabled{opacity:.48}
+  .joystick{display:none;position:absolute;z-index:24;left:18px;bottom:24px;width:116px;height:116px;border-radius:50%;background:rgba(20,22,28,.34);border:1px solid rgba(255,255,255,.17);backdrop-filter:blur(6px);touch-action:none}.joy-knob{position:absolute;width:48px;height:48px;border-radius:50%;left:34px;top:34px;background:rgba(255,255,255,.78);box-shadow:0 5px 18px rgba(0,0,0,.2)}
+  .look-note{display:none;position:absolute;z-index:22;right:16px;bottom:22px;background:rgba(20,22,28,.55);color:#fff;border-radius:12px;padding:8px 10px;font-size:10px;pointer-events:none}
+  @media(max-width:900px){.vr-shell{height:calc(100vh - 56px)}.vr-brand span{display:none}.vr-help{display:none}.joystick,.look-note{display:block}.vr-topbar{left:9px;right:9px;top:8px}.vr-action{height:38px;padding:0 10px}.vr-panel{right:8px;top:58px;bottom:8px}.vr-crosshair{opacity:.65}.vr-hint{bottom:150px}}
 </style>
+{% endblock %}
 
-<div class="ds-shell">
-  <div class="ds-top">
-    <div><div class="ds-title">Dijital Showroom</div><div class="ds-sub">Koleksiyonu gez, ürünü incele ve doğrudan Sipariş Föyü'ne ekle.</div></div>
-    <div class="ds-actions">
-      <a class="ds-btn light" href="{% url 'price_list' %}">Fiyat Listesi</a>
-      <a class="ds-btn dark" href="{% url 'showroom_page' %}">Sipariş Föyünü Aç</a>
+{% block content %}
+<div class="vr-shell" id="vrShell">
+  <canvas id="showroomCanvas"></canvas>
+  <div class="vr-loading" id="vrLoading"><div class="vr-spinner"></div><div>Showroom hazırlanıyor…</div></div>
+
+  <div class="vr-topbar">
+    <div class="vr-brand"><strong>Dijital Showroom</strong><span>Showroomun içinde gezin · mankenlere dokunarak ürünleri inceleyin</span></div>
+    <div class="vr-actions">
+      <a class="vr-action" href="{% url 'product_card_list' %}">← Ürün Kartları</a>
+      <a class="vr-action" href="{% url 'showroom_page' %}">Sipariş Föyü</a>
     </div>
   </div>
 
-  <section class="ds-stage">
-    <div class="ds-ceiling"></div><div class="ds-wall left"></div><div class="ds-wall right"></div><div class="ds-floor"></div>
-    <div class="ds-content">
-      <div class="ds-filter-row">
-        <button class="ds-filter active" data-filter="all">Tümü</button>
-        {% for group,items in product_groups.items %}
-        <button class="ds-filter" data-filter="{{ group|slugify }}">{{ group }}</button>
-        {% endfor %}
-      </div>
+  <div class="vr-crosshair"></div>
+  <div class="vr-hint" id="vrHint">Ürünü incelemek için dokun</div>
+  <div class="vr-help"><strong>Gezinme</strong><br>WASD / ok tuşları: yürü · Mouse sürükle: etrafa bak · Mankene tıkla: ürünü aç</div>
+  <div class="joystick" id="joystick"><div class="joy-knob" id="joyKnob"></div></div>
+  <div class="look-note">Sağ tarafta sürükleyerek etrafa bak</div>
 
-      <div class="ds-grid" id="dsGrid">
-        {% for group,items in product_groups.items %}
-          {% for card in items %}
-          <article class="ds-card" data-group="{{ group|slugify }}"
-            data-code="{{ card.urun.kod|escape }}"
-            data-type="{{ group|escape }}"
-            data-desc="{{ card.aciklama|default:''|escape }}"
-            data-image="{{ card.image_url|default:''|escape }}">
-            <div class="ds-card-chip">{{ group }}</div>
-            <div class="ds-card-image">{% if card.image_url %}<img src="{{ card.image_url }}" alt="{{ card.urun.kod }}">{% else %}<div class="ds-noimg">Ürün görseli yok</div>{% endif %}</div>
-            <div class="ds-card-body"><div class="ds-code">{{ card.urun.kod }}</div><div class="ds-type">{{ group }}</div></div>
-          </article>
-          {% endfor %}
-        {% empty %}
-          <div class="ds-empty">Showroomda gösterilecek aktif ürün bulunamadı.</div>
-        {% endfor %}
+  <aside class="vr-panel" id="productPanel">
+    <div class="vr-panel-head"><strong>Ürün Detayı</strong><button class="vr-close" id="panelClose">✕</button></div>
+    <div class="vr-product-img" id="panelImage"></div>
+    <div class="vr-panel-body">
+      <div class="vr-code" id="panelCode"></div>
+      <div class="vr-type" id="panelType"></div>
+      <div class="vr-desc" id="panelDesc"></div>
+      <div class="vr-panel-actions">
+        <button class="vr-btn runway" type="button" disabled>▶ Mankenle Podyuma Çıkar</button>
+        <a class="vr-btn primary" id="panelFolio" href="#">＋ Föye Ekle</a>
+        <button class="vr-btn secondary" type="button" id="panelContinue">Showroomda Gezmeye Devam Et</button>
       </div>
     </div>
-  </section>
+  </aside>
+
+  <div id="productData" hidden>
+    {% for card in cards %}
+      <div class="vr-product-data"
+        data-code="{{ card.urun.kod|escape }}"
+        data-type="{{ card.urun.get_urun_tipi_display|default:'Diğer'|escape }}"
+        data-image="{{ card.image_url|default:''|escape }}"
+        data-desc="{{ card.aciklama|default:''|escape }}"></div>
+    {% endfor %}
+  </div>
 </div>
 
-<div class="ds-backdrop" id="dsBackdrop"></div>
-<aside class="ds-panel" id="dsPanel" aria-hidden="true">
-  <div class="ds-panel-head"><strong>Ürün Detayı</strong><button class="ds-panel-close" id="dsPanelClose">✕</button></div>
-  <div class="ds-panel-img" id="dsPanelImg"></div>
-  <div class="ds-panel-body">
-    <div class="ds-panel-code" id="dsPanelCode"></div>
-    <div class="ds-panel-type" id="dsPanelType"></div>
-    <div class="ds-panel-desc" id="dsPanelDesc"></div>
-    <div class="ds-panel-actions">
-      <button class="ds-action runway" type="button" disabled title="Podyum videosu altyapısı sonraki aşamada bağlanacak.">▶ Mankenle Podyuma Çıkar</button>
-      <a class="ds-action primary" id="dsAddToSheet" href="#">＋ Föye Ekle</a>
-      <button class="ds-action secondary" id="dsContinue" type="button">Showroomda Gezmeye Devam Et</button>
-    </div>
-  </div>
-</aside>
+<script type="module">
+import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js';
 
-<script>
-document.addEventListener('DOMContentLoaded',function(){
-  const filters=[...document.querySelectorAll('.ds-filter')],cards=[...document.querySelectorAll('.ds-card')],panel=document.getElementById('dsPanel'),backdrop=document.getElementById('dsBackdrop'),closeBtn=document.getElementById('dsPanelClose'),continueBtn=document.getElementById('dsContinue');
-  const codeEl=document.getElementById('dsPanelCode'),typeEl=document.getElementById('dsPanelType'),descEl=document.getElementById('dsPanelDesc'),imgEl=document.getElementById('dsPanelImg'),add=document.getElementById('dsAddToSheet');
+const canvas=document.getElementById('showroomCanvas');
+const shell=document.getElementById('vrShell');
+const loading=document.getElementById('vrLoading');
+const panel=document.getElementById('productPanel');
+const panelImage=document.getElementById('panelImage');
+const panelCode=document.getElementById('panelCode');
+const panelType=document.getElementById('panelType');
+const panelDesc=document.getElementById('panelDesc');
+const panelFolio=document.getElementById('panelFolio');
+const hint=document.getElementById('vrHint');
 
-  filters.forEach(btn=>btn.addEventListener('click',()=>{filters.forEach(x=>x.classList.remove('active'));btn.classList.add('active');const f=btn.dataset.filter;cards.forEach(c=>c.style.display=(f==='all'||c.dataset.group===f)?'block':'none');}));
+const products=[...document.querySelectorAll('.vr-product-data')].map(el=>({
+  code:el.dataset.code||'',
+  type:el.dataset.type||'Diğer',
+  image:el.dataset.image||'',
+  desc:el.dataset.desc||''
+}));
 
-  function openCard(card){
-    const code=card.dataset.code||'',type=card.dataset.type||'',desc=card.dataset.desc||'',img=card.dataset.image||'';
-    codeEl.textContent=code;typeEl.textContent=type;descEl.textContent=desc||'Bu ürün için henüz açıklama eklenmemiş.';
-    imgEl.innerHTML=img?'<img src="'+img.replace(/"/g,'&quot;')+'" alt="'+code.replace(/"/g,'&quot;')+'">':'<div class="ds-noimg">Ürün görseli yok</div>';
-    add.href='{% url "showroom_page" %}?urun='+encodeURIComponent(code);
-    panel.classList.add('open');backdrop.classList.add('open');panel.setAttribute('aria-hidden','false');document.body.style.overflow='hidden';
+const scene=new THREE.Scene();
+scene.background=new THREE.Color(0xded8cf);
+scene.fog=new THREE.Fog(0xded8cf,18,48);
+
+const camera=new THREE.PerspectiveCamera(64,1,.1,100);
+camera.position.set(0,1.7,10.5);
+
+const renderer=new THREE.WebGLRenderer({canvas,antialias:true,powerPreference:'high-performance'});
+renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,1.8));
+renderer.shadowMap.enabled=true;
+renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+renderer.outputColorSpace=THREE.SRGBColorSpace;
+renderer.toneMapping=THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure=1.05;
+
+const hemi=new THREE.HemisphereLight(0xfffbf3,0x796e63,1.65);scene.add(hemi);
+const key=new THREE.DirectionalLight(0xfff0dc,2.3);key.position.set(4,10,8);key.castShadow=true;key.shadow.mapSize.set(1024,1024);scene.add(key);
+
+const floorMat=new THREE.MeshStandardMaterial({color:0xbfae9d,roughness:.72,metalness:.02});
+const wallMat=new THREE.MeshStandardMaterial({color:0xeee8df,roughness:.88});
+const darkMat=new THREE.MeshStandardMaterial({color:0x292a2d,roughness:.62});
+const goldMat=new THREE.MeshStandardMaterial({color:0xb49362,roughness:.35,metalness:.45});
+const mannequinMat=new THREE.MeshStandardMaterial({color:0xe6d2bf,roughness:.82});
+const dressColors=[0x5e2234,0x1c293a,0x84705d,0x334a3c,0x76617d,0x6a1f24,0xa09283,0x2f3035];
+
+function mesh(geo,mat,x=0,y=0,z=0){
+  const m=new THREE.Mesh(geo,mat);m.position.set(x,y,z);m.receiveShadow=true;m.castShadow=true;scene.add(m);return m;
+}
+
+// Room
+mesh(new THREE.PlaneGeometry(32,44),floorMat,0,0,0).rotation.x=-Math.PI/2;
+mesh(new THREE.BoxGeometry(32,.3,.3),darkMat,0,.14,-11);
+mesh(new THREE.BoxGeometry(32,6,.35),wallMat,0,3,-11);
+mesh(new THREE.BoxGeometry(.35,6,44),wallMat,-16,3,0);
+mesh(new THREE.BoxGeometry(.35,6,44),wallMat,16,3,0);
+
+// Back feature wall and runway
+mesh(new THREE.BoxGeometry(13,5.4,.4),new THREE.MeshStandardMaterial({color:0x28272a,roughness:.75}),0,2.7,-10.65);
+const runway=mesh(new THREE.BoxGeometry(5.2,.16,13),new THREE.MeshStandardMaterial({color:0xd7c8bb,roughness:.58}),0,.08,-3.6);
+mesh(new THREE.BoxGeometry(4.6,.22,2.3),goldMat,0,.12,-9.3);
+
+// Ceiling lights
+for(let z=-8;z<=8;z+=4){
+  for(const x of [-9,-3,3,9]){
+    const light=new THREE.PointLight(0xffe8cc,1.3,9,2);light.position.set(x,4.8,z);scene.add(light);
+    mesh(new THREE.CylinderGeometry(.08,.08,.18,16),darkMat,x,4.95,z);
   }
-  function closePanel(){panel.classList.remove('open');backdrop.classList.remove('open');panel.setAttribute('aria-hidden','true');document.body.style.overflow='';}
-  cards.forEach(card=>card.addEventListener('click',()=>openCard(card)));
-  closeBtn.addEventListener('click',closePanel);continueBtn.addEventListener('click',closePanel);backdrop.addEventListener('click',closePanel);
-  document.addEventListener('keydown',e=>{if(e.key==='Escape')closePanel();});
+}
+
+// Side display plinths
+for(const side of [-1,1]){
+  for(let i=0;i<6;i++){
+    const z=7-i*3.1;
+    mesh(new THREE.BoxGeometry(3.7,.18,2.4),new THREE.MeshStandardMaterial({color:0xe5dbd0,roughness:.7}),side*11.7,.09,z);
+    mesh(new THREE.BoxGeometry(4.2,3.6,.12),new THREE.MeshStandardMaterial({color:0xf7f3ed,roughness:.95}),side*15.72,2.1,z);
+  }
+}
+
+const clickable=[];
+function makeLabel(text){
+  const c=document.createElement('canvas');c.width=512;c.height=128;
+  const ctx=c.getContext('2d');ctx.clearRect(0,0,c.width,c.height);
+  ctx.fillStyle='rgba(25,27,32,.82)';ctx.roundRect(10,10,492,108,28);ctx.fill();
+  ctx.fillStyle='#fff';ctx.font='700 46px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(text,256,64);
+  const tex=new THREE.CanvasTexture(c);tex.colorSpace=THREE.SRGBColorSpace;
+  const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:tex,transparent:true}));sp.scale.set(2.4,.6,1);return sp;
+}
+function addMannequin(product,index,x,z,rotationY){
+  const group=new THREE.Group();group.position.set(x,0,z);group.rotation.y=rotationY;scene.add(group);
+  group.userData.product=product;
+
+  const base=new THREE.Mesh(new THREE.CylinderGeometry(.78,.86,.12,32),darkMat);base.position.y=.06;base.castShadow=true;group.add(base);
+  const pole=new THREE.Mesh(new THREE.CylinderGeometry(.035,.035,1.05,16),goldMat);pole.position.y=.63;group.add(pole);
+  const legs=new THREE.Mesh(new THREE.CylinderGeometry(.16,.12,1.35,18),mannequinMat);legs.position.y=1.32;group.add(legs);
+  const torso=new THREE.Mesh(new THREE.CylinderGeometry(.34,.48,1.05,24),mannequinMat);torso.position.y=2.35;group.add(torso);
+  const neck=new THREE.Mesh(new THREE.CylinderGeometry(.11,.13,.22,18),mannequinMat);neck.position.y=2.98;group.add(neck);
+  const head=new THREE.Mesh(new THREE.SphereGeometry(.25,24,18),mannequinMat);head.position.y=3.3;group.add(head);
+
+  // Stylized evening dress silhouette
+  const dressMat=new THREE.MeshStandardMaterial({color:dressColors[index%dressColors.length],roughness:.46,metalness:.04});
+  const bodice=new THREE.Mesh(new THREE.CylinderGeometry(.31,.46,.9,28),dressMat);bodice.position.y=2.25;group.add(bodice);
+  const skirt=new THREE.Mesh(new THREE.CylinderGeometry(.48,.92,1.6,36),dressMat);skirt.position.y=1.17;group.add(skirt);
+  const belt=new THREE.Mesh(new THREE.TorusGeometry(.47,.035,10,32),goldMat);belt.rotation.x=Math.PI/2;belt.position.y=1.98;group.add(belt);
+
+  [base,legs,torso,head,bodice,skirt,belt].forEach(m=>{m.castShadow=true;m.receiveShadow=true;m.userData.product=product;clickable.push(m);});
+
+  const label=makeLabel(product.code);label.position.set(0,3.95,0);group.add(label);
+  return group;
+}
+
+const slots=[];
+for(let i=0;i<6;i++){slots.push({x:-11.7,z:7-i*3.1,r:-Math.PI/2});slots.push({x:11.7,z:7-i*3.1,r:Math.PI/2});}
+slots.push({x:-3.2,z:-8.2,r:0},{x:0,z:-8.2,r:0},{x:3.2,z:-8.2,r:0});
+products.slice(0,slots.length).forEach((p,i)=>addMannequin(p,i,slots[i].x,slots[i].z,slots[i].r));
+
+// Decorative mirrors
+for(const x of [-6.3,6.3]){const frame=mesh(new THREE.BoxGeometry(3.4,4.2,.12),goldMat,x,2.5,-10.35);const mir=mesh(new THREE.PlaneGeometry(3.05,3.85),new THREE.MeshStandardMaterial({color:0xbfc7ca,roughness:.15,metalness:.65}),x,2.5,-10.26);}
+
+// Camera controls
+let yaw=0,pitch=-.03;
+const keys={};
+let moveX=0,moveY=0;
+let dragging=false,lastX=0,lastY=0,dragMoved=false;
+const clock=new THREE.Clock();
+const raycaster=new THREE.Raycaster();
+const pointer=new THREE.Vector2();
+
+function applyRotation(){
+  pitch=Math.max(-1.15,Math.min(1.05,pitch));
+  camera.rotation.order='YXZ';camera.rotation.y=yaw;camera.rotation.x=pitch;
+}
+applyRotation();
+
+window.addEventListener('keydown',e=>{keys[e.key.toLowerCase()]=true});
+window.addEventListener('keyup',e=>{keys[e.key.toLowerCase()]=false});
+
+canvas.addEventListener('pointerdown',e=>{dragging=true;dragMoved=false;lastX=e.clientX;lastY=e.clientY;canvas.setPointerCapture?.(e.pointerId)});
+canvas.addEventListener('pointermove',e=>{
+  if(!dragging)return;
+  const dx=e.clientX-lastX,dy=e.clientY-lastY;
+  if(Math.abs(dx)+Math.abs(dy)>3)dragMoved=true;
+  yaw-=dx*.0042;pitch-=dy*.0036;lastX=e.clientX;lastY=e.clientY;applyRotation();
 });
+canvas.addEventListener('pointerup',e=>{
+  if(!dragging)return;dragging=false;
+  if(!dragMoved)selectAt(e.clientX,e.clientY);
+});
+canvas.addEventListener('pointercancel',()=>dragging=false);
+
+function selectAt(clientX,clientY){
+  const rect=canvas.getBoundingClientRect();
+  pointer.x=((clientX-rect.left)/rect.width)*2-1;
+  pointer.y=-((clientY-rect.top)/rect.height)*2+1;
+  raycaster.setFromCamera(pointer,camera);
+  const hit=raycaster.intersectObjects(clickable,false)[0];
+  if(hit?.object?.userData?.product)openProduct(hit.object.userData.product);
+}
+function updateHover(){
+  raycaster.setFromCamera(new THREE.Vector2(0,0),camera);
+  const hit=raycaster.intersectObjects(clickable,false)[0];
+  hint.classList.toggle('show',Boolean(hit&&hit.distance<5.5));
+}
+
+// Mobile joystick
+const joy=document.getElementById('joystick'),knob=document.getElementById('joyKnob');
+let joyPointer=null;
+function joyUpdate(e){
+  const r=joy.getBoundingClientRect(),cx=r.left+r.width/2,cy=r.top+r.height/2;
+  let dx=e.clientX-cx,dy=e.clientY-cy;const max=34,len=Math.hypot(dx,dy)||1;if(len>max){dx=dx/len*max;dy=dy/len*max;}
+  knob.style.transform='translate('+dx+'px,'+dy+'px)';moveX=dx/max;moveY=-dy/max;
+}
+joy.addEventListener('pointerdown',e=>{joyPointer=e.pointerId;joy.setPointerCapture?.(e.pointerId);joyUpdate(e);e.stopPropagation()});
+joy.addEventListener('pointermove',e=>{if(e.pointerId===joyPointer)joyUpdate(e)});
+function joyEnd(e){if(e.pointerId!==joyPointer)return;joyPointer=null;moveX=0;moveY=0;knob.style.transform='translate(0,0)'}
+joy.addEventListener('pointerup',joyEnd);joy.addEventListener('pointercancel',joyEnd);
+
+function clampCamera(){
+  camera.position.x=Math.max(-14.5,Math.min(14.5,camera.position.x));
+  camera.position.z=Math.max(-9.8,Math.min(10.8,camera.position.z));
+  camera.position.y=1.7;
+}
+function tickMovement(dt){
+  let f=0,s=0;
+  if(keys['w']||keys['arrowup'])f+=1;if(keys['s']||keys['arrowdown'])f-=1;
+  if(keys['d']||keys['arrowright'])s+=1;if(keys['a']||keys['arrowleft'])s-=1;
+  f+=moveY;s+=moveX;
+  const mag=Math.hypot(f,s);if(mag>1){f/=mag;s/=mag}
+  if(!f&&!s)return;
+  const speed=3.3;
+  const forward=new THREE.Vector3(-Math.sin(yaw),0,-Math.cos(yaw));
+  const right=new THREE.Vector3(Math.cos(yaw),0,-Math.sin(yaw));
+  camera.position.addScaledVector(forward,f*speed*dt);camera.position.addScaledVector(right,s*speed*dt);clampCamera();
+}
+
+// Product panel
+function openProduct(p){
+  panelCode.textContent=p.code;panelType.textContent=p.type;
+  panelDesc.textContent=p.desc||'Bu ürün için henüz açıklama eklenmemiş.';
+  panelImage.innerHTML=p.image?'<img src="'+p.image.replace(/"/g,'&quot;')+'" alt="'+p.code.replace(/"/g,'&quot;')+'">':'<div class="vr-noimg">Ürün görseli yok</div>';
+  panelFolio.href='{% url "showroom_page" %}?urun='+encodeURIComponent(p.code);
+  panel.classList.add('open');
+}
+function closePanel(){panel.classList.remove('open')}
+document.getElementById('panelClose').addEventListener('click',closePanel);
+document.getElementById('panelContinue').addEventListener('click',closePanel);
+
+// Resize/render
+function resize(){
+  const w=shell.clientWidth,h=shell.clientHeight;
+  renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix();
+}
+window.addEventListener('resize',resize);resize();
+
+function animate(){
+  requestAnimationFrame(animate);
+  const dt=Math.min(clock.getDelta(),.04);
+  tickMovement(dt);updateHover();renderer.render(scene,camera);
+}
+loading.classList.add('hide');animate();
 </script>
 {% endblock %}
