@@ -127,11 +127,8 @@ def consignment_send_order(request, order_id):
     if not _allowed(request.user, "consignment.send"):
         return HttpResponseForbidden("Bu işlem için yetkiniz yok.")
     source = get_object_or_404(Order.objects.select_related("musteri"), pk=order_id)
-    if source.siparis_tipi != "KONSINYE":
-        messages.error(request, "Bu işlem yalnızca KONSİNYE tipindeki üretimlerde kullanılabilir.")
-        return redirect("order_detail", pk=source.pk)
     if not source.musteri_id:
-        messages.error(request, "Konsinye üretimde müşteri seçilmelidir.")
+        messages.error(request, "Konsinyeye göndermek için siparişte müşteri seçilmiş olmalıdır.")
         return redirect("order_detail", pk=source.pk)
     if source.hazir_durum != "bitti":
         messages.error(request, "Ürün Hazır aşaması tamamlanmadan konsinyeye gönderilemez.")
@@ -164,7 +161,7 @@ def consignment_send_order(request, order_id):
             movement_type="IN",
             quantity=quantity,
             user=request.user,
-            note="KONSİNYE üretim siparişinden müşteriye gönderildi.",
+            note="Siparişten müşterinin konsinye stoğuna gönderildi.",
         )
         OrderEvent.objects.create(
             order=source,
