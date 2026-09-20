@@ -72,6 +72,12 @@ class OrderForm(forms.ModelForm):
         # 🧍 Kullanıcıyı sakla
         self.user = user
 
+        if user and "siparis_tipi" in self.fields and not has_feature_access(user, "consignment.create_production"):
+            self.fields["siparis_tipi"].choices = [
+                choice for choice in self.fields["siparis_tipi"].choices
+                if choice[0] != "KONSINYE"
+            ]
+
         if user:
             if not has_feature_access(user, "orders.view_sale_price"):
                 for field in ["satis_fiyati", "vat_rate", "para_birimi"]:
