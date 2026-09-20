@@ -120,9 +120,15 @@
                                     </div>
                                 </div>
                                 {% if is_manager %}
+                                    {% if e.stage == 'konsinye_durum' %}
+                                    <form action="{% url 'delete_order_event' e.id %}" method="POST" onsubmit="return confirm('Bu konsinye işlemi stok hareketiyle birlikte geri alınsın mı?');">
+                                        {% csrf_token %}<button type="submit" class="timeline-delete-btn">İşlemi Geri Al</button>
+                                    </form>
+                                    {% else %}
                                     <form action="{% url 'delete_order_event' e.id %}" method="POST" onsubmit="return confirm('Bu üretim kaydını silmek istediğinize emin misiniz?');">
                                         {% csrf_token %}<button type="submit" class="timeline-delete-btn">Sil</button>
                                     </form>
+                                    {% endif %}
                                 {% endif %}
                             </div>
                         </li>
