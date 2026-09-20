@@ -58,6 +58,14 @@ FEATURE_GROUPS = [
         ("stock.inventory", "Stok / Ambar Kartları", "can_view_depots"),
         ("stock.movements", "Stok Hareketi Ekle", "can_view_depots"),
     ]),
+    ("Konsinye", [
+        ("consignment.view", "Konsinye Ürünler Sayfasını Gör", "can_view_depots"),
+        ("consignment.view_movements", "Konsinye Hareket Geçmişini Gör", "can_view_depots"),
+        ("consignment.create_production", "KONSİNYE Tipinde Üretim Siparişi Oluştur", "can_create_orders"),
+        ("consignment.manual_add", "Konsinye Stoğuna Manuel Ürün Girişi", "can_view_depots"),
+        ("consignment.send", "Hazır KONSİNYE Ürünü Müşteriye Gönder", "can_view_depots"),
+        ("consignment.use", "Konsinye Stoktan Yeni Siparişi Karşıla", "can_view_depots"),
+    ]),
     ("Ürün / Maliyet / Finans", [
         ("products.cards", "Ürün Kartları", "can_view_costs"),
         ("products.materials", "Malzemeler", "can_view_costs"),
@@ -167,9 +175,10 @@ _RULES = [
     (re.compile(r"^/hatirlatmalar/"), "operations.reminders"),
 
     (re.compile(r"^/depolar/hazirdan-ver/"), "stock.ready_transfer"),
-    (re.compile(r"^/konsinye/(?:ekle/)?$"), "stock.inventory"),
-    (re.compile(r"^/order/\d+/konsinye-karsila/$"), "stock.ready_transfer"),
-    (re.compile(r"^/order/\d+/konsinyeye-gonder/$"), "stock.ready_transfer"),
+    (re.compile(r"^/konsinye/$"), "consignment.view"),
+    (re.compile(r"^/konsinye/ekle/$"), "consignment.manual_add"),
+    (re.compile(r"^/order/\d+/konsinye-karsila/$"), "consignment.use"),
+    (re.compile(r"^/order/\d+/konsinyeye-gonder/$"), "consignment.send"),
     (re.compile(r"^/order/\d+/stok-ekle/$"), "stock.add_from_order"),
     (re.compile(r"^/depolar/"), "stock.depots"),
     (re.compile(r"^/stok/[^/]+/(?:malzeme|urun)/"), "stock.inventory"),
