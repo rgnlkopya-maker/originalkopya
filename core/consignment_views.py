@@ -134,10 +134,14 @@ def consignment_send_order(request, order_id):
         quantity = max(1, int(request.POST.get("quantity") or 1))
     except ValueError:
         quantity = 1
-    already_sent = ConsignmentStock.objects.filter(source_order=source).aggregate(v=Sum("quantity_sent"))["v"] or 0
-    unsent = max(0, (source.adet or 1) - already_sent)
-    if quantity > unsent:
-        messages.error(request, f"Gönderilebilecek konsinye adedi {unsent}.")
+    active_out = ConsignmentStock.objects.filter(source_order=source).aggregate(v=Sum("quantity_remaining"))["v"] or 0
+    used_total = ConsignmentMovement.objects.filter(
+        stock__source_order=source,
+        movement_type="USE",
+    ).aggregate(v=Sum("quantity"))["v"] or 0
+    available_to_send = max(0, (source.adet or 1) - active_out - used_total)
+    if quantity > available_to_send:
+        messages.error(request, f"Konsinyeye verilebilecek adet {available_to_send}.")
         return redirect("order_detail", pk=source.pk)
     with transaction.atomic():
         stock = ConsignmentStock.objects.create(
