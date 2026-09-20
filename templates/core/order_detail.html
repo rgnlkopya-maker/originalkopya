@@ -6,24 +6,6 @@ body{background:#f4f6fb}.order-detail-wrap{max-width:1180px;margin:0 auto;paddin
 {% block content %}<div class="order-detail-wrap"><div class="detail-header no-print"><div class="detail-header-left"><a href="{% url 'order_list' %}" class="detail-back-btn">🏠 Anasayfa</a><a href="{{ back_url }}" class="detail-back-btn">⬅ Geri</a></div><div class="detail-header-title">📦 Sipariş Detayı</div><div class="detail-header-actions">{% if is_manager %}<a href="{% url 'order_finance_movements' order.id %}" class="btn btn-outline-primary btn-sm">💳 Sevkiyat / Finans</a><a href="{% url 'order_edit' order.id %}" class="btn btn-warning btn-sm">✏️ Düzenle</a><button onclick="window.print()" class="btn btn-outline-primary btn-sm">🖨️ Yazdır</button>{% endif %}</div></div><div class="detail-card">
 {% if user|can:'can_manage_planning' %}<div class="ship-plan-box no-print"><form class="ship-plan-form" method="post" action="{% url 'plan_order_shipment' order.id %}">{% csrf_token %}<input type="date" name="planned_date" required value="{% if order.shipment_plan %}{{ order.shipment_plan.planned_date|date:'Y-m-d' }}{% endif %}"><button class="ship-plan-btn">📦 Sevkiyata Planla</button></form></div>{% endif %}
 {% if user|can:'can_edit_orders' or user.username|lower == 'tahir' %}<div class="transfer-box no-print"><div class="transfer-head">♻️ Üretim Geçmişini Başka Siparişe Aktar</div><div class="transfer-help">Sipariş no, müşteri, müşteri referansı, ürün kodu, renk veya beden yazarak hedef siparişi bul. Farklı ürün/renk/beden seçimi aktarımı engellemez.</div><form id="production-transfer-form" action="{% url 'transfer_production_history' order.id %}" method="post">{% csrf_token %}<input type="hidden" name="target_order_id" id="transfer-target-id"><div class="transfer-search-wrap"><div class="transfer-row"><input type="text" id="transfer-search" placeholder="Sipariş veya müşteri ara..." autocomplete="off"><button class="transfer-btn" type="submit">♻️ Üretimi Aktar</button></div><div id="transfer-results" class="transfer-results"></div></div><div id="transfer-selected" class="transfer-selected"></div></form><div id="production-transfer-msg" class="transfer-msg"></div></div>{% endif %}
-{% if user|can_feature:'consignment.send' %}
-<div class="transfer-box no-print">
-  <div class="transfer-head">📦 Konsinyeye Gönder</div>
-  <div class="transfer-help">Hazır olan bu ürünü müşterinin konsinye stoğuna aktarabilirsiniz. İşlem normal satış / sevkiyat finansını tetiklemez; ayrı konsinye hareketi oluşturur.</div>
-  <div class="mb-2 small"><strong>Üretilen:</strong> {{ order.adet|default:1 }} · <strong>Gönderilen:</strong> {{ consignment_sent_qty }} · <strong>Kalan:</strong> {{ consignment_unsent_qty }}</div>
-  {% if order.hazir_durum == 'bitti' and consignment_unsent_qty > 0 %}
-  <form method="post" action="{% url 'consignment_send_order' order.id %}" class="d-flex gap-2 align-items-center flex-wrap">{% csrf_token %}
-    <input type="number" name="quantity" min="1" max="{{ consignment_unsent_qty }}" value="{{ consignment_unsent_qty }}" class="form-control form-control-sm" style="width:90px">
-    <input type="text" name="note" class="form-control form-control-sm" placeholder="Not (isteğe bağlı)" style="max-width:320px">
-    <button class="btn btn-sm btn-primary" onclick="return confirm('Seçilen adet müşterinin konsinye stoğuna gönderilsin mi?');">Konsinyeye Gönder</button>
-  </form>
-  {% elif order.hazir_durum != 'bitti' %}
-    <div class="text-muted small">Gönderim için önce Hazır aşamasını tamamlayın.</div>
-  {% else %}
-    <div class="text-success small">Bu konsinye üretimin tamamı müşteriye gönderildi.</div>
-  {% endif %}
-</div>
-{% endif %}
 {% if user|can_feature:'consignment.use' %}
 <div class="transfer-box no-print">
   <div class="transfer-head">🏷️ Konsinye Stoktan Karşıla</div>
