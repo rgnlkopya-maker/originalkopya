@@ -230,6 +230,65 @@ for(let i=0;i<150;i++){
 const chandelierGlow=new THREE.PointLight(0xffc889,8.5,20,1.8);chandelierGlow.position.set(0,6.3,-5.6);scene.add(chandelierGlow);
 const chandelierGlow2=new THREE.PointLight(0xffe2bd,5.0,16,2);chandelierGlow2.position.set(0,4.3,-8.8);scene.add(chandelierGlow2);
 
+
+// Cinematic collection portals, greenery and lounge styling
+function collectionSign(text,x,y,z,rot=0){
+  const c=document.createElement('canvas');c.width=1024;c.height=220;
+  const ctx=c.getContext('2d');
+  ctx.fillStyle='rgba(28,20,16,.94)';ctx.roundRect(12,12,1000,196,30);ctx.fill();
+  ctx.strokeStyle='#c99b5d';ctx.lineWidth=4;ctx.stroke();
+  ctx.fillStyle='#f6dfbd';ctx.font='600 76px Georgia';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(text,512,112);
+  const tex=new THREE.CanvasTexture(c);tex.colorSpace=THREE.SRGBColorSpace;
+  const mat=new THREE.MeshBasicMaterial({map:tex,transparent:true,toneMapped:false});
+  const sign=new THREE.Mesh(new THREE.PlaneGeometry(4.6,.98),mat);sign.position.set(x,y,z);sign.rotation.y=rot;scene.add(sign);return sign;
+}
+collectionSign('BALIK',-18.48,4.45,7.8,Math.PI/2);
+collectionSign('HELEN',18.48,4.45,7.8,-Math.PI/2);
+collectionSign('TESETTÜR',18.48,4.45,-3.5,-Math.PI/2);
+collectionSign('YENİ KOLEKSİYON',-18.48,4.45,-3.5,Math.PI/2);
+
+function oliveTree(x,z,scale=1){
+  const g=new THREE.Group();g.position.set(x,0,z);g.scale.setScalar(scale);scene.add(g);
+  cylinder(.13,.22,2.35,new THREE.MeshStandardMaterial({color:0x665142,roughness:1}),0,1.2,0,18,g);
+  const leafMat=new THREE.MeshStandardMaterial({color:0x4d5940,roughness:.92});
+  for(let i=0;i<18;i++){
+    const a=i*2.3999632297,rr=.35+(i%5)*.13;
+    const crown=new THREE.Mesh(new THREE.IcosahedronGeometry(.46+(i%3)*.08,1),leafMat);
+    crown.scale.set(.8,1.25,.72);crown.position.set(Math.cos(a)*rr,2.2+(i%4)*.28,Math.sin(a)*rr);add(crown,g);
+  }
+  cylinder(.72,.62,.68,MAT.travertine,0,.34,0,48,g);
+}
+oliveTree(-7.2,-10.3,1.08);oliveTree(7.2,-10.3,1.08);oliveTree(-14.4,12.0,.92);oliveTree(14.4,12.0,.92);
+
+function flowerTable(x,z){
+  cylinder(.56,.62,.48,MAT.brass,x,.25,z,48);
+  cylinder(.9,.9,.09,MAT.marble,x,.54,z,64);
+  const white=new THREE.MeshStandardMaterial({color:0xf4eee4,roughness:.8});
+  const green=new THREE.MeshStandardMaterial({color:0x586047,roughness:.9});
+  for(let i=0;i<22;i++){
+    const a=i*2.3999632297,rr=.15+(i%5)*.07;
+    const b=new THREE.Mesh(new THREE.SphereGeometry(.10+(i%3)*.025,10,8),white);
+    b.position.set(x+Math.cos(a)*rr,.76+(i%4)*.055,z+Math.sin(a)*rr);scene.add(b);
+    if(i%3===0){const l=new THREE.Mesh(new THREE.SphereGeometry(.12,8,6),green);l.scale.set(1.6,.45,.7);l.position.set(x+Math.cos(a)*rr*1.45,.69,z+Math.sin(a)*rr*1.45);scene.add(l)}
+  }
+}
+flowerTable(-5.8,5.2);flowerTable(5.8,5.2);
+
+// glowing architectural strips around the grand hall
+const glowMat=new THREE.MeshBasicMaterial({color:0xffc982,toneMapped:false});
+for(const x of [-13.65,13.65]){
+  box(.035,.035,31,glowMat,x,6.34,-.2);
+}
+for(const z of [-12.4,-6.6,-.8,5,10.8]){
+  box(27.3,.028,.028,glowMat,0,6.35,z);
+}
+
+// subtle floating dust for cinematic depth
+const dustGeo=new THREE.BufferGeometry(),dustCount=420,dustPos=new Float32Array(dustCount*3);
+for(let i=0;i<dustCount;i++){dustPos[i*3]=(Math.random()-.5)*31;dustPos[i*3+1]=.4+Math.random()*8.2;dustPos[i*3+2]=-14+Math.random()*29}
+dustGeo.setAttribute('position',new THREE.BufferAttribute(dustPos,3));
+const dust=new THREE.Points(dustGeo,new THREE.PointsMaterial({color:0xffddb1,size:.018,transparent:true,opacity:.42,depthWrite:false}));scene.add(dust);
+
 // side spot tracks
 for(const x of [-12.6,12.6]){
   box(.12,.12,21,MAT.black,x,5.8,-.5);
