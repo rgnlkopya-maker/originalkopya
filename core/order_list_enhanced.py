@@ -19,6 +19,7 @@ STAGE_TRANSLATIONS = {
     ("susleme_fason_durumu", "verildi"): "Fason Süslemeye Verildi", ("susleme_fason_durumu", "alindi"): "Fason Süslemeden Alındı",
     ("sevkiyat_durum", "gonderildi"): "Sevkedildi", ("sevkiyat_durum", "depoya"): "Depoya Girdi", ("sevkiyat_durum", "kargodan_geri_geldi"): "Kargodan Geri Geldi", ("sevkiyat_durum", "iade_geldi"): "İade Geldi",
     ("sevkiyat_durum", "yanlis_sevkiyat"): "Yanlış Sevkiyat", ("sevkiyat_durum", "tekrar_gonderildi"): "Tekrar Gönderildi",
+    ("konsinye_durum", "verildi"): "Konsinyeye Verildi", ("konsinye_durum", "geri_geldi"): "Konsinyeden Geri Geldi",
 }
 
 def _normalize(value):
