@@ -119,3 +119,61 @@ def consignment_use(request, order_id):
         )
     messages.success(request, f"{quantity} adet konsinye stoktan düşüldü; üretim geçmişi siparişe aktarıldı.")
     return redirect("order_detail", pk=target.pk)
+
+
+@login_required
+@require_POST
+def consignment_send_order(request, order_id):
+    if not _can_manage(request.user):
+        return HttpResponseForbidden("Bu işlem için yetkiniz yok.")
+    source = get_object_or_404(Order.objects.select_related("musteri"), pk=order_id)
+    if source.siparis_tipi != "KONSINYE":
+        messages.error(request, "Bu işlem yalnızca KONSİNYE tipindeki üretimlerde kullanılabilir.")
+        return redirect("order_detail", pk=source.pk)
+    if not source.musteri_id:
+        messages.error(request, "Konsinye üretimde müşteri seçilmelidir.")
+        return redirect("order_detail", pk=source.pk)
+    if source.hazir_durum != "bitti":
+        messages.error(request, "Ürün Hazır aşaması tamamlanmadan konsinyeye gönderilemez.")
+        return redirect("order_detail", pk=source.pk)
+    try:
+        quantity = max(1, int(request.POST.get("quantity") or 1))
+    except ValueError:
+        quantity = 1
+    already_sent = ConsignmentStock.objects.filter(source_order=source).aggregate(v=Sum("quantity_sent"))["v"] or 0
+    unsent = max(0, (source.adet or 1) - already_sent)
+    if quantity > unsent:
+        messages.error(request, f"Gönderilebilecek konsinye adedi {unsent}.")
+        return redirect("order_detail", pk=source.pk)
+    with transaction.atomic():
+        stock = ConsignmentStock.objects.create(
+            customer=source.musteri,
+            source_order=source,
+            urun_kodu=source.urun_kodu or "",
+            renk=source.renk,
+            beden=source.beden,
+            quantity_sent=quantity,
+            quantity_remaining=quantity,
+            cost_snapshot=source.efektif_maliyet,
+            cost_currency=source.maliyet_para_birimi or "TRY",
+            created_by=request.user,
+            note=(request.POST.get("note") or "").strip(),
+        )
+        ConsignmentMovement.objects.create(
+            stock=stock,
+            movement_type="IN",
+            quantity=quantity,
+            user=request.user,
+            note="KONSİNYE üretim siparişinden müşteriye gönderildi.",
+        )
+        OrderEvent.objects.create(
+            order=source,
+            user=request.user.username,
+            gorev="yok",
+            stage="konsinye",
+            value="konsinyeye_gonderildi",
+            adet=quantity,
+            aciklama=f"{source.musteri} konsinye stoğuna {quantity} adet gönderildi.",
+        )
+    messages.success(request, f"{quantity} adet ürün {source.musteri} konsinye stoğuna gönderildi.")
+    return redirect("order_detail", pk=source.pk)
