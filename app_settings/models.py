@@ -12,7 +12,7 @@ class SystemSettings(models.Model):
 
     default_order_type = models.CharField(
         max_length=20,
-        choices=[("SERI", "Seri"), ("TEKLI", "Tekli Sipariş"), ("STOK", "Stoğa Üretim"), ("OZEL", "Özel Sipariş")],
+        choices=[("SERI", "Seri"), ("TEKLI", "Tekli Sipariş"), ("STOK", "Stoğa Üretim"), ("KONSINYE", "Konsinye"), ("OZEL", "Özel Sipariş")],
         default="SERI",
     )
     default_delivery_days = models.PositiveIntegerField(default=30)
