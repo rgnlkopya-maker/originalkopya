@@ -71,11 +71,19 @@
   </div>
 </div>
 
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/"
+  }
+}
+</script>
 <script type="module">
-import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js';
-import {GLTFLoader} from 'https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/loaders/GLTFLoader.js';
-import {RGBELoader} from 'https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/loaders/RGBELoader.js';
-import {RoundedBoxGeometry} from 'https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/geometries/RoundedBoxGeometry.js';
+import * as THREE from 'three';
+import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
+import {RGBELoader} from 'three/addons/loaders/RGBELoader.js';
+import {RoundedBoxGeometry} from 'three/addons/geometries/RoundedBoxGeometry.js';
 
 const canvas=document.getElementById('showroomCanvas');
 const shell=document.getElementById('vrShell');
@@ -111,12 +119,14 @@ renderer.toneMapping=THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure=.92;
 
 const pmrem=new THREE.PMREMGenerator(renderer);
-new RGBELoader()
-  .load('https://dl.polyhaven.org/file/ph-assets/HDRIs/hdr/1k/decor_shop_1k.hdr',tex=>{
-    const env=pmrem.fromEquirectangular(tex).texture;
-    scene.environment=env;
-    tex.dispose();pmrem.dispose();
-  },undefined,()=>{});
+try{
+  new RGBELoader()
+    .load('https://dl.polyhaven.org/file/ph-assets/HDRIs/hdr/1k/decor_shop_1k.hdr',tex=>{
+      const env=pmrem.fromEquirectangular(tex).texture;
+      scene.environment=env;
+      tex.dispose();pmrem.dispose();
+    },undefined,()=>{pmrem.dispose();});
+}catch(e){pmrem.dispose();}
 
 scene.add(new THREE.HemisphereLight(0xfff8ed,0x746c64,1.5));
 const sun=new THREE.DirectionalLight(0xffead3,2.2);sun.position.set(-4,11,8);sun.castShadow=true;sun.shadow.mapSize.set(2048,2048);sun.shadow.camera.left=-18;sun.shadow.camera.right=18;sun.shadow.camera.top=18;sun.shadow.camera.bottom=-18;scene.add(sun);
@@ -205,7 +215,10 @@ const clickable=[];
 const mannequinLoader=new GLTFLoader();
 let mannequinTemplate=null;
 try{
-  const gltf=await mannequinLoader.loadAsync('https://cdn.3dassets.dev/assets/35473/v1/model.glb');
+  const gltf=await Promise.race([
+    mannequinLoader.loadAsync('https://cdn.3dassets.dev/assets/35473/v1/model.glb'),
+    new Promise((_,reject)=>setTimeout(()=>reject(new Error('mannequin timeout')),4500))
+  ]);
   mannequinTemplate=gltf.scene;
   mannequinTemplate.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true}});
 }catch(e){mannequinTemplate=null}
