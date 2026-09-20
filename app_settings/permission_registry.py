@@ -189,6 +189,7 @@ _RULES = [
     (re.compile(r"^/urun-kartlari/showroom-foyu/kayit/\d+/durum-degistir/$"), "showroom.approve"),
     (re.compile(r"^/urun-kartlari/showroom-foyu/kayit/\d+/yazdir/$"), "showroom.print"),
     (re.compile(r"^/urun-kartlari/showroom-foyu/kayit/\d+/siparis-(?:onizleme|olustur)/$"), "showroom.transfer"),
+    (re.compile(r"^/urun-kartlari/dijital-showroom/$"), "showroom.main"),
     (re.compile(r"^/urun-kartlari/showroom-foyu/"), "showroom.main"),
     (re.compile(r"^/urun-kartlari/qr/sepet-aktar/|^/urun-kartlari/qr/sepet-kodu/$"), "showroom.staff_qr_transfer"),
 
