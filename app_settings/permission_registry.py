@@ -63,7 +63,8 @@ FEATURE_GROUPS = [
         ("consignment.view_movements", "Konsinye Hareket Geçmişini Gör", "can_view_depots"),
         ("consignment.create_production", "KONSİNYE Tipinde Üretim Siparişi Oluştur", "can_create_orders"),
         ("consignment.manual_add", "Konsinye Stoğuna Manuel Ürün Girişi", "can_view_depots"),
-        ("consignment.send", "Hazır KONSİNYE Ürünü Müşteriye Gönder", "can_view_depots"),
+        ("consignment.send", "Ürünü Konsinyeye Ver", "can_view_depots"),
+        ("consignment.return", "Konsinyeden Geri Geldi", "can_view_depots"),
         ("consignment.use", "Konsinye Stoktan Yeni Siparişi Karşıla", "can_view_depots"),
     ]),
     ("Ürün / Maliyet / Finans", [
@@ -179,6 +180,7 @@ _RULES = [
     (re.compile(r"^/konsinye/ekle/$"), "consignment.manual_add"),
     (re.compile(r"^/order/\d+/konsinye-karsila/$"), "consignment.use"),
     (re.compile(r"^/order/\d+/konsinyeye-gonder/$"), "consignment.send"),
+    (re.compile(r"^/order/\d+/konsinyeden-geri-geldi/$"), "consignment.return"),
     (re.compile(r"^/order/\d+/stok-ekle/$"), "stock.add_from_order"),
     (re.compile(r"^/depolar/"), "stock.depots"),
     (re.compile(r"^/stok/[^/]+/(?:malzeme|urun)/"), "stock.inventory"),
