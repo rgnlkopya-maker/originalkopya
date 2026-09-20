@@ -70,17 +70,21 @@ document.addEventListener('DOMContentLoaded', function () {
 });
 </script>
 {% endif %}
-{% if change_events %}
+{% if change_events or order.aciklama %}
 <div class="modal fade change-modal no-print" id="orderChangeModal" tabindex="-1" aria-labelledby="orderChangeModalLabel" aria-hidden="true">
   <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
     <div class="modal-content">
       <div class="modal-header">
-        <h5 class="modal-title" id="orderChangeModalLabel">⚠️ BU SİPARİŞTE DEĞİŞİKLİK VAR</h5>
+        <h5 class="modal-title" id="orderChangeModalLabel">{% if change_events %}⚠️ SİPARİŞ BİLGİSİ{% else %}📝 SİPARİŞ AÇIKLAMASI{% endif %}</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Kapat"></button>
       </div>
       <div class="modal-body">
-        <div class="change-modal-note">Bu uyarı sipariş her açıldığında gösterilir. Finans ve maliyet değişiklikleri bu listede yer almaz.</div>
-        <div class="change-history-list">
+        {% if order.aciklama %}
+        <div class="change-modal-note" style="margin-bottom:12px"><strong>Açıklama</strong><div style="margin-top:5px">{{ order.aciklama }}</div></div>
+        {% endif %}
+        {% if change_events %}
+        <div class="change-modal-note">Bu siparişte üretimi ilgilendiren değişiklikler var. Finans ve maliyet değişiklikleri bu listede yer almaz.</div>
+        <div class="change-history-list" style="margin-top:10px">
           {% for ev in change_events %}
           <div class="change-history-item">
             <div class="change-history-top">
@@ -91,6 +95,7 @@ document.addEventListener('DOMContentLoaded', function () {
           </div>
           {% endfor %}
         </div>
+        {% endif %}
       </div>
       <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Kapat</button></div>
     </div>
