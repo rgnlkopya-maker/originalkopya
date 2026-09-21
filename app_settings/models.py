@@ -24,6 +24,7 @@ class SystemSettings(models.Model):
     )
     tcmb_update_hour = models.PositiveSmallIntegerField(default=9)
     finance_enabled = models.BooleanField(default=True)
+    staff_access_enabled = models.BooleanField(default=True)
 
     active_depots = models.TextField(blank=True, default="")
 
