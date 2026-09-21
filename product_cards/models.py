@@ -220,6 +220,8 @@ class ShowroomDraft(models.Model):
     overall_discount_amount=models.DecimalField(max_digits=16,decimal_places=2,default=0)
     vat_rate=models.DecimalField(max_digits=7,decimal_places=2,default=0)
     previous_balance=models.DecimalField(max_digits=16,decimal_places=2,default=0)
+    pricing_operations=models.JSONField(default=list,blank=True)
+    folio_adjustment_target=models.DecimalField(max_digits=16,decimal_places=2,null=True,blank=True)
     discount_scope=models.CharField(max_length=10,choices=DISCOUNT_SCOPE_CHOICES,default="ALL")
     orders_created=models.BooleanField(default=False)
     created_at=models.DateTimeField(auto_now_add=True)
