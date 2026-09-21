@@ -29,7 +29,7 @@ def logout_view(request):
     return redirect('/login/')
 
 urlpatterns = [
-    path("notifications/", views.notification_list, name="notification_list"), path("admin/", admin.site.urls), path("login/", views.custom_login, name="login"), path("custom-login/", views.custom_login, name="custom_login"), path("logout/", logout_view, name="logout"),
+    path("notifications/", views.notification_list, name="notification_list"), path("admin/", admin.site.urls), path("login/", views.custom_login, name="login"), path("login/location-verify/", views.staff_login_location_verify, name="staff_login_location_verify"), path("custom-login/", views.custom_login, name="custom_login"), path("logout/", logout_view, name="logout"),
     path("hatirlatmalar/", reminder_management, name="reminder_management"), path("hatirlatmalar/<int:reminder_id>/tamamla/", reminder_complete, name="reminder_complete"), path("hatirlatmalar/<int:reminder_id>/durum/", reminder_toggle, name="reminder_toggle"),
     path("attendance/", include("attendance.urls")), path("planlama/", include("planning.urls")), path("urun-kartlari/", include("product_cards.urls")), path("stok/", include("inventory.urls")), path("kalite/", include("quality_tracking.urls")), path("ayarlar/", include("app_settings.urls")),
     path("konsinye/", consignment_list, name="consignment_list"), path("konsinye/ekle/", consignment_add, name="consignment_add"), path("order/<int:order_id>/konsinye-karsila/", consignment_use, name="consignment_use"), path("order/<int:order_id>/konsinyeye-gonder/", consignment_send_order, name="consignment_send_order"), path("order/<int:order_id>/konsinyeden-geri-geldi/", consignment_return_order, name="consignment_return_order"),
