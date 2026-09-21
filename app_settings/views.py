@@ -3,10 +3,12 @@ from datetime import time
 from django.contrib import messages
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
+from django.http import JsonResponse
+from django.views.decorators.http import require_POST
 from django.shortcuts import redirect, render
 
 from attendance.models import AttendanceRecord, WorkplaceSettings
-from .access import has_access
+from .access import has_access, has_full_access
 from .models import SystemSettings, UserAccess
 
 User = get_user_model()
@@ -116,4 +118,20 @@ def settings_home(request):
         'workplace': workplace,
         'users': users,
         'permission_fields': PERMISSION_FIELDS,
+    })
+
+
+@login_required
+@require_POST
+def toggle_staff_access(request):
+    if not has_full_access(request.user):
+        return JsonResponse({"ok": False, "message": "Bu işlem için yetkiniz yok."}, status=403)
+
+    system = SystemSettings.get_solo()
+    system.staff_access_enabled = not system.staff_access_enabled
+    system.save(update_fields=["staff_access_enabled", "updated_at"])
+    return JsonResponse({
+        "ok": True,
+        "enabled": system.staff_access_enabled,
+        "message": "Personel erişimi açıldı." if system.staff_access_enabled else "Personel erişimi kapatıldı.",
     })
