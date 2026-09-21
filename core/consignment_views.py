@@ -156,8 +156,53 @@ def consignment_send_order(request, order_id):
         movement_type="USE",
     ).aggregate(v=Sum("quantity"))["v"] or 0
     available_to_send = max(0, (source.adet or 1) - active_out - used_total)
+
+    # Eski/yarım kalmış bir işlemde stok oluşmuş ama üretim geçmişi kaydı kopmuşsa
+    # kullanıcı tekrar "Konsinyeye Verildi" dediğinde yeni stok yaratmadan geçmişi onar.
+    if available_to_send <= 0 and active_out > 0:
+        has_status_event = OrderEvent.objects.filter(
+            order=source,
+            event_type="stage",
+            stage="konsinye_durum",
+            value="verildi",
+        ).exists()
+        if not has_status_event:
+            with transaction.atomic():
+                movement = (
+                    ConsignmentMovement.objects.select_for_update()
+                    .filter(
+                        stock__source_order=source,
+                        movement_type="IN",
+                        source_event__isnull=True,
+                        stock__quantity_remaining__gt=0,
+                    )
+                    .order_by("-created_at", "-id")
+                    .first()
+                )
+                if movement:
+                    event = OrderEvent.objects.create(
+                        order=source,
+                        user=request.user.username,
+                        gorev="yok",
+                        stage="konsinye_durum",
+                        value="verildi",
+                        adet=movement.quantity,
+                        aciklama=f"{source.musteri} müşterisine konsinye verildi.",
+                        event_type="stage",
+                    )
+                    movement.source_event = event
+                    movement.save(update_fields=["source_event"])
+                    messages.success(request, "Eksik konsinye geçmiş kaydı onarıldı.")
+                    panel = _production_panel_response(request, source)
+                    if panel:
+                        return panel
+                    return redirect("order_detail", pk=source.pk)
+
     if quantity > available_to_send:
         messages.error(request, f"Konsinyeye verilebilecek adet {available_to_send}.")
+        panel = _production_panel_response(request, source)
+        if panel:
+            return panel
         return redirect("order_detail", pk=source.pk)
     with transaction.atomic():
         event = OrderEvent.objects.create(
