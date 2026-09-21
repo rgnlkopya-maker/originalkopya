@@ -1,9 +1,22 @@
 from django.shortcuts import redirect
 from django.urls import reverse
 from django.utils import timezone
+from datetime import time
 
 from .access import has_feature_access, has_full_access
 from .permission_registry import feature_for_path
+
+
+BREAK_WINDOWS = (
+    (time(10, 0), time(10, 15)),
+    (time(13, 0), time(14, 0)),
+    (time(16, 0), time(16, 15)),
+)
+
+
+def staff_break_active(now=None):
+    current = (now or timezone.localtime()).time().replace(tzinfo=None)
+    return any(start <= current < end for start, end in BREAK_WINDOWS)
 
 
 class MoliAccessMiddleware:
@@ -32,7 +45,7 @@ class MoliAccessMiddleware:
             from .models import SystemSettings
 
             system = SystemSettings.get_solo()
-            if not system.staff_access_enabled and request.path not in self.STAFF_PRE_ATTENDANCE_PATHS:
+            if (not system.staff_access_enabled or staff_break_active()) and request.path not in self.STAFF_PRE_ATTENDANCE_PATHS:
                 return redirect(reverse("attendance_scan"))
 
             active_record = AttendanceRecord.objects.filter(
