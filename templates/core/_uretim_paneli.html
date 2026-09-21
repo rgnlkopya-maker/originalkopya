@@ -204,15 +204,15 @@
                 <button type="button" class="soft-btn btn-soft-success" data-bs-toggle="modal" data-bs-target="#stokModal">Depoya Girdi</button>
                 <button class="soft-btn btn-soft-dark" hx-get="{% url 'update_stage' order.id %}" hx-vals='{"stage":"sevkiyat_durum","value":"gonderildi"}' hx-target="#uretim-paneli" hx-swap="innerHTML">🚚 Gönderildi</button>
                 {% if user|can_feature:'consignment.send' %}
-                <form method="post" action="{% url 'consignment_send_order' order.id %}" style="display:inline;">{% csrf_token %}
+                <form method="post" action="{% url 'consignment_send_order' order.id %}" hx-post="{% url 'consignment_send_order' order.id %}" hx-target="#uretim-paneli" hx-swap="innerHTML" style="display:inline;" onsubmit="return confirm('Bu ürün müşteriye konsinye verilsin mi?');">{% csrf_token %}
                     <input type="hidden" name="quantity" value="1">
-                    <button type="submit" class="soft-btn btn-soft-info" onclick="return confirm('Bu ürün müşteriye konsinye verilsin mi?');">🏷️ Konsinyeye Verildi</button>
+                    <button type="submit" class="soft-btn btn-soft-info">🏷️ Konsinyeye Verildi</button>
                 </form>
                 {% endif %}
                 {% if consignment_active_qty and user|can_feature:'consignment.return' %}
-                <form method="post" action="{% url 'consignment_return_order' order.id %}" style="display:inline;">{% csrf_token %}
+                <form method="post" action="{% url 'consignment_return_order' order.id %}" hx-post="{% url 'consignment_return_order' order.id %}" hx-target="#uretim-paneli" hx-swap="innerHTML" style="display:inline;" onsubmit="return confirm('Bu ürün konsinyeden geri geldi olarak kaydedilsin mi?');">{% csrf_token %}
                     <input type="hidden" name="quantity" value="1">
-                    <button type="submit" class="soft-btn btn-soft-warning" onclick="return confirm('Bu ürün konsinyeden geri geldi olarak kaydedilsin mi?');">↩️ Konsinyeden Geri Geldi</button>
+                    <button type="submit" class="soft-btn btn-soft-warning">↩️ Konsinyeden Geri Geldi</button>
                 </form>
                 {% endif %}
             </div>
