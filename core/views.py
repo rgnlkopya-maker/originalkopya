@@ -758,8 +758,24 @@ def depo_ozet(request):
 
     return render(request, 'depolar/ozet.html', {'depolar': depo_ozetleri})
 
-# 🔐 Özel Login (hızlı ve güvenli)
+# 🔐 Özel Login + personel mesai erişim kontrolü
 from django.shortcuts import redirect
+from datetime import time as dt_time
+
+def _is_management_login(user):
+    if user.is_superuser:
+        return True
+    return user.groups.filter(name__in=["patron", "Patron", "mudur", "Mudur", "müdür", "Müdür"]).exists()
+
+def _active_attendance_for_login(user):
+    from attendance.models import AttendanceRecord
+    return AttendanceRecord.objects.filter(
+        user=user,
+        work_date=timezone.localdate(),
+        status="worked",
+        check_in__isnull=False,
+        check_out__isnull=True,
+    ).first()
 
 @csrf_exempt
 def custom_login(request):
@@ -769,14 +785,86 @@ def custom_login(request):
 
         user = authenticate(request, username=username, password=password)
         if user is not None:
-            login(request, user)
+            # Patron/Müdür hesapları personel mesai kuralından muaftır.
+            if not _is_management_login(user):
+                active_record = _active_attendance_for_login(user)
+                if not active_record:
+                    return render(request, "registration/custom_login.html", {
+                        "access_error": "MoliApp erişimi için önce işyerinde QR ile mesai başlangıcı yapmalısınız."
+                    })
 
-            next_url = request.GET.get("next") or "/"
-            return redirect(next_url)   # ✅ BUNU EKLE
+                # 19:15 sonrası personel girişinde konum yeniden doğrulanır.
+                if timezone.localtime().time() >= dt_time(19, 15):
+                    request.session["pending_staff_login_user_id"] = user.id
+                    request.session["pending_staff_login_next"] = request.GET.get("next") or "/"
+                    request.session["pending_staff_login_at"] = timezone.now().isoformat()
+                    return render(request, "registration/custom_login.html", {
+                        "location_required": True,
+                        "location_verify_url": reverse("staff_login_location_verify"),
+                    })
+
+            login(request, user)
+            return redirect(request.GET.get("next") or "/")
 
         return render(request, "registration/custom_login.html", {"error": True})
 
     return render(request, "registration/custom_login.html")
+
+
+@csrf_exempt
+@require_POST
+def staff_login_location_verify(request):
+    from attendance.models import AttendanceRecord, WorkplaceSettings
+    from attendance.views import _nearest_workplace
+
+    user_id = request.session.get("pending_staff_login_user_id")
+    pending_at = request.session.get("pending_staff_login_at")
+    if not user_id or not pending_at:
+        return JsonResponse({"ok": False, "message": "Giriş doğrulamasının süresi doldu. Lütfen tekrar giriş yapın."}, status=403)
+
+    try:
+        pending_dt = datetime.fromisoformat(pending_at)
+        if timezone.now() - pending_dt > timedelta(minutes=5):
+            raise ValueError
+    except (TypeError, ValueError):
+        request.session.pop("pending_staff_login_user_id", None)
+        request.session.pop("pending_staff_login_at", None)
+        return JsonResponse({"ok": False, "message": "Giriş doğrulamasının süresi doldu. Lütfen tekrar giriş yapın."}, status=403)
+
+    user = User.objects.filter(pk=user_id, is_active=True).first()
+    if not user or _is_management_login(user):
+        return JsonResponse({"ok": False, "message": "Giriş doğrulanamadı."}, status=403)
+
+    record = AttendanceRecord.objects.filter(
+        user=user, work_date=timezone.localdate(), status="worked",
+        check_in__isnull=False, check_out__isnull=True,
+    ).first()
+    if not record:
+        return JsonResponse({"ok": False, "message": "Aktif mesai kaydınız bulunmuyor."}, status=403)
+
+    try:
+        lat = float(request.POST.get("latitude"))
+        lon = float(request.POST.get("longitude"))
+    except (TypeError, ValueError):
+        return JsonResponse({"ok": False, "message": "Konum doğrulanamadı. MoliApp erişimine izin verilmedi."}, status=400)
+
+    workplace = WorkplaceSettings.get_solo()
+    if not workplace.active_locations():
+        return JsonResponse({"ok": False, "message": "İşyeri konumu tanımlı değil."}, status=400)
+
+    location_name, distance = _nearest_workplace(workplace, lat, lon)
+    allowed_radius = workplace.overtime_radius_m
+    if distance is None or distance > allowed_radius:
+        return JsonResponse({
+            "ok": False,
+            "message": f"İşyeri konumu doğrulanamadı. En yakın işyerine yaklaşık {distance} m uzaktasınız."
+        }, status=403)
+
+    login(request, user)
+    next_url = request.session.pop("pending_staff_login_next", "/")
+    request.session.pop("pending_staff_login_user_id", None)
+    request.session.pop("pending_staff_login_at", None)
+    return JsonResponse({"ok": True, "redirect": next_url, "message": f"Konum doğrulandı · {location_name}"})
 
 
 
