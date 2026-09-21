@@ -9,7 +9,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.views.decorators.http import require_GET, require_POST
 
-from core.models import Beden, CustomerPricingRule, Musteri, Renk, URUN_TIPI_CHOICES, UrunKod
+from core.models import Beden, CustomerPricingRule, Musteri, Order, Renk, URUN_TIPI_CHOICES, UrunKod
 from .models import PriceListSettings, ProductCard, ShowroomDraft, ShowroomDraftItem
 from .payment_models import ShowroomPayment
 from .price_list_views import _can_manage, _ensure_price_rates, _price_rows, _real_profit_rate
