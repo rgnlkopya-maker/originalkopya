@@ -2,6 +2,7 @@ from django import template
 
 from app_settings.access import has_access, has_feature_access, has_full_access
 from app_settings.models import SystemSettings
+from app_settings.middleware import staff_break_active
 
 register = template.Library()
 
@@ -24,3 +25,8 @@ def is_management(user):
 @register.simple_tag
 def staff_access_enabled():
     return SystemSettings.get_solo().staff_access_enabled
+
+
+@register.simple_tag
+def staff_break_is_active():
+    return staff_break_active()
