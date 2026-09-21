@@ -2,26 +2,219 @@
 {% block content %}
 <div class="container-fluid py-3" style="max-width:1500px">
   <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
-    <div><h2 class="mb-1">Konsinye Ürünler</h2><div class="text-muted">Müşterilerde bulunan, henüz siparişte kullanılmamış ürünler · Toplam {{ total_remaining }} adet</div></div>
+    <div>
+      <h2 class="mb-1">Konsinye Ürünler</h2>
+      <div class="text-muted">Müşterilerde bulunan, henüz siparişte kullanılmamış ürünler · Toplam {{ total_remaining }} adet</div>
+    </div>
+    {% if can_manual_add %}
+    <button class="btn btn-dark" type="button" data-bs-toggle="collapse" data-bs-target="#consignmentEntry" aria-expanded="false" aria-controls="consignmentEntry">
+      + Konsinye Girişi
+    </button>
+    {% endif %}
   </div>
-  {% for message in messages %}<div class="alert alert-info">{{ message }}</div>{% endfor %}
-  {% if can_manual_add %}<div class="card border-0 shadow-sm mb-3"><div class="card-body">
-    <h5>Konsinye Girişi</h5>
-    <form method="post" action="{% url 'consignment_add' %}" class="row g-2 align-items-end">{% csrf_token %}
-      <div class="col-md-3"><label class="form-label">Müşteri</label><select name="customer_id" class="form-select" required><option value="">Seçin</option>{% for c in customers %}<option value="{{ c.id }}">{{ c.ad }}</option>{% endfor %}</select></div>
-      <div class="col-md-3"><label class="form-label">Üretildiği Sipariş No</label><input name="source_order" class="form-control" placeholder="Örn. STOK0042" required></div>
-      <div class="col-md-2"><label class="form-label">Adet</label><input name="quantity" type="number" min="1" value="1" class="form-control" required></div>
-      <div class="col-md-3"><label class="form-label">Not</label><input name="note" class="form-control" placeholder="İsteğe bağlı"></div>
-      <div class="col-md-1"><button class="btn btn-dark w-100">Ekle</button></div>
-    </form>
-  </div></div>{% endif %}
-  <div class="card border-0 shadow-sm mb-3"><div class="card-body">
-    <form method="get" class="d-flex gap-2 mb-3"><select name="musteri" class="form-select" style="max-width:340px"><option value="">Tüm müşteriler</option>{% for c in customers %}<option value="{{ c.id }}" {% if selected_customer == c.id|stringformat:"s" %}selected{% endif %}>{{ c.ad }}</option>{% endfor %}</select><button class="btn btn-outline-secondary">Filtrele</button></form>
-    <div class="table-responsive"><table class="table align-middle"><thead><tr><th>Müşteri</th><th>Ürün</th><th>Renk</th><th>Beden</th><th>Gönderilen</th><th>Kalan</th><th>Kaynak Üretim</th><th>Gönderim</th></tr></thead><tbody>
-    {% for s in stocks %}<tr><td><strong>{{ s.customer }}</strong></td><td>{{ s.urun_kodu }}</td><td>{{ s.renk|default:"—" }}</td><td>{{ s.beden|default:"—" }}</td><td>{{ s.quantity_sent }}</td><td><span class="badge bg-success">{{ s.quantity_remaining }}</span></td><td><a href="{% url 'order_detail' s.source_order_id %}">{{ s.source_order.siparis_numarasi }}</a></td><td>{{ s.sent_at|date:"d.m.Y H:i" }}</td></tr>{% empty %}<tr><td colspan="8" class="text-center text-muted py-4">Aktif konsinye stok yok.</td></tr>{% endfor %}
-    </tbody></table></div>
-  </div></div>
-  {% if can_view_movements %}<div class="card border-0 shadow-sm"><div class="card-body"><h5>Son Konsinye Hareketleri</h5><div class="table-responsive"><table class="table table-sm align-middle"><thead><tr><th>Tarih</th><th>Müşteri</th><th>Ürün</th><th>Hareket</th><th>Adet</th><th>Sipariş</th><th>Kullanıcı</th></tr></thead><tbody>{% for m in movements %}<tr><td>{{ m.created_at|date:"d.m.Y H:i" }}</td><td>{{ m.stock.customer }}</td><td>{{ m.stock.urun_kodu }} / {{ m.stock.renk|default:"—" }} / {{ m.stock.beden|default:"—" }}</td><td>{{ m.get_movement_type_display }}</td><td>{{ m.quantity }}</td><td>{% if m.target_order %}<a href="{% url 'order_detail' m.target_order_id %}">{{ m.target_order.siparis_numarasi }}</a>{% else %}—{% endif %}</td><td>{{ m.user|default:"—" }}</td></tr>{% empty %}<tr><td colspan="7" class="text-center text-muted">Henüz hareket yok.</td></tr>{% endfor %}</tbody></table></div></div></div>
-</div>{% endif %}
+
+  {% for message in messages %}
+  <div class="alert alert-info">{{ message }}</div>
+  {% endfor %}
+
+  {% if can_manual_add %}
+  <div class="collapse mb-3" id="consignmentEntry">
+    <div class="card border-0 shadow-sm">
+      <div class="card-body">
+        <h5 class="mb-3">Konsinye Girişi</h5>
+        <form method="post" action="{% url 'consignment_add' %}" class="row g-2 align-items-end">{% csrf_token %}
+          <div class="col-md-3">
+            <label class="form-label">Müşteri</label>
+            <select name="customer_id" class="form-select" required>
+              <option value="">Seçin</option>
+              {% for c in customers %}<option value="{{ c.id }}">{{ c.ad }}</option>{% endfor %}
+            </select>
+          </div>
+          <div class="col-md-3">
+            <label class="form-label">Üretildiği Sipariş No</label>
+            <input name="source_order" class="form-control" placeholder="Örn. STOK0042" required>
+          </div>
+          <div class="col-md-2">
+            <label class="form-label">Adet</label>
+            <input name="quantity" type="number" min="1" value="1" class="form-control" required>
+          </div>
+          <div class="col-md-3">
+            <label class="form-label">Not</label>
+            <input name="note" class="form-control" placeholder="İsteğe bağlı">
+          </div>
+          <div class="col-md-1">
+            <button class="btn btn-dark w-100">Ekle</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  <div class="card border-0 shadow-sm">
+    <div class="card-body">
+      <div class="d-flex flex-wrap gap-2 align-items-center justify-content-between mb-3">
+        <div class="btn-group" role="group" aria-label="Konsinye görünümü">
+          <button type="button" class="btn btn-dark consignment-tab active" data-target="active-consignments">Aktif Konsinyeler</button>
+          {% if can_view_movements %}
+          <button type="button" class="btn btn-outline-secondary consignment-tab" data-target="consignment-movements">Hareket Geçmişi</button>
+          {% endif %}
+        </div>
+      </div>
+
+      <div id="active-consignments" class="consignment-pane">
+        <div class="row g-2 mb-3">
+          <div class="col-lg-8">
+            <input
+              type="search"
+              id="consignmentSearch"
+              class="form-control"
+              placeholder="Müşteri, ürün, renk, beden veya sipariş no ara..."
+              autocomplete="off">
+          </div>
+          <div class="col-lg-4">
+            <form method="get" class="d-flex gap-2">
+              <select name="musteri" class="form-select">
+                <option value="">Tüm müşteriler</option>
+                {% for c in customers %}
+                <option value="{{ c.id }}" {% if selected_customer == c.id|stringformat:"s" %}selected{% endif %}>{{ c.ad }}</option>
+                {% endfor %}
+              </select>
+              <button class="btn btn-outline-secondary">Filtrele</button>
+            </form>
+          </div>
+        </div>
+
+        <div class="table-responsive">
+          <table class="table align-middle mb-0">
+            <thead>
+              <tr>
+                <th>Müşteri</th>
+                <th>Ürün</th>
+                <th>Renk</th>
+                <th>Beden</th>
+                <th>Kalan</th>
+                <th>Kaynak Sipariş</th>
+                <th>Gönderim</th>
+              </tr>
+            </thead>
+            <tbody id="consignmentStockRows">
+              {% for s in stocks %}
+              <tr class="consignment-stock-row">
+                <td><strong>{{ s.customer }}</strong></td>
+                <td>{{ s.urun_kodu }}</td>
+                <td>{{ s.renk|default:"—" }}</td>
+                <td>{{ s.beden|default:"—" }}</td>
+                <td><span class="badge bg-success">{{ s.quantity_remaining }}</span></td>
+                <td><a href="{% url 'order_detail' s.source_order_id %}">{{ s.source_order.siparis_numarasi }}</a></td>
+                <td>{{ s.sent_at|date:"d.m.Y H:i" }}</td>
+              </tr>
+              {% empty %}
+              <tr id="consignmentEmptyRow"><td colspan="7" class="text-center text-muted py-4">Aktif konsinye stok yok.</td></tr>
+              {% endfor %}
+              <tr id="consignmentSearchEmpty" style="display:none;">
+                <td colspan="7" class="text-center text-muted py-4">Aramaya uygun konsinye ürün bulunamadı.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {% if can_view_movements %}
+      <div id="consignment-movements" class="consignment-pane" style="display:none;">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <div>
+            <h5 class="mb-1">Son Konsinye Hareketleri</h5>
+            <div class="text-muted small">Son 100 hareket gösterilir.</div>
+          </div>
+        </div>
+        <div class="table-responsive">
+          <table class="table table-sm align-middle mb-0">
+            <thead>
+              <tr>
+                <th>Tarih</th>
+                <th>Müşteri</th>
+                <th>Ürün</th>
+                <th>Hareket</th>
+                <th>Adet</th>
+                <th>Sipariş</th>
+                <th>Kullanıcı</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for m in movements %}
+              <tr>
+                <td>{{ m.created_at|date:"d.m.Y H:i" }}</td>
+                <td>{{ m.stock.customer }}</td>
+                <td>{{ m.stock.urun_kodu }} / {{ m.stock.renk|default:"—" }} / {{ m.stock.beden|default:"—" }}</td>
+                <td>{{ m.get_movement_type_display }}</td>
+                <td>{{ m.quantity }}</td>
+                <td>{% if m.target_order %}<a href="{% url 'order_detail' m.target_order_id %}">{{ m.target_order.siparis_numarasi }}</a>{% else %}—{% endif %}</td>
+                <td>{{ m.user|default:"—" }}</td>
+              </tr>
+              {% empty %}
+              <tr><td colspan="7" class="text-center text-muted py-4">Henüz hareket yok.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+      {% endif %}
+    </div>
+  </div>
 </div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  const tabs = document.querySelectorAll(".consignment-tab");
+  const panes = document.querySelectorAll(".consignment-pane");
+
+  tabs.forEach(function (tab) {
+    tab.addEventListener("click", function () {
+      const target = tab.dataset.target;
+
+      tabs.forEach(function (item) {
+        item.classList.remove("btn-dark", "active");
+        item.classList.add("btn-outline-secondary");
+      });
+
+      tab.classList.remove("btn-outline-secondary");
+      tab.classList.add("btn-dark", "active");
+
+      panes.forEach(function (pane) {
+        pane.style.display = pane.id === target ? "" : "none";
+      });
+    });
+  });
+
+  const search = document.getElementById("consignmentSearch");
+  const rows = Array.from(document.querySelectorAll(".consignment-stock-row"));
+  const searchEmpty = document.getElementById("consignmentSearchEmpty");
+
+  if (search) {
+    search.addEventListener("input", function () {
+      const terms = search.value
+        .toLocaleLowerCase("tr-TR")
+        .trim()
+        .split(/\s+/)
+        .filter(Boolean);
+
+      let visibleCount = 0;
+
+      rows.forEach(function (row) {
+        const text = row.innerText.toLocaleLowerCase("tr-TR");
+        const visible = terms.every(function (term) {
+          return text.includes(term);
+        });
+        row.style.display = visible ? "" : "none";
+        if (visible) visibleCount += 1;
+      });
+
+      if (searchEmpty) {
+        searchEmpty.style.display = rows.length > 0 && visibleCount === 0 ? "" : "none";
+      }
+    });
+  }
+});
+</script>
 {% endblock %}
