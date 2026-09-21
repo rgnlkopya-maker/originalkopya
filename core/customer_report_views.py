@@ -1,15 +1,15 @@
-from app_settings.access import has_access
+from app_settings.access import has_access, has_feature_access
 from collections import Counter, defaultdict
 from decimal import Decimal
 import json
 
 from django.contrib.auth.decorators import login_required
-from django.db.models import DateTimeField, OuterRef, Subquery
+from django.db.models import DateTimeField, OuterRef, Subquery, Sum
 from django.shortcuts import get_object_or_404, render
 from django.utils import timezone
 
 from product_cards.finance_views import calculate_finance_result
-from .models import Musteri, Order, OrderEvent
+from .models import ConsignmentStock, Musteri, Order, OrderEvent
 
 
 def _can_view(user):
@@ -151,6 +151,28 @@ def customer_comparison_report(request):
     })
 
 
+
+@login_required
+def customer_consignment_partial(request, customer_id):
+    if not _can_view(request.user) or not has_feature_access(request.user, "consignment.view"):
+        from django.http import HttpResponseForbidden
+        return HttpResponseForbidden("Konsinye ürünlerini görme yetkiniz yok.")
+
+    customer = get_object_or_404(Musteri, pk=customer_id)
+    rows = list(
+        ConsignmentStock.objects
+        .select_related("source_order")
+        .filter(customer=customer, quantity_remaining__gt=0)
+        .order_by("urun_kodu", "renk", "beden", "sent_at", "id")
+    )
+    total = sum((row.quantity_remaining or 0) for row in rows)
+    return render(request, "reports/_customer_consignment.html", {
+        "customer": customer,
+        "consignment_rows": rows,
+        "consignment_total": total,
+    })
+
+
 @login_required
 def customer_detail_report(request, customer_id):
     if not _can_view(request.user):
@@ -276,4 +298,5 @@ def customer_detail_report(request, customer_id):
         "period_revenue_json": json.dumps(period_revenue),
         "period_profit_json": json.dumps(period_profit),
         "can_view_showroom_folios": request.user.is_superuser or request.user.groups.filter(name__in=["patron", "mudur"]).exists(),
+        "can_view_consignment": has_feature_access(request.user, "consignment.view"),
     })
