@@ -1,0 +1,25 @@
+<div class="consignment-live-head">
+  <div><strong>{{ consignment_total }}</strong> adet müşteride aktif konsinye ürün</div>
+  <div class="consignment-live-note">Canlı stok görünümü</div>
+</div>
+{% if consignment_rows %}
+<div class="table-responsive">
+  <table class="consignment-table">
+    <thead><tr><th>Ürün</th><th>Renk</th><th>Beden</th><th>Adet</th><th>Kaynak Üretim</th><th>Gönderim</th></tr></thead>
+    <tbody>
+      {% for s in consignment_rows %}
+      <tr>
+        <td><strong>{{ s.urun_kodu }}</strong></td>
+        <td>{{ s.renk|default:"—" }}</td>
+        <td>{{ s.beden|default:"—" }}</td>
+        <td><span class="consignment-qty">{{ s.quantity_remaining }}</span></td>
+        <td><a class="orderlink" href="{% url 'order_detail' s.source_order_id %}">{{ s.source_order.siparis_numarasi }}</a></td>
+        <td>{{ s.sent_at|date:"d.m.Y H:i" }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<div class="sub">Bu müşteride aktif konsinye ürün bulunmuyor.</div>
+{% endif %}
