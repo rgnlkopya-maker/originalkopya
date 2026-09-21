@@ -29,6 +29,11 @@ class MoliAccessMiddleware:
         # Patron/Müdür mevcut tam erişim davranışını aynen korur.
         if not has_full_access(request.user):
             from attendance.models import AttendanceRecord
+            from .models import SystemSettings
+
+            system = SystemSettings.get_solo()
+            if not system.staff_access_enabled and request.path not in self.STAFF_PRE_ATTENDANCE_PATHS:
+                return redirect(reverse("attendance_scan"))
 
             active_record = AttendanceRecord.objects.filter(
                 user=request.user,
