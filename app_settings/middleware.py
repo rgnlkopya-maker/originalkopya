@@ -1,5 +1,6 @@
 from django.shortcuts import redirect
 from django.urls import reverse
+from django.utils import timezone
 
 from .access import has_feature_access, has_full_access
 from .permission_registry import feature_for_path
@@ -31,7 +32,7 @@ class MoliAccessMiddleware:
 
             active_record = AttendanceRecord.objects.filter(
                 user=request.user,
-                work_date=__import__("django").utils.timezone.localdate(),
+                work_date=timezone.localdate(),
                 status="worked",
                 check_in__isnull=False,
                 check_out__isnull=True,
