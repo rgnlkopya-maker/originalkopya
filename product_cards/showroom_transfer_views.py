@@ -1,5 +1,5 @@
 from app_settings.access import has_feature_access
-from decimal import Decimal
+from decimal import Decimal, ROUND_HALF_UP
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
@@ -10,7 +10,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from core.models import Order, ProductCost, URUN_TIPI_CHOICES
 from .models import ShowroomDraft
 from .price_list_views import _can_manage
-from .showroom_views import CUSTOMER_BASE_PRICE_SIZE
+from .showroom_views import CUSTOMER_BASE_PRICE_SIZE, _apply_pricing_operations
 
 
 def _draft_rows(draft):
@@ -129,6 +129,28 @@ def showroom_transfer_create(request, draft_id):
     customer = draft.customer
     cost_cache = {}
     created = 0
+
+    subtotal = sum((Decimal(row["birim_fiyat"] or 0) * Decimal(row["adet"] or 1) for row in rows), Decimal("0"))
+    pricing_ops = draft.pricing_operations or []
+    pricing_result = _apply_pricing_operations(subtotal, pricing_ops, draft.folio_adjustment_target) if pricing_ops or draft.folio_adjustment_target is not None else None
+    target_total = pricing_result["folio_total"] if pricing_result else subtotal
+    factor = (target_total / subtotal) if subtotal > 0 else Decimal("0")
+    unit_orders = []
+    for row in rows:
+        for _ in range(row["adet"]):
+            unit_orders.append(row)
+
+    allocated_prices = []
+    allocated_total = Decimal("0")
+    for index, row in enumerate(unit_orders):
+        if index == len(unit_orders) - 1:
+            final_price = max(Decimal("0"), target_total - allocated_total)
+        else:
+            final_price = (Decimal(row["birim_fiyat"] or 0) * factor).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+            allocated_total += final_price
+        allocated_prices.append(final_price.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP))
+
+    price_index = 0
     for row in rows:
         code = row["urun_kodu"]
         if code not in cost_cache:
@@ -139,6 +161,8 @@ def showroom_transfer_create(request, draft_id):
             )
         cost, cost_currency = cost_cache[code]
         for _ in range(row["adet"]):
+            final_price = allocated_prices[price_index]
+            price_index += 1
             Order.objects.create(
                 siparis_tipi=order_type,
                 musteri=customer,
@@ -148,8 +172,8 @@ def showroom_transfer_create(request, draft_id):
                 beden=row["beden"] or None,
                 adet=1,
                 aciklama=row["aciklama"] or None,
-                satis_fiyati=row["birim_fiyat"],
-                vat_rate=draft.vat_rate or Decimal("0"),
+                satis_fiyati=final_price,
+                vat_rate=Decimal("0") if pricing_result else (draft.vat_rate or Decimal("0")),
                 para_birimi=draft.currency or "TRY",
                 maliyet_uygulanan=cost,
                 maliyet_para_birimi=cost_currency,
