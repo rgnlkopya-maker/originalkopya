@@ -1218,10 +1218,38 @@ def order_delete(request, pk):
     if not has_access(request.user, "can_delete_orders"):
         return JsonResponse({"status": "error", "message": "Yetki yok"}, status=403)
 
-    # 🛠️ SİLME
     if request.method == "POST":
+        from django.db import transaction
+        from .models import ConsignmentStock, ConsignmentMovement
+
         order = get_object_or_404(Order, pk=pk)
-        order.delete()
+
+        with transaction.atomic():
+            stocks = list(
+                ConsignmentStock.objects.select_for_update()
+                .filter(source_order=order)
+                .prefetch_related("movements")
+            )
+
+            # Bu fiziksel ürün başka bir gerçek siparişte kullanıldıysa kaynak siparişi
+            # silmek üretim/konsinye zincirini koparır; güvenli şekilde engelle.
+            used_elsewhere = ConsignmentMovement.objects.filter(
+                stock__source_order=order,
+                movement_type="USE",
+            ).exclude(target_order=order).exists()
+
+            if used_elsewhere:
+                return JsonResponse({
+                    "status": "error",
+                    "message": "Bu siparişten çıkan konsinye ürün başka bir siparişte kullanılmış. Üretim geçmişi zinciri korunacağı için sipariş silinemez."
+                }, status=409)
+
+            # Henüz başka siparişte kullanılmamış konsinye kayıtları siparişle birlikte
+            # temizlenebilir. Böylece PROTECT 500 hatası oluşmaz.
+            ConsignmentMovement.objects.filter(stock__source_order=order).delete()
+            ConsignmentStock.objects.filter(source_order=order).delete()
+            order.delete()
+
         return JsonResponse({"status": "ok"}, status=200)
 
     return JsonResponse({"status": "error", "message": "POST gerekli"}, status=405)
