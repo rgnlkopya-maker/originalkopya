@@ -763,9 +763,8 @@ from django.shortcuts import redirect
 from datetime import time as dt_time
 
 def _is_management_login(user):
-    if user.is_superuser:
-        return True
-    return user.groups.filter(name__in=["patron", "Patron", "mudur", "Mudur", "müdür", "Müdür"]).exists()
+    from app_settings.access import has_full_access
+    return has_full_access(user)
 
 def _active_attendance_for_login(user):
     from attendance.models import AttendanceRecord
@@ -785,23 +784,29 @@ def custom_login(request):
 
         user = authenticate(request, username=username, password=password)
         if user is not None:
-            # Patron/Müdür hesapları personel mesai kuralından muaftır.
-            if not _is_management_login(user):
-                active_record = _active_attendance_for_login(user)
-                if not active_record:
-                    return render(request, "registration/custom_login.html", {
-                        "access_error": "MoliApp erişimi için önce işyerinde QR ile mesai başlangıcı yapmalısınız."
-                    })
+            # Patron/Müdür mevcut yetkileriyle bu mesai kapısından muaftır.
+            if _is_management_login(user):
+                login(request, user)
+                return redirect(request.GET.get("next") or "/")
 
-                # 19:15 sonrası personel girişinde konum yeniden doğrulanır.
-                if timezone.localtime().time() >= dt_time(19, 15):
-                    request.session["pending_staff_login_user_id"] = user.id
-                    request.session["pending_staff_login_next"] = request.GET.get("next") or "/"
-                    request.session["pending_staff_login_at"] = timezone.now().isoformat()
-                    return render(request, "registration/custom_login.html", {
-                        "location_required": True,
-                        "location_verify_url": reverse("staff_login_location_verify"),
-                    })
+            active_record = _active_attendance_for_login(user)
+
+            # Mesai başlamadıysa kullanıcı doğrulanır ama yalnızca puantaj akışına alınır.
+            # Diğer sayfalar middleware tarafından kapalı tutulur.
+            if not active_record:
+                login(request, user)
+                return redirect("attendance_scan")
+
+            # 19:15 sonrası aktif mesaisi olan personel yeniden giriş yapıyorsa
+            # işyeri konumu doğrulanmadan oturum açılmaz.
+            if timezone.localtime().time() >= dt_time(19, 15):
+                request.session["pending_staff_login_user_id"] = user.id
+                request.session["pending_staff_login_next"] = request.GET.get("next") or "/"
+                request.session["pending_staff_login_at"] = timezone.now().isoformat()
+                return render(request, "registration/custom_login.html", {
+                    "location_required": True,
+                    "location_verify_url": reverse("staff_login_location_verify"),
+                })
 
             login(request, user)
             return redirect(request.GET.get("next") or "/")
@@ -836,8 +841,11 @@ def staff_login_location_verify(request):
         return JsonResponse({"ok": False, "message": "Giriş doğrulanamadı."}, status=403)
 
     record = AttendanceRecord.objects.filter(
-        user=user, work_date=timezone.localdate(), status="worked",
-        check_in__isnull=False, check_out__isnull=True,
+        user=user,
+        work_date=timezone.localdate(),
+        status="worked",
+        check_in__isnull=False,
+        check_out__isnull=True,
     ).first()
     if not record:
         return JsonResponse({"ok": False, "message": "Aktif mesai kaydınız bulunmuyor."}, status=403)
