@@ -14,6 +14,22 @@ def _allowed(user, feature):
     return has_feature_access(user, feature)
 
 
+def _production_panel_response(request, order):
+    if request.headers.get("HX-Request"):
+        from .models import Fasoncu, Nakisci
+        return render(request, "core/_uretim_paneli.html", {
+            "order": order,
+            "events": OrderEvent.objects.filter(order=order).order_by("-timestamp"),
+            "fasoncular": Fasoncu.objects.all(),
+            "nakisciler": Nakisci.objects.all(),
+            "is_manager": request.user.groups.filter(name__in=["patron", "mudur"]).exists(),
+            "consignment_active_qty": ConsignmentStock.objects.filter(
+                source_order=order
+            ).aggregate(v=Sum("quantity_remaining"))["v"] or 0,
+        })
+    return None
+
+
 @login_required
 def consignment_list(request):
     if not _allowed(request.user, "consignment.view"):
@@ -175,6 +191,9 @@ def consignment_send_order(request, order_id):
             note="Ürün müşterinin konsinye stoğuna verildi.",
         )
     messages.success(request, f"Ürün {source.musteri} müşterisine konsinye verildi.")
+    panel = _production_panel_response(request, source)
+    if panel:
+        return panel
     return redirect("order_detail", pk=source.pk)
 
 
@@ -231,4 +250,7 @@ def consignment_return_order(request, order_id):
             remaining -= take
 
     messages.success(request, "Ürün konsinye stoğundan düşüldü ve 'Konsinyeden Geri Geldi' olarak kaydedildi.")
+    panel = _production_panel_response(request, source)
+    if panel:
+        return panel
     return redirect("order_detail", pk=source.pk)
