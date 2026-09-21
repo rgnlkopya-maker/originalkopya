@@ -20,7 +20,7 @@ from core.audit_views import employee_audit_logs
 from core.fason_views import fasoncu_raporu, fasoncu_detay
 from core.nakis_views import nakisci_raporu, nakisci_detay
 from core.depo_views import depo_ozet as managed_depo_ozet
-from core.customer_report_views import customer_comparison_report, customer_detail_report
+from core.customer_report_views import customer_comparison_report, customer_detail_report, customer_consignment_partial
 from core.customer_views import customer_list, customer_edit
 from core.reminder_views import reminder_management, reminder_complete, reminder_toggle
 
