@@ -243,3 +243,17 @@ class ShowroomDraftItem(models.Model):
     updated_at=models.DateTimeField(auto_now=True)
     class Meta: ordering=["created_at","id"]
     def __str__(self): return f"{self.product_card.urun.kod} x {self.quantity}"
+
+
+class ShowroomOrderLink(models.Model):
+    """Föyden oluşturulan gerçek siparişi kaynağına bağlar."""
+    draft=models.ForeignKey(ShowroomDraft,on_delete=models.CASCADE,related_name="order_links")
+    draft_item=models.ForeignKey(ShowroomDraftItem,on_delete=models.SET_NULL,null=True,blank=True,related_name="order_links")
+    order=models.OneToOneField(Order,on_delete=models.CASCADE,related_name="showroom_link")
+    created_at=models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering=["id"]
+
+    def __str__(self):
+        return f"Föy #{self.draft_id} -> {self.order.siparis_numarasi}"
