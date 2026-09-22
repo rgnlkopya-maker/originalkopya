@@ -1,4 +1,5 @@
 from django.shortcuts import redirect
+from django.contrib.auth import get_user_model
 from django.urls import reverse
 from django.utils import timezone
 from datetime import time
@@ -39,8 +40,24 @@ class MoliAccessMiddleware:
         if not getattr(request.user, "is_authenticated", False):
             return self.get_response(request)
 
-        # Patron/Müdür mevcut tam erişim davranışını aynen korur.
-        if not has_full_access(request.user):
+        real_user = request.user
+        request.real_user = real_user
+        request.is_user_preview = False
+
+        preview_user_id = request.session.get("moli_preview_user_id")
+        preview_exit_path = reverse("preview_user_exit")
+        if preview_user_id and has_full_access(real_user) and request.path != preview_exit_path:
+            User = get_user_model()
+            preview_user = User.objects.filter(pk=preview_user_id, is_active=True).first()
+            if preview_user and not has_full_access(preview_user):
+                request.preview_user = preview_user
+                request.user = preview_user
+                request.is_user_preview = True
+            else:
+                request.session.pop("moli_preview_user_id", None)
+
+        # Normal personelde mesai kapısı uygulanır; Patron/Müdür önizleme modunda bu kapı atlanır.
+        if not request.is_user_preview and not has_full_access(request.user):
             from attendance.models import AttendanceRecord
             from .models import SystemSettings
 
