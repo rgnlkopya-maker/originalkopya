@@ -791,9 +791,14 @@ def custom_login(request):
 
             active_record = _active_attendance_for_login(user)
 
-            # Mesai başlamadıysa kullanıcı doğrulanır ama yalnızca puantaj akışına alınır.
-            # Diğer sayfalar middleware tarafından kapalı tutulur.
+            # Mesai başlamadıysa personel ancak işyerindeki QR + konum ön doğrulamasından
+            # geçmişse puantaj ekranına alınır. Doğrudan login URL'sinden personel girişi açılmaz.
             if not active_record:
+                from attendance.views import qr_entry_permit_valid
+                if not qr_entry_permit_valid(request):
+                    return render(request, "registration/custom_login.html", {
+                        "access_error": "Mesai başlangıcı için işyerindeki puantaj QR kodunu okutun."
+                    })
                 login(request, user)
                 return redirect("attendance_scan")
 
