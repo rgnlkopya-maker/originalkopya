@@ -181,9 +181,21 @@ def _effective_price_factor(draft):
 def _effective_serialized_items(draft):
     data = _serialize_draft(draft)
     factor = _effective_price_factor(draft)
+    vat_multiplier = Decimal("1")
+    if draft.pricing_operations:
+        pricing = _apply_pricing_operations(
+            Decimal("100"), draft.pricing_operations or [], None
+        )
+        for step in pricing["steps"]:
+            if step["type"] == "VAT":
+                vat_multiplier *= Decimal("1") + (Decimal(str(step["value"])) / Decimal("100"))
+    elif draft.vat_rate:
+        vat_multiplier = Decimal("1") + (Decimal(draft.vat_rate) / Decimal("100"))
     for item in data["items"]:
         base_price = _decimal(item.get("anlasilan_fiyat"), "0")
-        item["anlasilan_fiyat"] = str((base_price * factor).quantize(Decimal("0.01")))
+        gross_price = base_price * factor
+        net_price = gross_price / vat_multiplier if vat_multiplier > 0 else gross_price
+        item["anlasilan_fiyat"] = str(net_price.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP))
     return data["items"]
 
 
