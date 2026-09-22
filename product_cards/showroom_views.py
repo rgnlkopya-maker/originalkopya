@@ -140,6 +140,40 @@ def _draft_summary(draft):
     return {"id":draft.id,"customer":draft.customer.ad if draft.customer else "Müşteri seçilmedi","product_count":items["product_count"] or 0,"total_qty":items["total_qty"] or 0,"subtotal":str(subtotal.quantize(Decimal("0.01"))),"discount":str(discount.quantize(Decimal("0.01"))),"vat_rate":str(vat_rate.quantize(Decimal("0.01"))),"vat":str(vat.quantize(Decimal("0.01"))),"folio_total":str(folio_total.quantize(Decimal("0.01"))),"previous_balance":str(previous_balance.quantize(Decimal("0.01"))),"total":str(total.quantize(Decimal("0.01"))),"collected":str(collected.quantize(Decimal("0.01"))),"promised":str(promised.quantize(Decimal("0.01"))),"remaining":str(remaining.quantize(Decimal("0.01"))),"updated_at":timezone.localtime(draft.updated_at).strftime("%d.%m.%Y %H:%M"),"status":draft.status}
 
 
+def _effective_price_factor(draft):
+    """Föydeki fiyat işlemlerini ürün birim fiyatlarına oransal olarak yansıtır."""
+    subtotal = sum(
+        (Decimal(item.unit_price or 0) * Decimal(max(1, int(item.quantity or 1))) for item in draft.items.all()),
+        Decimal("0"),
+    )
+    if subtotal <= 0:
+        return Decimal("0")
+
+    if draft.pricing_operations or draft.folio_adjustment_target is not None:
+        result = _apply_pricing_operations(subtotal, draft.pricing_operations or [], draft.folio_adjustment_target)
+        return result["folio_total"] / subtotal
+
+    discount = (
+        subtotal * Decimal(draft.discount_rate or 0) / Decimal("100")
+        if draft.discount_rate and draft.discount_rate > 0
+        else Decimal(draft.overall_discount_amount or 0)
+    )
+    discount = min(subtotal, max(Decimal("0"), discount))
+    taxable = max(Decimal("0"), subtotal - discount)
+    vat_rate = max(Decimal("0"), min(Decimal("100"), Decimal(draft.vat_rate or 0)))
+    folio_total = taxable + (taxable * vat_rate / Decimal("100"))
+    return folio_total / subtotal
+
+
+def _effective_serialized_items(draft):
+    data = _serialize_draft(draft)
+    factor = _effective_price_factor(draft)
+    for item in data["items"]:
+        base_price = _decimal(item.get("anlasilan_fiyat"), "0")
+        item["anlasilan_fiyat"] = str((base_price * factor).quantize(Decimal("0.01")))
+    return data["items"]
+
+
 def _payment_rows(draft): return list(draft.payments.all().order_by("due_date","payment_date","id"))
 
 
@@ -403,8 +437,8 @@ def showroom_customer_product_base_price(request):
 @login_required
 def showroom_detail_page(request,draft_id):
     if not _can_manage(request.user): return HttpResponseForbidden("Bu sayfaya erişim yetkiniz yok.")
-    draft=get_object_or_404(ShowroomDraft.objects.select_related("customer").prefetch_related("items__product_card__urun","payments"),id=draft_id,created_by=request.user,status__in=["PENDING","APPROVED","TRANSFERRED"]); data=_serialize_draft(draft); summary=_draft_summary(draft); status_label={"PENDING":"Taslak","APPROVED":"Onaylanan","TRANSFERRED":"Siparişe Aktarıldı"}[draft.status]; back_url_name="showroom_drafts_page" if draft.status=="PENDING" else "showroom_approved_page"
-    return render(request,"product_cards/showroom_detail.html",{"draft":draft,"items":data["items"],"summary":summary,"payments":_payment_rows(draft),"status_label":status_label,"back_url_name":back_url_name})
+    draft=get_object_or_404(ShowroomDraft.objects.select_related("customer").prefetch_related("items__product_card__urun","payments"),id=draft_id,created_by=request.user,status__in=["PENDING","APPROVED","TRANSFERRED"]); items=_effective_serialized_items(draft); summary=_draft_summary(draft); status_label={"PENDING":"Taslak","APPROVED":"Onaylanan","TRANSFERRED":"Siparişe Aktarıldı"}[draft.status]; back_url_name="showroom_drafts_page" if draft.status=="PENDING" else "showroom_approved_page"
+    return render(request,"product_cards/showroom_detail.html",{"draft":draft,"items":items,"summary":summary,"payments":_payment_rows(draft),"status_label":status_label,"back_url_name":back_url_name})
 
 
 @login_required
