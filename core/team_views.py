@@ -14,7 +14,7 @@ from django.utils import timezone
 
 from attendance.models import AttendanceRecord, EmployeeHRProfile
 from app_settings.models import UserAccess
-from app_settings.access import has_feature_access, has_access
+from app_settings.access import has_feature_access, has_access, has_full_access
 from app_settings.permission_registry import FEATURE_GROUPS
 from core.models import OrderEvent, UserProfile
 from core.services.order_status import FINANCIAL_STAGES, STATUS_LABELS
@@ -64,6 +64,29 @@ def _selected_range(request,today,employment_start=None,employment_end=None):
     return effective_today.replace(day=1),effective_today,"this_month"
 
 def _event_label(stage,value): return STATUS_LABELS.get((stage,value),f"{(stage or '').replace('_durum','').replace('_',' ').title()} → {(value or '').replace('_',' ').title()}")
+
+@login_required
+def preview_user(request, user_id):
+    if not has_full_access(request.user):
+        return HttpResponseForbidden("Bu işlem yalnızca Patron/Müdür için kullanılabilir.")
+    target = get_object_or_404(User, pk=user_id, is_active=True)
+    if has_full_access(target):
+        messages.info(request, "Patron/Müdür hesabını ayrıca önizlemeye gerek yok.")
+        return redirect("employee_detail", user_id=target.id)
+    request.session["moli_preview_user_id"] = target.id
+    request.session.modified = True
+    return redirect("order_list")
+
+
+@login_required
+def preview_user_exit(request):
+    real_user = getattr(request, "real_user", request.user)
+    if not has_full_access(real_user):
+        return HttpResponseForbidden("Bu işlem yalnızca Patron/Müdür için kullanılabilir.")
+    request.session.pop("moli_preview_user_id", None)
+    request.session.modified = True
+    return redirect("user_management")
+
 
 @login_required
 def user_management_view(request):
