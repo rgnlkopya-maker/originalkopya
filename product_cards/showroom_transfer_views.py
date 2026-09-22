@@ -8,7 +8,7 @@ from django.http import HttpResponseForbidden
 from django.shortcuts import get_object_or_404, redirect, render
 
 from core.models import Order, ProductCost, URUN_TIPI_CHOICES
-from .models import ShowroomDraft
+from .models import ShowroomDraft, ShowroomOrderLink
 from .price_list_views import _can_manage
 from .showroom_views import CUSTOMER_BASE_PRICE_SIZE, _apply_pricing_operations
 
@@ -123,6 +123,7 @@ def _draft_rows(draft):
         urun = item.product_card.urun
         urun_tipi = getattr(urun, "urun_tipi", "") or ""
         rows.append({
+            "draft_item_id": item.id,
             "urun_kodu": urun.kod,
             "urun_tipi": urun_tipi,
             "urun_tipi_label": type_labels.get(urun_tipi, urun_tipi or "—"),
@@ -237,7 +238,7 @@ def showroom_transfer_create(request, draft_id):
             )
         cost, cost_currency = cost_cache[code]
         for final_price in row.get("_allocated_prices", []):
-            Order.objects.create(
+            order = Order.objects.create(
                 siparis_tipi=order_type,
                 musteri=customer,
                 urun_kodu=code,
@@ -251,6 +252,11 @@ def showroom_transfer_create(request, draft_id):
                 para_birimi=draft.currency or "TRY",
                 maliyet_uygulanan=cost,
                 maliyet_para_birimi=cost_currency,
+            )
+            ShowroomOrderLink.objects.create(
+                draft=draft,
+                draft_item_id=row.get("draft_item_id"),
+                order=order,
             )
             created += 1
 
