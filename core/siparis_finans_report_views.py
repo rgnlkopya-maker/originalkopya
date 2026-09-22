@@ -58,6 +58,12 @@ def _folio_finance(draft, include_items=False):
     net_total = gross_total / vat_multiplier if vat_multiplier > 0 else gross_total
     net_factor = (net_total / subtotal) if subtotal > 0 else Decimal("0")
 
+    linked_orders_by_item = {}
+    if draft.status == "TRANSFERRED":
+        for link in draft.order_links.select_related("order").all():
+            if link.draft_item_id:
+                linked_orders_by_item.setdefault(link.draft_item_id, []).append(link.order)
+
     total_cost = Decimal("0")
     product_count = set()
     total_qty = 0
@@ -70,8 +76,17 @@ def _folio_finance(draft, include_items=False):
         product_count.add(code)
 
         net_unit = Decimal(item.unit_price or 0) * net_factor
-        unit_cost = Decimal(item.product_card.toplam_maliyet or 0)
-        row_cost = unit_cost * Decimal(qty)
+        linked_orders = linked_orders_by_item.get(item.id, [])
+        if linked_orders:
+            row_cost = sum(
+                (Decimal(order.toplam_maliyet or 0) * Decimal(order.adet or 1) for order in linked_orders),
+                Decimal("0"),
+            )
+            unit_cost = row_cost / Decimal(qty) if qty else Decimal("0")
+        else:
+            # Henüz siparişe dönüşmemiş veya eski bağlantısız föylerde ürün kartı maliyeti kullanılır.
+            unit_cost = Decimal(item.product_card.toplam_maliyet or 0)
+            row_cost = unit_cost * Decimal(qty)
         row_revenue = net_unit * Decimal(qty)
         row_profit = row_revenue - row_cost
         unit_profit = net_unit - unit_cost
@@ -160,7 +175,7 @@ def siparis_finans_raporu(request):
         ShowroomDraft.objects
         .filter(status__in=["APPROVED", "TRANSFERRED"])
         .select_related("customer")
-        .prefetch_related("items__product_card__urun", "items__product_card__materials__material")
+        .prefetch_related("items__product_card__urun", "items__product_card__materials__material", "order_links__order")
         .order_by("-created_at", "-id")
     )
     orders = Order.objects.filter(is_active=True).select_related("musteri")
