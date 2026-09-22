@@ -5,7 +5,7 @@ import django.db.models.deletion
 class Migration(migrations.Migration):
     dependencies = [
         ("product_cards", "0027_showroomdraft_pricing_operations"),
-        ("core", "0001_initial"),
+        ("core", "0063_consignmentmovement_source_event"),
     ]
 
     operations = [
