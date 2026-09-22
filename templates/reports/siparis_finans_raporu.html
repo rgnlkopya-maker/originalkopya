@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block content %}
+<style>
+.fin-wrap{max-width:1250px;margin:0 auto;padding:24px 14px 50px}.fin-head{display:flex;justify-content:space-between;gap:14px;align-items:end;margin-bottom:18px}.fin-head h2{margin:0;font-weight:900}.date-box{display:flex;gap:8px;align-items:end;flex-wrap:wrap}.date-box label{font-size:10px;font-weight:800;color:#7b8493;display:block;margin-bottom:4px}.date-box input{height:40px;border:1px solid #dfe5ef;border-radius:10px;padding:0 10px}.date-box button,.clear{height:40px;border-radius:10px;padding:0 14px;font-weight:800;text-decoration:none}.date-box button{border:0;background:#263044;color:#fff}.clear{display:inline-flex;align-items:center;border:1px solid #dfe5ef;background:#fff;color:#39405a}.fin-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}.fin-card{display:block;background:#fff;border:1px solid #e4e9f1;border-radius:18px;padding:18px;text-decoration:none;color:inherit;box-shadow:0 2px 7px rgba(15,23,42,.04)}.fin-card:hover{border-color:#cfd7ff;box-shadow:0 8px 24px rgba(15,23,42,.08)}.fin-card h3{font-size:18px;font-weight:900;margin:0 0 4px;color:#263044}.sub{font-size:11px;color:#8a94a6;margin-bottom:16px}.metrics{display:grid;grid-template-columns:1fr 1fr;gap:9px}.metric{background:#f7f8fc;border-radius:12px;padding:10px}.metric span{display:block;font-size:9px;font-weight:850;color:#8a94a6;text-transform:uppercase;margin-bottom:3px}.metric strong{font-size:16px;color:#263044}.profit strong{color:#177245}.rate strong{color:#3b45d9}@media(max-width:850px){.fin-head{align-items:flex-start;flex-direction:column}.fin-grid{grid-template-columns:1fr}.date-box{width:100%}.date-box>div{flex:1}.date-box input{width:100%}}
+</style>
+<main class="fin-wrap">
+  <div class="fin-head">
+    <div><div class="text-muted small">RAPORLAR</div><h2>Sipariş Finans Raporu</h2></div>
+    <form class="date-box" method="get">
+      <div><label>Başlangıç</label><input type="date" name="start" value="{{ start }}"></div>
+      <div><label>Bitiş</label><input type="date" name="end" value="{{ end }}"></div>
+      <button type="submit">Uygula</button>
+      <a class="clear" href="{% url 'siparis_finans_raporu' %}">Temizle</a>
+    </form>
+  </div>
+  <section class="fin-grid">
+    <a class="fin-card" href="{% url 'siparis_finans_foyleri' %}{% if start or end %}?start={{ start }}&end={{ end }}{% endif %}">
+      <h3>Sipariş Föyleri</h3><div class="sub">{{ folio_summary.count }} onaylanmış / aktarılmış föy</div>
+      <div class="metrics">
+        <div class="metric"><span>Toplam Ciro</span><strong>{{ folio_summary.revenue|floatformat:2 }} TL</strong></div>
+        <div class="metric"><span>Toplam Maliyet</span><strong>{{ folio_summary.cost|floatformat:2 }} TL</strong></div>
+        <div class="metric profit"><span>Toplam Kâr</span><strong>{{ folio_summary.profit|floatformat:2 }} TL</strong></div>
+        <div class="metric rate"><span>Kâr %</span><strong>%{{ folio_summary.profit_rate|floatformat:2 }}</strong></div>
+      </div>
+    </a>
+    <div class="fin-card">
+      <h3>Tekli Siparişler</h3><div class="sub">{{ tekli_summary.count }} sipariş</div>
+      <div class="metrics">
+        <div class="metric"><span>Toplam Ciro</span><strong>{{ tekli_summary.revenue|floatformat:2 }} TL</strong></div>
+        <div class="metric"><span>Toplam Maliyet</span><strong>{{ tekli_summary.cost|floatformat:2 }} TL</strong></div>
+        <div class="metric profit"><span>Toplam Kâr</span><strong>{{ tekli_summary.profit|floatformat:2 }} TL</strong></div>
+        <div class="metric rate"><span>Kâr %</span><strong>%{{ tekli_summary.profit_rate|floatformat:2 }}</strong></div>
+      </div>
+    </div>
+    <div class="fin-card">
+      <h3>Özel Siparişler</h3><div class="sub">{{ ozel_summary.count }} sipariş</div>
+      <div class="metrics">
+        <div class="metric"><span>Toplam Ciro</span><strong>{{ ozel_summary.revenue|floatformat:2 }} TL</strong></div>
+        <div class="metric"><span>Toplam Maliyet</span><strong>{{ ozel_summary.cost|floatformat:2 }} TL</strong></div>
+        <div class="metric profit"><span>Toplam Kâr</span><strong>{{ ozel_summary.profit|floatformat:2 }} TL</strong></div>
+        <div class="metric rate"><span>Kâr %</span><strong>%{{ ozel_summary.profit_rate|floatformat:2 }}</strong></div>
+      </div>
+    </div>
+  </section>
+</main>
+{% endblock %}
