@@ -3,6 +3,8 @@ from . import views
 
 urlpatterns = [
     path("", views.scan, name="attendance_scan"),
+    path("qr-giris/", views.attendance_qr_gate, name="attendance_qr_gate"),
+    path("qr-giris/dogrula/", views.attendance_qr_gate_verify, name="attendance_qr_gate_verify"),
     path("punch/", views.punch, name="attendance_punch"),
     path("qr.png", views.attendance_qr_image, name="attendance_qr_image"),
     path("qr-yazdir/", views.attendance_qr_print, name="attendance_qr_print"),
