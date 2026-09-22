@@ -5,11 +5,13 @@ import math
 import os
 import secrets
 import uuid
+from urllib.parse import urlencode
 from calendar import monthrange
 from datetime import date, datetime, timedelta
 
 import qrcode
 from django.conf import settings
+from django.core import signing
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib.auth.models import User
@@ -24,6 +26,34 @@ from .models import AttendanceDevice, AttendanceRecord, WorkplaceSettings
 
 DEVICE_COOKIE = "moli_attendance_device"
 DEVICE_COOKIE_MAX_AGE = 60 * 60 * 24 * 365 * 3
+QR_ENTRY_SESSION_KEY = "moli_attendance_qr_verified_at"
+QR_ENTRY_TTL_MINUTES = 5
+QR_SIGNING_SALT = "moli-attendance-workplace-qr"
+
+
+def _attendance_qr_token():
+    return signing.Signer(salt=QR_SIGNING_SALT).sign("workplace-entry")
+
+
+def _valid_attendance_qr_token(token):
+    try:
+        return signing.Signer(salt=QR_SIGNING_SALT).unsign(token or "") == "workplace-entry"
+    except signing.BadSignature:
+        return False
+
+
+def qr_entry_permit_valid(request):
+    raw = request.session.get(QR_ENTRY_SESSION_KEY)
+    if not raw:
+        return False
+    try:
+        verified_at = datetime.fromisoformat(raw)
+        return timezone.now() - verified_at <= timedelta(minutes=QR_ENTRY_TTL_MINUTES)
+    except (TypeError, ValueError):
+        request.session.pop(QR_ENTRY_SESSION_KEY, None)
+        return False
+
+
 
 
 def is_manager(user):
@@ -114,6 +144,11 @@ def scan(request):
     workplace = WorkplaceSettings.get_solo()
     today = timezone.localdate()
     record = AttendanceRecord.objects.filter(user=request.user, work_date=today).first()
+    qr_entry_required = bool(
+        not is_manager(request.user)
+        and not (record and record.check_in)
+        and not qr_entry_permit_valid(request)
+    )
     device, device_state = _device_for_request(request)
     new_token = None
 
@@ -153,7 +188,7 @@ def scan(request):
     response = render(
         request,
         "attendance_v2/scan.html",
-        {"workplace": workplace, "record": record, "device": device, "device_state": device_state, "is_manager": is_manager(request.user)},
+        {"workplace": workplace, "record": record, "device": device, "device_state": device_state, "is_manager": is_manager(request.user), "qr_entry_required": qr_entry_required},
     )
     if new_token:
         response.set_cookie(
@@ -168,10 +203,57 @@ def scan(request):
     return response
 
 
+def attendance_qr_gate(request):
+    token = request.GET.get("t", "")
+    if not _valid_attendance_qr_token(token):
+        return HttpResponse("Geçersiz puantaj QR kodu.", status=403)
+    return render(request, "attendance_v2/qr_gate.html", {
+        "verify_url": reverse("attendance_qr_gate_verify"),
+        "qr_token": token,
+    })
+
+
+@require_POST
+def attendance_qr_gate_verify(request):
+    token = request.POST.get("token", "")
+    if not _valid_attendance_qr_token(token):
+        return JsonResponse({"ok": False, "message": "Geçersiz puantaj QR kodu."}, status=403)
+
+    workplace = WorkplaceSettings.get_solo()
+    if not workplace.active_locations():
+        return JsonResponse({"ok": False, "message": "İşyeri konumu henüz tanımlanmadı."}, status=400)
+
+    try:
+        lat = float(request.POST.get("latitude"))
+        lon = float(request.POST.get("longitude"))
+    except (TypeError, ValueError):
+        return JsonResponse({"ok": False, "message": "Telefon konumu alınamadı."}, status=400)
+
+    location_name, distance = _nearest_workplace(workplace, lat, lon)
+    today = timezone.localdate()
+    allowed_radius = workplace.overtime_radius_m if today.weekday() >= 5 else workplace.normal_radius_m
+    if distance is None or distance > allowed_radius:
+        return JsonResponse({
+            "ok": False,
+            "message": f"İşyeri konumu doğrulanamadı. İzin verilen alan {allowed_radius} metre; en yakın işyerine yaklaşık {distance} m uzaktasınız.",
+        }, status=403)
+
+    request.session[QR_ENTRY_SESSION_KEY] = timezone.now().isoformat()
+    request.session.modified = True
+    login_url = reverse("login")
+    next_url = reverse("attendance_scan")
+    return JsonResponse({
+        "ok": True,
+        "message": f"İşyeri konumu doğrulandı · {location_name}",
+        "redirect": f"{login_url}?{urlencode({'next': next_url})}",
+    })
+
+
 @login_required
 @user_passes_test(is_patron)
 def attendance_qr_image(request):
-    target_url = request.build_absolute_uri(reverse("attendance_scan"))
+    token = _attendance_qr_token()
+    target_url = request.build_absolute_uri(reverse("attendance_qr_gate")) + "?" + urlencode({"t": token})
     qr = qrcode.QRCode(version=None, box_size=12, border=4)
     qr.add_data(target_url)
     qr.make(fit=True)
@@ -184,7 +266,8 @@ def attendance_qr_image(request):
 @login_required
 @user_passes_test(is_patron)
 def attendance_qr_print(request):
-    target_url = request.build_absolute_uri(reverse("attendance_scan"))
+    token = _attendance_qr_token()
+    target_url = request.build_absolute_uri(reverse("attendance_qr_gate")) + "?" + urlencode({"t": token})
     return render(request, "attendance_v2/qr_print.html", {"target_url": target_url})
 
 
@@ -207,6 +290,11 @@ def punch(request):
     location_name, distance = _nearest_workplace(workplace, lat, lon)
     now = timezone.now(); today = timezone.localdate(); is_weekend = today.weekday() >= 5
     record, _ = AttendanceRecord.objects.get_or_create(user=request.user, work_date=today)
+    if not record.check_in and not is_manager(request.user) and not qr_entry_permit_valid(request):
+        return JsonResponse({
+            "ok": False,
+            "message": "Mesai başlangıcı için işyerindeki QR kodunu yeniden okutun.",
+        }, status=403)
     if record.status in {"leave", "annual_leave", "sick"}:
         return JsonResponse({"ok": False, "message": "Bugün için izin/rapor kaydı var. Patron veya Müdür değiştirebilir."}, status=400)
     record.status = "worked"
@@ -217,6 +305,7 @@ def punch(request):
         record.check_in = now; record.check_in_latitude = lat; record.check_in_longitude = lon; record.check_in_distance_m = distance
         _recalculate(record, workplace); record.save()
         device.last_used_at = now; device.save(update_fields=["last_used_at"])
+        request.session.pop(QR_ENTRY_SESSION_KEY, None)
         return JsonResponse({"ok": True, "action": "in", "message": f"Giriş kaydedildi: {timezone.localtime(now).strftime('%H:%M')} · {location_name}"})
     if record.check_out:
         return JsonResponse({"ok": False, "message": "Bugünkü giriş ve çıkışınız zaten tamamlandı."}, status=400)
