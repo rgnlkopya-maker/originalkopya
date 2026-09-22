@@ -17,10 +17,12 @@
     </div>
 
     <div class="quick-row">
-      <button class="quick" data-text="Bugünkü sipariş durumumuzu kısaca yorumla.">Bugünkü sipariş durumu</button>
-      <button class="quick" data-text="Planlanan teslim tarihi geçmiş siparişlerimiz var mı? Riskleri yorumla.">Geciken siparişler</button>
-      <button class="quick" data-text="Türkiye ekonomisindeki güncel gelişmeleri işimiz açısından yorumlar mısın?">Ekonomi konuşalım</button>
-      <button class="quick" data-text="Bugün biraz sohbet edelim. Bana bir konu aç.">Günlük sohbet</button>
+      <button class="quick" data-text="Bugünü yönetici özeti olarak kısaca anlat: yeni ve açık siparişler, gecikenler, yaklaşan teslimler, planlanan sevkiyatlar ve dikkat etmem gereken önemli noktalar.">Bugünü Özetle</button>
+      <button class="quick" data-text="Moli verilerinde dikkat gerektiren sorunları bul. Özellikle geciken siparişler, maliyeti eksik veya sıfır görünen kayıtlar ve üretim ya da sevkiyatta dikkat gerektiren durumları kısa listele.">Sorunları Bul</button>
+      <button class="quick" data-text="Önümüzdeki 7 günün sevkiyat planını müşteri, ürün ve adet bazında kısa özetle.">Bu Haftanın Sevkiyatı</button>
+      <button class="quick" data-text="Teslim tarihi geçmiş ama henüz sevk edilmemiş siparişleri kısa ve anlaşılır şekilde listele.">Geciken Siparişler</button>
+      <button class="quick" data-text="Aktif siparişlerin üretim durumunu özetle. Hangi aşamalarda kaç sipariş olduğunu ve dikkat çeken beklemeleri kısaca belirt.">Üretim Durumu</button>
+      <button class="quick" data-text="Erişebildiğin finans verilerinden kısa bir yönetici özeti çıkar: sipariş ve föylerde ciro, maliyet, kâr ve maliyeti eksik görünen kayıtları belirt.">Finans Özeti</button>
     </div>
     <div class="scope-note">Asistan yalnızca giriş yapan kullanıcının yetkili olduğu Moli verilerini görür. Finans yetkisi yoksa fiyat/maliyet bilgileri kendisine verilmez.</div>
 
@@ -30,7 +32,7 @@
           <div class="msg-row {% if item.role == 'assistant' %}ai{% else %}user{% endif %}"><div class="bubble">{{ item.content }}</div></div>
         {% endfor %}
       {% else %}
-        <div class="msg-row ai"><div class="bubble">Merhaba. Ben Moli Asistan. İstersen siparişlerimizi konuşabilir, güncel ekonomi hakkında sohbet edebilir ya da günlük bir konu açabiliriz.</div></div>
+        <div class="msg-row ai"><div class="bubble">Merhaba. Moli verilerini senin için kontrol edebilirim. Yukarıdaki hazır kontrollerden birini seçebilir veya ürün kodu, sipariş, müşteri ya da personel hakkında doğrudan sorabilirsin.</div></div>
       {% endif %}
     </div>
 
