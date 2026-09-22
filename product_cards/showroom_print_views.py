@@ -7,7 +7,7 @@ from django.shortcuts import get_object_or_404, render
 from core.customer_models import CustomerDetail
 from .models import ShowroomDraft
 from .price_list_views import _can_manage
-from .showroom_views import _serialize_draft, _draft_summary
+from .showroom_views import _draft_summary, _effective_serialized_items
 
 
 
@@ -51,7 +51,7 @@ def showroom_print_page(request, draft_id):
     if draft.customer_id:
         customer_detail = CustomerDetail.objects.filter(customer_id=draft.customer_id).first()
 
-    data = _serialize_draft(draft)
+    data = {"items": _effective_serialized_items(draft)}
     summary = _draft_summary(draft)
     lang = request.GET.get("lang", "tr").lower()
     if lang not in LANGUAGES:
