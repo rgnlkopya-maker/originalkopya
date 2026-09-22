@@ -127,17 +127,26 @@ def _draft_summary(draft):
     line_total=ExpressionWrapper(F("quantity")*F("unit_price"),output_field=DecimalField(max_digits=20,decimal_places=2))
     items=draft.items.aggregate(product_count=Count("product_card",distinct=True),total_qty=Sum("quantity"),subtotal=Sum(line_total)); subtotal=items["subtotal"] or Decimal("0")
     pricing_ops=draft.pricing_operations or []
+    pricing_steps=[]
     if pricing_ops:
         pricing=_apply_pricing_operations(subtotal,pricing_ops,draft.folio_adjustment_target)
         discount=sum((-step["change"] for step in pricing["steps"] if step["change"]<0),Decimal("0"))
         vat=sum((step["change"] for step in pricing["steps"] if step["type"]=="VAT"),Decimal("0"))
         vat_rate=Decimal("0"); folio_total=pricing["folio_total"]
+        for step in pricing["steps"]:
+            pricing_steps.append({
+                "type": step["type"],
+                "mode": step["mode"],
+                "value": str(Decimal(str(step["value"])).quantize(Decimal("0.01"))),
+                "change": str(Decimal(step["change"]).quantize(Decimal("0.01"))),
+                "after": str(Decimal(step["after"]).quantize(Decimal("0.01"))),
+            })
     else:
         discount=subtotal*draft.discount_rate/Decimal("100") if draft.discount_rate and draft.discount_rate>0 else draft.overall_discount_amount or Decimal("0")
         discount=min(subtotal,max(Decimal("0"),discount)); taxable=max(Decimal("0"),subtotal-discount); vat_rate=max(Decimal("0"),min(Decimal("100"),draft.vat_rate or Decimal("0"))); vat=taxable*vat_rate/Decimal("100"); folio_total=taxable+vat
     previous_balance=max(Decimal("0"),draft.previous_balance or Decimal("0")); total=folio_total+previous_balance
     collected=draft.payments.filter(entry_type="COLLECTION").aggregate(v=Sum("amount"))["v"] or Decimal("0"); promised=draft.payments.filter(entry_type="PROMISE").aggregate(v=Sum("amount"))["v"] or Decimal("0"); remaining=max(Decimal("0"),total-collected)
-    return {"id":draft.id,"customer":draft.customer.ad if draft.customer else "Müşteri seçilmedi","product_count":items["product_count"] or 0,"total_qty":items["total_qty"] or 0,"subtotal":str(subtotal.quantize(Decimal("0.01"))),"discount":str(discount.quantize(Decimal("0.01"))),"vat_rate":str(vat_rate.quantize(Decimal("0.01"))),"vat":str(vat.quantize(Decimal("0.01"))),"folio_total":str(folio_total.quantize(Decimal("0.01"))),"previous_balance":str(previous_balance.quantize(Decimal("0.01"))),"total":str(total.quantize(Decimal("0.01"))),"collected":str(collected.quantize(Decimal("0.01"))),"promised":str(promised.quantize(Decimal("0.01"))),"remaining":str(remaining.quantize(Decimal("0.01"))),"updated_at":timezone.localtime(draft.updated_at).strftime("%d.%m.%Y %H:%M"),"status":draft.status}
+    return {"id":draft.id,"customer":draft.customer.ad if draft.customer else "Müşteri seçilmedi","product_count":items["product_count"] or 0,"total_qty":items["total_qty"] or 0,"subtotal":str(subtotal.quantize(Decimal("0.01"))),"discount":str(discount.quantize(Decimal("0.01"))),"vat_rate":str(vat_rate.quantize(Decimal("0.01"))),"vat":str(vat.quantize(Decimal("0.01"))),"pricing_steps":pricing_steps,"folio_total":str(folio_total.quantize(Decimal("0.01"))),"previous_balance":str(previous_balance.quantize(Decimal("0.01"))),"total":str(total.quantize(Decimal("0.01"))),"collected":str(collected.quantize(Decimal("0.01"))),"promised":str(promised.quantize(Decimal("0.01"))),"remaining":str(remaining.quantize(Decimal("0.01"))),"updated_at":timezone.localtime(draft.updated_at).strftime("%d.%m.%Y %H:%M"),"status":draft.status}
 
 
 def _effective_price_factor(draft):
