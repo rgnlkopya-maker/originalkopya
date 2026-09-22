@@ -14,7 +14,7 @@ from .showroom_views import CUSTOMER_BASE_PRICE_SIZE, _apply_pricing_operations
 
 
 def _transfer_pricing(draft, rows):
-    """Kontrol ekranı ve gerçek sipariş oluşturma aynı fiyat dağıtımını kullanır."""
+    """Kontrol ekranı ve gerçek siparişlerde KDV hariç fiyat + ayrı KDV oranı kullanılır."""
     subtotal = sum(
         (Decimal(row["birim_fiyat"] or 0) * Decimal(row["adet"] or 1) for row in rows),
         Decimal("0"),
@@ -25,8 +25,21 @@ def _transfer_pricing(draft, rows):
         pricing_result = _apply_pricing_operations(
             subtotal, pricing_ops, draft.folio_adjustment_target
         )
-        target_total = pricing_result["folio_total"]
-        vat_rate_for_order = Decimal("0")
+        gross_target_total = pricing_result["folio_total"]
+
+        vat_multiplier = Decimal("1")
+        for step in pricing_result["steps"]:
+            if step["type"] == "VAT":
+                vat_multiplier *= Decimal("1") + (Decimal(step["value"]) / Decimal("100"))
+
+        vat_rate_for_order = (
+            (vat_multiplier - Decimal("1")) * Decimal("100")
+        ).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+        net_target_total = (
+            gross_target_total / vat_multiplier
+            if vat_multiplier > 0
+            else gross_target_total
+        )
     else:
         discount = (
             subtotal * Decimal(draft.discount_rate or 0) / Decimal("100")
@@ -35,11 +48,15 @@ def _transfer_pricing(draft, rows):
         )
         discount = min(subtotal, max(Decimal("0"), discount))
         taxable = max(Decimal("0"), subtotal - discount)
-        vat_rate = max(Decimal("0"), min(Decimal("100"), Decimal(draft.vat_rate or 0)))
-        target_total = taxable + (taxable * vat_rate / Decimal("100"))
-        vat_rate_for_order = Decimal("0") if (discount > 0 or vat_rate > 0) else vat_rate
+        vat_rate_for_order = max(
+            Decimal("0"),
+            min(Decimal("100"), Decimal(draft.vat_rate or 0)),
+        )
+        vat_multiplier = Decimal("1") + (vat_rate_for_order / Decimal("100"))
+        gross_target_total = taxable * vat_multiplier
+        net_target_total = taxable
 
-    factor = (target_total / subtotal) if subtotal > 0 else Decimal("0")
+    net_factor = (net_target_total / subtotal) if subtotal > 0 else Decimal("0")
 
     unit_orders = []
     for row_index, row in enumerate(rows):
@@ -50,10 +67,10 @@ def _transfer_pricing(draft, rows):
     allocated_total = Decimal("0")
     for index, (row_index, row) in enumerate(unit_orders):
         if index == len(unit_orders) - 1:
-            final_price = max(Decimal("0"), target_total - allocated_total)
+            final_price = max(Decimal("0"), net_target_total - allocated_total)
         else:
             final_price = (
-                Decimal(row["birim_fiyat"] or 0) * factor
+                Decimal(row["birim_fiyat"] or 0) * net_factor
             ).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
             allocated_total += final_price
         allocated_prices.append(
@@ -70,8 +87,6 @@ def _transfer_pricing(draft, rows):
         prices = by_row.get(row_index, [])
         row_total = sum(prices, Decimal("0"))
         if prices:
-            # Bir satır birden fazla gerçek siparişe dönüşüyorsa toplam her zaman tamdır.
-            # Birim fiyat gösteriminde tüm birimler aynıysa o fiyatı, değilse ortalamayı göster.
             if all(p == prices[0] for p in prices):
                 display_unit = prices[0]
             else:
@@ -82,11 +97,15 @@ def _transfer_pricing(draft, rows):
             display_unit = Decimal("0")
         row_copy["birim_fiyat"] = display_unit
         row_copy["satir_toplami"] = row_total
+        row_copy["kdv_orani"] = vat_rate_for_order
         row_copy["_allocated_prices"] = prices
         priced_rows.append(row_copy)
 
-    return priced_rows, target_total.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP), vat_rate_for_order
-
+    return (
+        priced_rows,
+        net_target_total.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP),
+        vat_rate_for_order,
+    )
 
 def _draft_rows(draft):
     type_labels = dict(URUN_TIPI_CHOICES)
