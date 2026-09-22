@@ -13,6 +13,81 @@ from .price_list_views import _can_manage
 from .showroom_views import CUSTOMER_BASE_PRICE_SIZE, _apply_pricing_operations
 
 
+def _transfer_pricing(draft, rows):
+    """Kontrol ekranı ve gerçek sipariş oluşturma aynı fiyat dağıtımını kullanır."""
+    subtotal = sum(
+        (Decimal(row["birim_fiyat"] or 0) * Decimal(row["adet"] or 1) for row in rows),
+        Decimal("0"),
+    )
+
+    pricing_ops = draft.pricing_operations or []
+    if pricing_ops or draft.folio_adjustment_target is not None:
+        pricing_result = _apply_pricing_operations(
+            subtotal, pricing_ops, draft.folio_adjustment_target
+        )
+        target_total = pricing_result["folio_total"]
+        vat_rate_for_order = Decimal("0")
+    else:
+        discount = (
+            subtotal * Decimal(draft.discount_rate or 0) / Decimal("100")
+            if draft.discount_rate and draft.discount_rate > 0
+            else Decimal(draft.overall_discount_amount or 0)
+        )
+        discount = min(subtotal, max(Decimal("0"), discount))
+        taxable = max(Decimal("0"), subtotal - discount)
+        vat_rate = max(Decimal("0"), min(Decimal("100"), Decimal(draft.vat_rate or 0)))
+        target_total = taxable + (taxable * vat_rate / Decimal("100"))
+        vat_rate_for_order = Decimal("0") if (discount > 0 or vat_rate > 0) else vat_rate
+
+    factor = (target_total / subtotal) if subtotal > 0 else Decimal("0")
+
+    unit_orders = []
+    for row_index, row in enumerate(rows):
+        for _ in range(row["adet"]):
+            unit_orders.append((row_index, row))
+
+    allocated_prices = []
+    allocated_total = Decimal("0")
+    for index, (row_index, row) in enumerate(unit_orders):
+        if index == len(unit_orders) - 1:
+            final_price = max(Decimal("0"), target_total - allocated_total)
+        else:
+            final_price = (
+                Decimal(row["birim_fiyat"] or 0) * factor
+            ).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+            allocated_total += final_price
+        allocated_prices.append(
+            (row_index, final_price.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP))
+        )
+
+    priced_rows = []
+    by_row = {}
+    for row_index, price in allocated_prices:
+        by_row.setdefault(row_index, []).append(price)
+
+    for row_index, row in enumerate(rows):
+        row_copy = dict(row)
+        prices = by_row.get(row_index, [])
+        row_total = sum(prices, Decimal("0"))
+        if prices:
+            # Bir satır birden fazla gerçek siparişe dönüşüyorsa toplam her zaman tamdır.
+            # Birim fiyat gösteriminde tüm birimler aynıysa o fiyatı, değilse ortalamayı göster.
+            if all(p == prices[0] for p in prices):
+                display_unit = prices[0]
+            else:
+                display_unit = (row_total / Decimal(len(prices))).quantize(
+                    Decimal("0.01"), rounding=ROUND_HALF_UP
+                )
+        else:
+            display_unit = Decimal("0")
+        row_copy["birim_fiyat"] = display_unit
+        row_copy["satir_toplami"] = row_total
+        row_copy["_allocated_prices"] = prices
+        priced_rows.append(row_copy)
+
+    return priced_rows, target_total.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP), vat_rate_for_order
+
+
 def _draft_rows(draft):
     type_labels = dict(URUN_TIPI_CHOICES)
     rows = []
@@ -56,7 +131,8 @@ def showroom_transfer_preview(request, draft_id):
         created_by=request.user,
         status="APPROVED",
     )
-    rows, total_orders, total_value, product_count = _draft_rows(draft)
+    rows, total_orders, _, product_count = _draft_rows(draft)
+    rows, total_value, _ = _transfer_pricing(draft, rows)
     warnings = []
     if not draft.customer_id:
         warnings.append("Bu Föyde müşteri seçilmemiş. Siparişe aktarmadan önce müşteri seçilmesi gerekir.")
@@ -130,27 +206,8 @@ def showroom_transfer_create(request, draft_id):
     cost_cache = {}
     created = 0
 
-    subtotal = sum((Decimal(row["birim_fiyat"] or 0) * Decimal(row["adet"] or 1) for row in rows), Decimal("0"))
-    pricing_ops = draft.pricing_operations or []
-    pricing_result = _apply_pricing_operations(subtotal, pricing_ops, draft.folio_adjustment_target) if pricing_ops or draft.folio_adjustment_target is not None else None
-    target_total = pricing_result["folio_total"] if pricing_result else subtotal
-    factor = (target_total / subtotal) if subtotal > 0 else Decimal("0")
-    unit_orders = []
-    for row in rows:
-        for _ in range(row["adet"]):
-            unit_orders.append(row)
+    rows, _, vat_rate_for_order = _transfer_pricing(draft, rows)
 
-    allocated_prices = []
-    allocated_total = Decimal("0")
-    for index, row in enumerate(unit_orders):
-        if index == len(unit_orders) - 1:
-            final_price = max(Decimal("0"), target_total - allocated_total)
-        else:
-            final_price = (Decimal(row["birim_fiyat"] or 0) * factor).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
-            allocated_total += final_price
-        allocated_prices.append(final_price.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP))
-
-    price_index = 0
     for row in rows:
         code = row["urun_kodu"]
         if code not in cost_cache:
@@ -160,9 +217,7 @@ def showroom_transfer_create(request, draft_id):
                 (pcost.para_birimi or "TRY") if pcost else "TRY",
             )
         cost, cost_currency = cost_cache[code]
-        for _ in range(row["adet"]):
-            final_price = allocated_prices[price_index]
-            price_index += 1
+        for final_price in row.get("_allocated_prices", []):
             Order.objects.create(
                 siparis_tipi=order_type,
                 musteri=customer,
@@ -173,7 +228,7 @@ def showroom_transfer_create(request, draft_id):
                 adet=1,
                 aciklama=row["aciklama"] or None,
                 satis_fiyati=final_price,
-                vat_rate=Decimal("0") if pricing_result else (draft.vat_rate or Decimal("0")),
+                vat_rate=vat_rate_for_order,
                 para_birimi=draft.currency or "TRY",
                 maliyet_uygulanan=cost,
                 maliyet_para_birimi=cost_currency,
