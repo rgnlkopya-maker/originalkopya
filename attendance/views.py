@@ -30,6 +30,7 @@ QR_ENTRY_SESSION_KEY = "moli_attendance_qr_verified_at"
 QR_ENTRY_TTL_MINUTES = 5
 QR_SIGNING_SALT = "moli-attendance-workplace-qr"
 QR_LOGIN_PERMIT_SALT = "moli-attendance-login-permit"
+QR_LOGIN_COOKIE = "moli_attendance_qr_login_permit"
 
 
 def _attendance_qr_token():
@@ -259,11 +260,21 @@ def attendance_qr_gate_verify(request):
     login_url = reverse("login")
     next_url = reverse("attendance_scan")
     qr_permit = make_qr_login_permit()
-    return JsonResponse({
+    response = JsonResponse({
         "ok": True,
         "message": f"İşyeri konumu doğrulandı · {location_name}",
         "redirect": f"{login_url}?{urlencode({'next': next_url, 'qrp': qr_permit})}",
     })
+    response.set_cookie(
+        QR_LOGIN_COOKIE,
+        qr_permit,
+        max_age=QR_ENTRY_TTL_MINUTES * 60,
+        secure=True,
+        httponly=True,
+        samesite="Lax",
+        path="/",
+    )
+    return response
 
 
 @login_required
