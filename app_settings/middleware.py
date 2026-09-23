@@ -80,9 +80,16 @@ class MoliAccessMiddleware:
             if not active_record and request.path not in self.STAFF_PRE_ATTENDANCE_PATHS:
                 return redirect(reverse("attendance_scan"))
 
-            # 19:00 sonrası normal personel her yeni sayfa/QR geçişinde
-            # işyerindeki konumunu yeniden doğrulamalı.
-            if active_record and timezone.localtime().time() >= time(19, 0):
+            # Hafta içi 19:00-08:30 arasında, hafta sonu ise tüm gün
+            # normal personel her yeni sayfa/QR geçişinde konumunu yeniden doğrulamalı.
+            now_local = timezone.localtime()
+            current_time = now_local.time().replace(tzinfo=None)
+            after_hours = (
+                now_local.weekday() >= 5
+                or current_time >= time(19, 0)
+                or current_time < time(8, 30)
+            )
+            if active_record and after_hours:
                 if request.path not in self.STAFF_PRE_ATTENDANCE_PATHS:
                     one_request_ok = request.session.pop("moli_after_hours_one_request_ok", False)
                     if not one_request_ok:
