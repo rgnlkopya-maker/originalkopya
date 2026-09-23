@@ -2,177 +2,108 @@
 {% block extra_css %}
 <style>
 .chat-shell{max-width:1500px;margin:16px auto 28px;padding:0 12px}.chat-card{height:calc(100vh - 105px);min-height:620px;background:#fff;border:1px solid #e5e8ef;border-radius:18px;overflow:hidden;display:grid;grid-template-columns:340px 1fr;box-shadow:0 10px 30px rgba(15,23,42,.06)}
-.chat-side{border-right:1px solid #e8ebf0;display:flex;flex-direction:column;min-width:0;background:#fff}.chat-side-head{padding:14px;border-bottom:1px solid #eef0f4;display:flex;align-items:center;justify-content:space-between;gap:10px}.chat-side-head h4{margin:0;font-weight:800}.new-actions{display:flex;gap:6px}.icon-btn{width:36px;height:36px;border-radius:10px;border:1px solid #e0e4eb;background:#f8f9fc;color:#4b5563;display:inline-flex;align-items:center;justify-content:center}
+.chat-side{border-right:1px solid #e8ebf0;display:flex;flex-direction:column;min-width:0;background:#fff}.chat-side-head{padding:14px;border-bottom:1px solid #eef0f4;display:flex;align-items:center;justify-content:space-between;gap:10px}.chat-side-head h4{margin:0;font-weight:800}.new-actions{display:flex;gap:6px}.icon-btn{width:36px;height:36px;border-radius:10px;border:1px solid #e0e4eb;background:#f8f9fc;color:#4b5563;display:inline-flex;align-items:center;justify-content:center;text-decoration:none}
 .thread-list{overflow:auto;flex:1}.thread-row{display:flex;gap:11px;padding:12px 13px;text-decoration:none;color:#1f2937;border-bottom:1px solid #f1f3f6;align-items:center}.thread-row:hover,.thread-row.active{background:#f4f6ff}.avatar{width:44px;height:44px;border-radius:50%;background:#e9edff;color:#4058dd;display:flex;align-items:center;justify-content:center;font-weight:800;flex:0 0 44px}.thread-main{min-width:0;flex:1}.thread-top{display:flex;align-items:center;justify-content:space-between;gap:8px}.thread-name{font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.thread-preview{font-size:12px;color:#7a8496;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:3px}.unread{min-width:20px;height:20px;border-radius:999px;background:#4a63ff;color:#fff;font-size:10px;font-weight:800;display:flex;align-items:center;justify-content:center;padding:0 6px}
-.chat-main{display:flex;flex-direction:column;min-width:0;background:#f6f7fa}.chat-head{height:64px;background:#fff;border-bottom:1px solid #e8ebf0;display:flex;align-items:center;padding:0 16px;gap:11px}.chat-head-info{min-width:0;flex:1}.chat-head-title{font-weight:800;font-size:15px}.chat-head-sub{font-size:11px;color:#7d8798}.messages{flex:1;overflow:auto;padding:18px 22px;display:flex;flex-direction:column;gap:7px}.bubble-wrap{display:flex}.bubble-wrap.mine{justify-content:flex-end}.bubble{max-width:min(70%,620px);background:#fff;border:1px solid #e5e8ee;border-radius:14px 14px 14px 4px;padding:9px 11px;box-shadow:0 2px 5px rgba(15,23,42,.03)}.mine .bubble{background:#e8edff;border-color:#d9e0ff;border-radius:14px 14px 4px 14px}.bubble.important{border-left:4px solid #d59b00}.bubble.urgent{border-left:4px solid #d33}.sender{font-size:10.5px;font-weight:800;color:#65728b;margin-bottom:3px}.body{font-size:13.5px;white-space:pre-wrap;word-break:break-word}.meta{font-size:9.5px;color:#8d96a6;text-align:right;margin-top:5px}.linked{display:block;margin-top:7px;background:rgba(255,255,255,.7);border:1px solid #dfe4ee;border-radius:9px;padding:7px 9px;text-decoration:none;font-size:11px;font-weight:800;color:#4058dd}.composer{background:#fff;border-top:1px solid #e8ebf0;padding:10px 12px;display:flex;gap:8px;align-items:flex-end}.composer textarea{flex:1;resize:none;max-height:110px;min-height:42px;border:1px solid #dfe4eb;border-radius:14px;padding:10px 12px;font-size:13px}.composer select{height:42px;border:1px solid #dfe4eb;border-radius:12px;background:#fff;padding:0 8px;font-size:11px}.send-btn{width:42px;height:42px;border:0;border-radius:50%;background:#4058dd;color:#fff;display:flex;align-items:center;justify-content:center}.empty-chat{flex:1;display:grid;place-items:center;text-align:center;color:#8a93a5;padding:30px}.group-members{max-height:360px;overflow:auto}.member-row{display:flex;align-items:center;justify-content:space-between;gap:10px;border-bottom:1px solid #eef0f4;padding:9px 0}.member-actions{display:flex;gap:5px}.member-actions form{margin:0}
+.chat-main{display:flex;flex-direction:column;min-width:0;background:#f6f7fa}.chat-head{height:64px;background:#fff;border-bottom:1px solid #e8ebf0;display:flex;align-items:center;padding:0 16px;gap:11px}.chat-head-info{min-width:0;flex:1}.chat-head-title{font-weight:800;font-size:15px}.chat-head-sub{font-size:11px;color:#7d8798}.pinned-banner{display:flex;align-items:center;gap:8px;background:#fff8dc;border-bottom:1px solid #f0dfa0;padding:8px 14px;font-size:12px}.pinned-banner i{color:#b58a00}
+.messages{flex:1;overflow:auto;padding:18px 22px;display:flex;flex-direction:column;gap:8px}.bubble-wrap{display:flex}.bubble-wrap.mine{justify-content:flex-end}.bubble{position:relative;max-width:min(72%,640px);background:#fff;border:1px solid #e5e8ee;border-radius:14px 14px 14px 4px;padding:9px 34px 9px 11px;box-shadow:0 2px 5px rgba(15,23,42,.03)}.mine .bubble{background:#e8edff;border-color:#d9e0ff;border-radius:14px 14px 4px 14px}.bubble.important{border-left:4px solid #d59b00}.bubble.urgent{border-left:4px solid #d33}.sender{font-size:10.5px;font-weight:800;color:#65728b;margin-bottom:3px}.body{font-size:13.5px;white-space:pre-wrap;word-break:break-word}.meta{font-size:9.5px;color:#8d96a6;text-align:right;margin-top:5px}.msg-menu-btn{position:absolute;right:4px;top:4px;width:28px;height:28px;border:0;background:transparent;color:#7b8494;border-radius:50%}.msg-menu-btn:hover{background:rgba(0,0,0,.06)}.msg-menu{position:absolute;right:5px;top:32px;z-index:30;display:none;min-width:170px;background:#fff;border:1px solid #e4e7ee;border-radius:11px;padding:5px;box-shadow:0 10px 25px rgba(15,23,42,.16)}.msg-menu.open{display:block}.msg-menu button{display:flex;align-items:center;gap:8px;width:100%;border:0;background:#fff;border-radius:8px;padding:8px 9px;font-size:12px;text-align:left}.msg-menu button:hover{background:#f3f5fb}.reply-card{border-left:3px solid #6c7cff;background:rgba(255,255,255,.65);padding:6px 8px;border-radius:7px;margin-bottom:6px;font-size:11px}.forwarded{font-size:10px;color:#69758c;font-style:italic;margin-bottom:4px}.linked{display:block;margin-top:7px;background:rgba(255,255,255,.7);border:1px solid #dfe4ee;border-radius:9px;padding:7px 9px;text-decoration:none;font-size:11px;font-weight:800;color:#4058dd}.media-img,.media-video{display:block;max-width:100%;max-height:360px;border-radius:10px;margin-top:5px}.media-audio{width:260px;max-width:100%;margin-top:5px}.media-doc{display:flex;align-items:center;gap:8px;margin-top:6px;padding:9px;background:#fff;border-radius:9px;text-decoration:none;color:#334}.reactions{display:flex;gap:4px;flex-wrap:wrap;margin-top:5px}.reaction-chip{border:1px solid #dce1ea;background:#fff;border-radius:999px;padding:2px 7px;font-size:11px}.reaction-chip.mine{border-color:#8494ff;background:#eef1ff}.poll{margin-top:6px}.poll-question{font-weight:800;margin-bottom:7px}.poll-option{display:flex;align-items:center;justify-content:space-between;width:100%;border:1px solid #dde2eb;background:#fff;border-radius:9px;padding:7px 9px;margin-top:5px;font-size:12px}.poll-option.mine{border-color:#6177ff;background:#eef1ff}
+.composer-wrap{background:#fff;border-top:1px solid #e8ebf0}.reply-preview{display:none;align-items:center;gap:8px;padding:7px 12px;background:#f7f8fb;border-bottom:1px solid #e8ebf0;font-size:12px}.reply-preview.show{display:flex}.reply-preview .text{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.composer{padding:9px 10px;display:flex;gap:7px;align-items:flex-end}.composer textarea{flex:1;resize:none;max-height:110px;min-height:42px;border:1px solid #dfe4eb;border-radius:18px;padding:10px 12px;font-size:13px}.composer select{height:42px;border:1px solid #dfe4eb;border-radius:12px;background:#fff;padding:0 7px;font-size:11px}.send-btn,.plus-btn,.voice-btn{width:42px;height:42px;border:0;border-radius:50%;display:flex;align-items:center;justify-content:center;flex:0 0 42px}.send-btn{background:#4058dd;color:#fff}.plus-btn,.voice-btn{background:#eef1f7;color:#4f596d}.voice-btn.recording{background:#ffe6e6;color:#d22;animation:pulse 1s infinite}@keyframes pulse{50%{transform:scale(1.08)}}
+.attach-menu{position:absolute;bottom:58px;left:8px;display:none;background:#fff;border:1px solid #e2e6ed;border-radius:14px;padding:6px;box-shadow:0 12px 30px rgba(15,23,42,.15);z-index:50;min-width:190px}.attach-menu.open{display:block}.attach-menu button,.attach-menu label{display:flex;align-items:center;gap:9px;width:100%;padding:9px 10px;border:0;background:#fff;border-radius:9px;font-size:12px;cursor:pointer}.attach-menu button:hover,.attach-menu label:hover{background:#f4f6fb}.composer-pos{position:relative}.search-bar{display:none;padding:8px 12px;background:#fff;border-bottom:1px solid #e8ebf0;gap:7px}.search-bar.show{display:flex}.search-bar input{flex:1;border:1px solid #dfe4eb;border-radius:10px;padding:7px 10px}.search-results{position:absolute;right:10px;top:62px;width:min(420px,90vw);max-height:330px;overflow:auto;background:#fff;border:1px solid #e0e4eb;border-radius:12px;box-shadow:0 12px 28px rgba(15,23,42,.16);z-index:60;display:none}.search-results.show{display:block}.search-item{padding:9px 11px;border-bottom:1px solid #eef0f4;font-size:12px}.search-item:last-child{border-bottom:0}.empty-chat{flex:1;display:grid;place-items:center;text-align:center;color:#8a93a5;padding:30px}.group-members{max-height:360px;overflow:auto}.member-row{display:flex;align-items:center;justify-content:space-between;gap:10px;border-bottom:1px solid #eef0f4;padding:9px 0}.member-actions{display:flex;gap:5px}.member-actions form{margin:0}
 @media(max-width:800px){
-  body{overflow:hidden}
-  .page-nav{display:none!important}
-  #mainContent{height:calc(100dvh - 56px);overflow:hidden}
-  .chat-shell{height:100%;padding:0;margin:0;max-width:none}
-  .chat-card{grid-template-columns:1fr;height:100%;min-height:0;border:0;border-radius:0;box-shadow:none}
-  .chat-shell.list-mode .chat-side{display:flex;height:100%}
-  .chat-shell.list-mode .chat-main{display:none}
-  .chat-shell.thread-mode .chat-side{display:none}
-  .chat-shell.thread-mode .chat-main{display:flex;height:100%;min-height:0}
-  .chat-side-head{padding:18px 16px 14px;min-height:72px}
-  .chat-side-head h4{font-size:28px;line-height:1.1}
-  .new-actions{gap:8px}
-  .icon-btn{width:42px;height:42px;border-radius:13px;font-size:18px}
-  .thread-list{min-height:0}
-  .thread-row{gap:14px;padding:14px 16px;min-height:78px}
-  .avatar{width:54px;height:54px;flex-basis:54px;font-size:17px}
-  .thread-name{font-size:17px;line-height:1.2}
-  .thread-preview{font-size:15px;line-height:1.3;margin-top:5px}
-  .unread{min-width:23px;height:23px;font-size:11px}
-  .chat-head{height:68px;min-height:68px;padding:0 10px;gap:10px}
-  .chat-head .avatar{width:44px;height:44px;flex-basis:44px}
-  .chat-head-title{font-size:17px}
-  .chat-head-sub{font-size:12px}
-  .messages{min-height:0;padding:12px 10px 10px;gap:8px}
-  .bubble{max-width:88%;padding:10px 12px}
-  .body{font-size:16px;line-height:1.35}
-  .sender{font-size:12px}
-  .meta{font-size:10.5px}
-  .linked{font-size:13px;padding:9px 10px}
-  .composer{flex:0 0 auto;padding:8px 9px calc(8px + env(safe-area-inset-bottom));gap:7px;align-items:center}
-  .composer textarea{min-height:46px;max-height:96px;border-radius:18px;padding:12px 13px;font-size:16px;line-height:1.25}
-  .composer select{height:46px;max-width:82px;border-radius:13px;font-size:12px;padding:0 5px}
-  .send-btn{width:46px;height:46px;flex:0 0 46px;font-size:17px}
-  .mobile-back{display:inline-flex!important}
-}
+  body{overflow:hidden}.page-nav{display:none!important}#mainContent{height:calc(100dvh - 56px);overflow:hidden}.chat-shell{height:100%;padding:0;margin:0;max-width:none}.chat-card{grid-template-columns:1fr;height:100%;min-height:0;border:0;border-radius:0;box-shadow:none}.chat-shell.list-mode .chat-side{display:flex;height:100%}.chat-shell.list-mode .chat-main{display:none}.chat-shell.thread-mode .chat-side{display:none}.chat-shell.thread-mode .chat-main{display:flex;height:100%;min-height:0}.chat-side-head{padding:18px 16px 14px;min-height:72px}.chat-side-head h4{font-size:28px}.icon-btn{width:42px;height:42px;border-radius:13px;font-size:18px}.thread-list{min-height:0}.thread-row{gap:14px;padding:14px 16px;min-height:78px}.avatar{width:54px;height:54px;flex-basis:54px;font-size:17px}.thread-name{font-size:17px}.thread-preview{font-size:15px;margin-top:5px}.chat-head{height:68px;min-height:68px;padding:0 9px}.chat-head .avatar{width:44px;height:44px;flex-basis:44px}.chat-head-title{font-size:17px}.chat-head-sub{font-size:12px}.messages{min-height:0;padding:12px 9px 9px}.bubble{max-width:89%;padding:10px 34px 10px 12px}.body{font-size:16px;line-height:1.35}.sender{font-size:12px}.meta{font-size:10.5px}.linked{font-size:13px}.composer{padding:7px 8px calc(7px + env(safe-area-inset-bottom));align-items:center}.composer textarea{min-height:46px;max-height:96px;font-size:16px}.composer select{height:46px;max-width:78px;font-size:11px}.send-btn,.plus-btn,.voice-btn{width:46px;height:46px;flex-basis:46px}.mobile-back{display:inline-flex!important}.media-audio{width:230px}.msg-menu{position:fixed;left:12px;right:12px;top:auto;bottom:82px;min-width:0}.search-results{top:68px;left:8px;right:8px;width:auto}}
 .mobile-back{display:none}
 </style>
 {% endblock %}
 {% block content %}
 <div class="chat-shell {% if active_thread %}thread-mode{% else %}list-mode{% endif %}">
-  <div class="chat-card">
-    <aside class="chat-side">
-      <div class="chat-side-head">
-        <h4>Mesajlar</h4>
-        <div class="new-actions">
-          <button class="icon-btn" data-bs-toggle="modal" data-bs-target="#newChatModal" title="Yeni sohbet"><i class="bi bi-chat-dots"></i></button>
-          <button class="icon-btn" data-bs-toggle="modal" data-bs-target="#newGroupModal" title="Yeni grup"><i class="bi bi-people"></i></button>
-        </div>
-      </div>
-      <div class="thread-list">
-        {% for row in thread_rows %}
-        <a class="thread-row {% if active_thread and row.thread.id == active_thread.id %}active{% endif %}" href="{% url 'messages_thread' row.thread.id %}">
-          <div class="avatar">{% if row.thread.thread_type == 'group' %}<i class="bi bi-people-fill"></i>{% else %}{{ row.title|first|upper }}{% endif %}</div>
-          <div class="thread-main">
-            <div class="thread-top"><span class="thread-name">{{ row.title }}</span>{% if row.unread %}<span class="unread">{{ row.unread }}</span>{% endif %}</div>
-            <div class="thread-preview">{% if row.last_message %}{% if row.last_message.is_deleted %}Mesaj silindi{% else %}{{ row.last_message.body|truncatechars:45 }}{% endif %}{% else %}Henüz mesaj yok{% endif %}</div>
-          </div>
-        </a>
-        {% empty %}
-        <div class="p-4 text-center text-muted small">Henüz sohbet yok. Sağ üstten yeni sohbet başlatabilirsiniz.</div>
-        {% endfor %}
-      </div>
-    </aside>
-
-    <main class="chat-main">
-      {% if active_thread %}
-      <div class="chat-head">
-        <a class="icon-btn mobile-back" href="{% url 'messages_home' %}?list=1" onclick="window.location.href=this.href;return false;"><i class="bi bi-arrow-left"></i></a>
-        <div class="avatar">{% if active_thread.thread_type == 'group' %}<i class="bi bi-people-fill"></i>{% else %}{{ active_title|first|upper }}{% endif %}</div>
-        <div class="chat-head-info">
-          <div class="chat-head-title">{{ active_title }}</div>
-          <div class="chat-head-sub">{% if active_thread.thread_type == 'group' %}{{ active_members|length }} üye{% else %}Birebir sohbet{% endif %}</div>
-        </div>
-        {% if active_thread.thread_type == 'group' and active_membership.is_admin %}
-        <button class="icon-btn" data-bs-toggle="modal" data-bs-target="#groupSettingsModal" title="Grup ayarları"><i class="bi bi-gear"></i></button>
-        {% endif %}
-      </div>
-
-      <div class="messages" id="messageList" data-thread="{{ active_thread.id }}">
-        {% for message in active_messages %}
-        <div class="bubble-wrap {% if message.sender_id == user.id %}mine{% endif %}">
-          <div class="bubble {% if message.importance == 'important' %}important{% elif message.importance == 'urgent' %}urgent{% endif %}">
-            {% if active_thread.thread_type == 'group' and message.sender_id != user.id %}<div class="sender">{{ message.sender.get_full_name|default:message.sender.username }}</div>{% endif %}
-            <div class="body">{% if message.is_deleted %}<em>Mesaj silindi</em>{% else %}{{ message.body }}{% endif %}</div>
-            {% if message.linked_path and not message.is_deleted %}<a class="linked" href="{{ message.linked_path }}"><i class="bi bi-box-arrow-up-right"></i> {{ message.linked_label|default:"Bağlı kaydı aç" }}</a>{% endif %}
-            <div class="meta">{{ message.created_at|date:"H:i" }}{% if message.sender_id == user.id %} · ✓✓{% endif %}</div>
-          </div>
-        </div>
-        {% endfor %}
-      </div>
-
-      {% if not active_thread.only_admins_can_message or active_membership.is_admin %}
-      <form class="composer" id="messageForm" action="{% url 'messages_send' active_thread.id %}" method="post">{% csrf_token %}
-        <select name="importance" title="Önem seviyesi"><option value="normal">Normal</option><option value="important">Önemli</option><option value="urgent">Acil</option></select>
-        <textarea name="body" id="messageBody" rows="1" placeholder="Mesaj yazın…" required></textarea>
-        <input type="hidden" name="linked_path" id="linkedPath" value="">
-        <input type="hidden" name="linked_label" id="linkedLabel" value="">
-        <button class="send-btn" type="submit"><i class="bi bi-send-fill"></i></button>
-      </form>
-      {% else %}
-      <div class="composer"><div class="text-muted small w-100 text-center py-2">Bu grupta yalnızca yöneticiler mesaj gönderebilir.</div></div>
-      {% endif %}
-      {% else %}
-      <div class="empty-chat"><div><i class="bi bi-chat-square-text fs-1"></i><h5 class="mt-3">Moli Mesajlar</h5><div>Bir sohbet seçin veya yeni sohbet başlatın.</div></div></div>
-      {% endif %}
-    </main>
+<div class="chat-card">
+<aside class="chat-side">
+  <div class="chat-side-head"><h4>Mesajlar</h4><div class="new-actions"><button class="icon-btn" data-bs-toggle="modal" data-bs-target="#newChatModal"><i class="bi bi-chat-dots"></i></button><button class="icon-btn" data-bs-toggle="modal" data-bs-target="#newGroupModal"><i class="bi bi-people"></i></button></div></div>
+  <div class="thread-list">{% for row in thread_rows %}<a class="thread-row" href="{% url 'messages_thread' row.thread.id %}"><div class="avatar">{% if row.thread.thread_type == 'group' %}<i class="bi bi-people-fill"></i>{% else %}{{ row.title|first|upper }}{% endif %}</div><div class="thread-main"><div class="thread-top"><span class="thread-name">{{ row.title }}</span>{% if row.unread %}<span class="unread">{{ row.unread }}</span>{% endif %}</div><div class="thread-preview">{% if row.last_message %}{{ row.last_message.body|default:row.last_message.media_name|default:"Mesaj"|truncatechars:45 }}{% else %}Henüz mesaj yok{% endif %}</div></div></a>{% empty %}<div class="p-4 text-center text-muted small">Henüz sohbet yok.</div>{% endfor %}</div>
+</aside>
+<main class="chat-main">
+{% if active_thread %}
+  <div class="chat-head">
+    <a class="icon-btn mobile-back" href="{% url 'messages_home' %}?list=1" onclick="window.location.href=this.href;return false;"><i class="bi bi-arrow-left"></i></a>
+    <div class="avatar">{% if active_thread.thread_type == 'group' %}<i class="bi bi-people-fill"></i>{% else %}{{ active_title|first|upper }}{% endif %}</div>
+    <div class="chat-head-info"><div class="chat-head-title">{{ active_title }}</div><div class="chat-head-sub">{% if active_thread.thread_type == 'group' %}{{ active_members|length }} üye{% else %}Birebir sohbet{% endif %}</div></div>
+    <button class="icon-btn" id="searchToggle" title="Ara"><i class="bi bi-search"></i></button>
+    {% if active_thread.thread_type == 'group' and active_membership.is_admin %}<button class="icon-btn" data-bs-toggle="modal" data-bs-target="#groupSettingsModal"><i class="bi bi-gear"></i></button>{% endif %}
   </div>
-</div>
+  <div class="search-bar" id="searchBar"><input id="searchInputChat" placeholder="Bu sohbette ara…"><button class="icon-btn" id="searchClose"><i class="bi bi-x"></i></button></div><div class="search-results" id="searchResults"></div>
+  {% if pinned_message %}<div class="pinned-banner" id="pinnedBanner"><i class="bi bi-pin-angle-fill"></i><span>Sabitlemiş mesaj: {{ pinned_message.body|default:pinned_message.media_name|default:"Mesaj"|truncatechars:80 }}</span></div>{% endif %}
+  <div class="messages" id="messageList" data-thread="{{ active_thread.id }}"></div>
+  {% if not active_thread.only_admins_can_message or active_membership.is_admin %}
+  <div class="composer-wrap composer-pos">
+    <div class="reply-preview" id="replyPreview"><i class="bi bi-reply"></i><div class="text" id="replyText"></div><button type="button" class="icon-btn" id="replyCancel"><i class="bi bi-x"></i></button></div>
+    <div class="attach-menu" id="attachMenu">
+      <label><i class="bi bi-image"></i> Fotoğraf / Video<input id="mediaInput" type="file" accept="image/*,video/*" hidden></label>
+      <label><i class="bi bi-file-earmark"></i> Belge<input id="docInput" type="file" accept=".pdf,.doc,.docx,.xls,.xlsx,.txt" hidden></label>
+      <button type="button" id="locationBtn"><i class="bi bi-geo-alt"></i> Konum</button>
+      <button type="button" data-bs-toggle="modal" data-bs-target="#contactModal"><i class="bi bi-person-vcard"></i> Kişi</button>
+      <button type="button" data-bs-toggle="modal" data-bs-target="#pollModal"><i class="bi bi-bar-chart"></i> Anket</button>
+    </div>
+    <form class="composer" id="messageForm" action="{% url 'messages_send' active_thread.id %}" method="post" enctype="multipart/form-data">{% csrf_token %}
+      <button type="button" class="plus-btn" id="plusBtn"><i class="bi bi-plus-lg"></i></button>
+      <select name="importance"><option value="normal">Normal</option><option value="important">Önemli</option><option value="urgent">Acil</option></select>
+      <textarea name="body" id="messageBody" rows="1" placeholder="Mesaj yazın…"></textarea>
+      <input type="hidden" name="reply_to" id="replyTo"><input type="hidden" name="linked_path" id="linkedPath"><input type="hidden" name="linked_label" id="linkedLabel"><input type="file" name="media" id="hiddenMedia" hidden>
+      <button type="button" class="voice-btn" id="voiceBtn" title="Ses kaydı"><i class="bi bi-mic-fill"></i></button>
+      <button class="send-btn" type="submit"><i class="bi bi-send-fill"></i></button>
+    </form>
+  </div>
+  {% else %}<div class="composer-wrap"><div class="p-3 text-center text-muted">Bu grupta yalnızca yöneticiler mesaj gönderebilir.</div></div>{% endif %}
+{% else %}<div class="empty-chat"><div><i class="bi bi-chat-square-text fs-1"></i><h5 class="mt-3">Moli Mesajlar</h5><div>Bir sohbet seçin veya yeni sohbet başlatın.</div></div></div>{% endif %}
+</main>
+</div></div>
 
-<div class="modal fade" id="newChatModal" tabindex="-1"><div class="modal-dialog modal-dialog-centered"><div class="modal-content"><div class="modal-header"><h5 class="modal-title">Yeni Sohbet</h5><button class="btn-close" data-bs-dismiss="modal"></button></div><form method="post" action="{% url 'messages_start_direct' %}">{% csrf_token %}<div class="modal-body"><label class="form-label">Kişi</label><select name="user_id" class="form-select" required>{% for u in users %}<option value="{{ u.id }}">{{ u.get_full_name|default:u.username }}</option>{% endfor %}</select></div><div class="modal-footer"><button class="btn btn-dark">Sohbeti Aç</button></div></form></div></div></div>
-
-<div class="modal fade" id="newGroupModal" tabindex="-1"><div class="modal-dialog modal-dialog-centered"><div class="modal-content"><div class="modal-header"><h5 class="modal-title">Yeni Grup</h5><button class="btn-close" data-bs-dismiss="modal"></button></div><form method="post" action="{% url 'messages_create_group' %}">{% csrf_token %}<div class="modal-body"><label class="form-label">Grup adı</label><input name="name" class="form-control mb-3" required><label class="form-label">Üyeler</label><select name="member_ids" class="form-select" multiple size="8">{% for u in users %}<option value="{{ u.id }}">{{ u.get_full_name|default:u.username }}</option>{% endfor %}</select><div class="form-text">Birden fazla kişi seçebilirsiniz. Grubu oluşturan kişi otomatik yönetici olur.</div></div><div class="modal-footer"><button class="btn btn-dark">Grubu Oluştur</button></div></form></div></div></div>
-
+<div class="modal fade" id="newChatModal" tabindex="-1"><div class="modal-dialog modal-dialog-centered"><div class="modal-content"><div class="modal-header"><h5 class="modal-title">Yeni Sohbet</h5><button class="btn-close" data-bs-dismiss="modal"></button></div><form method="post" action="{% url 'messages_start_direct' %}">{% csrf_token %}<div class="modal-body"><select name="user_id" class="form-select" required>{% for u in users %}<option value="{{ u.id }}">{{ u.get_full_name|default:u.username }}</option>{% endfor %}</select></div><div class="modal-footer"><button class="btn btn-dark">Sohbeti Aç</button></div></form></div></div></div>
+<div class="modal fade" id="newGroupModal" tabindex="-1"><div class="modal-dialog modal-dialog-centered"><div class="modal-content"><div class="modal-header"><h5 class="modal-title">Yeni Grup</h5><button class="btn-close" data-bs-dismiss="modal"></button></div><form method="post" action="{% url 'messages_create_group' %}">{% csrf_token %}<div class="modal-body"><input name="name" class="form-control mb-3" placeholder="Grup adı" required><select name="member_ids" class="form-select" multiple size="8">{% for u in users %}<option value="{{ u.id }}">{{ u.get_full_name|default:u.username }}</option>{% endfor %}</select></div><div class="modal-footer"><button class="btn btn-dark">Grubu Oluştur</button></div></form></div></div></div>
+{% if active_thread %}
+<div class="modal fade" id="contactModal" tabindex="-1"><div class="modal-dialog modal-dialog-centered"><div class="modal-content"><div class="modal-header"><h5 class="modal-title">Kişi Paylaş</h5><button class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><select id="contactUser" class="form-select">{% for u in users %}<option value="{{ u.id }}">{{ u.get_full_name|default:u.username }}</option>{% endfor %}</select></div><div class="modal-footer"><button class="btn btn-dark" id="contactSend">Gönder</button></div></div></div></div>
+<div class="modal fade" id="pollModal" tabindex="-1"><div class="modal-dialog modal-dialog-centered"><div class="modal-content"><div class="modal-header"><h5 class="modal-title">Anket Oluştur</h5><button class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><input id="pollQuestion" class="form-control mb-2" placeholder="Soru"><input class="form-control poll-opt mb-2" placeholder="Seçenek 1"><input class="form-control poll-opt mb-2" placeholder="Seçenek 2"><input class="form-control poll-opt mb-2" placeholder="Seçenek 3"><div class="form-check"><input class="form-check-input" type="checkbox" id="pollMulti"><label class="form-check-label" for="pollMulti">Birden fazla seçenek seçilebilsin</label></div></div><div class="modal-footer"><button class="btn btn-dark" id="pollSend">Anketi Gönder</button></div></div></div></div>
+<div class="modal fade" id="forwardModal" tabindex="-1"><div class="modal-dialog modal-dialog-centered"><div class="modal-content"><div class="modal-header"><h5 class="modal-title">Mesajı İlet</h5><button class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><select id="forwardThread" class="form-select">{% for row in thread_rows %}<option value="{{ row.thread.id }}">{{ row.title }}</option>{% endfor %}</select></div><div class="modal-footer"><button class="btn btn-dark" id="forwardSend">İlet</button></div></div></div></div>
+{% endif %}
 {% if active_thread and active_thread.thread_type == 'group' and active_membership.is_admin %}
 <div class="modal fade" id="groupSettingsModal" tabindex="-1"><div class="modal-dialog modal-dialog-centered modal-dialog-scrollable"><div class="modal-content"><div class="modal-header"><h5 class="modal-title">Grup Ayarları</h5><button class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body">
-<form method="post" action="{% url 'messages_group_manage' active_thread.id %}" class="d-flex gap-2 mb-3">{% csrf_token %}<input type="hidden" name="action" value="rename"><input name="name" class="form-control" value="{{ active_thread.name }}"><button class="btn btn-outline-dark">Adı Kaydet</button></form>
-<form method="post" action="{% url 'messages_group_manage' active_thread.id %}" class="mb-3">{% csrf_token %}<input type="hidden" name="action" value="toggle_only_admins"><button class="btn btn-sm {% if active_thread.only_admins_can_message %}btn-dark{% else %}btn-outline-dark{% endif %}">{% if active_thread.only_admins_can_message %}Yalnız yöneticiler yazabilir{% else %}Herkes yazabilir{% endif %}</button></form>
-<div class="group-members">{% for member in active_members %}<div class="member-row"><div><b>{{ member.user.get_full_name|default:member.user.username }}</b>{% if member.is_admin %}<span class="badge text-bg-light ms-1">Yönetici</span>{% endif %}</div>{% if member.user_id != user.id %}<div class="member-actions"><form method="post" action="{% url 'messages_group_manage' active_thread.id %}">{% csrf_token %}<input type="hidden" name="action" value="toggle_admin"><input type="hidden" name="user_id" value="{{ member.user_id }}"><button class="btn btn-sm btn-outline-secondary">{% if member.is_admin %}Yöneticiliği Al{% else %}Yönetici Yap{% endif %}</button></form><form method="post" action="{% url 'messages_group_manage' active_thread.id %}">{% csrf_token %}<input type="hidden" name="action" value="remove_member"><input type="hidden" name="user_id" value="{{ member.user_id }}"><button class="btn btn-sm btn-outline-danger">Çıkar</button></form></div>{% endif %}</div>{% endfor %}</div>
+<form method="post" action="{% url 'messages_group_manage' active_thread.id %}" class="d-flex gap-2 mb-3">{% csrf_token %}<input type="hidden" name="action" value="rename"><input name="name" class="form-control" value="{{ active_thread.name }}"><button class="btn btn-outline-dark">Kaydet</button></form>
+<form method="post" action="{% url 'messages_group_manage' active_thread.id %}" class="mb-3">{% csrf_token %}<input type="hidden" name="action" value="toggle_only_admins"><button class="btn btn-sm btn-outline-dark">{% if active_thread.only_admins_can_message %}Yalnız yöneticiler yazıyor{% else %}Herkes yazabiliyor{% endif %}</button></form>
+<div class="group-members">{% for member in active_members %}<div class="member-row"><div><b>{{ member.user.get_full_name|default:member.user.username }}</b>{% if member.is_admin %}<span class="badge text-bg-light ms-1">Yönetici</span>{% endif %}</div>{% if member.user_id != user.id %}<div class="member-actions"><form method="post" action="{% url 'messages_group_manage' active_thread.id %}">{% csrf_token %}<input type="hidden" name="action" value="toggle_admin"><input type="hidden" name="user_id" value="{{ member.user_id }}"><button class="btn btn-sm btn-outline-secondary">{% if member.is_admin %}Yetkiyi Al{% else %}Yönetici Yap{% endif %}</button></form><form method="post" action="{% url 'messages_group_manage' active_thread.id %}">{% csrf_token %}<input type="hidden" name="action" value="remove_member"><input type="hidden" name="user_id" value="{{ member.user_id }}"><button class="btn btn-sm btn-outline-danger">Çıkar</button></form></div>{% endif %}</div>{% endfor %}</div>
 <hr><form method="post" action="{% url 'messages_group_manage' active_thread.id %}" class="d-flex gap-2">{% csrf_token %}<input type="hidden" name="action" value="add_member"><select name="user_id" class="form-select">{% for u in users %}<option value="{{ u.id }}">{{ u.get_full_name|default:u.username }}</option>{% endfor %}</select><button class="btn btn-outline-dark">Üye Ekle</button></form>
-</div></div></div></div>
-{% endif %}
+</div></div></div></div>{% endif %}
 {% endblock %}
 
-{% block extra_js %}
-{% if active_thread %}
+{% block extra_js %}{% if active_thread %}
 <script>
 (function(){
-  const list=document.getElementById('messageList');
-  const form=document.getElementById('messageForm');
-  const body=document.getElementById('messageBody');
-  if(!list)return;
-  const api="{% url 'messages_thread_api' active_thread.id %}";
-  const me={{ user.id }};
-
-  function esc(v){return String(v||'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));}
-  function render(messages){
-    const nearBottom=list.scrollHeight-list.scrollTop-list.clientHeight<120;
-    list.innerHTML=messages.map(m=>{
-      const cls=m.mine?'bubble-wrap mine':'bubble-wrap';
-      const importance=m.importance==='urgent'?' urgent':(m.importance==='important'?' important':'');
-      const sender={% if active_thread.thread_type == 'group' %}(!m.mine?'<div class="sender">'+esc(m.sender)+'</div>':''){% else %}''{% endif %};
-      const bodyHtml=m.is_deleted?'<em>Mesaj silindi</em>':esc(m.body).replace(/\n/g,'<br>');
-      const link=(m.linked_path&&!m.is_deleted)?'<a class="linked" href="'+esc(m.linked_path)+'"><i class="bi bi-box-arrow-up-right"></i> '+esc(m.linked_label||'Bağlı kaydı aç')+'</a>':'';
-      return '<div class="'+cls+'"><div class="bubble'+importance+'">'+sender+'<div class="body">'+bodyHtml+'</div>'+link+'<div class="meta">'+esc(m.created_at)+(m.mine?' · ✓✓':'')+'</div></div></div>';
-    }).join('');
-    if(nearBottom||!list.dataset.loaded){list.scrollTop=list.scrollHeight;list.dataset.loaded='1';}
-  }
-  async function refresh(){
-    try{const r=await fetch(api,{credentials:'same-origin',headers:{'X-Requested-With':'XMLHttpRequest'}});const d=await r.json();if(d.ok)render(d.messages||[]);}catch(e){}
-  }
-  if(form){
-    form.addEventListener('submit',async function(e){
-      e.preventDefault();
-      if(!body.value.trim())return;
-      const fd=new FormData(form);
-      try{
-        const r=await fetch(form.action,{method:'POST',body:fd,credentials:'same-origin',headers:{'X-Requested-With':'XMLHttpRequest'}});
-        const d=await r.json();
-        if(!r.ok||!d.ok){alert(d.message||'Mesaj gönderilemedi.');return;}
-        body.value='';await refresh();
-      }catch(e){alert('Mesaj gönderilemedi.');}
-    });
-    body.addEventListener('keydown',function(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();form.requestSubmit();}});
-  }
-  refresh();
-  setInterval(refresh,4000);
+ const list=document.getElementById('messageList'), form=document.getElementById('messageForm'), body=document.getElementById('messageBody');
+ const csrf=document.querySelector('input[name="csrfmiddlewaretoken"]')?.value||'';
+ const api="{% url 'messages_thread_api' active_thread.id %}", sendUrl="{% url 'messages_send' active_thread.id %}";
+ const searchUrl="{% url 'messages_search' active_thread.id %}", pollUrl="{% url 'messages_create_poll' active_thread.id %}", contactUrl="{% url 'messages_share_contact' active_thread.id %}";
+ let forwardMessageId=null, recorder=null, audioChunks=[];
+ function esc(v){return String(v||'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));}
+ function linkify(v){return esc(v).replace(/(https?:\/\/[^\s<]+)/g,'<a href="$1" target="_blank" rel="noopener">$1</a>').replace(/\n/g,'<br>');}
+ function mediaHtml(m){if(!m.media_url)return '';if(m.media_type==='image')return '<a href="'+esc(m.media_url)+'" target="_blank"><img class="media-img" src="'+esc(m.media_url)+'"></a>';if(m.media_type==='video')return '<video class="media-video" controls playsinline src="'+esc(m.media_url)+'"></video>';if(m.media_type==='audio')return '<audio class="media-audio" controls preload="metadata" src="'+esc(m.media_url)+'"></audio>';return '<a class="media-doc" href="'+esc(m.media_url)+'" target="_blank"><i class="bi bi-file-earmark"></i>'+esc(m.media_name||'Dosyayı aç')+'</a>'}
+ function reactionsHtml(m){return '<div class="reactions">'+(m.reactions||[]).map(r=>'<button class="reaction-chip '+(r.mine?'mine':'')+'" data-react="'+esc(r.emoji)+'" data-id="'+m.id+'">'+esc(r.emoji)+' '+r.count+'</button>').join('')+'</div>'}
+ function pollHtml(m){if(!m.poll)return '';return '<div class="poll"><div class="poll-question">'+esc(m.poll.question)+'</div>'+m.poll.options.map(o=>'<button class="poll-option '+(o.mine?'mine':'')+'" data-vote="'+o.id+'"><span>'+esc(o.text)+'</span><b>'+o.votes+'</b></button>').join('')+'</div>'}
+ function menuHtml(m){let x='<button class="msg-menu-btn" data-menu="'+m.id+'"><i class="bi bi-chevron-down"></i></button><div class="msg-menu" id="menu-'+m.id+'">';x+='<button data-act="reply" data-id="'+m.id+'"><i class="bi bi-reply"></i>Yanıtla</button>';if(m.can_edit)x+='<button data-act="edit" data-id="'+m.id+'"><i class="bi bi-pencil"></i>Düzenle</button>';x+='<button data-act="react" data-id="'+m.id+'"><i class="bi bi-emoji-smile"></i>Tepki ver</button><button data-act="forward" data-id="'+m.id+'"><i class="bi bi-forward"></i>İlet</button><button data-act="star" data-id="'+m.id+'"><i class="bi bi-star"></i>'+(m.starred?'Yıldızı kaldır':'Yıldızla')+'</button><button data-act="pin" data-id="'+m.id+'"><i class="bi bi-pin-angle"></i>Sabitle</button><button data-act="delete_me" data-id="'+m.id+'"><i class="bi bi-trash"></i>Benden sil</button>';if(m.can_delete_everyone)x+='<button data-act="delete_everyone" data-id="'+m.id+'"><i class="bi bi-trash3"></i>Herkesten sil</button>';return x+'</div>'}
+ function render(messages){const near=list.scrollHeight-list.scrollTop-list.clientHeight<140;list.innerHTML=messages.filter(m=>!m.hidden).map(m=>{const reply=m.reply?'<div class="reply-card"><b>'+esc(m.reply.sender)+'</b><br>'+esc(m.reply.body).slice(0,120)+'</div>':'';const fw=m.forwarded?'<div class="forwarded"><i class="bi bi-forward-fill"></i> İletildi</div>':'';const bodyHtml=m.is_deleted?'<em>Bu mesaj silindi</em>':linkify(m.body||'');const edited=m.edited?' · düzenlendi':'';return '<div class="bubble-wrap '+(m.mine?'mine':'')+'" id="msg-'+m.id+'"><div class="bubble '+(m.importance==='urgent'?'urgent':m.importance==='important'?'important':'')+'">'+menuHtml(m)+fw+reply+'<div class="sender">'+(!m.mine?esc(m.sender):'')+'</div><div class="body">'+bodyHtml+'</div>'+mediaHtml(m)+pollHtml(m)+(m.linked_path?'<a class="linked" href="'+esc(m.linked_path)+'"><i class="bi bi-box-arrow-up-right"></i> '+esc(m.linked_label||'Bağlı kaydı aç')+'</a>':'')+reactionsHtml(m)+'<div class="meta">'+esc(m.time)+edited+(m.mine?(m.read?' · ✓✓':' · ✓'):'')+'</div></div></div>'}).join('');if(near||!list.dataset.loaded){list.scrollTop=list.scrollHeight;list.dataset.loaded='1';}}
+ async function refresh(){try{const r=await fetch(api,{credentials:'same-origin'}),d=await r.json();if(d.ok)render(d.messages||[]);}catch(e){}}
+ async function post(url,data){const r=await fetch(url,{method:'POST',body:data,credentials:'same-origin',headers:{'X-CSRFToken':csrf,'X-Requested-With':'XMLHttpRequest'}});const d=await r.json();if(!r.ok||!d.ok)throw new Error(d.message||'İşlem yapılamadı');return d}
+ async function action(id,act,extra={}){const fd=new FormData();fd.append('action',act);Object.entries(extra).forEach(([k,v])=>fd.append(k,v));await post('/mesajlar/mesaj/'+id+'/islem/',fd);await refresh()}
+ list.addEventListener('click',async e=>{const mb=e.target.closest('[data-menu]');if(mb){e.stopPropagation();document.querySelectorAll('.msg-menu.open').forEach(x=>x.classList.remove('open'));document.getElementById('menu-'+mb.dataset.menu)?.classList.toggle('open');return}const rc=e.target.closest('[data-react]');if(rc){await action(rc.dataset.id,'react',{emoji:rc.dataset.react});return}const vote=e.target.closest('[data-vote]');if(vote){const fd=new FormData();await post('/mesajlar/anket/'+vote.dataset.vote+'/oy/',fd);await refresh();return}const btn=e.target.closest('[data-act]');if(!btn)return;const id=btn.dataset.id,act=btn.dataset.act;document.querySelectorAll('.msg-menu.open').forEach(x=>x.classList.remove('open'));if(act==='reply'){document.getElementById('replyTo').value=id;const txt=document.querySelector('#msg-'+id+' .body')?.innerText||'Mesaj';document.getElementById('replyText').textContent=txt;document.getElementById('replyPreview').classList.add('show');body.focus()}else if(act==='edit'){const old=document.querySelector('#msg-'+id+' .body')?.innerText||'';const val=prompt('Mesajı düzenle:',old);if(val!==null&&val.trim())await action(id,'edit',{body:val.trim()})}else if(act==='react'){const emoji=prompt('Emoji yazın:','👍');if(emoji)await action(id,'react',{emoji})}else if(act==='forward'){forwardMessageId=id;bootstrap.Modal.getOrCreateInstance(document.getElementById('forwardModal')).show()}else await action(id,act)});
+ document.addEventListener('click',()=>document.querySelectorAll('.msg-menu.open').forEach(x=>x.classList.remove('open')));
+ document.getElementById('replyCancel')?.addEventListener('click',()=>{document.getElementById('replyTo').value='';document.getElementById('replyPreview').classList.remove('show')});
+ form?.addEventListener('submit',async e=>{e.preventDefault();const fd=new FormData(form);try{await post(sendUrl,fd);body.value='';document.getElementById('hiddenMedia').value='';document.getElementById('linkedPath').value='';document.getElementById('linkedLabel').value='';document.getElementById('replyTo').value='';document.getElementById('replyPreview').classList.remove('show');await refresh()}catch(err){alert(err.message)}});
+ body?.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();form.requestSubmit()}});
+ const plus=document.getElementById('plusBtn'),attach=document.getElementById('attachMenu');plus?.addEventListener('click',e=>{e.stopPropagation();attach.classList.toggle('open')});
+ document.getElementById('mediaInput')?.addEventListener('change',e=>{const f=e.target.files[0];if(f){const dt=new DataTransfer();dt.items.add(f);document.getElementById('hiddenMedia').files=dt.files;form.requestSubmit()}});
+ document.getElementById('docInput')?.addEventListener('change',e=>{const f=e.target.files[0];if(f){const dt=new DataTransfer();dt.items.add(f);document.getElementById('hiddenMedia').files=dt.files;form.requestSubmit()}});
+ document.getElementById('locationBtn')?.addEventListener('click',()=>{if(!navigator.geolocation){alert('Konum desteklenmiyor.');return}navigator.geolocation.getCurrentPosition(p=>{document.getElementById('linkedPath').value='https://maps.google.com/?q='+p.coords.latitude+','+p.coords.longitude;document.getElementById('linkedLabel').value='📍 Konumu Aç';body.value=body.value||'Konum paylaşıldı';form.requestSubmit()},()=>alert('Konum alınamadı.'))});
+ document.getElementById('contactSend')?.addEventListener('click',async()=>{const fd=new FormData();fd.append('user_id',document.getElementById('contactUser').value);try{await post(contactUrl,fd);bootstrap.Modal.getInstance(document.getElementById('contactModal'))?.hide();await refresh()}catch(e){alert(e.message)}});
+ document.getElementById('pollSend')?.addEventListener('click',async()=>{const fd=new FormData();fd.append('question',document.getElementById('pollQuestion').value);document.querySelectorAll('.poll-opt').forEach(x=>{if(x.value.trim())fd.append('options',x.value.trim())});if(document.getElementById('pollMulti').checked)fd.append('multiple_choice','1');try{await post(pollUrl,fd);bootstrap.Modal.getInstance(document.getElementById('pollModal'))?.hide();await refresh()}catch(e){alert(e.message)}});
+ document.getElementById('forwardSend')?.addEventListener('click',async()=>{if(!forwardMessageId)return;const fd=new FormData();fd.append('thread_id',document.getElementById('forwardThread').value);try{await post('/mesajlar/mesaj/'+forwardMessageId+'/ilet/',fd);bootstrap.Modal.getInstance(document.getElementById('forwardModal'))?.hide()}catch(e){alert(e.message)}});
+ const voice=document.getElementById('voiceBtn');voice?.addEventListener('click',async()=>{if(recorder&&recorder.state==='recording'){recorder.stop();return}try{const stream=await navigator.mediaDevices.getUserMedia({audio:true});audioChunks=[];recorder=new MediaRecorder(stream);recorder.ondataavailable=e=>{if(e.data.size)audioChunks.push(e.data)};recorder.onstop=async()=>{voice.classList.remove('recording');stream.getTracks().forEach(t=>t.stop());const blob=new Blob(audioChunks,{type:recorder.mimeType||'audio/webm'});const file=new File([blob],'ses-kaydi.webm',{type:blob.type||'audio/webm'});const fd=new FormData(form);fd.set('body','');fd.set('media',file);try{await post(sendUrl,fd);await refresh()}catch(e){alert(e.message)}};recorder.start();voice.classList.add('recording')}catch(e){alert('Mikrofon izni alınamadı.')}});
+ const st=document.getElementById('searchToggle'),sb=document.getElementById('searchBar'),si=document.getElementById('searchInputChat'),sr=document.getElementById('searchResults');st?.addEventListener('click',()=>{sb.classList.toggle('show');if(sb.classList.contains('show'))si.focus()});document.getElementById('searchClose')?.addEventListener('click',()=>{sb.classList.remove('show');sr.classList.remove('show')});let timer;si?.addEventListener('input',()=>{clearTimeout(timer);timer=setTimeout(async()=>{const q=si.value.trim();if(!q){sr.classList.remove('show');return}const r=await fetch(searchUrl+'?q='+encodeURIComponent(q)),d=await r.json();sr.innerHTML=(d.results||[]).map(x=>'<div class="search-item" data-jump="'+x.id+'"><b>'+esc(x.sender)+'</b><br>'+esc(x.body)+'<div class="text-muted">'+esc(x.created_at)+'</div></div>').join('')||'<div class="search-item">Sonuç yok.</div>';sr.classList.add('show')},250)});sr?.addEventListener('click',e=>{const x=e.target.closest('[data-jump]');if(x){document.getElementById('msg-'+x.dataset.jump)?.scrollIntoView({behavior:'smooth',block:'center'});sr.classList.remove('show')}});
+ refresh();setInterval(refresh,4000);
 })();
-</script>
-{% endif %}
-{% endblock %}
+</script>{% endif %}{% endblock %}
