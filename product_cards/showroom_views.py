@@ -10,6 +10,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.views.decorators.http import require_GET, require_POST
 
+from app_settings.access import has_access
 from core.models import Beden, CustomerPricingRule, Musteri, Order, OrderEvent, Renk, URUN_TIPI_CHOICES, UrunKod
 from core.order_list_enhanced import STAGE_TRANSLATIONS
 from .models import PriceListSettings, ProductCard, ShowroomDraft, ShowroomDraftItem, ShowroomOrderLink
@@ -538,7 +539,10 @@ def showroom_customer_product_base_price(request):
 @login_required
 def showroom_detail_page(request,draft_id):
     if not _can_manage(request.user): return HttpResponseForbidden("Bu sayfaya erişim yetkiniz yok.")
-    draft=get_object_or_404(ShowroomDraft.objects.select_related("customer").prefetch_related("items__product_card__urun","payments"),id=draft_id,created_by=request.user,status__in=["PENDING","APPROVED","TRANSFERRED"])
+    draft_qs=ShowroomDraft.objects.select_related("customer").prefetch_related("items__product_card__urun","payments")
+    if not has_access(request.user, "can_view_folio_link"):
+        draft_qs=draft_qs.filter(created_by=request.user)
+    draft=get_object_or_404(draft_qs,id=draft_id,status__in=["PENDING","APPROVED","TRANSFERRED"])
     items=_attach_live_order_statuses(draft,_effective_serialized_items(draft))
     summary=_draft_summary(draft); status_label={"PENDING":"Taslak","APPROVED":"Onaylanan","TRANSFERRED":"Siparişe Aktarıldı"}[draft.status]; back_url_name="showroom_drafts_page" if draft.status=="PENDING" else "showroom_approved_page"
     return render(request,"product_cards/showroom_detail.html",{"draft":draft,"items":items,"summary":summary,"payments":_payment_rows(draft),"status_label":status_label,"back_url_name":back_url_name})
