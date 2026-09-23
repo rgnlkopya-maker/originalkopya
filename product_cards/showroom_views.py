@@ -673,12 +673,6 @@ def showroom_edit_save(request,draft_id):
                     order = link.order
                     if not order:
                         continue
-                    shipped = order.events.filter(
-                        stage="sevkiyat_durum",
-                        value="gonderildi",
-                    ).exists()
-                    if shipped:
-                        continue
                     changed = []
                     final_price = Decimal(final_price).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
                     if order.satis_fiyati != final_price:
@@ -690,6 +684,68 @@ def showroom_edit_save(request,draft_id):
                     if changed:
                         order.save(update_fields=changed + ["last_updated"])
 
+                    # Föy düzeltmesi satış bilgisidir. Sipariş sevk edilmiş olsa bile
+                    # satış fiyatını düzelt; sevkiyat anındaki maliyet snapshot'ına dokunma.
+                    try:
+                        snap = order.financial_snapshot
+                    except Exception:
+                        snap = None
+                    if snap is not None:
+                        sale_tl = (
+                            final_price * Decimal(snap.usd_try)
+                            if (order.para_birimi or "TRY") == "USD" and snap.usd_try
+                            else final_price
+                        )
+                        profit = (
+                            sale_tl - Decimal(snap.maliyet_tl)
+                            if snap.maliyet_tl is not None
+                            else None
+                        )
+                        profit_rate = (
+                            profit / sale_tl * Decimal("100")
+                            if profit is not None and sale_tl
+                            else None
+                        )
+                        snap.satis_fiyati = final_price
+                        snap.satis_para_birimi = order.para_birimi or "TRY"
+                        snap.satis_tl = sale_tl.quantize(Decimal("0.01"))
+                        snap.beklenen_kar_tl = profit.quantize(Decimal("0.01")) if profit is not None else None
+                        snap.beklenen_kar_orani = profit_rate.quantize(Decimal("0.01")) if profit_rate is not None else None
+                        snap.save(update_fields=[
+                            "satis_fiyati","satis_para_birimi","satis_tl",
+                            "beklenen_kar_tl","beklenen_kar_orani",
+                        ])
+
+                    try:
+                        shipment = order.shipment_financial_snapshot
+                    except Exception:
+                        shipment = None
+                    if shipment is not None:
+                        shipment_sale_tl = (
+                            final_price * Decimal(shipment.usd_try)
+                            if (order.para_birimi or "TRY") == "USD" and shipment.usd_try
+                            else final_price
+                        )
+                        shipment_profit = (
+                            shipment_sale_tl - Decimal(shipment.toplam_maliyet_tl)
+                            if shipment.toplam_maliyet_tl is not None
+                            else None
+                        )
+                        shipment_profit_rate = (
+                            shipment_profit / shipment_sale_tl * Decimal("100")
+                            if shipment_profit is not None and shipment_sale_tl
+                            else None
+                        )
+                        shipment.satis_fiyati = final_price
+                        shipment.satis_para_birimi = order.para_birimi or "TRY"
+                        shipment.satis_tl = shipment_sale_tl.quantize(Decimal("0.01"))
+                        shipment.gerceklesen_kar_tl = shipment_profit.quantize(Decimal("0.01")) if shipment_profit is not None else None
+                        shipment.gerceklesen_kar_orani = shipment_profit_rate.quantize(Decimal("0.01")) if shipment_profit_rate is not None else None
+                        shipment.save(update_fields=[
+                            "satis_fiyati","satis_para_birimi","satis_tl",
+                            "gerceklesen_kar_tl","gerceklesen_kar_orani",
+                        ])
+
     if draft.status in {"APPROVED", "TRANSFERRED"}:
         transaction.on_commit(lambda: queue_folio_drive_sync(draft.id))
-    return JsonResponse({"ok":True,"message":"Föy güncellendi; sevk edilmemiş bağlı siparişlerin fiyatları da güncellendi."})
+    return JsonResponse({"ok":True,"message":"Föy güncellendi; bağlı siparişlerin satış fiyatları ve finans kârları güncellendi."})
