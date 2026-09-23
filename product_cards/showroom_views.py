@@ -1,4 +1,5 @@
 import json
+from collections import Counter
 from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 
 from django.contrib.auth.decorators import login_required
@@ -9,8 +10,9 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.views.decorators.http import require_GET, require_POST
 
-from core.models import Beden, CustomerPricingRule, Musteri, Order, Renk, URUN_TIPI_CHOICES, UrunKod
-from .models import PriceListSettings, ProductCard, ShowroomDraft, ShowroomDraftItem
+from core.models import Beden, CustomerPricingRule, Musteri, Order, OrderEvent, Renk, URUN_TIPI_CHOICES, UrunKod
+from core.order_list_enhanced import STAGE_TRANSLATIONS
+from .models import PriceListSettings, ProductCard, ShowroomDraft, ShowroomDraftItem, ShowroomOrderLink
 from .payment_models import ShowroomPayment
 from .price_list_views import _can_manage, _ensure_price_rates, _price_rows, _real_profit_rate
 from .drive_folio_backup import queue_folio_drive_sync
@@ -197,6 +199,74 @@ def _effective_serialized_items(draft):
         net_price = gross_price / vat_multiplier if vat_multiplier > 0 else gross_price
         item["anlasilan_fiyat"] = str(net_price.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP))
     return data["items"]
+
+
+def _live_order_label(order):
+    if order is None:
+        return "Silindi"
+    if not order.is_active:
+        return "Pasife Alındı"
+    latest = (
+        order.events
+        .exclude(event_type="order_update")
+        .exclude(stage__in=["satis_fiyati", "ekstra_maliyet", "maliyet_override", "maliyet_uygulanan"])
+        .order_by("-timestamp", "-id")
+        .first()
+    )
+    if latest:
+        return STAGE_TRANSLATIONS.get((latest.stage, latest.value), order.son_durum)
+    return order.son_durum
+
+
+def _attach_live_order_statuses(draft, serialized_items):
+    links_by_item = {}
+    for link in (
+        ShowroomOrderLink.objects
+        .filter(draft=draft)
+        .select_related("order")
+        .prefetch_related("order__events")
+        .order_by("id")
+    ):
+        links_by_item.setdefault(link.draft_item_id, []).append(link)
+
+    item_queues = {}
+    for db_item in draft.items.select_related("product_card__urun").order_by("created_at", "id"):
+        key = (
+            db_item.product_card.urun.kod,
+            db_item.color or "",
+            db_item.size or "",
+            int(db_item.quantity or 1),
+            db_item.description or "",
+        )
+        item_queues.setdefault(key, []).append(db_item)
+
+    for group in serialized_items:
+        code = group.get("urun_kodu") or ""
+        for row in group.get("satirlar") or []:
+            enriched_sizes = []
+            for size in row.get("bedenler") or []:
+                key = (
+                    code,
+                    row.get("renk") or "",
+                    size or "",
+                    int(row.get("adet") or 1),
+                    row.get("aciklama") or "",
+                )
+                queue = item_queues.get(key) or []
+                db_item = queue.pop(0) if queue else None
+                links = links_by_item.get(db_item.id, []) if db_item else []
+                if not links:
+                    status = "Sipariş Oluşturulmadı" if draft.status != "TRANSFERRED" else "Bağlantı Yok"
+                else:
+                    labels = [_live_order_label(link.order) for link in links]
+                    counts = Counter(labels)
+                    status = " · ".join(
+                        label if count == 1 else f"{count}× {label}"
+                        for label, count in counts.items()
+                    )
+                enriched_sizes.append({"beden": size, "durum": status})
+            row["beden_durumlari"] = enriched_sizes
+    return serialized_items
 
 
 def _payment_rows(draft): return list(draft.payments.all().order_by("due_date","payment_date","id"))
@@ -462,7 +532,9 @@ def showroom_customer_product_base_price(request):
 @login_required
 def showroom_detail_page(request,draft_id):
     if not _can_manage(request.user): return HttpResponseForbidden("Bu sayfaya erişim yetkiniz yok.")
-    draft=get_object_or_404(ShowroomDraft.objects.select_related("customer").prefetch_related("items__product_card__urun","payments"),id=draft_id,created_by=request.user,status__in=["PENDING","APPROVED","TRANSFERRED"]); items=_effective_serialized_items(draft); summary=_draft_summary(draft); status_label={"PENDING":"Taslak","APPROVED":"Onaylanan","TRANSFERRED":"Siparişe Aktarıldı"}[draft.status]; back_url_name="showroom_drafts_page" if draft.status=="PENDING" else "showroom_approved_page"
+    draft=get_object_or_404(ShowroomDraft.objects.select_related("customer").prefetch_related("items__product_card__urun","payments"),id=draft_id,created_by=request.user,status__in=["PENDING","APPROVED","TRANSFERRED"])
+    items=_attach_live_order_statuses(draft,_effective_serialized_items(draft))
+    summary=_draft_summary(draft); status_label={"PENDING":"Taslak","APPROVED":"Onaylanan","TRANSFERRED":"Siparişe Aktarıldı"}[draft.status]; back_url_name="showroom_drafts_page" if draft.status=="PENDING" else "showroom_approved_page"
     return render(request,"product_cards/showroom_detail.html",{"draft":draft,"items":items,"summary":summary,"payments":_payment_rows(draft),"status_label":status_label,"back_url_name":back_url_name})
 
 
