@@ -3,6 +3,9 @@
 <html lang="tr">
 <head>
   <meta charset="UTF-8">
+  {% if request.resolver_match.url_name == 'messages_home' or request.resolver_match.url_name == 'messages_thread' %}
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  {% endif %}
   <link rel="manifest" href="{% static 'manifest.json' %}?v=20260915">
   <link rel="apple-touch-icon" sizes="192x192" href="{% static 'icons/apple-touch-icon.png' %}?v=20260915">
   <link rel="icon" type="image/png" sizes="192x192" href="{% static 'icons/icon-192.png' %}?v=20260915">
