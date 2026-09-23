@@ -19,6 +19,7 @@ PERMISSION_FIELDS = [
     ('can_edit_orders', 'Siparişi Düzenle'),
     ('can_update_production', 'Üretim Panelini Kullan'),
     ('can_delete_orders', 'Sipariş Sil'),
+    ('can_view_folio_link', 'Siparişte Föy Bağlantısını Gör'),
     ('can_view_depots', 'Depoları Gör'),
     ('can_view_reports', 'Raporları Gör'),
     ('can_view_costs', 'Maliyetleri Gör'),
