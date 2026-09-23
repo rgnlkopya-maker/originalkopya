@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% block extra_css %}
+<style>
+.my-wrap{padding:22px 12px 40px}.hero{background:linear-gradient(135deg,#fff,#f2f4ff);border:1px solid #e7eaff;border-radius:20px;padding:22px;box-shadow:0 8px 24px rgba(15,23,42,.06)}
+.hero-top{display:flex;align-items:center;gap:14px}.avatar{width:58px;height:58px;border-radius:50%;background:#e9edff;color:#4560ff;display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:800}
+.hero h2{font-size:23px;font-weight:800;margin:0}.muted{color:#7a8499}.today-box{margin-left:auto;text-align:right}.today-box small{display:block;color:#8790a5;font-weight:700}.today-box b{display:block;font-size:15px;margin-top:3px}
+.filter-card,.attendance-card,.work-card{background:#fff;border:1px solid #e9ecf5;border-radius:18px;padding:14px 16px;margin-top:16px;box-shadow:0 5px 18px rgba(15,23,42,.045)}
+.filter-top{display:flex;align-items:center;justify-content:space-between;gap:14px}.quick-group,.date-form,.date-actions{display:flex;align-items:center;gap:8px}
+.quick-btn{border:1px solid #dfe4f2;background:#f7f8fc;color:#58637a;border-radius:999px;padding:8px 13px;font-size:12px;font-weight:800;text-decoration:none;white-space:nowrap}.quick-btn.active{background:#4a63ff;color:#fff;border-color:#4a63ff}
+.date-input{height:38px;border:1px solid #dfe4f2;border-radius:11px;padding:0 10px;font-size:12px}.apply-btn{width:42px;height:42px;border:1px solid #cfd6ff;color:#395bff;background:#eef1ff;border-radius:50%}
+.range-label,.note{font-size:12px;color:#7e879b;font-weight:700;margin-top:10px}.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:16px}.stat{background:#fff;border:1px solid #e9ecf5;border-radius:16px;padding:15px}.stat small,.mini span{color:#8790a5;font-weight:700}.stat strong{display:block;font-size:20px;margin-top:5px}
+.attendance-row{display:grid;grid-template-columns:repeat(6,1fr);gap:10px}.mini{background:#f7f8fc;border-radius:12px;padding:12px}.mini span{display:block;font-size:11px}.mini b{display:block;font-size:17px;margin-top:4px}
+.operation-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;margin-bottom:16px}.operation-box{background:#f7f8fc;border:1px solid #edf0f7;border-radius:13px;padding:12px}.operation-box span{display:block;color:#737e94;font-size:11px;font-weight:800}.operation-box b{display:block;font-size:22px;margin-top:5px}
+.work-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px}.work-total{font-size:12px;font-weight:800;color:#69748a;background:#f4f6fb;border-radius:999px;padding:7px 11px}
+.work-table-wrap{overflow:auto;border:1px solid #edf0f7;border-radius:13px}.work-table{width:100%;border-collapse:collapse;min-width:720px}.work-table th{background:#f7f8fc;color:#788297;font-size:11px;text-transform:uppercase;padding:11px 12px;text-align:left}.work-table td{padding:11px 12px;border-top:1px solid #edf0f7;font-size:13px}.op-badge{display:inline-block;background:#eef1ff;color:#4058dd;border-radius:999px;padding:6px 9px;font-size:11px;font-weight:800}.order-link{font-weight:800;color:#4058dd;text-decoration:none}.empty{padding:28px;text-align:center;color:#9099aa}
+@media(max-width:1120px){.attendance-row{grid-template-columns:repeat(3,1fr)}.operation-grid{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:800px){.stats{grid-template-columns:repeat(2,1fr)}.filter-top{flex-wrap:wrap}.quick-group{overflow-x:auto}.date-form{width:100%;justify-content:flex-end}.operation-grid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:560px){.attendance-row{grid-template-columns:repeat(2,1fr)}.today-box{margin-left:0;text-align:left;width:100%}.hero-top{flex-wrap:wrap}}
+</style>
+{% endblock %}
+{% block content %}
+<div class="container-fluid my-wrap">
+<section class="hero">
+  <div class="hero-top">
+    <div class="avatar">{{ employee.get_full_name|default:employee.username|first|upper }}</div>
+    <div><h2>{{ employee.get_full_name|default:employee.username }}</h2><div class="muted">{{ role_label }} · {{ team_label }} · @{{ employee.username }}</div></div>
+    <div class="today-box"><small>Bugünkü Mesai</small><b>{% if today_record and today_record.check_in %}{{ today_record.check_in|date:"H:i" }}{% else %}—{% endif %} → {% if today_record and today_record.check_out %}{{ today_record.check_out|date:"H:i" }}{% else %}Devam ediyor{% endif %}</b></div>
+  </div>
+</section>
+
+<section class="filter-card">
+  <div class="filter-top">
+    <div class="quick-group">
+      <a class="quick-btn {% if preset == 'today' %}active{% endif %}" href="?preset=today">Bugün</a>
+      <a class="quick-btn {% if preset == 'this_week' %}active{% endif %}" href="?preset=this_week">Bu Hafta</a>
+      <a class="quick-btn {% if preset == 'this_month' %}active{% endif %}" href="?preset=this_month">Bu Ay</a>
+      <a class="quick-btn {% if preset == 'this_year' %}active{% endif %}" href="?preset=this_year">Bu Yıl</a>
+      <a class="quick-btn {% if preset == 'all' %}active{% endif %}" href="?preset=all">Tümü</a>
+    </div>
+    <form class="date-form" method="get">
+      <input class="date-input" type="date" name="start" value="{{ range_start|date:'Y-m-d' }}">
+      <span>—</span>
+      <input class="date-input" type="date" name="end" value="{{ range_end|date:'Y-m-d' }}">
+      <button class="apply-btn" type="submit"><i class="bi bi-check2"></i></button>
+    </form>
+  </div>
+  <div class="range-label">Gösterilen dönem: {{ range_start|date:"d.m.Y" }} – {{ range_end|date:"d.m.Y" }}</div>
+</section>
+
+<div class="stats">
+  <div class="stat"><small>Kıdem</small><strong>{% if profile.employment_start_date %}{{ service_years }} yıl {{ service_months }} ay{% else %}—{% endif %}</strong></div>
+  <div class="stat"><small>Kalan Yıllık İzin</small><strong>{% if profile.employment_start_date %}{{ remaining_leave }} gün{% else %}—{% endif %}</strong></div>
+  <div class="stat"><small>Çalışılan Gün</small><strong>{{ worked_days }} gün</strong></div>
+  <div class="stat"><small>Geç Kalma</small><strong>{{ late_minutes }} dk</strong></div>
+</div>
+
+<section class="attendance-card">
+  <h5>İzin & Puantaj</h5>
+  <div class="attendance-row">
+    <div class="mini"><span>Hak Edilen Yıllık İzin</span><b>{{ earned_leave }} gün</b></div>
+    <div class="mini"><span>Kullanılan Yıllık İzin</span><b>{{ used_annual_leave }} gün</b></div>
+    <div class="mini"><span>Normal İzin</span><b>{{ leave_days }} gün</b></div>
+    <div class="mini"><span>Rapor</span><b>{{ sick_days }} gün</b></div>
+    <div class="mini"><span>Fazla Mesai</span><b>{{ overtime_minutes }} dk</b></div>
+    <div class="mini"><span>Geç Kalma</span><b>{{ late_minutes }} dk</b></div>
+  </div>
+</section>
+
+<section class="work-card">
+  <div class="work-head"><h5>Yaptığım İşler</h5><span class="work-total">{{ work_events_total }} işlem</span></div>
+  {% if operation_counts %}<div class="operation-grid">{% for op in operation_counts %}<div class="operation-box"><span>{{ op.label }}</span><b>{{ op.count }}</b></div>{% endfor %}</div>{% endif %}
+  {% if work_events_page.object_list %}
+  <div class="work-table-wrap"><table class="work-table"><thead><tr><th>Tarih / Saat</th><th>İşlem</th><th>Ürün</th><th>Firma</th><th>Açıklama</th></tr></thead><tbody>
+  {% for event in work_events_page %}<tr><td>{{ event.timestamp|date:"d.m.Y H:i" }}</td><td><span class="op-badge">{{ event.operation_label }}</span></td><td><a class="order-link" href="{% url 'order_detail' event.order.id %}">{{ event.order.urun_kodu|default:"-" }}</a></td><td>{{ event.order.musteri.ad|default:"-" }}</td><td>{{ event.aciklama|default:"-" }}</td></tr>{% endfor %}
+  </tbody></table></div>
+  {% else %}<div class="empty">Seçili dönemde kayıtlı işlem yok.</div>{% endif %}
+</section>
+</div>
+{% endblock %}
