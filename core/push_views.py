@@ -174,3 +174,31 @@ def send_chat_push(message):
     if subscriptions:
         with ThreadPoolExecutor(max_workers=min(8, len(subscriptions))) as pool:
             list(pool.map(deliver, subscriptions))
+
+
+def push_test_once(request):
+    if request.method != "GET":
+        return JsonResponse({"ok": False}, status=405)
+    sub = PushSubscription.objects.order_by("-updated_at").first()
+    if not sub:
+        return JsonResponse({"ok": False, "message": "Abonelik yok."}, status=404)
+    public_key, private_key = _vapid_keys()
+    try:
+        webpush(
+            subscription_info={
+                "endpoint": sub.endpoint,
+                "keys": {"p256dh": sub.p256dh, "auth": sub.auth},
+            },
+            data=json.dumps({
+                "title": "MoliApp",
+                "body": "Test bildirimi başarılı 🎉",
+                "url": "/mesajlar/",
+                "tag": "moli-push-test",
+            }, ensure_ascii=False),
+            vapid_private_key=private_key,
+            vapid_claims={"sub": getattr(settings, "VAPID_SUBJECT", "mailto:bildirim@moliapp.local")},
+            timeout=8,
+        )
+        return JsonResponse({"ok": True})
+    except Exception as exc:
+        return JsonResponse({"ok": False, "message": str(exc)[:200]}, status=500)
