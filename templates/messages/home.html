@@ -11,8 +11,10 @@
   #mainContent{height:calc(100dvh - 56px);overflow:hidden}
   .chat-shell{height:100%;padding:0;margin:0;max-width:none}
   .chat-card{grid-template-columns:1fr;height:100%;min-height:0;border:0;border-radius:0;box-shadow:none}
-  .chat-side{display:{% if active_thread %}none{% else %}flex{% endif %};height:100%}
-  .chat-main{display:{% if active_thread %}flex{% else %}none{% endif %};height:100%;min-height:0}
+  .chat-shell.list-mode .chat-side{display:flex;height:100%}
+  .chat-shell.list-mode .chat-main{display:none}
+  .chat-shell.thread-mode .chat-side{display:none}
+  .chat-shell.thread-mode .chat-main{display:flex;height:100%;min-height:0}
   .chat-side-head{padding:18px 16px 14px;min-height:72px}
   .chat-side-head h4{font-size:28px;line-height:1.1}
   .new-actions{gap:8px}
@@ -43,7 +45,7 @@
 </style>
 {% endblock %}
 {% block content %}
-<div class="chat-shell">
+<div class="chat-shell {% if active_thread %}thread-mode{% else %}list-mode{% endif %}">
   <div class="chat-card">
     <aside class="chat-side">
       <div class="chat-side-head">
@@ -71,7 +73,7 @@
     <main class="chat-main">
       {% if active_thread %}
       <div class="chat-head">
-        <a class="icon-btn mobile-back" href="{% url 'messages_home' %}"><i class="bi bi-arrow-left"></i></a>
+        <a class="icon-btn mobile-back" href="{% url 'messages_home' %}?list=1" onclick="window.location.href=this.href;return false;"><i class="bi bi-arrow-left"></i></a>
         <div class="avatar">{% if active_thread.thread_type == 'group' %}<i class="bi bi-people-fill"></i>{% else %}{{ active_title|first|upper }}{% endif %}</div>
         <div class="chat-head-info">
           <div class="chat-head-title">{{ active_title }}</div>
