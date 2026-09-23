@@ -65,9 +65,6 @@ def messages_home(request, thread_id=None):
         active_membership = _membership_or_403(request.user, active_thread)
         if not active_membership:
             return HttpResponseForbidden("Bu sohbete erişiminiz yok.")
-    elif memberships:
-        active_thread = memberships[0].thread
-        active_membership = memberships[0]
 
     thread_rows = []
     for membership in memberships:
