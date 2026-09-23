@@ -2,7 +2,7 @@ from django.shortcuts import redirect
 from django.contrib.auth import get_user_model
 from django.urls import reverse
 from django.utils import timezone
-from datetime import time
+from datetime import time, datetime, timedelta
 
 from .access import has_feature_access, has_full_access
 from .permission_registry import feature_for_path
@@ -32,6 +32,8 @@ class MoliAccessMiddleware:
         "/attendance/punch/",
         "/attendance/qr-giris/",
         "/attendance/qr-giris/dogrula/",
+        "/login/mesai-konum/",
+        "/login/mesai-konum/dogrula/",
         "/logout/",
     }
 
@@ -77,6 +79,21 @@ class MoliAccessMiddleware:
 
             if not active_record and request.path not in self.STAFF_PRE_ATTENDANCE_PATHS:
                 return redirect(reverse("attendance_scan"))
+
+            # 19:15 sonrası oturumu açık personel de işyerinde olduğunu
+            # en fazla 15 dakikada bir yeniden doğrulamalı.
+            if active_record and timezone.localtime().time() >= time(19, 15):
+                verified_raw = request.session.get("moli_after_hours_location_verified_at")
+                verified = False
+                if verified_raw:
+                    try:
+                        verified_at = datetime.fromisoformat(verified_raw)
+                        verified = timezone.now() - verified_at <= timedelta(minutes=15)
+                    except (TypeError, ValueError):
+                        request.session.pop("moli_after_hours_location_verified_at", None)
+                if not verified and request.path not in self.STAFF_PRE_ATTENDANCE_PATHS:
+                    request.session["moli_after_hours_next"] = request.get_full_path()
+                    return redirect(reverse("staff_session_location_gate"))
 
         # Mesai başladıktan sonra mevcut MoliApp yetkileri aynen uygulanır.
         feature_key = feature_for_path(request.path)
