@@ -390,7 +390,6 @@ def send_message(request, thread_id):
 @login_required
 @require_GET
 def thread_messages(request, thread_id):
-    _touch_presence(request.user)
     thread = get_object_or_404(ChatThread, pk=thread_id)
     if not _membership_or_403(request.user, thread):
         return JsonResponse({"ok": False}, status=403)
@@ -417,7 +416,6 @@ def thread_messages(request, thread_id):
 @login_required
 @require_GET
 def unread_count(request):
-    _touch_presence(request.user)
     memberships = list(ChatMembership.objects.filter(user=request.user).values_list("thread_id", flat=True))
     states = {
         s.thread_id: s.last_read_at
