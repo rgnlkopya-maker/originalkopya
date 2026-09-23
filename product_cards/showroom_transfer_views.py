@@ -257,6 +257,7 @@ def showroom_transfer_create(request, draft_id):
                 draft=draft,
                 draft_item_id=row.get("draft_item_id"),
                 order=order,
+                order_number=order.siparis_numarasi or "",
             )
             created += 1
 
