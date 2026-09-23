@@ -1,4 +1,5 @@
 import json
+from concurrent.futures import ThreadPoolExecutor
 
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
@@ -121,7 +122,8 @@ def send_chat_push(message):
     }, ensure_ascii=False)
     claims = {"sub": getattr(settings, "VAPID_SUBJECT", "mailto:bildirim@moliapp.local")}
 
-    for sub in PushSubscription.objects.filter(user_id__in=recipient_ids):
+    subscriptions = list(PushSubscription.objects.filter(user_id__in=recipient_ids))
+    def deliver(sub):
         try:
             webpush(
                 subscription_info={
@@ -136,6 +138,10 @@ def send_chat_push(message):
         except WebPushException as exc:
             status = getattr(getattr(exc, "response", None), "status_code", None)
             if status in (404, 410):
-                sub.delete()
+                PushSubscription.objects.filter(pk=sub.pk).delete()
         except Exception:
-            continue
+            pass
+
+    if subscriptions:
+        with ThreadPoolExecutor(max_workers=min(8, len(subscriptions))) as pool:
+            list(pool.map(deliver, subscriptions))
