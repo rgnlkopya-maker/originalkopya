@@ -605,8 +605,91 @@ def showroom_edit_save(request,draft_id):
     if not create_rows: return JsonResponse({"ok":False,"message":"Geçerli ürün satırı bulunamadı."},status=400)
     payment_rows=_build_payment_rows(draft,raw_payments)
     with transaction.atomic():
+        # Siparişe aktarılmış föylerde bağlantıları item silinmeden önce sakla.
+        existing_links = list(
+            ShowroomOrderLink.objects.filter(draft=draft)
+            .select_related("order")
+            .order_by("id")
+        ) if draft.status == "TRANSFERRED" else []
+
         draft.customer=customer; draft.order_taken_by=order_taken_by; draft.order_type=order_type if order_type in dict(Order.SIPARIS_TIPLERI) else "SERI"; draft.pricing_operations=pricing_operations; draft.folio_adjustment_target=folio_adjustment_target; draft.discount_rate=rate; draft.overall_discount_amount=amount; draft.vat_rate=vat_rate; draft.previous_balance=previous_balance; draft.save(update_fields=["customer","order_taken_by","order_type","pricing_operations","folio_adjustment_target","discount_rate","overall_discount_amount","vat_rate","previous_balance","updated_at"]); draft.items.all().delete(); ShowroomDraftItem.objects.bulk_create(create_rows); draft.payments.all().delete()
         if payment_rows: ShowroomPayment.objects.bulk_create(payment_rows)
+
+        # Föy daha önce siparişe dönüştüyse yeni satırları mevcut siparişlerle yeniden bağla
+        # ve sevk edilmemiş siparişlerin fiyat/KDV bilgisini güncelle.
+        if draft.status == "TRANSFERRED" and existing_links:
+            from collections import defaultdict
+            from .showroom_transfer_views import _draft_rows, _transfer_pricing
+
+            new_items = list(
+                draft.items.select_related("product_card__urun").order_by("id")
+            )
+            item_groups = defaultdict(list)
+            for item_obj in new_items:
+                key = (
+                    item_obj.product_card.urun.kod,
+                    item_obj.color or "",
+                    item_obj.size or "",
+                )
+                for _ in range(max(1, int(item_obj.quantity or 1))):
+                    item_groups[key].append(item_obj)
+
+            link_groups = defaultdict(list)
+            for link in existing_links:
+                if not link.order:
+                    continue
+                key = (
+                    link.order.urun_kodu or "",
+                    link.order.renk or "",
+                    link.order.beden or "",
+                )
+                link_groups[key].append(link)
+
+            # Yalnızca adetleri birebir uyuşan grupları yeniden bağla.
+            for key, links in link_groups.items():
+                items_for_key = item_groups.get(key, [])
+                if len(items_for_key) != len(links):
+                    continue
+                for link, item_obj in zip(links, items_for_key):
+                    if link.draft_item_id != item_obj.id:
+                        link.draft_item_id = item_obj.id
+                        link.save(update_fields=["draft_item"])
+
+            priced_rows, _, vat_rate_for_order = _transfer_pricing(draft, _draft_rows(draft)[0])
+            price_queues = defaultdict(list)
+            for row in priced_rows:
+                key = (
+                    row["urun_kodu"] or "",
+                    row["renk"] or "",
+                    row["beden"] or "",
+                )
+                price_queues[key].extend(row.get("_allocated_prices", []))
+
+            for key, links in link_groups.items():
+                prices = price_queues.get(key, [])
+                if len(prices) != len(links):
+                    continue
+                for link, final_price in zip(links, prices):
+                    order = link.order
+                    if not order:
+                        continue
+                    shipped = order.events.filter(
+                        stage="sevkiyat_durum",
+                        value="gonderildi",
+                    ).exists()
+                    if shipped:
+                        continue
+                    changed = []
+                    final_price = Decimal(final_price).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+                    if order.satis_fiyati != final_price:
+                        order.satis_fiyati = final_price
+                        changed.append("satis_fiyati")
+                    if Decimal(order.vat_rate or 0) != Decimal(vat_rate_for_order or 0):
+                        order.vat_rate = vat_rate_for_order
+                        changed.append("vat_rate")
+                    if changed:
+                        order.save(update_fields=changed + ["last_updated"])
+
     if draft.status in {"APPROVED", "TRANSFERRED"}:
         transaction.on_commit(lambda: queue_folio_drive_sync(draft.id))
-    return JsonResponse({"ok":True,"message":"Föy güncellendi."})
+    return JsonResponse({"ok":True,"message":"Föy güncellendi; sevk edilmemiş bağlı siparişlerin fiyatları da güncellendi."})
