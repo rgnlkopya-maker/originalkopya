@@ -86,8 +86,56 @@
  function reactionsHtml(m){return '<div class="reactions">'+(m.reactions||[]).map(r=>'<button class="reaction-chip '+(r.mine?'mine':'')+'" data-react="'+esc(r.emoji)+'" data-id="'+m.id+'">'+esc(r.emoji)+' '+r.count+'</button>').join('')+'</div>'}
  function pollHtml(m){if(!m.poll)return '';return '<div class="poll"><div class="poll-question">'+esc(m.poll.question)+'</div>'+m.poll.options.map(o=>'<button class="poll-option '+(o.mine?'mine':'')+'" data-vote="'+o.id+'"><span>'+esc(o.text)+'</span><b>'+o.votes+'</b></button>').join('')+'</div>'}
  function menuHtml(m){let x='<button class="msg-menu-btn" data-menu="'+m.id+'"><i class="bi bi-chevron-down"></i></button><div class="msg-menu" id="menu-'+m.id+'">';x+='<button data-act="reply" data-id="'+m.id+'"><i class="bi bi-reply"></i>Yanıtla</button>';if(m.can_edit)x+='<button data-act="edit" data-id="'+m.id+'"><i class="bi bi-pencil"></i>Düzenle</button>';x+='<button data-act="react" data-id="'+m.id+'"><i class="bi bi-emoji-smile"></i>Tepki ver</button><button data-act="forward" data-id="'+m.id+'"><i class="bi bi-forward"></i>İlet</button><button data-act="star" data-id="'+m.id+'"><i class="bi bi-star"></i>'+(m.starred?'Yıldızı kaldır':'Yıldızla')+'</button><button data-act="pin" data-id="'+m.id+'"><i class="bi bi-pin-angle"></i>Sabitle</button><button data-act="delete_me" data-id="'+m.id+'"><i class="bi bi-trash"></i>Benden sil</button>';if(m.can_delete_everyone)x+='<button data-act="delete_everyone" data-id="'+m.id+'"><i class="bi bi-trash3"></i>Herkesten sil</button>';return x+'</div>'}
- function render(messages){const near=list.scrollHeight-list.scrollTop-list.clientHeight<140;list.innerHTML=messages.filter(m=>!m.hidden).map(m=>{const reply=m.reply?'<div class="reply-card"><b>'+esc(m.reply.sender)+'</b><br>'+esc(m.reply.body).slice(0,120)+'</div>':'';const fw=m.forwarded?'<div class="forwarded"><i class="bi bi-forward-fill"></i> İletildi</div>':'';const bodyHtml=m.is_deleted?'<em>Bu mesaj silindi</em>':linkify(m.body||'');const edited=m.edited?' · düzenlendi':'';return '<div class="bubble-wrap '+(m.mine?'mine':'')+'" id="msg-'+m.id+'"><div class="bubble '+(m.importance==='urgent'?'urgent':m.importance==='important'?'important':'')+'">'+menuHtml(m)+fw+reply+'<div class="sender">'+(!m.mine?esc(m.sender):'')+'</div><div class="body">'+bodyHtml+'</div>'+mediaHtml(m)+pollHtml(m)+(m.linked_path?'<a class="linked" href="'+esc(m.linked_path)+'"><i class="bi bi-box-arrow-up-right"></i> '+esc(m.linked_label||'Bağlı kaydı aç')+'</a>':'')+reactionsHtml(m)+'<div class="meta">'+esc(m.time)+edited+(m.mine?(m.read?' · ✓✓':' · ✓'):'')+'</div></div></div>'}).join('');if(near||!list.dataset.loaded){list.scrollTop=list.scrollHeight;list.dataset.loaded='1';}}
- async function refresh(){try{const r=await fetch(api,{credentials:'same-origin'}),d=await r.json();if(d.ok)render(d.messages||[]);}catch(e){}}
+ function messageSignature(m){
+   const copy={...m};
+   delete copy.read;
+   return JSON.stringify(copy);
+ }
+ function messageHtml(m){
+   const reply=m.reply?'<div class="reply-card"><b>'+esc(m.reply.sender)+'</b><br>'+esc(m.reply.body).slice(0,120)+'</div>':'';
+   const fw=m.forwarded?'<div class="forwarded"><i class="bi bi-forward-fill"></i> İletildi</div>':'';
+   const bodyHtml=m.is_deleted?'<em>Bu mesaj silindi</em>':linkify(m.body||'');
+   const edited=m.edited?' · düzenlendi':'';
+   return '<div class="bubble-wrap '+(m.mine?'mine':'')+'" id="msg-'+m.id+'" data-signature="'+encodeURIComponent(messageSignature(m))+'"><div class="bubble '+(m.importance==='urgent'?'urgent':m.importance==='important'?'important':'')+'">'+menuHtml(m)+fw+reply+'<div class="sender">'+(!m.mine?esc(m.sender):'')+'</div><div class="body">'+bodyHtml+'</div>'+mediaHtml(m)+pollHtml(m)+(m.linked_path?'<a class="linked" href="'+esc(m.linked_path)+'"><i class="bi bi-box-arrow-up-right"></i> '+esc(m.linked_label||'Bağlı kaydı aç')+'</a>':'')+reactionsHtml(m)+'<div class="meta" data-meta-for="'+m.id+'">'+esc(m.time)+edited+(m.mine?(m.read?' · ✓✓':' · ✓'):'')+'</div></div></div>';
+ }
+ function syncMessages(messages){
+   const visible=messages.filter(m=>!m.hidden);
+   const near=list.scrollHeight-list.scrollTop-list.clientHeight<140;
+   const incomingIds=new Set(visible.map(m=>String(m.id)));
+   list.querySelectorAll('.bubble-wrap[id^="msg-"]').forEach(el=>{
+     const id=el.id.replace('msg-','');
+     if(!incomingIds.has(id)) el.remove();
+   });
+   visible.forEach(m=>{
+     const id='msg-'+m.id;
+     const existing=document.getElementById(id);
+     if(!existing){
+       list.insertAdjacentHTML('beforeend',messageHtml(m));
+       return;
+     }
+     const meta=existing.querySelector('[data-meta-for="'+m.id+'"]');
+     if(meta){
+       const edited=m.edited?' · düzenlendi':'';
+       meta.textContent=m.time+edited+(m.mine?(m.read?' · ✓✓':' · ✓'):'');
+     }
+     const nextSig=messageSignature(m);
+     let currentSig='';
+     try{currentSig=decodeURIComponent(existing.dataset.signature||'')}catch(e){}
+     if(currentSig===nextSig) return;
+     const media=existing.querySelector('audio,video');
+     const mediaState=media?{time:media.currentTime||0,paused:media.paused,volume:media.volume,muted:media.muted}:null;
+     existing.outerHTML=messageHtml(m);
+     if(mediaState){
+       const fresh=document.getElementById(id)?.querySelector('audio,video');
+       if(fresh){
+         const restore=()=>{try{fresh.currentTime=mediaState.time;fresh.volume=mediaState.volume;fresh.muted=mediaState.muted;if(!mediaState.paused){const p=fresh.play();if(p&&p.catch)p.catch(()=>{})}}catch(e){}};
+         if(fresh.readyState>=1) restore(); else fresh.addEventListener('loadedmetadata',restore,{once:true});
+       }
+     }
+   });
+   if(near||!list.dataset.loaded){list.scrollTop=list.scrollHeight;list.dataset.loaded='1';}
+ }
+ async function refresh(){try{const r=await fetch(api,{credentials:'same-origin'}),d=await r.json();if(d.ok)syncMessages(d.messages||[]);}catch(e){}}
  async function post(url,data){const r=await fetch(url,{method:'POST',body:data,credentials:'same-origin',headers:{'X-CSRFToken':csrf,'X-Requested-With':'XMLHttpRequest'}});const d=await r.json();if(!r.ok||!d.ok)throw new Error(d.message||'İşlem yapılamadı');return d}
  async function action(id,act,extra={}){const fd=new FormData();fd.append('action',act);Object.entries(extra).forEach(([k,v])=>fd.append(k,v));await post('/mesajlar/mesaj/'+id+'/islem/',fd);await refresh()}
  list.addEventListener('click',async e=>{const mb=e.target.closest('[data-menu]');if(mb){e.stopPropagation();document.querySelectorAll('.msg-menu.open').forEach(x=>x.classList.remove('open'));document.getElementById('menu-'+mb.dataset.menu)?.classList.toggle('open');return}const rc=e.target.closest('[data-react]');if(rc){await action(rc.dataset.id,'react',{emoji:rc.dataset.react});return}const vote=e.target.closest('[data-vote]');if(vote){const fd=new FormData();await post('/mesajlar/anket/'+vote.dataset.vote+'/oy/',fd);await refresh();return}const btn=e.target.closest('[data-act]');if(!btn)return;const id=btn.dataset.id,act=btn.dataset.act;document.querySelectorAll('.msg-menu.open').forEach(x=>x.classList.remove('open'));if(act==='reply'){document.getElementById('replyTo').value=id;const txt=document.querySelector('#msg-'+id+' .body')?.innerText||'Mesaj';document.getElementById('replyText').textContent=txt;document.getElementById('replyPreview').classList.add('show');body.focus()}else if(act==='edit'){const old=document.querySelector('#msg-'+id+' .body')?.innerText||'';const val=prompt('Mesajı düzenle:',old);if(val!==null&&val.trim())await action(id,'edit',{body:val.trim()})}else if(act==='react'){const emoji=prompt('Emoji yazın:','👍');if(emoji)await action(id,'react',{emoji})}else if(act==='forward'){forwardMessageId=id;bootstrap.Modal.getOrCreateInstance(document.getElementById('forwardModal')).show()}else await action(id,act)});
