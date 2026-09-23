@@ -799,6 +799,15 @@ def custom_login(request):
 
             active_record = _active_attendance_for_login(user)
 
+            # QR doğrulamasını login adımında da taşı. Mobil tarayıcı/session geçişlerinde
+            # oturum anahtarı değişse bile imzalı kısa süreli izin kaybolmasın.
+            qr_permit = request.POST.get("qrp") or request.GET.get("qrp") or ""
+            if qr_permit:
+                from attendance.views import QR_ENTRY_SESSION_KEY, qr_login_permit_valid
+                if qr_login_permit_valid(qr_permit):
+                    request.session[QR_ENTRY_SESSION_KEY] = timezone.now().isoformat()
+                    request.session.modified = True
+
             # Mesai başlamadıysa personel ancak işyerindeki QR + konum ön doğrulamasından
             # geçmişse puantaj ekranına alınır. Doğrudan login URL'sinden personel girişi açılmaz.
             if not active_record:
