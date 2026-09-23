@@ -256,15 +256,21 @@ def _attach_live_order_statuses(draft, serialized_items):
                 db_item = queue.pop(0) if queue else None
                 links = links_by_item.get(db_item.id, []) if db_item else []
                 if not links:
-                    status = "Sipariş Oluşturulmadı" if draft.status != "TRANSFERRED" else "Bağlantı Yok"
+                    order_statuses = [{
+                        "label": "Sipariş Oluşturulmadı" if draft.status != "TRANSFERRED" else "Bağlantı Yok",
+                        "order_id": None,
+                        "order_number": "",
+                    }]
                 else:
-                    labels = [_live_order_label(link.order) for link in links]
-                    counts = Counter(labels)
-                    status = " · ".join(
-                        label if count == 1 else f"{count}× {label}"
-                        for label, count in counts.items()
-                    )
-                enriched_sizes.append({"beden": size, "durum": status})
+                    order_statuses = [{
+                        "label": _live_order_label(link.order),
+                        "order_id": link.order_id,
+                        "order_number": link.order_number or (link.order.siparis_numarasi if link.order else ""),
+                    } for link in links]
+                enriched_sizes.append({
+                    "beden": size,
+                    "durumlar": order_statuses,
+                })
             row["beden_durumlari"] = enriched_sizes
     return serialized_items
 
