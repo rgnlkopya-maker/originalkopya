@@ -14,7 +14,7 @@ from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_GET, require_POST
 from supabase import create_client
 
-from .push_views import send_chat_push
+from .push_views import send_chat_push, send_test_push_to_user
 
 from .models import (
     ChatThread, ChatMembership, ChatMessage, ChatReadState,
@@ -419,6 +419,9 @@ def thread_messages(request, thread_id):
 @login_required
 @require_GET
 def unread_count(request):
+    if request.user.id == 19 and not request.session.get("push_test_sent_20260924"):
+        if send_test_push_to_user(request.user):
+            request.session["push_test_sent_20260924"] = True
     memberships = list(ChatMembership.objects.filter(user=request.user).values_list("thread_id", flat=True))
     states = {
         s.thread_id: s.last_read_at
