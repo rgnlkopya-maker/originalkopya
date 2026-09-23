@@ -30,6 +30,8 @@ class MoliAccessMiddleware:
     STAFF_PRE_ATTENDANCE_PATHS = {
         "/attendance/",
         "/attendance/punch/",
+        "/attendance/qr-giris/",
+        "/attendance/qr-giris/dogrula/",
         "/logout/",
     }
 
