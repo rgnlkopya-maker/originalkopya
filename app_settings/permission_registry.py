@@ -19,6 +19,7 @@ FEATURE_GROUPS = [
         ("orders.mark_printed", "Çıktı Alındı İşaretle", "can_create_orders"),
         ("orders.toggle_active", "Sipariş Aktif / Pasif", "can_edit_orders"),
         ("orders.price_history", "Geçmiş Fiyat Sorgula", "can_view_reports"),
+        ("orders.view_folio_link", "Siparişte Föy Bağlantısını Gör", "can_view_folio_link"),
     ]),
     ("Sipariş İçindeki Hassas Alanlar", [
         ("orders.view_sale_price", "Satış Fiyatını Gör", "can_view_reports"),
