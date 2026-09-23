@@ -249,11 +249,12 @@ class ShowroomOrderLink(models.Model):
     """Föyden oluşturulan gerçek siparişi kaynağına bağlar."""
     draft=models.ForeignKey(ShowroomDraft,on_delete=models.CASCADE,related_name="order_links")
     draft_item=models.ForeignKey(ShowroomDraftItem,on_delete=models.SET_NULL,null=True,blank=True,related_name="order_links")
-    order=models.OneToOneField(Order,on_delete=models.CASCADE,related_name="showroom_link")
+    order=models.OneToOneField(Order,on_delete=models.SET_NULL,null=True,blank=True,related_name="showroom_link")
+    order_number=models.CharField(max_length=20,blank=True,default="")
     created_at=models.DateTimeField(auto_now_add=True)
 
     class Meta:
         ordering=["id"]
 
     def __str__(self):
-        return f"Föy #{self.draft_id} -> {self.order.siparis_numarasi}"
+        return f"Föy #{self.draft_id} -> {self.order_number or (self.order.siparis_numarasi if self.order else 'Silindi')}"
