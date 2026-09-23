@@ -705,6 +705,13 @@ def order_detail(request, pk):
 
     is_manager = request.user.groups.filter(name__in=["patron", "mudur"]).exists()
 
+    source_folio = None
+    if has_access(request.user, "can_view_folio_link"):
+        try:
+            source_folio = order.showroom_link.draft
+        except Exception:
+            source_folio = None
+
     # 📌 Geri dönüş URL'si (liste, rapor veya QR için akıllı sistem)
     return_url = request.GET.get("return_url")  # 1) URL’de varsa kullan
 
@@ -729,6 +736,7 @@ def order_detail(request, pk):
             "change_events": change_events,
             "change_count": len(change_events),
             "is_manager": is_manager,
+            "source_folio": source_folio,
             "uretim_kayitlari": uretim_kayitlari,
             "back_url": return_url,
             "current_status": current_status,
