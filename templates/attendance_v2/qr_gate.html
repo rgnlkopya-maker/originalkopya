@@ -3,12 +3,15 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>MoliApp | Puantaj Doğrulama</title>
+  <title>MoliApp | Puantaj Giriş</title>
   <style>
     *{box-sizing:border-box}body{margin:0;min-height:100vh;display:grid;place-items:center;background:#f3f5f8;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;color:#202735;padding:20px}
     .card{width:min(440px,100%);background:#fff;border:1px solid #e1e6ed;border-radius:18px;padding:28px;box-shadow:0 12px 35px rgba(20,30,50,.08);text-align:center}
-    .brand{font-family:Georgia,"Times New Roman",serif;font-size:34px;letter-spacing:5px;margin-bottom:5px}.sub{font-size:11px;letter-spacing:2px;color:#8a94a6;margin-bottom:26px}
-    h1{font-size:21px;margin:0 0 9px}.desc{font-size:13px;line-height:1.55;color:#697386;margin-bottom:20px}.status{border:1px solid #e4e8ee;background:#f8f9fb;border-radius:12px;padding:13px;font-size:13px;margin-bottom:14px}
+    .brand{font-family:Georgia,"Times New Roman",serif;font-size:34px;letter-spacing:5px;margin-bottom:5px}.sub{font-size:11px;letter-spacing:2px;color:#8a94a6;margin-bottom:24px}
+    h1{font-size:21px;margin:0 0 9px}.desc{font-size:13px;line-height:1.55;color:#697386;margin-bottom:18px}
+    .field{margin-bottom:10px}.field input{width:100%;height:46px;border:1px solid #d9dee7;border-radius:10px;padding:0 12px;font-size:14px;outline:none}
+    .field input:focus{border-color:#8d9ab0;box-shadow:0 0 0 3px rgba(90,105,130,.08)}
+    .status{border:1px solid #e4e8ee;background:#f8f9fb;border-radius:12px;padding:12px;font-size:12px;margin:12px 0}
     .btn{width:100%;border:0;border-radius:10px;background:#303634;color:#fff;padding:13px 16px;font-weight:750;font-size:14px;cursor:pointer}.btn:disabled{opacity:.55;cursor:not-allowed}
     .note{margin-top:14px;font-size:11px;color:#8a94a6;line-height:1.45}
   </style>
@@ -17,32 +20,38 @@
   <main class="card">
     <div class="brand">MOLİ</div>
     <div class="sub">PUANTAJ</div>
-    <h1>İşyeri konumu doğrulanıyor</h1>
-    <p class="desc">Bu QR yalnızca puantaj giriş sürecini başlatır. Konum doğrulandıktan sonra kullanıcı adı ve şifreniz istenir.</p>
-    <div id="status" class="status">Konum izni bekleniyor…</div>
-    <button id="verifyBtn" class="btn" type="button">Konumu Doğrula</button>
-    <div class="note">Konum doğrulaması başarısızsa MoliApp personel girişi açılmaz.</div>
+    <h1>Mesai giriş / çıkış</h1>
+    <p class="desc">Kullanıcı bilgilerinizi girin. Konum, QR ve kayıtlı telefon aynı ekranda doğrulanır.</p>
+    <div class="field"><input id="username" autocomplete="username" placeholder="Kullanıcı adı"></div>
+    <div class="field"><input id="password" type="password" autocomplete="current-password" placeholder="Şifre"></div>
+    <div id="status" class="status">Konum doğrulaması girişe basınca yapılacak.</div>
+    <button id="verifyBtn" class="btn" type="button">Doğrula ve Devam Et</button>
+    <div class="note">Konum iznine izin verin. Kayıtlı olmayan telefonlarda cihaz onayı istenir.</div>
   </main>
   <script>
   (function(){
     const btn=document.getElementById('verifyBtn'),status=document.getElementById('status');
+    const username=document.getElementById('username'),password=document.getElementById('password');
     async function verify(){
+      if(!username.value.trim()||!password.value){status.textContent='Kullanıcı adı ve şifreyi girin.';return;}
       btn.disabled=true; status.textContent='Konum alınıyor…';
       if(!navigator.geolocation){status.textContent='Bu cihaz konum doğrulamasını desteklemiyor.';btn.disabled=false;return;}
       navigator.geolocation.getCurrentPosition(async pos=>{
         const body=new FormData();
         body.append('latitude',pos.coords.latitude);
         body.append('longitude',pos.coords.longitude);
+        body.append('username',username.value.trim());
+        body.append('password',password.value);
         body.append('token','{{ qr_token|escapejs }}');
         body.append('csrfmiddlewaretoken','{{ csrf_token }}');
         try{
           const response=await fetch('{{ verify_url }}',{method:'POST',body,credentials:'same-origin'});
           const data=await response.json();
-          status.textContent=data.message||'Konum doğrulanamadı.';
+          status.textContent=data.message||'Doğrulama başarısız.';
           if(data.ok){window.location.href=data.redirect;return;}
           btn.disabled=false;
         }catch(e){
-          status.textContent='Konum doğrulama sırasında bağlantı hatası oluştu.';
+          status.textContent='Doğrulama sırasında bağlantı hatası oluştu.';
           btn.disabled=false;
         }
       },()=>{
@@ -51,7 +60,7 @@
       },{enableHighAccuracy:true,timeout:12000,maximumAge:0});
     }
     btn.addEventListener('click',verify);
-    verify();
+    password.addEventListener('keydown',e=>{if(e.key==='Enter')verify();});
   })();
   </script>
 </body>
