@@ -29,6 +29,7 @@ DEVICE_COOKIE_MAX_AGE = 60 * 60 * 24 * 365 * 3
 QR_ENTRY_SESSION_KEY = "moli_attendance_qr_verified_at"
 QR_ENTRY_TTL_MINUTES = 5
 QR_SIGNING_SALT = "moli-attendance-workplace-qr"
+QR_LOGIN_PERMIT_SALT = "moli-attendance-login-permit"
 
 
 def _attendance_qr_token():
@@ -51,6 +52,21 @@ def qr_entry_permit_valid(request):
         return timezone.now() - verified_at <= timedelta(minutes=QR_ENTRY_TTL_MINUTES)
     except (TypeError, ValueError):
         request.session.pop(QR_ENTRY_SESSION_KEY, None)
+        return False
+
+
+def make_qr_login_permit():
+    return signing.TimestampSigner(salt=QR_LOGIN_PERMIT_SALT).sign("qr-login")
+
+
+def qr_login_permit_valid(token):
+    try:
+        value = signing.TimestampSigner(salt=QR_LOGIN_PERMIT_SALT).unsign(
+            token or "",
+            max_age=QR_ENTRY_TTL_MINUTES * 60,
+        )
+        return value == "qr-login"
+    except (signing.BadSignature, signing.SignatureExpired):
         return False
 
 
@@ -242,10 +258,11 @@ def attendance_qr_gate_verify(request):
     request.session.modified = True
     login_url = reverse("login")
     next_url = reverse("attendance_scan")
+    qr_permit = make_qr_login_permit()
     return JsonResponse({
         "ok": True,
         "message": f"İşyeri konumu doğrulandı · {location_name}",
-        "redirect": f"{login_url}?{urlencode({'next': next_url})}",
+        "redirect": f"{login_url}?{urlencode({'next': next_url, 'qrp': qr_permit})}",
     })
 
 
