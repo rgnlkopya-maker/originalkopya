@@ -13,6 +13,7 @@ import qrcode
 from django.conf import settings
 from django.core import signing
 from django.contrib import messages
+from django.contrib.auth import authenticate, login
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib.auth.models import User
 from django.http import HttpResponse, JsonResponse
@@ -236,6 +237,12 @@ def attendance_qr_gate_verify(request):
     if not _valid_attendance_qr_token(token):
         return JsonResponse({"ok": False, "message": "Geçersiz puantaj QR kodu."}, status=403)
 
+    username = (request.POST.get("username") or "").strip()
+    password = request.POST.get("password") or ""
+    user = authenticate(request, username=username, password=password)
+    if user is None:
+        return JsonResponse({"ok": False, "message": "Kullanıcı adı veya şifre hatalı."}, status=403)
+
     workplace = WorkplaceSettings.get_solo()
     if not workplace.active_locations():
         return JsonResponse({"ok": False, "message": "İşyeri konumu henüz tanımlanmadı."}, status=400)
@@ -255,26 +262,26 @@ def attendance_qr_gate_verify(request):
             "message": f"İşyeri konumu doğrulanamadı. İzin verilen alan {allowed_radius} metre; en yakın işyerine yaklaşık {distance} m uzaktasınız.",
         }, status=403)
 
+    # Kayıtlı telefon varsa QR ekranında da cihazı doğrula.
+    existing = AttendanceDevice.objects.filter(user=user).first()
+    if existing and existing.status == "approved":
+        raw_device = request.COOKIES.get(DEVICE_COOKIE, "")
+        if not raw_device or _hash_device_token(raw_device) != existing.token_hash:
+            return JsonResponse({
+                "ok": False,
+                "message": "Bu hesap puantaj için başka bir telefona kayıtlı. Müdür/Patron cihaz kaydını sıfırlamalı.",
+            }, status=403)
+
+    # QR, konum ve şifre aynı istekte doğrulandı. Artık ara login sayfası yok.
+    login(request, user)
     request.session[QR_ENTRY_SESSION_KEY] = timezone.now().isoformat()
     request.session.modified = True
-    login_url = reverse("login")
-    next_url = reverse("attendance_scan")
-    qr_permit = make_qr_login_permit()
-    response = JsonResponse({
+
+    return JsonResponse({
         "ok": True,
-        "message": f"İşyeri konumu doğrulandı · {location_name}",
-        "redirect": f"{login_url}?{urlencode({'next': next_url, 'qrp': qr_permit})}",
+        "message": f"Doğrulandı · {location_name}",
+        "redirect": reverse("attendance_scan"),
     })
-    response.set_cookie(
-        QR_LOGIN_COOKIE,
-        qr_permit,
-        max_age=QR_ENTRY_TTL_MINUTES * 60,
-        secure=True,
-        httponly=True,
-        samesite="Lax",
-        path="/",
-    )
-    return response
 
 
 @login_required
