@@ -17,7 +17,7 @@ from supabase import create_client
 from .models import (
     ChatThread, ChatMembership, ChatMessage, ChatReadState,
     ChatMessageEdit, ChatReaction, ChatStar, ChatHiddenMessage,
-    ChatPoll, ChatPollOption, ChatPollVote, UserProfile,
+    ChatPoll, ChatPollOption, ChatPollVote,
 )
 
 
@@ -51,44 +51,6 @@ def _thread_title(thread, viewer):
     if not other:
         return "Sohbet"
     return other.user.get_full_name() or other.user.username
-
-
-def _touch_presence(user):
-    UserProfile.objects.update_or_create(
-        user=user,
-        defaults={"last_seen_chat": timezone.now()},
-    )
-
-
-def _presence_for_thread(thread, viewer):
-    if thread.thread_type != "direct":
-        return None
-    other = (
-        ChatMembership.objects.filter(thread=thread)
-        .exclude(user=viewer)
-        .select_related("user", "user__userprofile")
-        .first()
-    )
-    if not other:
-        return None
-    last_seen = getattr(getattr(other.user, "userprofile", None), "last_seen_chat", None)
-    if not last_seen:
-        return {"online": False, "label": "Son görülme yok"}
-
-    now = timezone.now()
-    delta = now - last_seen
-    local = timezone.localtime(last_seen)
-    if delta.total_seconds() <= 90:
-        return {"online": True, "label": "Çevrimiçi"}
-
-    today = timezone.localdate()
-    if local.date() == today:
-        label = f"Son görülme bugün {local:%H:%M}"
-    elif local.date() == today - timezone.timedelta(days=1):
-        label = f"Son görülme dün {local:%H:%M}"
-    else:
-        label = f"Son görülme {local:%d.%m.%Y %H:%M}"
-    return {"online": False, "label": label}
 
 
 def _can_send(user, thread):
@@ -192,6 +154,36 @@ def _serialize_message(message, viewer):
             "body": "Mesaj silindi" if original.is_deleted else (original.body or original.media_name or "Medya"),
         }
 
+    seen_by = []
+    if message.sender_id == viewer.id:
+        reader_ids = list(
+            ChatMembership.objects.filter(thread=message.thread)
+            .exclude(user_id=message.sender_id)
+            .values_list("user_id", flat=True)
+        )
+        if reader_ids:
+            states = {
+                state.user_id: state.last_read_at
+                for state in ChatReadState.objects.filter(
+                    thread=message.thread,
+                    user_id__in=reader_ids,
+                    last_read_at__gte=message.created_at,
+                ).select_related("user")
+            }
+            users = {
+                u.id: u
+                for u in User.objects.filter(id__in=states.keys())
+            }
+            for uid in reader_ids:
+                state = states.get(uid)
+                user_obj = users.get(uid)
+                if state and user_obj:
+                    seen_by.append({
+                        "id": uid,
+                        "name": user_obj.get_full_name() or user_obj.username,
+                        "seen_at": timezone.localtime(state).strftime("%d.%m.%Y %H:%M"),
+                    })
+
     return {
         "id": message.id,
         "sender_id": message.sender_id,
@@ -214,6 +206,8 @@ def _serialize_message(message, viewer):
         "time": timezone.localtime(message.created_at).strftime("%H:%M"),
         "mine": message.sender_id == viewer.id,
         "read": _message_read_by_all(message) if message.sender_id == viewer.id else False,
+        "seen_by": seen_by,
+        "seen_count": len(seen_by),
         "starred": starred,
         "hidden": hidden,
         "reactions": [
@@ -229,7 +223,6 @@ def _serialize_message(message, viewer):
 @login_required
 @never_cache
 def messages_home(request, thread_id=None):
-    _touch_presence(request.user)
     memberships = list(
         ChatMembership.objects.filter(user=request.user)
         .select_related("thread")
@@ -417,7 +410,6 @@ def thread_messages(request, thread_id):
     return JsonResponse({
         "ok": True,
         "pinned_message_id": thread.pinned_message_id,
-        "presence": _presence_for_thread(thread, request.user),
         "messages": [_serialize_message(m, request.user) for m in messages],
     })
 
