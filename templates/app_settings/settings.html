@@ -128,7 +128,7 @@ document.addEventListener('DOMContentLoaded',function(){
   sel.addEventListener('change',function(){
     const o=this.options[this.selectedIndex];uid.value=o.value;save.disabled=!o.value;
     if(!o.value){card.classList.remove('show');setNames([]);return;}
-    names.forEach(n=>{const cb=form.querySelector('[name="'+n+'"]');const key=n.replaceAll('_','-');cb.checked=o.dataset[key]==='1';});
+    names.forEach(n=>{const cb=form.querySelector('[name="'+n+'"]');const key=n.replaceAll('_','-');cb.checked=o.getAttribute('data-'+key)==='1';});
     const displayName=o.dataset.name||o.dataset.username||'Kullanıcı';
     avatar.textContent=(displayName.trim()[0]||'U').toUpperCase();userName.textContent=displayName;userSub.textContent='@'+(o.dataset.username||'');card.classList.add('show');refresh();
   });
