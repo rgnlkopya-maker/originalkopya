@@ -32,6 +32,8 @@ class MoliAccessMiddleware:
         "/attendance/punch/",
         "/attendance/qr-giris/",
         "/attendance/qr-giris/dogrula/",
+        "/mesai-sonrasi-konum/",
+        "/mesai-sonrasi-konum/dogrula/",
         "/logout/",
     }
 
@@ -77,6 +79,16 @@ class MoliAccessMiddleware:
 
             if not active_record and request.path not in self.STAFF_PRE_ATTENDANCE_PATHS:
                 return redirect(reverse("attendance_scan"))
+
+            # 19:00 sonrası normal personel her yeni sayfa/QR geçişinde
+            # işyerindeki konumunu yeniden doğrulamalı.
+            if active_record and timezone.localtime().time() >= time(19, 0):
+                if request.path not in self.STAFF_PRE_ATTENDANCE_PATHS:
+                    one_request_ok = request.session.pop("moli_after_hours_one_request_ok", False)
+                    if not one_request_ok:
+                        request.session["moli_after_hours_next"] = request.get_full_path()
+                        request.session.modified = True
+                        return redirect(reverse("staff_after_hours_location_gate"))
 
         # Mesai başladıktan sonra mevcut MoliApp yetkileri aynen uygulanır.
         feature_key = feature_for_path(request.path)
