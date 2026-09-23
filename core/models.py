@@ -590,6 +590,7 @@ class ChatThread(models.Model):
     direct_key = models.CharField(max_length=80, blank=True, null=True, unique=True)
     created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name="created_chat_threads")
     only_admins_can_message = models.BooleanField(default=False)
+    pinned_message = models.ForeignKey("ChatMessage", on_delete=models.SET_NULL, null=True, blank=True, related_name="pinned_in_threads")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True, db_index=True)
 
@@ -626,6 +627,13 @@ class ChatMessage(models.Model):
     )
     linked_path = models.CharField(max_length=500, blank=True, default="")
     linked_label = models.CharField(max_length=180, blank=True, default="")
+    reply_to = models.ForeignKey("self", on_delete=models.SET_NULL, null=True, blank=True, related_name="replies")
+    forwarded_from = models.ForeignKey("self", on_delete=models.SET_NULL, null=True, blank=True, related_name="forwards")
+    media_url = models.URLField(blank=True, default="")
+    media_type = models.CharField(max_length=20, blank=True, default="")
+    media_name = models.CharField(max_length=255, blank=True, default="")
+    edited_at = models.DateTimeField(null=True, blank=True)
+    deleted_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True, db_index=True)
     is_deleted = models.BooleanField(default=False)
 
@@ -648,3 +656,73 @@ class ChatReadState(models.Model):
 
     def __str__(self):
         return f"{self.thread_id} · {self.user.username}"
+
+
+class ChatMessageEdit(models.Model):
+    message = models.ForeignKey(ChatMessage, on_delete=models.CASCADE, related_name="edit_history")
+    edited_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
+    old_body = models.TextField(blank=True, default="")
+    edited_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["edited_at", "id"]
+
+
+class ChatReaction(models.Model):
+    message = models.ForeignKey(ChatMessage, on_delete=models.CASCADE, related_name="reactions")
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="chat_reactions")
+    emoji = models.CharField(max_length=16)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=["message", "user", "emoji"], name="unique_chat_reaction")
+        ]
+
+
+class ChatStar(models.Model):
+    message = models.ForeignKey(ChatMessage, on_delete=models.CASCADE, related_name="stars")
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="chat_stars")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=["message", "user"], name="unique_chat_star")
+        ]
+
+
+class ChatHiddenMessage(models.Model):
+    message = models.ForeignKey(ChatMessage, on_delete=models.CASCADE, related_name="hidden_for")
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="hidden_chat_messages")
+    hidden_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=["message", "user"], name="unique_chat_hidden_message")
+        ]
+
+
+class ChatPoll(models.Model):
+    message = models.OneToOneField(ChatMessage, on_delete=models.CASCADE, related_name="poll")
+    question = models.CharField(max_length=300)
+    multiple_choice = models.BooleanField(default=False)
+
+
+class ChatPollOption(models.Model):
+    poll = models.ForeignKey(ChatPoll, on_delete=models.CASCADE, related_name="options")
+    text = models.CharField(max_length=200)
+    position = models.PositiveSmallIntegerField(default=0)
+
+    class Meta:
+        ordering = ["position", "id"]
+
+
+class ChatPollVote(models.Model):
+    option = models.ForeignKey(ChatPollOption, on_delete=models.CASCADE, related_name="votes")
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="chat_poll_votes")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=["option", "user"], name="unique_chat_poll_option_user")
+        ]
