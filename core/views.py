@@ -904,64 +904,6 @@ def staff_login_location_verify(request):
 
 
 @login_required
-def staff_session_location_gate(request):
-    if _is_management_login(request.user):
-        return redirect("/")
-    return render(request, "registration/custom_login.html", {
-        "location_required": True,
-        "location_verify_url": reverse("staff_session_location_verify"),
-    })
-
-
-@login_required
-@csrf_exempt
-@require_POST
-def staff_session_location_verify(request):
-    from attendance.models import AttendanceRecord, WorkplaceSettings
-    from attendance.views import _nearest_workplace
-
-    if _is_management_login(request.user):
-        return JsonResponse({"ok": True, "redirect": "/"})
-
-    record = AttendanceRecord.objects.filter(
-        user=request.user,
-        work_date=timezone.localdate(),
-        status="worked",
-        check_in__isnull=False,
-        check_out__isnull=True,
-    ).first()
-    if not record:
-        return JsonResponse({"ok": False, "message": "Aktif mesai kaydınız bulunmuyor."}, status=403)
-
-    try:
-        lat = float(request.POST.get("latitude"))
-        lon = float(request.POST.get("longitude"))
-    except (TypeError, ValueError):
-        return JsonResponse({"ok": False, "message": "Konum doğrulanamadı. MoliApp erişimine izin verilmedi."}, status=400)
-
-    workplace = WorkplaceSettings.get_solo()
-    if not workplace.active_locations():
-        return JsonResponse({"ok": False, "message": "İşyeri konumu tanımlı değil."}, status=400)
-
-    location_name, distance = _nearest_workplace(workplace, lat, lon)
-    allowed_radius = workplace.overtime_radius_m
-    if distance is None or distance > allowed_radius:
-        return JsonResponse({
-            "ok": False,
-            "message": f"İşyeri konumu doğrulanamadı. En yakın işyerine yaklaşık {distance} m uzaktasınız."
-        }, status=403)
-
-    request.session["moli_after_hours_location_verified_at"] = timezone.now().isoformat()
-    next_url = request.session.pop("moli_after_hours_next", "/")
-    request.session.modified = True
-    return JsonResponse({
-        "ok": True,
-        "redirect": next_url,
-        "message": f"Konum doğrulandı · {location_name}",
-    })
-
-
-@login_required
 def update_stage(request, pk):
     order = get_object_or_404(Order, pk=pk)
 
