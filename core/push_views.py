@@ -1,5 +1,10 @@
+import base64
+import hashlib
 import json
 from concurrent.futures import ThreadPoolExecutor
+
+from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.primitives.asymmetric import ec
 
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
@@ -10,13 +15,38 @@ from pywebpush import WebPushException, webpush
 from .models import ChatMembership, PushSubscription
 
 
+P256_ORDER = int("FFFFFFFF00000000FFFFFFFFFFFFFFFFBCE6FAADA7179E84F3B9CAC2FC632551", 16)
+
+
+def _vapid_keys():
+    configured_public = getattr(settings, "VAPID_PUBLIC_KEY", "")
+    configured_private = getattr(settings, "VAPID_PRIVATE_KEY", "")
+    if configured_public and configured_private:
+        return configured_public, configured_private
+    digest = hashlib.sha256(("moliapp-web-push:" + settings.SECRET_KEY).encode("utf-8")).digest()
+    private_value = (int.from_bytes(digest, "big") % (P256_ORDER - 1)) + 1
+    key = ec.derive_private_key(private_value, ec.SECP256R1())
+    private_pem = key.private_bytes(
+        serialization.Encoding.PEM,
+        serialization.PrivateFormat.PKCS8,
+        serialization.NoEncryption(),
+    ).decode("ascii")
+    raw_public = key.public_key().public_bytes(
+        serialization.Encoding.X962,
+        serialization.PublicFormat.UncompressedPoint,
+    )
+    public_b64 = base64.urlsafe_b64encode(raw_public).rstrip(b"=").decode("ascii")
+    return public_b64, private_pem
+
+
 @login_required
 @require_GET
 def push_config(request):
+    public_key, private_key = _vapid_keys()
     return JsonResponse({
         "ok": True,
-        "enabled": bool(getattr(settings, "VAPID_PUBLIC_KEY", "")),
-        "public_key": getattr(settings, "VAPID_PUBLIC_KEY", ""),
+        "enabled": bool(public_key and private_key),
+        "public_key": public_key,
         "subscribed": PushSubscription.objects.filter(user=request.user).exists(),
     })
 
@@ -92,8 +122,7 @@ self.addEventListener('notificationclick', function(event) {
 
 
 def send_chat_push(message):
-    public_key = getattr(settings, "VAPID_PUBLIC_KEY", "")
-    private_key = getattr(settings, "VAPID_PRIVATE_KEY", "")
+    public_key, private_key = _vapid_keys()
     if not public_key or not private_key:
         return
 
