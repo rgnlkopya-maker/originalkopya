@@ -580,3 +580,71 @@ class AuditLog(models.Model):
     def __str__(self):
         actor = self.username_snapshot or "Bilinmeyen kullanıcı"
         return f"{actor} · {self.action} · {self.created_at:%d.%m.%Y %H:%M}"
+
+
+class ChatThread(models.Model):
+    TYPE_CHOICES = (("direct", "Birebir"), ("group", "Grup"))
+
+    thread_type = models.CharField(max_length=10, choices=TYPE_CHOICES, default="direct", db_index=True)
+    name = models.CharField(max_length=160, blank=True, default="")
+    direct_key = models.CharField(max_length=80, blank=True, null=True, unique=True)
+    created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name="created_chat_threads")
+    only_admins_can_message = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True, db_index=True)
+
+    class Meta:
+        ordering = ["-updated_at", "-id"]
+
+    def __str__(self):
+        return self.name or self.direct_key or f"Sohbet {self.pk}"
+
+
+class ChatMembership(models.Model):
+    thread = models.ForeignKey(ChatThread, on_delete=models.CASCADE, related_name="memberships")
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="chat_memberships")
+    is_admin = models.BooleanField(default=False)
+    joined_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=["thread", "user"], name="unique_chat_thread_user")
+        ]
+
+    def __str__(self):
+        return f"{self.thread_id} · {self.user.username}"
+
+
+class ChatMessage(models.Model):
+    thread = models.ForeignKey(ChatThread, on_delete=models.CASCADE, related_name="messages")
+    sender = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name="sent_chat_messages")
+    body = models.TextField()
+    importance = models.CharField(
+        max_length=10,
+        choices=(("normal", "Normal"), ("important", "Önemli"), ("urgent", "Acil")),
+        default="normal",
+    )
+    linked_path = models.CharField(max_length=500, blank=True, default="")
+    linked_label = models.CharField(max_length=180, blank=True, default="")
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
+    is_deleted = models.BooleanField(default=False)
+
+    class Meta:
+        ordering = ["created_at", "id"]
+
+    def __str__(self):
+        return f"{self.thread_id} · {self.sender_id} · {self.created_at}"
+
+
+class ChatReadState(models.Model):
+    thread = models.ForeignKey(ChatThread, on_delete=models.CASCADE, related_name="read_states")
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="chat_read_states")
+    last_read_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=["thread", "user"], name="unique_chat_read_state")
+        ]
+
+    def __str__(self):
+        return f"{self.thread_id} · {self.user.username}"
