@@ -586,7 +586,7 @@ def showroom_edit_save(request,draft_id):
     draft=get_object_or_404(ShowroomDraft,id=draft_id,created_by=request.user,status__in=["PENDING","APPROVED","TRANSFERRED"])
     try: payload=json.loads(request.body.decode("utf-8") or "{}")
     except (json.JSONDecodeError,UnicodeDecodeError): return JsonResponse({"ok":False,"message":"Geçersiz veri."},status=400)
-    customer_id=payload.get("customer_id") or None; order_taken_by=str(payload.get("order_taken_by") or "").strip()[:120]; order_type=str(payload.get("order_type") or "SERI").strip().upper(); raw_items=payload.get("items") or []; raw_payments=payload.get("payments") or []
+    customer_id=payload.get("customer_id") or None; order_taken_by=str(payload.get("order_taken_by") or "").strip()[:120]; order_type=str(payload.get("order_type") or "SERI").strip().upper(); raw_items=payload.get("items") or []; raw_payments=payload.get("payments") or []; pricing_operations=_normalize_pricing_operations(payload.get("pricing_operations") or []); raw_target=payload.get("folio_adjustment_target"); folio_adjustment_target=None if raw_target in (None,"") else max(Decimal("0"),_decimal(raw_target,"0"))
     if not isinstance(raw_items,list) or not raw_items: return JsonResponse({"ok":False,"message":"Föyde en az bir ürün olmalı."},status=400)
     if not isinstance(raw_payments,list): return JsonResponse({"ok":False,"message":"Tahsilat verisi geçersiz."},status=400)
     customer=Musteri.objects.filter(pk=customer_id).first() if customer_id else None
