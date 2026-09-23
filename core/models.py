@@ -26,6 +26,7 @@ class UserProfile(models.Model):
 
     # 👇 Bunu ekliyoruz!
     last_seen_orders = models.DateTimeField(default=timezone.now)
+    last_seen_chat = models.DateTimeField(null=True, blank=True, db_index=True)
 
     def __str__(self):
         return f"{self.user.username} ({self.gorev})"
