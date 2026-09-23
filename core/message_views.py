@@ -6,6 +6,7 @@ from django.http import JsonResponse, HttpResponseForbidden
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.views.decorators.http import require_GET, require_POST
+from django.views.decorators.cache import never_cache
 
 from .models import ChatThread, ChatMembership, ChatMessage, ChatReadState
 
@@ -50,6 +51,7 @@ def _serialize_message(message, viewer):
 
 
 @login_required
+@never_cache
 def messages_home(request, thread_id=None):
     memberships = list(
         ChatMembership.objects
@@ -60,7 +62,8 @@ def messages_home(request, thread_id=None):
     active_thread = None
     active_membership = None
 
-    if thread_id:
+    force_list = request.GET.get("list") == "1"
+    if thread_id and not force_list:
         active_thread = get_object_or_404(ChatThread, pk=thread_id)
         active_membership = _membership_or_403(request.user, active_thread)
         if not active_membership:
