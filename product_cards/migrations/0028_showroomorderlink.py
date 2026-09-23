@@ -18,22 +18,6 @@ CREATE TABLE IF NOT EXISTS product_cards_showroomorderlink (
 );
 ALTER TABLE product_cards_showroomorderlink
     ADD COLUMN IF NOT EXISTS draft_item_id bigint NULL;
-
-DO $
-BEGIN
-    IF NOT EXISTS (
-        SELECT 1 FROM pg_constraint
-        WHERE conrelid = 'product_cards_showroomorderlink'::regclass
-          AND conname = 'product_cards_showroomorderlink_draft_item_fk'
-    ) THEN
-        ALTER TABLE product_cards_showroomorderlink
-        ADD CONSTRAINT product_cards_showroomorderlink_draft_item_fk
-        FOREIGN KEY (draft_item_id)
-        REFERENCES product_cards_showroomdraftitem(id)
-        DEFERRABLE INITIALLY DEFERRED;
-    END IF;
-END $;
-
 CREATE INDEX IF NOT EXISTS product_cards_showroomorderlink_draft_id_idx
     ON product_cards_showroomorderlink (draft_id);
 CREATE INDEX IF NOT EXISTS product_cards_showroomorderlink_draft_item_id_idx
