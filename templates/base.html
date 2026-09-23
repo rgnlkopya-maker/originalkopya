@@ -100,7 +100,7 @@ document.addEventListener('DOMContentLoaded',function(){
   status();
 });
 </script>
-<script>
+{% if user|is_management %}<script>
 window.addEventListener('load',function(){
   setTimeout(function(){
     try{
@@ -125,7 +125,7 @@ window.addEventListener('load',function(){
     }catch(e){}
   },150);
 });
-</script>
+</script>{% endif %}
 <script>document.addEventListener('DOMContentLoaded',function(){const b=document.getElementById('staffAccessSwitch');if(!b)return;b.addEventListener('click',async function(){const willClose=b.classList.contains('is-on');if(willClose&&!confirm('Personel erişimini kapatmak istiyor musunuz? Mesaisi açık personeller de MoliApp ekranlarına erişemeyecek.'))return;const token=document.querySelector('input[name="csrfmiddlewaretoken"]')?.value||'';try{const r=await fetch(b.dataset.url,{method:'POST',headers:{'X-CSRFToken':token,'X-Requested-With':'XMLHttpRequest'}});const d=await r.json();if(!r.ok||!d.ok){alert(d.message||'İşlem yapılamadı.');return}b.classList.toggle('is-on',d.enabled);b.classList.toggle('is-off',!d.enabled);b.title=d.enabled?'Personel erişimi açık':'Personel erişimi kapalı';const i=b.querySelector('i');i.className='bi '+(d.enabled?'bi-toggle-on':'bi-toggle-off')}catch(e){alert('Erişim şalteri güncellenemedi.')}})});</script>
 <script>
 document.addEventListener('DOMContentLoaded',function(){
