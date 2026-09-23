@@ -14,6 +14,8 @@ from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_GET, require_POST
 from supabase import create_client
 
+from .push_views import send_chat_push
+
 from .models import (
     ChatThread, ChatMembership, ChatMessage, ChatReadState,
     ChatMessageEdit, ChatReaction, ChatStar, ChatHiddenMessage,
@@ -384,6 +386,7 @@ def send_message(request, thread_id):
     ChatReadState.objects.update_or_create(
         thread=thread, user=request.user, defaults={"last_read_at": timezone.now()}
     )
+    send_chat_push(message)
     return JsonResponse({"ok": True, "message": _serialize_message(message, request.user)})
 
 
