@@ -17,7 +17,7 @@ from supabase import create_client
 from .models import (
     ChatThread, ChatMembership, ChatMessage, ChatReadState,
     ChatMessageEdit, ChatReaction, ChatStar, ChatHiddenMessage,
-    ChatPoll, ChatPollOption, ChatPollVote,
+    ChatPoll, ChatPollOption, ChatPollVote, UserProfile,
 )
 
 
@@ -51,6 +51,44 @@ def _thread_title(thread, viewer):
     if not other:
         return "Sohbet"
     return other.user.get_full_name() or other.user.username
+
+
+def _touch_presence(user):
+    UserProfile.objects.update_or_create(
+        user=user,
+        defaults={"last_seen_chat": timezone.now()},
+    )
+
+
+def _presence_for_thread(thread, viewer):
+    if thread.thread_type != "direct":
+        return None
+    other = (
+        ChatMembership.objects.filter(thread=thread)
+        .exclude(user=viewer)
+        .select_related("user", "user__userprofile")
+        .first()
+    )
+    if not other:
+        return None
+    last_seen = getattr(getattr(other.user, "userprofile", None), "last_seen_chat", None)
+    if not last_seen:
+        return {"online": False, "label": "Son görülme yok"}
+
+    now = timezone.now()
+    delta = now - last_seen
+    local = timezone.localtime(last_seen)
+    if delta.total_seconds() <= 90:
+        return {"online": True, "label": "Çevrimiçi"}
+
+    today = timezone.localdate()
+    if local.date() == today:
+        label = f"Son görülme bugün {local:%H:%M}"
+    elif local.date() == today - timezone.timedelta(days=1):
+        label = f"Son görülme dün {local:%H:%M}"
+    else:
+        label = f"Son görülme {local:%d.%m.%Y %H:%M}"
+    return {"online": False, "label": label}
 
 
 def _can_send(user, thread):
@@ -191,6 +229,7 @@ def _serialize_message(message, viewer):
 @login_required
 @never_cache
 def messages_home(request, thread_id=None):
+    _touch_presence(request.user)
     memberships = list(
         ChatMembership.objects.filter(user=request.user)
         .select_related("thread")
@@ -358,6 +397,7 @@ def send_message(request, thread_id):
 @login_required
 @require_GET
 def thread_messages(request, thread_id):
+    _touch_presence(request.user)
     thread = get_object_or_404(ChatThread, pk=thread_id)
     if not _membership_or_403(request.user, thread):
         return JsonResponse({"ok": False}, status=403)
@@ -377,6 +417,7 @@ def thread_messages(request, thread_id):
     return JsonResponse({
         "ok": True,
         "pinned_message_id": thread.pinned_message_id,
+        "presence": _presence_for_thread(thread, request.user),
         "messages": [_serialize_message(m, request.user) for m in messages],
     })
 
@@ -384,6 +425,7 @@ def thread_messages(request, thread_id):
 @login_required
 @require_GET
 def unread_count(request):
+    _touch_presence(request.user)
     memberships = list(ChatMembership.objects.filter(user=request.user).values_list("thread_id", flat=True))
     states = {
         s.thread_id: s.last_read_at
