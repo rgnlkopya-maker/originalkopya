@@ -9,7 +9,7 @@ from django.shortcuts import redirect, render
 
 from attendance.models import AttendanceRecord, WorkplaceSettings
 from .access import has_access, has_full_access
-from .models import SystemSettings, UserAccess
+from .models import SystemSettings, UserAccess, UserFavorite
 
 User = get_user_model()
 
@@ -135,4 +135,39 @@ def toggle_staff_access(request):
         "ok": True,
         "enabled": system.staff_access_enabled,
         "message": "Personel erişimi açıldı." if system.staff_access_enabled else "Personel erişimi kapatıldı.",
+    })
+
+
+@login_required
+def favorites_list(request):
+    rows = list(
+        UserFavorite.objects.filter(user=request.user)
+        .values("id", "title", "path")
+    )
+    return JsonResponse({"ok": True, "favorites": rows})
+
+
+@login_required
+@require_POST
+def favorite_toggle(request):
+    title = (request.POST.get("title") or "").strip()[:180]
+    path = (request.POST.get("path") or "").strip()[:500]
+
+    if not path.startswith("/") or path.startswith("//"):
+        return JsonResponse({"ok": False, "message": "Geçersiz sayfa yolu."}, status=400)
+    if path.startswith("/logout") or path.startswith("/admin"):
+        return JsonResponse({"ok": False, "message": "Bu sayfa favorilere eklenemez."}, status=400)
+
+    existing = UserFavorite.objects.filter(user=request.user, path=path).first()
+    if existing:
+        existing.delete()
+        return JsonResponse({"ok": True, "favorited": False})
+
+    if not title:
+        title = "Favori Sayfa"
+    favorite = UserFavorite.objects.create(user=request.user, title=title, path=path)
+    return JsonResponse({
+        "ok": True,
+        "favorited": True,
+        "favorite": {"id": favorite.id, "title": favorite.title, "path": favorite.path},
     })
