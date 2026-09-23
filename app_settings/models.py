@@ -81,3 +81,26 @@ class UserAccess(models.Model):
 def create_user_access(sender, instance, created, **kwargs):
     if created:
         UserAccess.objects.get_or_create(user=instance)
+
+
+class UserFavorite(models.Model):
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="moli_favorites",
+    )
+    title = models.CharField(max_length=180)
+    path = models.CharField(max_length=500)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["created_at", "id"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["user", "path"],
+                name="unique_user_favorite_path",
+            )
+        ]
+
+    def __str__(self):
+        return f"{self.user.username} · {self.title}"
