@@ -90,7 +90,7 @@ class PerformanceMonitorMiddleware:
 
         if getattr(request.user, "is_authenticated", False) and not path.startswith(SKIP_PREFIXES):
             record_sample(path, request.method, response.status_code, elapsed, timer.count, timer.ms)
-            if elapsed >= 750:
+            if elapsed >= 100:
                 print(
                     f"[PERF] {request.method} {request.get_full_path()} "
                     f"status={response.status_code} total={elapsed:.1f}ms "
