@@ -73,7 +73,10 @@ def _movement_payload(event):
 
 def calculate_finance_result(order):
     """Sevkiyat snapshot + parasal hareketler + operasyonel sevkiyat durumunu birlestirir."""
-    snapshot = getattr(order, "shipment_financial_snapshot", None)
+    if hasattr(order, "_shipment_snapshot_prefetched"):
+        snapshot = order._shipment_snapshot_prefetched
+    else:
+        snapshot = getattr(order, "shipment_financial_snapshot", None)
     if not snapshot:
         return {
             "snapshot": None,
@@ -95,10 +98,13 @@ def calculate_finance_result(order):
     is_final = True
     sale_before_return = snapshot_sale
 
-    events = (
-        order.events.filter(stage__in=[FINANCE_STAGE, "sevkiyat_durum"])
-        .order_by("timestamp", "id")
-    )
+    if hasattr(order, "_finance_events_prefetched"):
+        events = order._finance_events_prefetched
+    else:
+        events = (
+            order.events.filter(stage__in=[FINANCE_STAGE, "sevkiyat_durum"])
+            .order_by("timestamp", "id")
+        )
     movements = []
 
     for event in events:
