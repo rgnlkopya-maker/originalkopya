@@ -32,6 +32,7 @@ class Reminder(models.Model):
     )
     target_gorev = models.CharField(max_length=30, blank=True, default="")
     repeat = models.CharField(max_length=10, choices=REPEAT_CHOICES, default="none")
+    notify_interval_minutes = models.PositiveSmallIntegerField(default=15)
     created_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,
@@ -114,6 +115,7 @@ class ReminderState(models.Model):
     reminder = models.ForeignKey(Reminder, on_delete=models.CASCADE, related_name="states")
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="reminder_states")
     last_completed_at = models.DateTimeField(null=True, blank=True)
+    last_notified_at = models.DateTimeField(null=True, blank=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
