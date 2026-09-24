@@ -22,7 +22,7 @@ from django.core.paginator import Paginator
 from django.db import connections, close_old_connections
 from django.db.models import (
     Q, F, Max, Sum, Count, Value, Case, When,
-    Subquery, OuterRef, DecimalField, ExpressionWrapper, CharField, DateTimeField
+    Subquery, OuterRef, DecimalField, ExpressionWrapper, CharField, DateTimeField, Prefetch
 )
 from django.db.models.functions import Coalesce
 from django.http import HttpResponse, JsonResponse, HttpResponseForbidden
@@ -3257,7 +3257,16 @@ def sevkiyat_finans_tablosu(request):
     # ✅ Order queryset
     qs = (
         Order.objects
-        .select_related("musteri")
+        .select_related("musteri", "shipment_financial_snapshot")
+        .prefetch_related(
+            Prefetch(
+                "events",
+                queryset=OrderEvent.objects.filter(
+                    stage__in=["finans_hareketi", "sevkiyat_durum"]
+                ).order_by("timestamp", "id"),
+                to_attr="_finance_events_prefetched",
+            )
+        )
         .annotate(
             latest_stage=Subquery(latest_event.values("stage")),
             latest_value=Subquery(latest_event.values("value")),
@@ -3299,9 +3308,17 @@ def sevkiyat_finans_tablosu(request):
         )
     )
 
+    # Toplu yuklenen sevkiyat snapshotlarini finance helper'a hazirla.
+    orders = list(qs)
+    for o in orders:
+        try:
+            o._shipment_snapshot_prefetched = o.shipment_financial_snapshot
+        except Exception:
+            o._shipment_snapshot_prefetched = None
+
     # ✅ toplamlar
-    total_ciro = sum([o.satis_fiyati or Decimal("0.00") for o in qs])
-    total_maliyet = sum([o.toplam_maliyet_calc or Decimal("0.00") for o in qs])
+    total_ciro = sum([o.satis_fiyati or Decimal("0.00") for o in orders])
+    total_maliyet = sum([o.toplam_maliyet_calc or Decimal("0.00") for o in orders])
     total_kar = total_ciro - total_maliyet
 
     kar_yuzde = Decimal("0.00")
@@ -3309,7 +3326,7 @@ def sevkiyat_finans_tablosu(request):
         kar_yuzde = (total_kar / total_ciro) * 100
 
     context = {
-        "orders": qs,
+        "orders": orders,
         "total_ciro": total_ciro,
         "total_maliyet": total_maliyet,
         "total_kar": total_kar,
