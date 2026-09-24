@@ -93,7 +93,7 @@
 
 <script src="{% static 'core/shipping_operations.js' %}"></script>
 
-{% if is_manager %}
+{% if is_manager and request.resolver_match.url_name == 'order_detail' %}
 <script>
 document.addEventListener('DOMContentLoaded', function () {
     let box = document.querySelector('.cost-section');
