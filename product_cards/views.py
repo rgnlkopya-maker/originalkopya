@@ -123,14 +123,36 @@ def sync_unshipped_order_costs(product_code, product_cost_tl):
     return updated
 
 
-def recalculate_approved_product_costs():
+def recalculate_approved_product_costs(usd_try=None):
     approved_codes = set(ProductCost.objects.filter(is_active=True).values_list("urun_kodu", flat=True))
     if not approved_codes:
         return 0
+    if usd_try is None:
+        latest = ExchangeRate.objects.order_by("-rate_date", "-fetched_at").first()
+        usd_try = latest.usd_try if latest else Decimal("1")
+    usd_try = Decimal(usd_try)
     cards = ProductCard.objects.select_related("urun").prefetch_related("materials__material").filter(urun__kod__in=approved_codes)
     updated = 0
     for card in cards:
-        total = card.toplam_maliyet.quantize(Decimal("0.01"))
+        def tl(amount, currency):
+            amount = Decimal(amount or 0)
+            return amount * usd_try if currency == "USD" else amount
+        material_total = sum(
+            (
+                Decimal(usage.miktar or 0)
+                * tl(usage.material.birim_maliyet, usage.material.birim_maliyet_para_birimi)
+                for usage in card.materials.all()
+            ),
+            Decimal("0"),
+        )
+        total = (
+            material_total
+            + tl(card.finansman_maliyeti, card.finansman_para_birimi)
+            + tl(card.nakis_maliyeti, card.nakis_para_birimi)
+            + tl(card.genel_gider, card.genel_gider_para_birimi)
+            + tl(card.iscilik_maliyeti, card.iscilik_para_birimi)
+            + tl(card.paketleme_maliyeti, card.paketleme_para_birimi)
+        ).quantize(Decimal("0.01"))
         ProductCost.objects.filter(urun_kodu=card.urun.kod, is_active=True).update(maliyet=total, para_birimi="TRY")
         sync_unshipped_order_costs(card.urun.kod, total)
         updated += 1
@@ -157,14 +179,16 @@ def fetch_tcmb_usd_rate():
 
 
 def ensure_daily_rate():
+    # Sayfa acilisi kur cekmez. 09:20 otomatik gorevinin yazdigi son gecerli
+    # kur kullanilir; gorev basarisizsa onceki son kayitla calismaya devam edilir.
     today = timezone.localdate()
     rate = ExchangeRate.objects.filter(rate_date=today).first()
     if rate:
         return rate, None
-    try:
-        return fetch_tcmb_usd_rate(), None
-    except Exception as exc:
-        return ExchangeRate.objects.order_by("-rate_date").first(), str(exc)
+    latest = ExchangeRate.objects.order_by("-rate_date", "-fetched_at").first()
+    if latest:
+        return latest, "Bugunun TCMB kuru henuz otomatik guncellenmedi; son gecerli kur kullaniliyor."
+    return None, "Kayitli TCMB kuru bulunamadi."
 
 
 @login_required
