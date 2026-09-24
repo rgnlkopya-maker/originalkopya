@@ -2,7 +2,7 @@ from app_settings.access import data_scope_value
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
 from django.db import close_old_connections
-from django.db.models import Q, OuterRef, Subquery, DateTimeField, Count
+from django.db.models import Q, OuterRef, Subquery, DateTimeField
 from django.shortcuts import render
 from django.utils import timezone
 from django.views.decorators.cache import never_cache
@@ -104,15 +104,7 @@ def order_list(request):
     if kalite=="acik": qs=qs.filter(quality_issues__durum="ACIK").distinct()
     elif kalite=="var": qs=qs.filter(quality_issues__isnull=False).distinct()
     elif kalite=="yok": qs=qs.filter(quality_issues__isnull=True)
-    counts = base_qs.aggregate(
-        aktif=Count("id", filter=Q(is_active=True)),
-        pasif=Count("id", filter=Q(is_active=False)),
-        sevke=Count("id", filter=Q(is_active=True, latest_stage="sevkiyat_durum", latest_value="gonderildi")),
-    )
-    aktif_count = counts["aktif"]
-    pasif_count = counts["pasif"]
-    sevke_count = counts["sevke"]
-    filtered_count = qs.count()
+    aktif_count=base_qs.filter(is_active=True).count(); pasif_count=base_qs.filter(is_active=False).count(); sevke_count=base_qs.filter(is_active=True,latest_stage="sevkiyat_durum",latest_value="gonderildi").count(); filtered_count=qs.count()
     paginator=Paginator(qs,50); page_obj=paginator.get_page(request.GET.get("page"))
     for order in page_obj:
         if not order.latest_stage or not order.latest_value: order.formatted_status="-"; continue
