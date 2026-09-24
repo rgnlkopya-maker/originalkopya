@@ -7,6 +7,7 @@ from django.contrib.auth.models import User
 from django.conf import settings
 from django.http import HttpResponseForbidden, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
 from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_GET, require_POST
@@ -114,6 +115,12 @@ def reminder_toggle(request, reminder_id):
 def reminder_pending_api(request):
     rows = []
     for reminder, occurrence, state in pending_for_user(request.user):
+        notified_at = state.last_notified_at if state else None
+        notification_key = (
+            notified_at.isoformat()
+            if notified_at and notified_at >= occurrence
+            else occurrence.isoformat()
+        )
         rows.append({
             "id": reminder.id,
             "title": reminder.title,
@@ -121,6 +128,8 @@ def reminder_pending_api(request):
             "occurrence": timezone.localtime(occurrence).strftime("%d.%m.%Y %H:%M"),
             "repeat": reminder.get_repeat_display(),
             "notify_interval_minutes": reminder.notify_interval_minutes,
+            "notification_key": notification_key,
+            "complete_url": reverse("reminder_complete", args=[reminder.id]),
         })
     return JsonResponse({"ok": True, "reminders": rows})
 
