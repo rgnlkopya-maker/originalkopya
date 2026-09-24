@@ -22,22 +22,24 @@
         <div class="col-md-4" id="teamField" style="display:none"><label class="form-label">Ekip / Görev</label><select name="target_gorev" class="form-select">{% for value,label in team_choices %}{% if value != 'yok' %}<option value="{{ value }}">{{ label }}</option>{% endif %}{% endfor %}</select></div>
         <div class="col-md-4" id="userField" style="display:none"><label class="form-label">Personel</label><select name="target_user" class="form-select">{% for u in users %}<option value="{{ u.id }}">{{ u.get_full_name|default:u.username }}</option>{% endfor %}</select></div>
         <div class="col-md-4"><label class="form-label">Tekrar</label><select name="repeat" class="form-select"><option value="none">Tek Sefer</option><option value="daily">Her Gün</option><option value="weekly">Her Hafta</option><option value="monthly">Her Ay</option></select></div>
-        <div class="col-12"><button class="btn btn-dark rounded-pill px-4">Hatırlatma Oluştur</button></div>
+        <div class="col-md-4"><label class="form-label">Tamamlanana kadar bildir</label><select name="notify_interval_minutes" class="form-select"><option value="5">5 dakikada bir</option><option value="10">10 dakikada bir</option><option value="15" selected>15 dakikada bir</option><option value="30">30 dakikada bir</option><option value="60">1 saatte bir</option><option value="120">2 saatte bir</option></select></div>
+        <div class="col-12"><div class="text-muted small mb-2">Zamanı geldiğinde hedef kullanıcıya push gönderilir. Kullanıcı tamamlayana kadar seçilen aralıkla tekrar eder.</div><button class="btn btn-dark rounded-pill px-4">Hatırlatma Oluştur</button></div>
       </form>
     </div>
   </div>
 
   <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
     <div class="table-responsive"><table class="table align-middle mb-0">
-      <thead class="table-light"><tr><th>Başlık</th><th>Zaman</th><th>Hedef</th><th>Tekrar</th><th>Durum</th><th class="text-end">İşlem</th></tr></thead>
+      <thead class="table-light"><tr><th>Başlık</th><th>Zaman</th><th>Hedef</th><th>Tekrar</th><th>Bildirim</th><th>Durum</th><th class="text-end">İşlem</th></tr></thead>
       <tbody>{% for r in reminders %}<tr>
         <td><strong>{{ r.title }}</strong>{% if r.message %}<br><span class="text-muted small">{{ r.message|truncatechars:70 }}</span>{% endif %}</td>
         <td>{{ r.due_at|date:"d.m.Y H:i" }}</td>
         <td>{% if r.target_type == 'all' %}Herkes{% elif r.target_type == 'user' %}{{ r.target_user.get_full_name|default:r.target_user.username }}{% else %}{{ r.target_gorev|title }}{% endif %}</td>
         <td>{{ r.get_repeat_display }}</td>
+        <td>{{ r.notify_interval_minutes }} dk</td>
         <td>{% if r.is_active %}<span class="badge text-bg-success">Aktif</span>{% else %}<span class="badge text-bg-secondary">Pasif</span>{% endif %}</td>
         <td class="text-end"><form method="post" action="{% url 'reminder_toggle' r.id %}">{% csrf_token %}<button class="btn btn-sm btn-outline-secondary">{% if r.is_active %}Durdur{% else %}Aktifleştir{% endif %}</button></form></td>
-      </tr>{% empty %}<tr><td colspan="6" class="text-center text-muted py-5">Henüz hatırlatma yok.</td></tr>{% endfor %}</tbody>
+      </tr>{% empty %}<tr><td colspan="7" class="text-center text-muted py-5">Henüz hatırlatma yok.</td></tr>{% endfor %}</tbody>
     </table></div>
   </div>
 </div>
