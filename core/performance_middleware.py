@@ -52,14 +52,22 @@ class _DBTimer:
     def __init__(self):
         self.count = 0
         self.ms = 0.0
+        self.query_stats = {}
 
     def __call__(self, execute, sql, params, many, context):
         started = time.perf_counter()
         try:
             return execute(sql, params, many, context)
         finally:
+            elapsed_ms = (time.perf_counter() - started) * 1000
             self.count += 1
-            self.ms += (time.perf_counter() - started) * 1000
+            self.ms += elapsed_ms
+            normalized = " ".join((sql or "").split())
+            if len(normalized) > 350:
+                normalized = normalized[:350] + "..."
+            stat = self.query_stats.setdefault(normalized, {"count": 0, "ms": 0.0})
+            stat["count"] += 1
+            stat["ms"] += elapsed_ms
 
 
 class PerformanceMonitorMiddleware:
@@ -89,4 +97,14 @@ class PerformanceMonitorMiddleware:
                     f"db={timer.ms:.1f}ms queries={timer.count}",
                     flush=True,
                 )
+                top_queries = sorted(
+                    timer.query_stats.items(),
+                    key=lambda item: (item[1]["count"], item[1]["ms"]),
+                    reverse=True,
+                )[:15]
+                for sql, stat in top_queries:
+                    print(
+                        f"[PERF-SQL] count={stat['count']} total_db={stat['ms']:.1f}ms sql={sql}",
+                        flush=True,
+                    )
         return response
