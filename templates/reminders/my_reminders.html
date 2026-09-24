@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container py-4" style="max-width:900px">
+  <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-4">
+    <div>
+      <div class="text-muted small">HATIRLATMALAR</div>
+      <h2 class="fw-bold mb-1">Hatırlatmalarım</h2>
+      <div class="text-muted">Yalnızca size, ekibinize veya herkese gönderilmiş bekleyen hatırlatmalar görünür.</div>
+    </div>
+  </div>
+
+  {% for item in rows %}
+  <div class="card border-0 shadow-sm rounded-4 mb-3">
+    <div class="card-body p-4">
+      <div class="d-flex justify-content-between gap-3 flex-wrap">
+        <div>
+          <h5 class="fw-bold mb-1">{{ item.reminder.title }}</h5>
+          {% if item.reminder.message %}<div class="mb-2">{{ item.reminder.message }}</div>{% endif %}
+          <div class="text-muted small">
+            {{ item.occurrence|date:"d.m.Y H:i" }}
+            {% if item.reminder.repeat != 'none' %} · {{ item.reminder.get_repeat_display }}{% endif %}
+            · Tamamlanana kadar {{ item.reminder.notify_interval_minutes }} dk arayla bildirim
+          </div>
+        </div>
+        <form method="post" action="{% url 'reminder_complete' item.reminder.id %}">
+          {% csrf_token %}
+          <input type="hidden" name="next" value="{% url 'my_reminders' %}">
+          <button class="btn btn-dark rounded-pill px-4">Tamamlandı</button>
+        </form>
+      </div>
+    </div>
+  </div>
+  {% empty %}
+  <div class="card border-0 shadow-sm rounded-4">
+    <div class="card-body text-center text-muted py-5">Bekleyen hatırlatmanız yok.</div>
+  </div>
+  {% endfor %}
+</div>
+{% endblock %}
