@@ -77,26 +77,38 @@ document.addEventListener('DOMContentLoaded',function(){
   const isIOS=/iphone|ipad|ipod/i.test(navigator.userAgent);
   const isStandalone=window.matchMedia('(display-mode: standalone)').matches||window.navigator.standalone===true;
   function b64ToUint8(v){const pad='='.repeat((4-v.length%4)%4),base64=(v+pad).replace(/-/g,'+').replace(/_/g,'/'),raw=atob(base64);return Uint8Array.from([...raw].map(c=>c.charCodeAt(0)))}
+  function sameKey(a,b){if(!a||!b||a.byteLength!==b.byteLength)return false;const x=new Uint8Array(a),y=new Uint8Array(b);for(let i=0;i<x.length;i++)if(x[i]!==y[i])return false;return true}
+  async function ensureCurrentSubscription(reg,cfg){
+    let sub=await reg.pushManager.getSubscription();
+    const wanted=b64ToUint8(cfg.public_key);
+    const existingKey=sub&&sub.options?sub.options.applicationServerKey:null;
+    if(sub&&!sameKey(existingKey,wanted)){
+      try{await fetch('{% url "push_unsubscribe" %}',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json','X-CSRFToken':csrf},body:JSON.stringify({endpoint:sub.endpoint})});}catch(e){}
+      await sub.unsubscribe();
+      sub=null;
+    }
+    if(!sub)sub=await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:wanted});
+    return sub;
+  }
   async function status(){
     if(!('serviceWorker' in navigator)||!('PushManager' in window)||!('Notification' in window)){label.textContent='Bildirim desteklenmiyor';btn.disabled=true;return}
     try{
+      if(Notification.permission!=='granted')return;
+      const cfg=await fetch('{% url "push_config" %}',{credentials:'same-origin'}).then(r=>r.json());
+      if(!cfg.enabled)return;
       const reg=await navigator.serviceWorker.register('/sw.js',{scope:'/'});
-      const sub=await reg.pushManager.getSubscription();
-      if(sub&&Notification.permission==='granted'){
-        // Bu tarayıcıdaki mevcut aboneliği her girişte aktif kullanıcıyla eşleştir.
-        // Aynı cihazda farklı kullanıcıyla giriş yapılmışsa eski kullanıcıda kalmasını önler.
-        const r=await fetch('{% url "push_subscribe" %}',{
-          method:'POST',
-          credentials:'same-origin',
-          headers:{'Content-Type':'application/json','X-CSRFToken':csrf},
-          body:JSON.stringify(sub.toJSON())
-        });
-        const d=await r.json();
-        if(r.ok&&d.ok){
-          label.textContent='Bildirimler Açık';
-          btn.dataset.enabled='1';
-          btn.querySelector('i').className='bi bi-bell-fill';
-        }
+      const sub=await ensureCurrentSubscription(reg,cfg);
+      const r=await fetch('{% url "push_subscribe" %}',{
+        method:'POST',
+        credentials:'same-origin',
+        headers:{'Content-Type':'application/json','X-CSRFToken':csrf},
+        body:JSON.stringify(sub.toJSON())
+      });
+      const d=await r.json();
+      if(r.ok&&d.ok){
+        label.textContent='Bildirimler Açık';
+        btn.dataset.enabled='1';
+        btn.querySelector('i').className='bi bi-bell-fill';
       }
     }catch(e){}
   }
@@ -109,8 +121,7 @@ document.addEventListener('DOMContentLoaded',function(){
       const permission=await Notification.requestPermission();
       if(permission!=='granted'){alert('Bildirim izni verilmedi.');return}
       const reg=await navigator.serviceWorker.register('/sw.js',{scope:'/'});
-      let sub=await reg.pushManager.getSubscription();
-      if(!sub)sub=await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:b64ToUint8(cfg.public_key)});
+      const sub=await ensureCurrentSubscription(reg,cfg);
       const r=await fetch('{% url "push_subscribe" %}',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json','X-CSRFToken':csrf},body:JSON.stringify(sub.toJSON())});
       const d=await r.json();if(!r.ok||!d.ok)throw new Error(d.message||'Bildirim kaydı yapılamadı.');
       label.textContent='Bildirimler Açık';btn.dataset.enabled='1';alert('MoliApp bildirimleri açıldı. Tarayıcı kapalıyken de yeni mesaj bildirimi gelebilir.');
