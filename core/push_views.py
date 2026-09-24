@@ -176,7 +176,7 @@ def send_chat_push(message):
                 f"[push] user={sub.user_id} subscription={sub.pk} "
                 f"status={status} error={exc} response={body}"
             )
-            if status in (404, 410):
+            if status in (403, 404, 410):
                 PushSubscription.objects.filter(pk=sub.pk).delete()
         except Exception as exc:
             print(
