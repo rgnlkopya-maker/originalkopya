@@ -121,6 +121,66 @@ self.addEventListener('notificationclick', function(event) {
     return response
 
 
+def _deliver_push_subscription(sub, payload, private_key, claims):
+    try:
+        webpush(
+            subscription_info={
+                "endpoint": sub.endpoint,
+                "keys": {"p256dh": sub.p256dh, "auth": sub.auth},
+            },
+            data=payload,
+            vapid_private_key=private_key,
+            vapid_claims=claims,
+            timeout=5,
+        )
+        return True
+    except WebPushException as exc:
+        response = getattr(exc, "response", None)
+        status = getattr(response, "status_code", None)
+        body = ""
+        try:
+            body = (getattr(response, "text", "") or "")[:500]
+        except Exception:
+            body = ""
+        print(
+            f"[push] user={sub.user_id} subscription={sub.pk} "
+            f"status={status} error={exc} response={body}"
+        )
+        if status in (403, 404, 410):
+            PushSubscription.objects.filter(pk=sub.pk).delete()
+        return False
+    except Exception as exc:
+        print(
+            f"[push] user={sub.user_id} subscription={sub.pk} "
+            f"unexpected_error={type(exc).__name__}: {exc}"
+        )
+        return False
+
+
+def send_push_to_user(user, title, body, url="/", tag="moli-reminder"):
+    public_key, private_key = _vapid_keys()
+    if not public_key or not private_key or not user:
+        return 0
+
+    payload = json.dumps({
+        "title": title or "MoliApp",
+        "body": body or "Hatırlatmanız var.",
+        "url": url or "/",
+        "tag": tag or "moli-reminder",
+    }, ensure_ascii=False)
+    claims = {"sub": getattr(settings, "VAPID_SUBJECT", "mailto:bildirim@moliapp.local")}
+    subscriptions = list(PushSubscription.objects.filter(user=user))
+    if not subscriptions:
+        return 0
+
+    with ThreadPoolExecutor(max_workers=min(8, len(subscriptions))) as pool:
+        results = list(pool.map(
+            lambda sub: _deliver_push_subscription(sub, payload, private_key, claims),
+            subscriptions,
+        ))
+    return sum(1 for ok in results if ok)
+
+
 def send_chat_push(message):
     public_key, private_key = _vapid_keys()
     if not public_key or not private_key:
