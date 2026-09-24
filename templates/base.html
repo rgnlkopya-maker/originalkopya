@@ -46,7 +46,7 @@
 {% if user|can:'can_view_costs' %}<li><a href="{% url 'product_cost_list' %}" class="dropdown-item {% if request.resolver_match.url_name == 'product_cost_list' %}active{% endif %}"><i class="bi bi-coin"></i>Maliyetler</a></li>{% endif %}
 {% if user|can:'can_manage_users' %}<li><a href="{% url 'user_management' %}" class="dropdown-item {% if request.resolver_match.url_name == 'user_management' %}active{% endif %}"><i class="bi bi-people"></i>Ekipler</a></li>{% endif %}
 {% if user|can:'can_view_assistant' %}<li><a href="{% url 'ai_assistant' %}" class="dropdown-item {% if request.resolver_match.url_name == 'ai_assistant' %}active{% endif %}"><i class="bi bi-robot"></i>Asistan</a></li>{% endif %}
-</ul></div></div>{% if user.is_authenticated %}<div class="topbar-right"><a href="{% url 'messages_home' %}" class="message-menu-btn" title="Mesajlar" aria-label="Mesajlar"><i class="bi bi-chat-dots"></i><span id="messageUnreadBadge" class="message-badge"></span></a><div class="dropdown menu-dropdown"><button id="favoriteMenuButton" class="favorite-menu-btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="Favorilerim" aria-label="Favorilerim"><i class="bi bi-star"></i></button><div class="dropdown-menu dropdown-menu-end favorite-dropdown" id="favoriteDropdown"><button type="button" class="favorite-current" id="favoriteCurrentToggle"><i class="bi bi-star"></i><span>Bu sayfayı favorilere ekle</span></button><div class="favorite-title">Favorilerim</div><div class="favorite-list" id="favoriteList"><div class="favorite-empty">Favoriler yükleniyor…</div></div></div></div><div class="dropdown menu-dropdown"><button class="user-chip dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false"><i class="bi bi-person-circle"></i><span class="user-name-desktop">{{ user.get_full_name|default:user.username }}</span><span class="user-name-mobile">{{ user.get_full_name|default:user.username }}</span></button><ul class="dropdown-menu dropdown-menu-end">{% if can_manage_reminders %}<li><a class="dropdown-item" href="{% url 'reminder_management' %}"><i class="bi bi-bell"></i>Hatırlatmalar</a></li>{% endif %}{% if user|is_management %}<li><a class="dropdown-item" href="{% url 'system_health' %}"><i class="bi bi-activity"></i>Sistem Sağlığı</a></li>{% endif %}<li><button type="button" class="dropdown-item" id="pushEnableButton"><i class="bi bi-bell-fill"></i><span>Bildirimleri Aç</span></button></li><li><a class="dropdown-item danger" href="{% url 'logout' %}"><i class="bi bi-box-arrow-right"></i>Çıkış</a></li></ul></div>{% if user|is_management %}{% staff_access_enabled as staff_switch_on %}{% staff_break_is_active as staff_break_on %}<button type="button" id="staffAccessSwitch" class="staff-switch-btn {% if staff_break_on and staff_switch_on %}is-break{% elif staff_switch_on %}is-on{% else %}is-off{% endif %}" title="{% if not staff_switch_on %}Personel erişimi manuel kapalı{% elif staff_break_on %}Otomatik mola kilidi aktif{% else %}Personel erişimi açık{% endif %}" aria-label="Personel erişim şalteri" data-url="{% url 'toggle_staff_access' %}"><i class="bi {% if staff_break_on and staff_switch_on %}bi-cup-hot{% elif staff_switch_on %}bi-toggle-on{% else %}bi-toggle-off{% endif %}"></i></button>{% endif %}</div>{% endif %}</div></nav>
+</ul></div></div>{% if user.is_authenticated %}<div class="topbar-right"><a href="{% url 'messages_home' %}" class="message-menu-btn" title="Mesajlar" aria-label="Mesajlar"><i class="bi bi-chat-dots"></i><span id="messageUnreadBadge" class="message-badge"></span></a><div class="dropdown menu-dropdown"><button id="favoriteMenuButton" class="favorite-menu-btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="Favorilerim" aria-label="Favorilerim"><i class="bi bi-star"></i></button><div class="dropdown-menu dropdown-menu-end favorite-dropdown" id="favoriteDropdown"><button type="button" class="favorite-current" id="favoriteCurrentToggle"><i class="bi bi-star"></i><span>Bu sayfayı favorilere ekle</span></button><div class="favorite-title">Favorilerim</div><div class="favorite-list" id="favoriteList"><div class="favorite-empty">Favoriler yükleniyor…</div></div></div></div><div class="dropdown menu-dropdown"><button class="user-chip dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false"><i class="bi bi-person-circle"></i><span class="user-name-desktop">{{ user.get_full_name|default:user.username }}</span><span class="user-name-mobile">{{ user.get_full_name|default:user.username }}</span></button><ul class="dropdown-menu dropdown-menu-end"><li><a class="dropdown-item" href="{% url 'my_reminders' %}"><i class="bi bi-bell"></i>Hatırlatmalarım</a></li>{% if user|is_management %}<li><a class="dropdown-item" href="{% url 'reminder_management' %}"><i class="bi bi-bell-fill"></i>Hatırlatmaları Yönet</a></li><li><a class="dropdown-item" href="{% url 'system_health' %}"><i class="bi bi-activity"></i>Sistem Sağlığı</a></li>{% endif %}<li><button type="button" class="dropdown-item" id="pushEnableButton"><i class="bi bi-bell-fill"></i><span>Bildirimleri Aç</span></button></li><li><a class="dropdown-item danger" href="{% url 'logout' %}"><i class="bi bi-box-arrow-right"></i>Çıkış</a></li></ul></div>{% if user|is_management %}{% staff_access_enabled as staff_switch_on %}{% staff_break_is_active as staff_break_on %}<button type="button" id="staffAccessSwitch" class="staff-switch-btn {% if staff_break_on and staff_switch_on %}is-break{% elif staff_switch_on %}is-on{% else %}is-off{% endif %}" title="{% if not staff_switch_on %}Personel erişimi manuel kapalı{% elif staff_break_on %}Otomatik mola kilidi aktif{% else %}Personel erişimi açık{% endif %}" aria-label="Personel erişim şalteri" data-url="{% url 'toggle_staff_access' %}"><i class="bi {% if staff_break_on and staff_switch_on %}bi-cup-hot{% elif staff_switch_on %}bi-toggle-on{% else %}bi-toggle-off{% endif %}"></i></button>{% endif %}</div>{% endif %}</div></nav>
 {% if request.resolver_match.url_name != 'order_list' and request.resolver_match.url_name != 'order_detail' %}<div class="page-nav no-print"><a href="{% url 'order_list' %}" class="page-nav-btn"><i class="bi bi-house-door"></i><span>Ana Sayfa</span></a><button type="button" class="page-nav-btn back" onclick="if(document.referrer){history.back()}else{window.location.href='{% url 'order_list' %}'}"><i class="bi bi-arrow-left"></i><span>Geri</span></button></div>{% endif %}
 {% if user.is_authenticated %}{% if not user|is_management %}{% if request.resolver_match.url_name == 'order_list' or request.resolver_match.url_name == 'order_detail' %}<div class="staff-watermark" aria-hidden="true"><div class="staff-watermark-grid" id="staffWatermarkGrid"></div></div>{% endif %}{% endif %}{% endif %}<div id="mainContent">{% block content %}{% endblock %}</div>{% include "reminders/popup.html" %}<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script><script src="https://code.jquery.com/jquery-3.6.0.min.js"></script><script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script><script>document.addEventListener('DOMContentLoaded',function(){const el=document.querySelector('.user-name-mobile');if(el){const p=el.textContent.trim().split(/\s+/).filter(Boolean);if(p.length>1){el.textContent=p[0]+' '+Array.from(p[p.length-1])[0]+'.';}}const grid=document.getElementById('staffWatermarkGrid');if(grid){const wmUser='{{ user.get_full_name|default:user.username|escapejs }}';function stamp(){const d=new Date(),pad=n=>String(n).padStart(2,'0'),label=wmUser+' · '+pad(d.getDate())+'.'+pad(d.getMonth()+1)+'.'+d.getFullYear()+' '+pad(d.getHours())+':'+pad(d.getMinutes());grid.innerHTML=Array.from({length:36},()=>'<div class="staff-watermark-item">'+label.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))+'</div>').join('')}stamp();setInterval(stamp,30000);}});</script>
 <script>
@@ -242,4 +242,72 @@ document.addEventListener('DOMContentLoaded',function(){
   loadFavorites();
 });
 </script>
-<script>document.addEventListener('DOMContentLoaded',function(){document.addEventListener('click',function(e){const link=e.target.closest('a[href]');if(!link)return;try{const u=new URL(link.href,window.location.origin);if(u.origin!==window.location.origin)return;if(/^\/order\/\d+\/$/.test(u.pathname)&&!u.searchParams.has('return_url')){u.searchParams.set('return_url',window.location.pathname+window.location.search);link.href=u.pathname+u.search}}catch(err){}},true);const search=document.getElementById('searchInput');if(search&&window.location.pathname==='/'){const key='moli-order-search:'+window.location.pathname+window.location.search;const saved=sessionStorage.getItem(key);if(saved&&!search.value){search.value=saved;setTimeout(()=>search.dispatchEvent(new Event('keyup',{bubbles:true})),0)}search.addEventListener('input',function(){sessionStorage.setItem(key,this.value)});const clear=document.getElementById('clearFilters');clear&&clear.addEventListener('click',function(){sessionStorage.removeItem(key)})}});</script>{% if due_reminder_count %}<script>document.addEventListener('DOMContentLoaded',function(){const el=document.getElementById('reminderModal');if(el){new bootstrap.Modal(el).show();}});</script>{% endif %}{% block extra_js %}{% endblock %}<input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}"></body></html>
+<script>document.addEventListener('DOMContentLoaded',function(){document.addEventListener('click',function(e){const link=e.target.closest('a[href]');if(!link)return;try{const u=new URL(link.href,window.location.origin);if(u.origin!==window.location.origin)return;if(/^\/order\/\d+\/$/.test(u.pathname)&&!u.searchParams.has('return_url')){u.searchParams.set('return_url',window.location.pathname+window.location.search);link.href=u.pathname+u.search}}catch(err){}},true);const search=document.getElementById('searchInput');if(search&&window.location.pathname==='/'){const key='moli-order-search:'+window.location.pathname+window.location.search;const saved=sessionStorage.getItem(key);if(saved&&!search.value){search.value=saved;setTimeout(()=>search.dispatchEvent(new Event('keyup',{bubbles:true})),0)}search.addEventListener('input',function(){sessionStorage.setItem(key,this.value)});const clear=document.getElementById('clearFilters');clear&&clear.addEventListener('click',function(){sessionStorage.removeItem(key)})}});</script>
+{% if user.is_authenticated %}
+<script>
+document.addEventListener('DOMContentLoaded',function(){
+  const modalEl=document.getElementById('reminderModal');
+  const bodyEl=document.getElementById('reminderModalBody');
+  if(!modalEl||!bodyEl)return;
+  const modal=bootstrap.Modal.getOrCreateInstance(modalEl);
+  const csrf=document.querySelector('input[name="csrfmiddlewaretoken"]')?.value||'';
+  const apiUrl="{% url 'reminder_pending_api' %}";
+
+  function esc(v){
+    return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+
+  async function completeReminder(url){
+    const form=new FormData();
+    form.append('csrfmiddlewaretoken',csrf);
+    form.append('next',window.location.pathname+window.location.search);
+    const r=await fetch(url,{method:'POST',body:form,credentials:'same-origin',headers:{'X-Requested-With':'XMLHttpRequest'}});
+    if(r.ok){
+      modal.hide();
+      await refreshReminders(true);
+    }
+  }
+
+  function render(rows){
+    bodyEl.innerHTML=rows.map(function(item){
+      const repeat=(item.repeat&&item.repeat!=='Tek Sefer')?' · '+esc(item.repeat):'';
+      const message=item.message?'<div class="mb-2">'+esc(item.message)+'</div>':'';
+      return '<div class="border rounded-4 p-3 mb-3 bg-light">'+
+        '<div class="fw-bold fs-6 mb-1">'+esc(item.title)+'</div>'+message+
+        '<div class="text-muted small mb-3">'+esc(item.occurrence)+repeat+' · '+esc(item.notify_interval_minutes)+' dk arayla tekrar</div>'+
+        '<button type="button" class="btn btn-dark rounded-pill px-4 reminder-complete-btn" data-url="'+esc(item.complete_url)+'">Tamamlandı</button>'+
+      '</div>';
+    }).join('');
+    bodyEl.querySelectorAll('.reminder-complete-btn').forEach(btn=>btn.addEventListener('click',()=>completeReminder(btn.dataset.url)));
+  }
+
+  async function refreshReminders(force=false){
+    if(document.hidden&&!force)return;
+    try{
+      const r=await fetch(apiUrl,{credentials:'same-origin',headers:{'X-Requested-With':'XMLHttpRequest'}});
+      if(!r.ok)return;
+      const data=await r.json();
+      const rows=data.reminders||[];
+      if(!rows.length){ if(force) modal.hide(); return; }
+
+      render(rows);
+      let shouldShow=force;
+      for(const item of rows){
+        const key='moli-reminder-popup:'+item.id;
+        const previous=sessionStorage.getItem(key);
+        if(previous!==item.notification_key){
+          sessionStorage.setItem(key,item.notification_key);
+          shouldShow=true;
+        }
+      }
+      if(shouldShow)modal.show();
+    }catch(e){}
+  }
+
+  refreshReminders();
+  setInterval(refreshReminders,60000);
+  document.addEventListener('visibilitychange',()=>{if(!document.hidden)refreshReminders();});
+});
+</script>
+{% endif %}
+{% block extra_js %}{% endblock %}<input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}"></body></html>
