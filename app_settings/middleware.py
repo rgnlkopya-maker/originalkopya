@@ -93,8 +93,21 @@ class MoliAccessMiddleware:
                 if request.path not in self.STAFF_PRE_ATTENDANCE_PATHS:
                     one_request_ok = request.session.pop("moli_after_hours_one_request_ok", False)
                     if not one_request_ok:
-                        request.session["moli_after_hours_next"] = request.get_full_path()
-                        request.session.modified = True
+                        # Yalnızca gerçek sayfa gezintileri dönüş adresini değiştirsin.
+                        # favicon, service worker ve arka plan API istekleri kullanıcının
+                        # gitmek istediği sayfayı ezmemeli.
+                        fetch_dest = request.headers.get("Sec-Fetch-Dest", "")
+                        accept = request.headers.get("Accept", "")
+                        is_page_navigation = (
+                            request.method == "GET"
+                            and (
+                                fetch_dest == "document"
+                                or (not fetch_dest and "text/html" in accept)
+                            )
+                        )
+                        if is_page_navigation:
+                            request.session["moli_after_hours_next"] = request.get_full_path()
+                            request.session.modified = True
                         return redirect(reverse("staff_after_hours_location_gate"))
 
         # Mesai başladıktan sonra mevcut MoliApp yetkileri aynen uygulanır.
