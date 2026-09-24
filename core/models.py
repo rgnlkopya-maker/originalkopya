@@ -89,7 +89,7 @@ class CustomerPricingRule(models.Model):
     )
     active = models.BooleanField(default=True)
     base_size = models.PositiveSmallIntegerField(default=38)
-    base_hip_max = models.DecimalField(max_digits=6, decimal_places=2, default=Decimal("102"))
+    base_hip_max = models.DecimalField(max_digits=6, decimal_places=2, default=Decimal("98"))
     hip_step = models.DecimalField(max_digits=6, decimal_places=2, default=Decimal("4"))
     size_step = models.PositiveSmallIntegerField(default=2)
     price_group_size = models.PositiveSmallIntegerField(default=3)
