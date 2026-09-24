@@ -79,7 +79,26 @@ document.addEventListener('DOMContentLoaded',function(){
   function b64ToUint8(v){const pad='='.repeat((4-v.length%4)%4),base64=(v+pad).replace(/-/g,'+').replace(/_/g,'/'),raw=atob(base64);return Uint8Array.from([...raw].map(c=>c.charCodeAt(0)))}
   async function status(){
     if(!('serviceWorker' in navigator)||!('PushManager' in window)||!('Notification' in window)){label.textContent='Bildirim desteklenmiyor';btn.disabled=true;return}
-    try{const reg=await navigator.serviceWorker.register('/sw.js',{scope:'/'});const sub=await reg.pushManager.getSubscription();if(sub&&Notification.permission==='granted'){label.textContent='Bildirimler Açık';btn.dataset.enabled='1';btn.querySelector('i').className='bi bi-bell-fill';}}catch(e){}
+    try{
+      const reg=await navigator.serviceWorker.register('/sw.js',{scope:'/'});
+      const sub=await reg.pushManager.getSubscription();
+      if(sub&&Notification.permission==='granted'){
+        // Bu tarayıcıdaki mevcut aboneliği her girişte aktif kullanıcıyla eşleştir.
+        // Aynı cihazda farklı kullanıcıyla giriş yapılmışsa eski kullanıcıda kalmasını önler.
+        const r=await fetch('{% url "push_subscribe" %}',{
+          method:'POST',
+          credentials:'same-origin',
+          headers:{'Content-Type':'application/json','X-CSRFToken':csrf},
+          body:JSON.stringify(sub.toJSON())
+        });
+        const d=await r.json();
+        if(r.ok&&d.ok){
+          label.textContent='Bildirimler Açık';
+          btn.dataset.enabled='1';
+          btn.querySelector('i').className='bi bi-bell-fill';
+        }
+      }
+    }catch(e){}
   }
   btn.addEventListener('click',async function(){
     if(btn.dataset.enabled==='1'){alert('MoliApp bildirimleri bu cihazda açık.');return}
