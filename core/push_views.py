@@ -165,11 +165,24 @@ def send_chat_push(message):
                 timeout=5,
             )
         except WebPushException as exc:
-            status = getattr(getattr(exc, "response", None), "status_code", None)
+            response = getattr(exc, "response", None)
+            status = getattr(response, "status_code", None)
+            body = ""
+            try:
+                body = (getattr(response, "text", "") or "")[:500]
+            except Exception:
+                body = ""
+            print(
+                f"[push] user={sub.user_id} subscription={sub.pk} "
+                f"status={status} error={exc} response={body}"
+            )
             if status in (404, 410):
                 PushSubscription.objects.filter(pk=sub.pk).delete()
-        except Exception:
-            pass
+        except Exception as exc:
+            print(
+                f"[push] user={sub.user_id} subscription={sub.pk} "
+                f"unexpected_error={type(exc).__name__}: {exc}"
+            )
 
     if subscriptions:
         with ThreadPoolExecutor(max_workers=min(8, len(subscriptions))) as pool:
