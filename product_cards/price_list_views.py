@@ -41,16 +41,20 @@ def fetch_price_list_tcmb_rates():
 
 
 def _ensure_price_rates(settings):
-    checked = settings.rate_checked_at
-    if checked and timezone.localdate(checked) == timezone.localdate() and settings.usd_try > 1 and settings.eur_try > 1:
+    # Sayfa acilisinda TCMB'ye gitme. Gunluk otomatik gorev aktif kuru
+    # PriceListSettings'e yazar; sayfalar gun boyunca bu kayitli kuru kullanir.
+    if settings.usd_try > 1 and settings.eur_try > 1:
         return None
-    try:
-        fetch_price_list_tcmb_rates(); settings.refresh_from_db(); return None
-    except Exception as exc:
-        latest = ExchangeRate.objects.order_by("-rate_date", "-fetched_at").first()
-        if latest and settings.usd_try <= 1:
-            settings.usd_try = latest.usd_try; settings.eur_try = latest.eur_try; settings.rate_source = "Son geçerli TCMB"; settings.rate_source_date = latest.source_date; settings.save()
-        return str(exc)
+    latest = ExchangeRate.objects.order_by("-rate_date", "-fetched_at").first()
+    if latest:
+        settings.usd_try = latest.usd_try
+        settings.eur_try = latest.eur_try
+        settings.rate_source = "Son gecerli TCMB"
+        settings.rate_source_date = latest.source_date
+        settings.rate_checked_at = latest.fetched_at
+        settings.save(update_fields=["usd_try", "eur_try", "rate_source", "rate_source_date", "rate_checked_at", "updated_at"])
+        return None
+    return "Kayitli TCMB kuru bulunamadi."
 
 
 def _real_profit_rate(profit_rate, discount_rate):
@@ -58,12 +62,35 @@ def _real_profit_rate(profit_rate, discount_rate):
     return ((multiplier - Decimal("1")) * Decimal("100")).quantize(Decimal("0.01"))
 
 
+def _card_total_with_rate(card, usd_rate):
+    def tl(amount, currency):
+        amount = Decimal(amount or 0)
+        return amount * usd_rate if currency == "USD" else amount
+
+    material_total = sum(
+        (
+            Decimal(usage.miktar or 0)
+            * tl(usage.material.birim_maliyet, usage.material.birim_maliyet_para_birimi)
+            for usage in card.materials.all()
+        ),
+        Decimal("0"),
+    )
+    return (
+        material_total
+        + tl(card.finansman_maliyeti, card.finansman_para_birimi)
+        + tl(card.nakis_maliyeti, card.nakis_para_birimi)
+        + tl(card.genel_gider, card.genel_gider_para_birimi)
+        + tl(card.iscilik_maliyeti, card.iscilik_para_birimi)
+        + tl(card.paketleme_maliyeti, card.paketleme_para_birimi)
+    )
+
+
 def _price_rows(settings, active=True):
-    profit = settings.profit_rate / Decimal("100"); discount = settings.discount_rate / Decimal("100"); monthly = settings.monthly_term_rate / Decimal("100"); usd_rate = settings.usd_try; eur_rate = settings.eur_try
+    profit = settings.profit_rate / Decimal("100"); discount = settings.discount_rate / Decimal("100"); monthly = settings.monthly_term_rate / Decimal("100"); usd_rate = Decimal(settings.usd_try or 1); eur_rate = Decimal(settings.eur_try or 1)
     cards = ProductCard.objects.select_related("urun").prefetch_related("materials__material").filter(price_list_active=active).order_by("urun__kod")
     rows = []
     for card in cards:
-        cost = card.toplam_maliyet; with_profit = cost * (Decimal("1") + profit); discounted = with_profit * (Decimal("1") - discount)
+        cost = _card_total_with_rate(card, usd_rate); with_profit = cost * (Decimal("1") + profit); discounted = with_profit * (Decimal("1") - discount)
         rows.append({"id": card.id, "code": card.urun.kod, "cash": discounted.quantize(Decimal("0.01")), "term3": (discounted * (Decimal("1") + monthly * 3)).quantize(Decimal("0.01")), "term6": (discounted * (Decimal("1") + monthly * 6)).quantize(Decimal("0.01")), "term9": (discounted * (Decimal("1") + monthly * 9)).quantize(Decimal("0.01")), "usd": (discounted / usd_rate).quantize(Decimal("0.01")) if usd_rate > 0 else None, "eur": (discounted / eur_rate).quantize(Decimal("0.01")) if eur_rate > 0 else None})
     return rows
 
