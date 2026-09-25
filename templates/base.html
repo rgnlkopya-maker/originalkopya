@@ -172,7 +172,7 @@ document.addEventListener('DOMContentLoaded',function(){
   let favorites=[];
 
   function cleanTitle(){
-    const heading=document.querySelector('#mainContent h1,#mainContent h2,#mainContent h3,.modal-title');
+    const heading=document.querySelector('#mainContent h1,#mainContent h2,#mainContent h3');
     let title=heading?heading.textContent.trim():'';
     if(!title||title.length>170){
       title=(document.title||'').replace(/\s*[-|·]\s*MoliApp.*$/i,'').trim();
