@@ -54,7 +54,9 @@ class ShipmentFinancialSnapshot(models.Model):
     order=models.OneToOneField(Order,on_delete=models.CASCADE,related_name="shipment_financial_snapshot"); usd_try=models.DecimalField(max_digits=12,decimal_places=6,null=True,blank=True); satis_fiyati=models.DecimalField(max_digits=14,decimal_places=2,null=True,blank=True); satis_para_birimi=models.CharField(max_length=3,default="TRY"); satis_tl=models.DecimalField(max_digits=16,decimal_places=2,null=True,blank=True); urun_maliyeti_tl=models.DecimalField(max_digits=16,decimal_places=2,null=True,blank=True); sevkiyat_ekstra_maliyet_tl=models.DecimalField(max_digits=16,decimal_places=2,default=0); toplam_maliyet_tl=models.DecimalField(max_digits=16,decimal_places=2,null=True,blank=True); gerceklesen_kar_tl=models.DecimalField(max_digits=16,decimal_places=2,null=True,blank=True); gerceklesen_kar_orani=models.DecimalField(max_digits=8,decimal_places=2,null=True,blank=True); notlar=models.TextField(blank=True,default=""); created_at=models.DateTimeField(auto_now_add=True)
     def __str__(self): return f"{self.order.siparis_numarasi} - sevkiyat gunu finans"
 
-@receiver(post_save,sender=Order)
+# LEGACY: Eski siparis finans signal'i pasif tutuluyor.
+# Aktif finans senkronizasyonu product_cards/signals.py icindeki
+# sync_order_financial_snapshot tarafindan yapiliyor.
 def create_order_financial_snapshot(sender,instance,created,**kwargs):
     if not created:return
     rate_obj=ExchangeRate.objects.order_by("-rate_date","-fetched_at").first(); usd_try=rate_obj.usd_try if rate_obj else None
