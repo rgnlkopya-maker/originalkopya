@@ -66,6 +66,14 @@ class MoliAccessMiddleware:
             from .models import SystemSettings
 
             system = SystemSettings.get_solo()
+
+            # Önceki günlerden çözülmemiş "çıkış unutuldu" kaydı varsa personel
+            # MoliApp'e giremez; yalnızca puantaj akışına yönlendirilir.
+            from attendance.views import _unresolved_forgotten_checkout
+            forgotten_record = _unresolved_forgotten_checkout(request.user)
+            if forgotten_record and request.path not in self.STAFF_PRE_ATTENDANCE_PATHS:
+                return redirect(reverse("attendance_scan"))
+
             if (not system.staff_access_enabled or staff_break_active()) and request.path not in self.STAFF_PRE_ATTENDANCE_PATHS:
                 return redirect(reverse("attendance_scan"))
 
