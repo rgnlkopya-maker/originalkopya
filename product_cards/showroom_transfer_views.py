@@ -140,6 +140,60 @@ def _draft_rows(draft):
     return rows, total_orders, total_value, len(product_codes)
 
 
+def _pending_transfer_rows(draft, priced_rows):
+    """Return only units that have not already produced a linked order.
+
+    Matching is intentionally based on product code + color + size because editing a
+    transferred folio rebuilds ShowroomDraftItem rows and therefore changes item IDs.
+    Each linked order consumes one unit from the current folio combination.
+    """
+    from collections import defaultdict
+
+    linked_counts = defaultdict(int)
+    for link in (
+        ShowroomOrderLink.objects.filter(draft=draft, order__isnull=False)
+        .select_related("order")
+        .order_by("id")
+    ):
+        order = link.order
+        key = (
+            (order.urun_kodu or "").strip().casefold(),
+            order.renk or "",
+            order.beden or "",
+        )
+        linked_counts[key] += 1
+
+    consumed = defaultdict(int)
+    pending_rows = []
+    for row in priced_rows:
+        key = (
+            (row["urun_kodu"] or "").strip().casefold(),
+            row["renk"] or "",
+            row["beden"] or "",
+        )
+        prices = list(row.get("_allocated_prices", []))
+        already_linked = linked_counts.get(key, 0)
+        skip = max(0, already_linked - consumed[key])
+        skip = min(skip, len(prices))
+        consumed[key] += len(prices)
+        remaining_prices = prices[skip:]
+        if not remaining_prices:
+            continue
+        row_copy = dict(row)
+        row_copy["_allocated_prices"] = remaining_prices
+        row_copy["adet"] = len(remaining_prices)
+        row_copy["satir_toplami"] = sum(remaining_prices, Decimal("0"))
+        row_copy["birim_fiyat"] = (
+            (row_copy["satir_toplami"] / Decimal(len(remaining_prices))).quantize(
+                Decimal("0.01"), rounding=ROUND_HALF_UP
+            )
+            if remaining_prices else Decimal("0")
+        )
+        pending_rows.append(row_copy)
+
+    return pending_rows
+
+
 @login_required
 def showroom_transfer_preview(request, draft_id):
     if not _can_manage(request.user):
@@ -149,15 +203,19 @@ def showroom_transfer_preview(request, draft_id):
         ShowroomDraft.objects.select_related("customer").prefetch_related("items__product_card__urun"),
         id=draft_id,
         created_by=request.user,
-        status="APPROVED",
+        status__in=["APPROVED", "TRANSFERRED"],
     )
-    rows, total_orders, _, product_count = _draft_rows(draft)
-    rows, total_value, _ = _transfer_pricing(draft, rows)
+    rows, _, _, _ = _draft_rows(draft)
+    rows, _, _ = _transfer_pricing(draft, rows)
+    rows = _pending_transfer_rows(draft, rows)
+    total_orders = sum(len(row.get("_allocated_prices", [])) for row in rows)
+    total_value = sum((row["satir_toplami"] for row in rows), Decimal("0"))
+    product_count = len({row["urun_kodu"] for row in rows})
     warnings = []
     if not draft.customer_id:
         warnings.append("Bu Föyde müşteri seçilmemiş. Siparişe aktarmadan önce müşteri seçilmesi gerekir.")
     if not rows:
-        warnings.append("Bu Föyde siparişe dönüştürülecek ürün satırı bulunmuyor.")
+        warnings.append("Bu Föyde henüz siparişe dönüşmemiş yeni ürün/adet bulunmuyor.")
     has_base_price_rows = any(row["beden"] == CUSTOMER_BASE_PRICE_SIZE for row in rows)
     if has_base_price_rows:
         warnings.append(
@@ -192,23 +250,20 @@ def showroom_transfer_create(request, draft_id):
         id=draft_id,
         created_by=request.user,
     )
-    if draft.status == "TRANSFERRED":
-        messages.warning(request, "Bu Föy daha önce siparişe aktarılmış.")
-        return redirect("order_list")
-    if draft.status != "APPROVED":
-        messages.warning(request, "Yalnızca onaylanan Föyler siparişe aktarılabilir.")
+    if draft.status not in {"APPROVED", "TRANSFERRED"}:
+        messages.warning(request, "Yalnızca onaylanan veya daha önce aktarılmış Föyler siparişe aktarılabilir.")
         return redirect("showroom_approved_page")
-    if draft.orders_created:
-        messages.warning(request, "Bu Föyden daha önce siparişler oluşturulmuş.")
-        return redirect("showroom_detail_page", draft_id=draft.id)
     if not draft.customer_id:
         messages.error(request, "Sipariş oluşturmak için Föyde müşteri seçilmiş olmalıdır.")
         return redirect("showroom_transfer_preview", draft_id=draft.id)
 
-    rows, total_orders, _, _ = _draft_rows(draft)
-    if not rows:
-        messages.error(request, "Siparişe dönüştürülecek ürün bulunamadı.")
-        return redirect("showroom_transfer_preview", draft_id=draft.id)
+    rows, _, _, _ = _draft_rows(draft)
+    priced_rows, _, vat_rate_for_order = _transfer_pricing(draft, rows)
+    rows = _pending_transfer_rows(draft, priced_rows)
+    total_orders = sum(len(row.get("_allocated_prices", [])) for row in rows)
+    if not rows or total_orders <= 0:
+        messages.warning(request, "Bu Föyde henüz siparişe dönüşmemiş yeni ürün/adet bulunmuyor.")
+        return redirect("showroom_detail_page", draft_id=draft.id)
     if any(row["beden"] == CUSTOMER_BASE_PRICE_SIZE for row in rows):
         messages.error(
             request,
@@ -225,8 +280,6 @@ def showroom_transfer_create(request, draft_id):
     customer = draft.customer
     cost_cache = {}
     created = 0
-
-    rows, _, vat_rate_for_order = _transfer_pricing(draft, rows)
 
     for row in rows:
         code = row["urun_kodu"]
@@ -267,5 +320,5 @@ def showroom_transfer_create(request, draft_id):
     draft.status = "TRANSFERRED"
     draft.orders_created = True
     draft.save(update_fields=["status", "orders_created", "updated_at"])
-    messages.success(request, f"Föyden {created} adet sipariş başarıyla oluşturuldu.")
+    messages.success(request, f"Föyden {created} adet yeni sipariş başarıyla oluşturuldu.")
     return redirect("order_list")
