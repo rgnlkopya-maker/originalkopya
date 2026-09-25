@@ -60,7 +60,7 @@ def todo_list(request):
 @require_POST
 def todo_complete(request, todo_id):
     item = get_object_or_404(TodoItem, pk=todo_id, user=request.user)
-    item.completed_at = timezone.now()
+    item.completed_at = None if item.completed_at else timezone.now()
     item.save(update_fields=["completed_at"])
     return redirect("todo_list")
 
