@@ -100,6 +100,10 @@ def order_list(request):
     if te: qs=qs.filter(teslim_tarihi__lte=te)
     if db: qs=qs.filter(last_status_date__date__gte=db)
     if de: qs=qs.filter(last_status_date__date__lte=de)
+    etiket=request.GET.get("etiket","").strip()
+    if etiket=="printed": qs=qs.filter(cikti_alindi=True)
+    elif etiket=="unprinted": qs=qs.filter(cikti_alindi=False)
+
     kalite=request.GET.get("kalite","").strip()
     if kalite=="acik": qs=qs.filter(quality_issues__durum="ACIK").distinct()
     elif kalite=="var": qs=qs.filter(quality_issues__isnull=False).distinct()
