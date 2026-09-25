@@ -121,6 +121,37 @@ def _local_dt(day, clock):
     return timezone.make_aware(datetime.combine(day, clock), timezone.get_current_timezone())
 
 
+def _mark_forgotten_checkouts():
+    """
+    Cron olmasa da güvenli çalışır: tarih değiştikten sonraki ilk puantaj isteğinde
+    geçmişte giriş yapılıp çıkış yapılmamış kayıtları 'çıkış unutuldu' olarak işaretler.
+    Gerçek bir çıkış saati üretmez.
+    """
+    today = timezone.localdate()
+    return AttendanceRecord.objects.filter(
+        work_date__lt=today,
+        status="worked",
+        check_in__isnull=False,
+        check_out__isnull=True,
+        checkout_forgotten=False,
+    ).update(checkout_forgotten=True)
+
+
+def _unresolved_forgotten_checkout(user):
+    _mark_forgotten_checkouts()
+    return (
+        AttendanceRecord.objects.filter(
+            user=user,
+            status="worked",
+            check_in__isnull=False,
+            check_out__isnull=True,
+            checkout_forgotten=True,
+        )
+        .order_by("work_date")
+        .first()
+    )
+
+
 def _recalculate(record, workplace):
     record.late_minutes = 0
     record.early_leave_minutes = 0
@@ -162,6 +193,7 @@ def scan(request):
     workplace = WorkplaceSettings.get_solo()
     today = timezone.localdate()
     record = AttendanceRecord.objects.filter(user=request.user, work_date=today).first()
+    forgotten_record = None if is_manager(request.user) else _unresolved_forgotten_checkout(request.user)
     qr_entry_required = bool(
         not is_manager(request.user)
         and not (record and record.check_in)
@@ -206,7 +238,7 @@ def scan(request):
     response = render(
         request,
         "attendance_v2/scan.html",
-        {"workplace": workplace, "record": record, "device": device, "device_state": device_state, "is_manager": is_manager(request.user), "qr_entry_required": qr_entry_required},
+        {"workplace": workplace, "record": record, "device": device, "device_state": device_state, "is_manager": is_manager(request.user), "qr_entry_required": qr_entry_required, "forgotten_record": forgotten_record},
     )
     if new_token:
         response.set_cookie(
@@ -272,6 +304,19 @@ def attendance_qr_gate_verify(request):
                 "message": "Bu hesap puantaj için başka bir telefona kayıtlı. Müdür/Patron cihaz kaydını sıfırlamalı.",
             }, status=403)
 
+    # Önceki bir iş gününde çıkış unutulduysa personel yeni mesaiye başlayamaz.
+    # Patron/Müdür puantaj takviminden eksik çıkışı tamamlayana kadar MoliApp kapalı kalır.
+    forgotten_record = None if is_manager(user) else _unresolved_forgotten_checkout(user)
+    if forgotten_record:
+        return JsonResponse({
+            "ok": False,
+            "message": (
+                f"{forgotten_record.work_date.strftime('%d.%m.%Y')} tarihindeki mesainizi "
+                "bitirmemişsiniz. Giriş yapabilmeniz için Patron veya Müdürünüzün "
+                "Puantaj Takvimi'nden eksik çıkış kaydınızı onaylaması gerekir."
+            ),
+        }, status=403)
+
     # QR, konum ve şifre aynı istekte doğrulandı. Artık ara login sayfası yok.
     login(request, user)
     request.session[QR_ENTRY_SESSION_KEY] = timezone.now().isoformat()
@@ -309,6 +354,17 @@ def attendance_qr_print(request):
 @login_required
 @require_POST
 def punch(request):
+    forgotten_record = None if is_manager(request.user) else _unresolved_forgotten_checkout(request.user)
+    if forgotten_record:
+        return JsonResponse({
+            "ok": False,
+            "message": (
+                f"{forgotten_record.work_date.strftime('%d.%m.%Y')} tarihindeki mesainizi "
+                "bitirmemişsiniz. Yeni giriş için Patron veya Müdürünüzün "
+                "Puantaj Takvimi'nden eksik çıkış kaydını düzeltmesi gerekir."
+            ),
+        }, status=403)
+
     device, device_state = _device_for_request(request)
     if device_state == "pending":
         return JsonResponse({"ok": False, "message": "Bu telefon henüz Müdür/Patron tarafından onaylanmadı."}, status=403)
@@ -450,6 +506,12 @@ def edit_record(request):
     if uploaded_report:
         try: record.report_image_url = _upload_report_image(uploaded_report, target_user.id, work_date)
         except Exception as exc: return JsonResponse({"ok": False, "message": f"Rapor görseli yüklenemedi: {exc}"}, status=500)
+    if record.checkout_forgotten and record.check_out:
+        record.checkout_forgotten_resolved_at = timezone.now()
+        record.checkout_forgotten_resolved_by = request.user
+    elif record.checkout_forgotten and status != "worked":
+        record.checkout_forgotten_resolved_at = timezone.now()
+        record.checkout_forgotten_resolved_by = request.user
     _recalculate(record, workplace); record.save(); return JsonResponse({"ok": True, "message": "Puantaj kaydı güncellendi."})
 
 
