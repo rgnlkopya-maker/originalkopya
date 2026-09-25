@@ -123,6 +123,15 @@ class AttendanceRecord(models.Model):
     late_minutes = models.PositiveIntegerField(default=0)
     early_leave_minutes = models.PositiveIntegerField(default=0)
     overtime_minutes = models.PositiveIntegerField(default=0)
+    checkout_forgotten = models.BooleanField(default=False, db_index=True)
+    checkout_forgotten_resolved_at = models.DateTimeField(null=True, blank=True)
+    checkout_forgotten_resolved_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="resolved_forgotten_checkouts",
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
