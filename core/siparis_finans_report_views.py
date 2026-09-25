@@ -178,7 +178,7 @@ def siparis_finans_raporu(request):
         .prefetch_related("items__product_card__urun", "items__product_card__materials__material", "order_links__order")
         .order_by("-created_at", "-id")
     )
-    orders = Order.objects.filter(is_active=True).select_related("musteri")
+    orders = Order.objects.filter(is_active=True).exclude(siparis_tipi="MALZEME").select_related("musteri")
     start, end, folios, orders = _date_filter(request, folios, orders)
 
     folio_rows = [_folio_finance(draft) for draft in folios]
