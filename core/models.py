@@ -180,7 +180,8 @@ class Order(models.Model):
         ('SERI', 'Seri'),
         ('TEKLI', 'Tekli Sipariş'),
         ('STOK', 'Stoğa Üretim'),
-        ('KONSINYE', 'Konsinye')
+        ('KONSINYE', 'Konsinye'),
+        ('MALZEME', 'Malzeme')
     ]
 
     siparis_tipi = models.CharField(max_length=20, choices=SIPARIS_TIPLERI, null=True, blank=True, db_index=True)
