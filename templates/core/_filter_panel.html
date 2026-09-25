@@ -125,7 +125,16 @@
         <div class="date-pair"><input id="f_teslim_baslangic" class="date-input" type="date" title="Başlangıç"><input id="f_teslim_bitis" class="date-input" type="date" title="Bitiş"></div>
       </div>
 
-      <div class="filter-field full">
+      <div class="filter-field">
+        <label class="filter-label">Etiket Durumu</label>
+        <select id="f_etiket" class="form-select" style="height:40px;border-radius:11px;border-color:#e4e8f1;background:#fbfcff;">
+          <option value="">Tümü</option>
+          <option value="printed">Yazdırılanlar</option>
+          <option value="unprinted">Yazdırılmayanlar</option>
+        </select>
+      </div>
+
+      <div class="filter-field">
         <label class="filter-label">Kalite / Hata Kaydı</label>
         <select id="f_kalite" class="form-select" style="height:40px;border-radius:11px;border-color:#e4e8f1;background:#fbfcff;">
           <option value="">Tümü</option><option value="acik">Açık hata / şikayet kaydı olanlar</option><option value="var">Herhangi bir hata kaydı olanlar</option><option value="yok">Hata kaydı olmayanlar</option>
@@ -161,6 +170,7 @@ document.addEventListener("DOMContentLoaded", function () {
   mappings.forEach(([id,key]) => { const vals=current.getAll(key); if(vals.length) $("#"+id).val(vals).trigger("change"); });
   dates.forEach(([id,key]) => { const el=document.getElementById(id); if(el) el.value=current.get(key)||""; });
   const kalite=document.getElementById("f_kalite"); if(kalite) kalite.value=current.get("kalite")||"";
+  const etiket=document.getElementById("f_etiket"); if(etiket) etiket.value=current.get("etiket")||"";
 
   if (apply) apply.addEventListener("click", function (event) {
     event.preventDefault(); event.stopImmediatePropagation();
@@ -168,6 +178,7 @@ document.addEventListener("DOMContentLoaded", function () {
     mappings.forEach(([id,key]) => { const vals=$("#"+id).val()||[]; vals.forEach(v=>params.append(key,v)); });
     dates.forEach(([id,key]) => { const el=document.getElementById(id); if(el && el.value) params.set(key,el.value); });
     if(kalite && kalite.value) params.set("kalite",kalite.value);
+    if(etiket && etiket.value) params.set("etiket",etiket.value);
     window.location.href = window.location.pathname + (params.toString()?"?"+params.toString():"");
   }, true);
 
@@ -175,6 +186,7 @@ document.addEventListener("DOMContentLoaded", function () {
     mappings.forEach(([id]) => $("#"+id).val(null).trigger("change"));
     dates.forEach(([id]) => { const el=document.getElementById(id); if(el) el.value=""; });
     if(kalite) kalite.value="";
+    if(etiket) etiket.value="";
   });
 
   document.querySelectorAll("#orderTable thead th").forEach(function(th) {
