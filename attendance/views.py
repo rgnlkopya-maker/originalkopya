@@ -146,6 +146,7 @@ def _unresolved_forgotten_checkout(user):
             check_in__isnull=False,
             check_out__isnull=True,
             checkout_forgotten=True,
+            checkout_forgotten_resolved_at__isnull=True,
         )
         .order_by("work_date")
         .first()
@@ -506,12 +507,13 @@ def edit_record(request):
     if uploaded_report:
         try: record.report_image_url = _upload_report_image(uploaded_report, target_user.id, work_date)
         except Exception as exc: return JsonResponse({"ok": False, "message": f"Rapor görseli yüklenemedi: {exc}"}, status=500)
-    if record.checkout_forgotten and record.check_out:
+    if record.checkout_forgotten and (record.check_out or status != "worked"):
         record.checkout_forgotten_resolved_at = timezone.now()
         record.checkout_forgotten_resolved_by = request.user
-    elif record.checkout_forgotten and status != "worked":
-        record.checkout_forgotten_resolved_at = timezone.now()
-        record.checkout_forgotten_resolved_by = request.user
+    elif record.checkout_forgotten:
+        # Çıkış hâlâ boşsa kayıt çözülmüş sayılmaz.
+        record.checkout_forgotten_resolved_at = None
+        record.checkout_forgotten_resolved_by = None
     _recalculate(record, workplace); record.save(); return JsonResponse({"ok": True, "message": "Puantaj kaydı güncellendi."})
 
 
