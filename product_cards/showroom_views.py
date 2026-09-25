@@ -648,11 +648,11 @@ def showroom_edit_save(request,draft_id):
                 )
                 link_groups[key].append(link)
 
-            # Yalnızca adetleri birebir uyuşan grupları yeniden bağla.
+            # Mevcut siparişleri, güncel Föydeki aynı ürün/renk/beden birimlerine
+            # mümkün olduğu kadar yeniden bağla. Adet artırılmışsa eski siparişler ilk
+            # birimlerle eşleşir; fazlalıklar yeni sipariş olarak kalır.
             for key, links in link_groups.items():
                 items_for_key = item_groups.get(key, [])
-                if len(items_for_key) != len(links):
-                    continue
                 for link, item_obj in zip(links, items_for_key):
                     if link.draft_item_id != item_obj.id:
                         link.draft_item_id = item_obj.id
@@ -670,7 +670,7 @@ def showroom_edit_save(request,draft_id):
 
             for key, links in link_groups.items():
                 prices = price_queues.get(key, [])
-                if len(prices) != len(links):
+                if len(prices) < len(links):
                     continue
                 for link, final_price in zip(links, prices):
                     order = link.order
