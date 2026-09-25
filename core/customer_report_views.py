@@ -39,6 +39,7 @@ def _shipment_finance_rows(start="", end="", customer_query="", customer_id=None
             latest_value=Subquery(latest_event.values("value")),
             last_status_date=Subquery(latest_event.values("timestamp"), output_field=DateTimeField()),
         )
+        .exclude(siparis_tipi="MALZEME")
         .filter(
             is_active=True,
             musteri__isnull=False,
