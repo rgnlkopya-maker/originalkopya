@@ -471,7 +471,10 @@ def showroom_customer_folios_data(request, customer_id):
     }
     folios = []
     for draft in _customer_folios(request.user, customer):
-        data = _serialize_draft(draft)
+        # Popup, Föy detayında görünen hesaplanmış KDV'siz ürün fiyatlarını kullansın.
+        # Böylece indirim / KDV / Föy düzeltmesi sonrası fiyat ile "Baz Fiyatı Kullan"
+        # aynı kaynaktan beslenir.
+        effective_items = _effective_serialized_items(draft)
         folios.append(
             {
                 "id": draft.id,
@@ -481,7 +484,7 @@ def showroom_customer_folios_data(request, customer_id):
                 "order_taken_by": draft.order_taken_by or "",
                 "updated_at": timezone.localtime(draft.updated_at).strftime("%d.%m.%Y %H:%M"),
                 "summary": _draft_summary(draft),
-                "items": data["items"],
+                "items": effective_items,
             }
         )
     return JsonResponse({"ok": True, "customer": {"id": customer.id, "name": customer.ad}, "folios": folios})
