@@ -3276,6 +3276,7 @@ def sevkiyat_finans_tablosu(request):
             ),
         )
         .filter(is_active=True)
+        .exclude(siparis_tipi="MALZEME")
         .filter(latest_stage="sevkiyat_durum", latest_value="gonderildi")
         .order_by("-id")
     )
