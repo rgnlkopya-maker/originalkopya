@@ -255,6 +255,23 @@ def add_order_finance_movement(request, order_id):
     }
 
     # order_update olarak tutulur: Order List'teki operasyonel Son Durum'u DEGISTIRMEZ.
+    # Nihai satış fiyatı düzeltmesi tek gerçek satış fiyatıdır:
+    # finans ekranındaki düzeltmeyi Sipariş Detayı'na da taşı.
+    # Order.save() finans signal'ını çalıştırarak sevkiyat snapshot bazını da eşitler.
+    if movement_type == "FIYAT_DUZELT":
+        order.satis_fiyati = amount
+        order.para_birimi = currency
+        order.save(update_fields=["satis_fiyati", "para_birimi", "last_updated"])
+
+        # Baz snapshot artık yeni nihai satış fiyatını içerdiği için aynı düzeltmeyi
+        # ayrıca finans hareketi olarak uygulamak fiyatı iki kez değiştirebilir.
+        # Audit izi Order düzenleme/snapshot kayıtlarında korunur.
+        messages.success(
+            request,
+            "Nihai satış fiyatı güncellendi. Sipariş Detayı ve Sevkiyat Finans eşitlendi."
+        )
+        return redirect("order_finance_movements", order_id=order.id)
+
     OrderEvent.objects.create(
         order=order,
         user=request.user.username,
