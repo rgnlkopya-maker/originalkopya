@@ -218,6 +218,30 @@ def order_finance_movements(request, order_id):
 
 @login_required
 @require_POST
+def delete_order_finance_movement(request, order_id, event_id):
+    if not _can_manage(request.user):
+        return HttpResponseForbidden("Bu işlemi yapma yetkiniz yok.")
+
+    order = get_object_or_404(Order, pk=order_id)
+    event = get_object_or_404(
+        OrderEvent,
+        pk=event_id,
+        order=order,
+        stage=FINANCE_STAGE,
+        event_type="order_update",
+    )
+    if event.value not in FINANCIAL_MOVEMENT_LABELS:
+        messages.error(request, "Bu kayıt silinebilir bir finans hareketi değil.")
+        return redirect("order_finance_movements", order_id=order.id)
+
+    label = FINANCIAL_MOVEMENT_LABELS.get(event.value, event.value)
+    event.delete()
+    messages.success(request, f"{label} finans hareketi silindi.")
+    return redirect("order_finance_movements", order_id=order.id)
+
+
+@login_required
+@require_POST
 def add_order_finance_movement(request, order_id):
     if not _can_manage(request.user):
         return HttpResponseForbidden("Bu işlemi yapma yetkiniz yok.")
