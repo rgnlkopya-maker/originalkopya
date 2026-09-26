@@ -4,6 +4,8 @@ from app_settings.access import data_scope_value
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
 from django.shortcuts import render
+from django.utils import timezone
+from datetime import timedelta
 
 from .models import Order, OrderEvent
 
@@ -66,6 +68,7 @@ def production_stage_control(request):
         events_by_order[event.order_id].append(event)
 
     problems = []
+    unshipped_after_week = []
     for order in orders:
         events = events_by_order.get(order.id, [])
         if not events:
@@ -94,27 +97,51 @@ def production_stage_control(request):
             for stage_name, label in STAGES.values():
                 reasons.extend(_missing_stage_steps(events, stage_name, label))
 
+        # Üretimde herhangi bir sevkiyat dışı aşama hareketi başladıktan sonra
+        # 7 gün geçmiş ve hâlâ "Sevkedildi" kaydı oluşmamışsa ayrı kontrol listesine al.
+        production_events = [
+            event for event in events
+            if event.stage != "sevkiyat_durum"
+        ]
+        if production_events and not shipped:
+            first_production_event = production_events[0]
+            age = timezone.now() - first_production_event.timestamp
+            if age >= timedelta(days=7):
+                unshipped_after_week.append({
+                    "order": order,
+                    "first_event": first_production_event,
+                    "last_event": events[-1],
+                    "days_open": age.days,
+                })
+
         # Aynı eksikliği birden fazla kural yakalasa bile ekranda bir kez göster.
         reasons = list(dict.fromkeys(reasons))
-        if not reasons:
-            continue
-
-        last_event = events[-1]
-        problems.append({
-            "order": order,
-            "reasons": reasons,
-            "last_event": last_event,
-            "shipped": shipped,
-        })
+        if reasons:
+            last_event = events[-1]
+            problems.append({
+                "order": order,
+                "reasons": reasons,
+                "last_event": last_event,
+                "shipped": shipped,
+            })
 
     problems.sort(
         key=lambda row: (not row["shipped"], -row["last_event"].timestamp.timestamp())
     )
 
+    unshipped_after_week.sort(
+        key=lambda row: (-row["days_open"], row["first_event"].timestamp)
+    )
+
     paginator = Paginator(problems, 50)
     page_obj = paginator.get_page(request.GET.get("page"))
+
+    unshipped_paginator = Paginator(unshipped_after_week, 50)
+    unshipped_page_obj = unshipped_paginator.get_page(request.GET.get("unshipped_page"))
 
     return render(request, "core/production_stage_control.html", {
         "problems": page_obj,
         "problem_count": len(problems),
+        "unshipped_orders": unshipped_page_obj,
+        "unshipped_count": len(unshipped_after_week),
     })
