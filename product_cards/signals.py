@@ -70,9 +70,8 @@ def sync_order_financial_snapshot(sender, instance, created, **kwargs):
             "beklenen_kar_orani": _money2(profit_rate),
         },
     )
-    if was_created:
-        return
-
+    # Snapshot yeni oluşmuş olsa bile devam et. Sipariş daha önce sevk edildiyse
+    # ShipmentFinancialSnapshot satış tarafı da aynı kayıtta senkronlanmalıdır.
     snapshot.usd_try = snapshot.usd_try or usd_try
     conversion_rate = snapshot.usd_try or usd_try
     sale_tl = amount_to_try(sale, sale_currency, conversion_rate)
