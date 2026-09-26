@@ -79,7 +79,30 @@ def sync_order_financial_snapshot(sender, instance, created, **kwargs):
     shipped = ShipmentFinancialSnapshot.objects.filter(order=instance).exists()
 
     if shipped:
-        # Sevkiyat sonrası ürün maliyeti kilitli kalır; yalnızca satış ve kâr yenilenir.
+        # Sevkiyat sonrası maliyet snapshot'i kilitli kalir.
+        # Satış fiyatı ise sipariş detayında manuel düzeltildiyse sevkiyat finansının
+        # baz satışını da aynı değere taşı. Finans hareketleri bunun üzerine uygulanır.
+        shipment_snapshot = ShipmentFinancialSnapshot.objects.filter(order=instance).first()
+        if shipment_snapshot is not None:
+            shipment_cost_tl = Decimal(shipment_snapshot.toplam_maliyet_tl or 0)
+            shipment_profit = sale_tl - shipment_cost_tl if sale_tl is not None else None
+            shipment_profit_rate = (
+                shipment_profit / sale_tl * Decimal("100")
+                if shipment_profit is not None and sale_tl
+                else None
+            )
+            shipment_snapshot.satis_fiyati = sale
+            shipment_snapshot.satis_para_birimi = sale_currency
+            shipment_snapshot.satis_tl = _money2(sale_tl)
+            shipment_snapshot.gerceklesen_kar_tl = _money2(shipment_profit)
+            shipment_snapshot.gerceklesen_kar_orani = _money2(shipment_profit_rate)
+            shipment_snapshot.save(update_fields=[
+                "satis_fiyati",
+                "satis_para_birimi",
+                "satis_tl",
+                "gerceklesen_kar_tl",
+                "gerceklesen_kar_orani",
+            ])
         cost_tl = Decimal(snapshot.maliyet_tl) if snapshot.maliyet_tl is not None else None
     elif cost is not None:
         effective_cost = cost + Decimal(instance.ekstra_maliyet or 0)
