@@ -123,20 +123,42 @@ def sync_unshipped_order_costs(product_code, product_cost_tl):
     return updated
 
 
-def recalculate_approved_product_costs(usd_try=None):
-    approved_codes = set(ProductCost.objects.filter(is_active=True).values_list("urun_kodu", flat=True))
+def recalculate_approved_product_costs(usd_try=None, product_codes=None):
+    """
+    Onaylı ürün maliyetlerini yeniden hesapla.
+
+    product_codes verilirse yalnızca bu ürün kodları güncellenir.
+    product_codes verilmezse (örn. kur güncellemesi) tüm onaylı ürünler yenilenir.
+    """
+    approved_qs = ProductCost.objects.filter(is_active=True)
+    if product_codes is not None:
+        normalized_codes = {str(code).strip() for code in product_codes if str(code).strip()}
+        if not normalized_codes:
+            return 0
+        approved_qs = approved_qs.filter(urun_kodu__in=normalized_codes)
+
+    approved_codes = set(approved_qs.values_list("urun_kodu", flat=True))
     if not approved_codes:
         return 0
+
     if usd_try is None:
         latest = ExchangeRate.objects.order_by("-rate_date", "-fetched_at").first()
         usd_try = latest.usd_try if latest else Decimal("1")
     usd_try = Decimal(usd_try)
-    cards = ProductCard.objects.select_related("urun").prefetch_related("materials__material").filter(urun__kod__in=approved_codes)
+
+    cards = (
+        ProductCard.objects
+        .select_related("urun")
+        .prefetch_related("materials__material")
+        .filter(urun__kod__in=approved_codes)
+    )
+
     updated = 0
     for card in cards:
         def tl(amount, currency):
             amount = Decimal(amount or 0)
             return amount * usd_try if currency == "USD" else amount
+
         material_total = sum(
             (
                 Decimal(usage.miktar or 0)
@@ -153,10 +175,28 @@ def recalculate_approved_product_costs(usd_try=None):
             + tl(card.iscilik_maliyeti, card.iscilik_para_birimi)
             + tl(card.paketleme_maliyeti, card.paketleme_para_birimi)
         ).quantize(Decimal("0.01"))
-        ProductCost.objects.filter(urun_kodu=card.urun.kod, is_active=True).update(maliyet=total, para_birimi="TRY")
+
+        ProductCost.objects.filter(
+            urun_kodu=card.urun.kod,
+            is_active=True,
+        ).update(maliyet=total, para_birimi="TRY")
         sync_unshipped_order_costs(card.urun.kod, total)
         updated += 1
+
     return updated
+
+
+def recalculate_costs_for_material(material, usd_try=None):
+    """Yalnızca verilen malzemeyi kullanan onaylı ürünlerin maliyetini yenile."""
+    product_codes = ProductMaterial.objects.filter(
+        material=material,
+        product_card__urun__isnull=False,
+    ).values_list("product_card__urun__kod", flat=True).distinct()
+
+    return recalculate_approved_product_costs(
+        usd_try=usd_try,
+        product_codes=product_codes,
+    )
 
 
 def fetch_tcmb_usd_rate():
@@ -241,11 +281,11 @@ def product_card_detail(request, card_id):
             except (InvalidOperation, ValueError): messages.error(request, "Geçerli bir sarfiyat miktarı girin."); return redirect("product_card_detail", card_id=card.id)
             material = get_object_or_404(Material, pk=material_id, aktif=True)
             ProductMaterial.objects.update_or_create(product_card=card, material=material, defaults={"miktar": miktar, "kullanim_asamasi": material.kullanim_asamasi, "notlar": (request.POST.get("notlar") or "").strip()})
-            if ProductCost.objects.filter(urun_kodu=card.urun.kod, is_active=True).exists(): recalculate_approved_product_costs()
+            if ProductCost.objects.filter(urun_kodu=card.urun.kod, is_active=True).exists(): recalculate_approved_product_costs(product_codes=[card.urun.kod])
             messages.success(request, f"Malzeme reçeteye {material.get_kullanim_asamasi_display()} olarak eklendi/güncellendi.")
         elif action == "remove_material":
             usage = get_object_or_404(ProductMaterial, pk=request.POST.get("usage_id"), product_card=card); usage.delete()
-            if ProductCost.objects.filter(urun_kodu=card.urun.kod, is_active=True).exists(): recalculate_approved_product_costs()
+            if ProductCost.objects.filter(urun_kodu=card.urun.kod, is_active=True).exists(): recalculate_approved_product_costs(product_codes=[card.urun.kod])
             messages.success(request, "Malzeme reçeteden kaldırıldı.")
         elif action in {"save_costs", "approve_cost"}:
             try:
@@ -255,7 +295,7 @@ def product_card_detail(request, card_id):
             card.finansman_para_birimi = request.POST.get("finansman_para_birimi") if request.POST.get("finansman_para_birimi") in valid_currencies else "TRY"; card.nakis_para_birimi = request.POST.get("nakis_para_birimi") if request.POST.get("nakis_para_birimi") in valid_currencies else "TRY"; card.genel_gider_para_birimi = request.POST.get("genel_gider_para_birimi") if request.POST.get("genel_gider_para_birimi") in valid_currencies else "TRY"; card.iscilik_para_birimi = request.POST.get("iscilik_para_birimi") if request.POST.get("iscilik_para_birimi") in valid_currencies else "TRY"; card.paketleme_para_birimi = request.POST.get("paketleme_para_birimi") if request.POST.get("paketleme_para_birimi") in valid_currencies else "TRY"
             card.save(update_fields=["finansman_maliyeti", "finansman_para_birimi", "nakis_maliyeti", "nakis_para_birimi", "genel_gider", "genel_gider_para_birimi", "iscilik_maliyeti", "iscilik_para_birimi", "paketleme_maliyeti", "paketleme_para_birimi", "updated_at"])
             if action == "save_costs":
-                if ProductCost.objects.filter(urun_kodu=card.urun.kod, is_active=True).exists(): recalculate_approved_product_costs()
+                if ProductCost.objects.filter(urun_kodu=card.urun.kod, is_active=True).exists(): recalculate_approved_product_costs(product_codes=[card.urun.kod])
                 messages.success(request, "Maliyet kalemleri kaydedildi. Güncel kurla toplam yeniden hesaplandı.")
             else:
                 total = card.toplam_maliyet.quantize(Decimal("0.01")); ProductCost.objects.update_or_create(urun_kodu=card.urun.kod, defaults={"maliyet": total, "para_birimi": "TRY", "is_active": True}); sync_unshipped_order_costs(card.urun.kod, total); messages.success(request, f"{card.urun.kod} maliyeti güncel kurla {total} TL olarak Ürün Maliyetleri listesine kaydedildi.")
@@ -287,7 +327,7 @@ def material_list(request):
                 if uploaded_image:
                     try: material.image_url=_upload_image(uploaded_image,"material-cards",material.kod); material.save(update_fields=["image_url"])
                     except Exception as exc: messages.error(request,f"Malzeme resmi yüklenemedi: {exc}"); return redirect("material_list")
-                recalculate_approved_product_costs(); messages.success(request,"Malzeme kartı kaydedildi.")
+                recalculate_costs_for_material(material); messages.success(request,"Malzeme kartı kaydedildi.")
         elif action == "update_info":
             material=get_object_or_404(Material,pk=request.POST.get("id"),aktif=True)
             try:
@@ -299,7 +339,7 @@ def material_list(request):
             material.kategori=kategori if kategori in {c[0] for c in Material.CATEGORY_CHOICES} else "DIGER"; material.kullanim_asamasi=kullanim_asamasi if kullanim_asamasi in {c[0] for c in Material.USAGE_STAGE_CHOICES} else "KESIM"; material.birim_maliyet_para_birimi=para_birimi if para_birimi in {"TRY","USD"} else "TRY"; material.tedarikci=(request.POST.get("tedarikci") or "").strip(); material.aciklama=(request.POST.get("aciklama") or "").strip()
             material.save(update_fields=["kategori","kullanim_asamasi","kritik_stok","tedarikci","aciklama","birim_maliyet","birim_maliyet_para_birimi","son_alis_tarihi","updated_at"])
             ProductMaterial.objects.filter(material=material).update(kullanim_asamasi=material.kullanim_asamasi)
-            recalculate_approved_product_costs()
+            recalculate_costs_for_material(material)
             messages.success(request,"Malzeme bilgileri güncellendi; bağlı ürün maliyetleri de yenilendi.")
         elif action == "stock_movement":
             material_id=request.POST.get("id"); movement_type=(request.POST.get("movement_type") or "").strip(); warehouse=_warehouse_from_post(request); allowed_types={"GIRIS","CIKIS","IADE","FIRE","DUZELTME_ARTI","DUZELTME_EKSI"}
@@ -322,7 +362,7 @@ def material_list(request):
                     if movement_cost>0: material.birim_maliyet=movement_cost; material.birim_maliyet_para_birimi=movement_currency if movement_currency in {"TRY","USD"} else "TRY"
                     material.son_alis_tarihi=timezone.localdate(); material.save(update_fields=["birim_maliyet","birim_maliyet_para_birimi","son_alis_tarihi","updated_at"])
                 MaterialStockMovement.objects.create(material=material,warehouse=warehouse,movement_type=movement_type,miktar=miktar,onceki_stok=onceki,sonraki_stok=sonraki,aciklama=(request.POST.get("hareket_aciklama") or "").strip(),islem_yapan=request.user)
-            if movement_type=="GIRIS": recalculate_approved_product_costs()
+            if movement_type=="GIRIS": recalculate_costs_for_material(material)
             messages.success(request,f"{warehouse.ad} stok hareketi kaydedildi. Yeni depo stoğu: {sonraki} {material.get_birim_display()}.")
         elif action == "transfer":
             material=get_object_or_404(Material,pk=request.POST.get("id"),aktif=True); source=_warehouse_from_post(request,"source_warehouse"); target=_warehouse_from_post(request,"target_warehouse")
@@ -340,7 +380,7 @@ def material_list(request):
             material=get_object_or_404(Material,pk=request.POST.get("id"),aktif=True)
             try: material.birim_maliyet=_decimal_from_post(request.POST.get("birim_maliyet"))
             except ValueError as exc: messages.error(request,str(exc)); return redirect("material_list")
-            para_birimi=request.POST.get("birim_maliyet_para_birimi") or "TRY"; material.birim_maliyet_para_birimi=para_birimi if para_birimi in {"TRY","USD"} else "TRY"; material.save(update_fields=["birim_maliyet","birim_maliyet_para_birimi","updated_at"]); recalculate_approved_product_costs(); messages.success(request,"Malzeme birim maliyeti güncellendi; bağlı onaylı ürün maliyetleri de yenilendi.")
+            para_birimi=request.POST.get("birim_maliyet_para_birimi") or "TRY"; material.birim_maliyet_para_birimi=para_birimi if para_birimi in {"TRY","USD"} else "TRY"; material.save(update_fields=["birim_maliyet","birim_maliyet_para_birimi","updated_at"]); recalculate_costs_for_material(material); messages.success(request,"Malzeme birim maliyeti güncellendi; bağlı onaylı ürün maliyetleri de yenilendi.")
         elif action == "update_image":
             material=get_object_or_404(Material,pk=request.POST.get("id"),aktif=True); uploaded_image=request.FILES.get("material_image")
             if uploaded_image:
