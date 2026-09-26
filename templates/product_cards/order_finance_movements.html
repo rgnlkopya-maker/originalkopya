@@ -66,7 +66,7 @@
     <div class="card-header fw-bold">Finans Hareket Geçmişi</div>
     <div class="table-responsive">
       <table class="table mb-0 align-middle">
-        <thead><tr><th>Tarih</th><th>İşlem</th><th>Tutar</th><th>Kur</th><th>TL Karşılığı</th><th>Açıklama</th><th>Kullanıcı</th></tr></thead>
+        <thead><tr><th>Tarih</th><th>İşlem</th><th>Tutar</th><th>Kur</th><th>TL Karşılığı</th><th>Açıklama</th><th>Kullanıcı</th><th>İşlem</th></tr></thead>
         <tbody>
         {% for item in result.movements %}
           <tr>
@@ -77,9 +77,15 @@
             <td>{{ item.tl_amount|default:"0.00" }} TL</td>
             <td>{{ item.note|default:"-" }}</td>
             <td>{{ item.event.user }}</td>
+            <td>
+              <form method="post" action="{% url 'delete_order_finance_movement' order.id item.event.id %}" onsubmit="return confirm('Bu finans hareketini silmek istediğinize emin misiniz?');">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-sm btn-outline-danger">Sil</button>
+              </form>
+            </td>
           </tr>
         {% empty %}
-          <tr><td colspan="7" class="text-center text-muted py-4">Henüz finans hareketi yok.</td></tr>
+          <tr><td colspan="8" class="text-center text-muted py-4">Henüz finans hareketi yok.</td></tr>
         {% endfor %}
         </tbody>
       </table>
