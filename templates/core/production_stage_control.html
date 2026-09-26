@@ -30,5 +30,34 @@
     {% endif %}
   </div>
   {% if problems.paginator.num_pages > 1 %}<div class="pager">{% if problems.has_previous %}<a href="?page={{ problems.previous_page_number }}">← Önceki</a>{% endif %}<span class="current">{{ problems.number }} / {{ problems.paginator.num_pages }}</span>{% if problems.has_next %}<a href="?page={{ problems.next_page_number }}">Sonraki →</a>{% endif %}</div>{% endif %}
+  
+  <div class="control-head" style="margin-top:26px">
+    <div><h2 class="control-title" style="font-size:21px">7 Gündür Sevk Edilmeyenler</h2><div class="control-sub">Herhangi bir üretim aşaması başlatılmış, ilk üretim hareketinin üzerinden en az 7 gün geçmiş ve hâlâ “Sevkedildi” kaydı bulunmayan siparişler.</div></div>
+    <span class="count-pill">{{ unshipped_count }}</span>
+  </div>
+  <div class="control-card">
+    {% if unshipped_orders %}
+    <table class="control-table">
+      <thead><tr><th>Sipariş</th><th>Müşteri</th><th>Ürün</th><th>Renk / Beden</th><th>İlk Üretim Hareketi</th><th>Son Hareket</th><th>Süre</th></tr></thead>
+      <tbody>
+      {% for row in unshipped_orders %}
+      <tr>
+        <td><a class="order-link" href="{% url 'order_detail' row.order.id %}?return_url={{ request.get_full_path|urlencode }}">{{ row.order.siparis_numarasi }}</a></td>
+        <td>{{ row.order.musteri|default:"—" }}</td>
+        <td><strong>{{ row.order.urun_kodu|default:"—" }}</strong></td>
+        <td>{{ row.order.renk|default:"—" }} / {{ row.order.beden|default:"—" }}</td>
+        <td>{{ row.first_event.timestamp|date:"d.m.Y H:i" }}<br><span class="text-muted">{{ row.first_event.user|default:"—" }}</span></td>
+        <td>{{ row.last_event.timestamp|date:"d.m.Y H:i" }}<br><span class="text-muted">{{ row.last_event.user|default:"—" }}</span></td>
+        <td><span class="reason">{{ row.days_open }} gün</span></td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div class="empty"><i class="bi bi-check-circle"></i><strong>7 günü aşmış sevk edilmemiş üretim bulunmadı.</strong></div>
+    {% endif %}
+  </div>
+  {% if unshipped_orders.paginator.num_pages > 1 %}<div class="pager">{% if unshipped_orders.has_previous %}<a href="?unshipped_page={{ unshipped_orders.previous_page_number }}">← Önceki</a>{% endif %}<span class="current">{{ unshipped_orders.number }} / {{ unshipped_orders.paginator.num_pages }}</span>{% if unshipped_orders.has_next %}<a href="?unshipped_page={{ unshipped_orders.next_page_number }}">Sonraki →</a>{% endif %}</div>{% endif %}
+
 </main>
 {% endblock %}
