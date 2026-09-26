@@ -78,31 +78,67 @@ def sync_order_financial_snapshot(sender, instance, created, **kwargs):
     shipped = ShipmentFinancialSnapshot.objects.filter(order=instance).exists()
 
     if shipped:
-        # Sevkiyat sonrası maliyet snapshot'i kilitli kalir.
-        # Satış fiyatı ise sipariş detayında manuel düzeltildiyse sevkiyat finansının
-        # baz satışını da aynı değere taşı. Finans hareketleri bunun üzerine uygulanır.
+        # Sevk edilmiş siparişlerde de satış ve maliyet güncel sipariş verisini izler.
+        # Finans hareketleri bu baz değerlerin üzerine uygulanır.
         shipment_snapshot = ShipmentFinancialSnapshot.objects.filter(order=instance).first()
         if shipment_snapshot is not None:
-            shipment_cost_tl = Decimal(shipment_snapshot.toplam_maliyet_tl or 0)
-            shipment_profit = sale_tl - shipment_cost_tl if sale_tl is not None else None
-            shipment_profit_rate = (
-                shipment_profit / sale_tl * Decimal("100")
-                if shipment_profit is not None and sale_tl
+            shipment_rate = shipment_snapshot.usd_try or conversion_rate
+
+            shipment_sale_tl = amount_to_try(sale, sale_currency, shipment_rate)
+
+            base_cost_tl = None
+            extra_cost_tl = Decimal("0")
+            if cost is not None:
+                base_cost_tl = amount_to_try(cost, cost_currency, shipment_rate)
+                extra_cost_tl = (
+                    amount_to_try(
+                        Decimal(instance.ekstra_maliyet or 0),
+                        cost_currency,
+                        shipment_rate,
+                    )
+                    or Decimal("0")
+                )
+            shipment_total_cost_tl = (
+                base_cost_tl + extra_cost_tl
+                if base_cost_tl is not None
                 else None
             )
+
+            shipment_profit = (
+                shipment_sale_tl - shipment_total_cost_tl
+                if shipment_sale_tl is not None and shipment_total_cost_tl is not None
+                else None
+            )
+            shipment_profit_rate = (
+                shipment_profit / shipment_sale_tl * Decimal("100")
+                if shipment_profit is not None and shipment_sale_tl
+                else None
+            )
+
             shipment_snapshot.satis_fiyati = sale
             shipment_snapshot.satis_para_birimi = sale_currency
-            shipment_snapshot.satis_tl = _money2(sale_tl)
+            shipment_snapshot.satis_tl = _money2(shipment_sale_tl)
+            shipment_snapshot.urun_maliyeti_tl = _money2(base_cost_tl)
+            shipment_snapshot.sevkiyat_ekstra_maliyet_tl = _money2(extra_cost_tl) or Decimal("0.00")
+            shipment_snapshot.toplam_maliyet_tl = _money2(shipment_total_cost_tl)
             shipment_snapshot.gerceklesen_kar_tl = _money2(shipment_profit)
             shipment_snapshot.gerceklesen_kar_orani = _money2(shipment_profit_rate)
             shipment_snapshot.save(update_fields=[
                 "satis_fiyati",
                 "satis_para_birimi",
                 "satis_tl",
+                "urun_maliyeti_tl",
+                "sevkiyat_ekstra_maliyet_tl",
+                "toplam_maliyet_tl",
                 "gerceklesen_kar_tl",
                 "gerceklesen_kar_orani",
             ])
-        cost_tl = Decimal(snapshot.maliyet_tl) if snapshot.maliyet_tl is not None else None
+
+            # Sipariş detayındaki finans özeti de aynı güncel maliyeti göstermeli.
+            cost_tl = shipment_total_cost_tl
+        elif cost is not None:
+            effective_cost = cost + Decimal(instance.ekstra_maliyet or 0)
+            cost_tl = amount_to_try(effective_cost, cost_currency, conversion_rate)
     elif cost is not None:
         effective_cost = cost + Decimal(instance.ekstra_maliyet or 0)
         cost_tl = amount_to_try(effective_cost, cost_currency, conversion_rate)
