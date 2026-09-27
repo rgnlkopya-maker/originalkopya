@@ -71,7 +71,7 @@ def create_order_financial_snapshot(sender,instance,created,**kwargs):
         effective=Decimal(pc.maliyet); cost_currency=pc.para_birimi or "TRY"
         Order.objects.filter(pk=instance.pk).update(maliyet_uygulanan=pc.maliyet,maliyet_para_birimi=cost_currency)
     maliyet_tl=None
-    if effective is not None:maliyet_tl=amount_to_try(effective+Decimal(instance.ekstra_maliyet or 0),cost_currency,usd_try)
+    if effective is not None:maliyet_tl=amount_to_try(max(Decimal("0"), effective+Decimal(instance.ekstra_maliyet or 0)-Decimal(instance.maliyet_indirimi or 0)),cost_currency,usd_try)
     kar=satis_tl-maliyet_tl if satis_tl is not None and maliyet_tl is not None else None; oran=kar/satis_tl*100 if kar is not None and satis_tl else None
     OrderFinancialSnapshot.objects.get_or_create(order=instance,defaults={"usd_try":usd_try,"satis_fiyati":satis,"satis_para_birimi":curr,"satis_tl":satis_tl.quantize(Decimal('.01')) if satis_tl is not None else None,"maliyet_tl":maliyet_tl.quantize(Decimal('.01')) if maliyet_tl is not None else None,"beklenen_kar_tl":kar.quantize(Decimal('.01')) if kar is not None else None,"beklenen_kar_orani":oran.quantize(Decimal('.01')) if oran is not None else None})
 
@@ -85,7 +85,7 @@ def create_shipment_financial_snapshot(sender,instance,created,**kwargs):
     elif pc:cost=Decimal(pc.maliyet);cc=pc.para_birimi or "TRY"
     elif order.maliyet_uygulanan is not None:cost=Decimal(order.maliyet_uygulanan);cc=order.maliyet_para_birimi or "TRY"
     else:cost=None;cc="TRY"
-    ct=amount_to_try(cost,cc,usd);extra=amount_to_try(Decimal(order.ekstra_maliyet or 0),cc,usd) or Decimal("0");total=ct+extra if ct is not None else None;kar=satis_tl-total if satis_tl is not None and total is not None else None;oran=kar/satis_tl*100 if kar is not None and satis_tl else None
+    ct=amount_to_try(cost,cc,usd);extra=amount_to_try(Decimal(order.ekstra_maliyet or 0),cc,usd) or Decimal("0");discount=amount_to_try(Decimal(order.maliyet_indirimi or 0),cc,usd) or Decimal("0");total=max(Decimal("0"),ct+extra-discount) if ct is not None else None;kar=satis_tl-total if satis_tl is not None and total is not None else None;oran=kar/satis_tl*100 if kar is not None and satis_tl else None
     ShipmentFinancialSnapshot.objects.create(order=order,usd_try=usd,satis_fiyati=satis,satis_para_birimi=curr,satis_tl=satis_tl.quantize(Decimal('.01')) if satis_tl is not None else None,urun_maliyeti_tl=ct.quantize(Decimal('.01')) if ct is not None else None,sevkiyat_ekstra_maliyet_tl=extra.quantize(Decimal('.01')),toplam_maliyet_tl=total.quantize(Decimal('.01')) if total is not None else None,gerceklesen_kar_tl=kar.quantize(Decimal('.01')) if kar is not None else None,gerceklesen_kar_orani=oran.quantize(Decimal('.01')) if oran is not None else None)
 
 class ProductCard(models.Model):
