@@ -7,6 +7,7 @@ from core.models import OrderEvent
 FINANCIAL_STAGES = {
     "satis_fiyati",
     "ekstra_maliyet",
+    "maliyet_indirimi",
     "maliyet_override",
     "maliyet_uygulanan",
     "finans_hareketi",
