@@ -52,7 +52,7 @@ def sync_order_financial_snapshot(sender, instance, created, **kwargs):
 
     cost_tl = None
     if cost is not None:
-        effective_cost = cost + Decimal(instance.ekstra_maliyet or 0)
+        effective_cost = max(Decimal("0"), cost + Decimal(instance.ekstra_maliyet or 0) - Decimal(instance.maliyet_indirimi or 0))
         cost_tl = amount_to_try(effective_cost, cost_currency, usd_try)
 
     profit = sale_tl - cost_tl if sale_tl is not None and cost_tl is not None else None
@@ -98,8 +98,16 @@ def sync_order_financial_snapshot(sender, instance, created, **kwargs):
                     )
                     or Decimal("0")
                 )
+                discount_tl = (
+                    amount_to_try(
+                        Decimal(instance.maliyet_indirimi or 0),
+                        cost_currency,
+                        shipment_rate,
+                    )
+                    or Decimal("0")
+                )
             shipment_total_cost_tl = (
-                base_cost_tl + extra_cost_tl
+                max(Decimal("0"), base_cost_tl + extra_cost_tl - discount_tl)
                 if base_cost_tl is not None
                 else None
             )
@@ -137,10 +145,10 @@ def sync_order_financial_snapshot(sender, instance, created, **kwargs):
             # Sipariş detayındaki finans özeti de aynı güncel maliyeti göstermeli.
             cost_tl = shipment_total_cost_tl
         elif cost is not None:
-            effective_cost = cost + Decimal(instance.ekstra_maliyet or 0)
+            effective_cost = max(Decimal("0"), cost + Decimal(instance.ekstra_maliyet or 0) - Decimal(instance.maliyet_indirimi or 0))
             cost_tl = amount_to_try(effective_cost, cost_currency, conversion_rate)
     elif cost is not None:
-        effective_cost = cost + Decimal(instance.ekstra_maliyet or 0)
+        effective_cost = max(Decimal("0"), cost + Decimal(instance.ekstra_maliyet or 0) - Decimal(instance.maliyet_indirimi or 0))
         cost_tl = amount_to_try(effective_cost, cost_currency, conversion_rate)
 
     profit = sale_tl - cost_tl if sale_tl is not None and cost_tl is not None else None
