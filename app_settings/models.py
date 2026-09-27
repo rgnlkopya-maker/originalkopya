@@ -56,6 +56,7 @@ class UserAccess(models.Model):
     can_update_production = models.BooleanField(default=True)
     can_delete_orders = models.BooleanField(default=False)
     can_view_folio_link = models.BooleanField(default=False)
+    can_share_orders = models.BooleanField(default=False)
 
     can_view_depots = models.BooleanField(default=False)
     can_view_reports = models.BooleanField(default=False)
