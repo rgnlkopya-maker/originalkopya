@@ -167,6 +167,16 @@ def production_stage_control(request):
         key=lambda row: (-row["days_open"], row["first_event"].timestamp)
     )
 
+    order_type = (request.GET.get("order_type") or "ALL").strip().upper()
+    valid_order_types = {"ALL", "OZEL", "SERI", "TEKLI", "STOK", "KONSINYE"}
+    if order_type not in valid_order_types:
+        order_type = "ALL"
+    if order_type != "ALL":
+        unshipped_after_week = [
+            row for row in unshipped_after_week
+            if (row["order"].siparis_tipi or "").upper() == order_type
+        ]
+
     paginator = Paginator(problems, 50)
     page_obj = paginator.get_page(request.GET.get("page"))
 
@@ -197,4 +207,5 @@ def production_stage_control(request):
         "excluded_count": ProductionStageControlExclusion.objects.filter(control_type=excluded_type).count(),
         "show_excluded": show_excluded,
         "section": section,
+        "order_type": order_type,
     })
