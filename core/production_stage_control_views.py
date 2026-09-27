@@ -3,11 +3,12 @@ from collections import defaultdict
 from app_settings.access import data_scope_value
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
-from django.shortcuts import render
+from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
+from django.views.decorators.http import require_POST
 from datetime import timedelta
 
-from .models import Order, OrderEvent
+from .models import Order, OrderEvent, ProductionStageControlExclusion
 
 
 STAGES = {
@@ -31,6 +32,34 @@ def _missing_stage_steps(events, stage_name, label):
     if "bitti" not in values:
         missing.append(f"{label} Bitti")
     return missing
+
+
+@login_required
+@require_POST
+def exclude_from_production_stage_control(request, order_id):
+    order = get_object_or_404(Order, pk=order_id)
+    control_type = (request.POST.get("control_type") or "").strip()
+    valid_types = {value for value, _label in ProductionStageControlExclusion.CONTROL_TYPES}
+    if control_type not in valid_types:
+        return redirect("production_stage_control")
+
+    ProductionStageControlExclusion.objects.update_or_create(
+        order=order,
+        control_type=control_type,
+        defaults={"excluded_by": request.user, "excluded_at": timezone.now()},
+    )
+    return redirect(request.POST.get("next") or "production_stage_control")
+
+
+@login_required
+@require_POST
+def restore_to_production_stage_control(request, exclusion_id):
+    exclusion = get_object_or_404(ProductionStageControlExclusion, pk=exclusion_id)
+    exclusion.delete()
+    target = request.POST.get("next")
+    if target:
+        return redirect(target)
+    return redirect("/uretim-asama-kontrolu/?excluded=1")
 
 
 @login_required
@@ -66,6 +95,11 @@ def production_stage_control(request):
         .order_by("order_id", "timestamp", "id")
     ):
         events_by_order[event.order_id].append(event)
+
+    exclusions = {
+        (row.order_id, row.control_type)
+        for row in ProductionStageControlExclusion.objects.all().only("order_id", "control_type")
+    }
 
     problems = []
     unshipped_after_week = []
@@ -106,7 +140,7 @@ def production_stage_control(request):
         if production_events and not shipped:
             first_production_event = production_events[0]
             age = timezone.now() - first_production_event.timestamp
-            if age >= timedelta(days=7):
+            if age >= timedelta(days=7) and (order.id, "unshipped_7d") not in exclusions:
                 unshipped_after_week.append({
                     "order": order,
                     "first_event": first_production_event,
@@ -116,7 +150,7 @@ def production_stage_control(request):
 
         # Aynı eksikliği birden fazla kural yakalasa bile ekranda bir kez göster.
         reasons = list(dict.fromkeys(reasons))
-        if reasons:
+        if reasons and (order.id, "stage_problem") not in exclusions:
             last_event = events[-1]
             problems.append({
                 "order": order,
@@ -139,9 +173,20 @@ def production_stage_control(request):
     unshipped_paginator = Paginator(unshipped_after_week, 50)
     unshipped_page_obj = unshipped_paginator.get_page(request.GET.get("unshipped_page"))
 
+    excluded_rows = (
+        ProductionStageControlExclusion.objects
+        .select_related("order", "order__musteri", "excluded_by")
+        .order_by("-excluded_at", "-id")
+        if request.GET.get("excluded") == "1"
+        else ProductionStageControlExclusion.objects.none()
+    )
+
     return render(request, "core/production_stage_control.html", {
         "problems": page_obj,
         "problem_count": len(problems),
         "unshipped_orders": unshipped_page_obj,
         "unshipped_count": len(unshipped_after_week),
+        "excluded_rows": excluded_rows,
+        "show_excluded": request.GET.get("excluded") == "1",
+        "excluded_count": ProductionStageControlExclusion.objects.count(),
     })
