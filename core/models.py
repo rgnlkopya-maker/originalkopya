@@ -547,6 +547,35 @@ class OrderNoticeRead(models.Model):
     def __str__(self):
         return f"{self.user.username} - {self.order.siparis_numarasi} - {self.notice_hash[:8]}"
 
+
+
+class OrderFlag(models.Model):
+    MODE_CHOICES = [
+        ("TRACK_ALL", "Tüm üretim hareketlerini takip et"),
+        ("STAGE_ALERT", "Seçili üretim aşamalarında uyar"),
+    ]
+
+    order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name="flags")
+    created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name="created_order_flags")
+    note = models.TextField()
+    mode = models.CharField(max_length=20, choices=MODE_CHOICES, default="TRACK_ALL")
+    trigger_stages = models.JSONField(default=list, blank=True)
+    notify_users = models.ManyToManyField(User, related_name="followed_order_flags", blank=True)
+    popup_actor = models.BooleanField(default=False)
+    is_active = models.BooleanField(default=True, db_index=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    closed_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ["-created_at", "-id"]
+        indexes = [
+            models.Index(fields=["order", "is_active"]),
+        ]
+
+    def __str__(self):
+        return f"{self.order.siparis_numarasi} - {self.get_mode_display()}"
+
+
 class Notification(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="notification_set")
     order = models.ForeignKey(Order, on_delete=models.CASCADE, null=True, blank=True)
