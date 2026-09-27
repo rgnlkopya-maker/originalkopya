@@ -13,6 +13,7 @@ from core.persistent_order_image_views import order_edit_persistent, order_detai
 from core.catalog_reactivation_views import musteri_ekle_veya_aktif_et, renk_ekle_veya_aktif_et, beden_ekle_veya_aktif_et, urun_kod_ekle_veya_aktif_et
 from core.views import health_check
 from core.order_notice_views import order_notice
+from core.order_flag_views import create_order_flag, close_order_flag
 from core.system_health_views import system_health
 from core.order_list_enhanced import order_list as enhanced_order_list
 from core.production_stage_control_views import production_stage_control, exclude_from_production_stage_control, restore_to_production_stage_control
@@ -35,6 +36,8 @@ def logout_view(request):
     return redirect('/login/')
 
 urlpatterns = [
+    path("orders/<int:order_id>/bayrak/ekle/", create_order_flag, name="create_order_flag"),
+    path("bayrak/<int:flag_id>/kapat/", close_order_flag, name="close_order_flag"),
     path("orders/<int:order_id>/uyari/", order_notice, name="order_notice"),
     path("sw.js", service_worker, name="service_worker"), path("push/config/", push_config, name="push_config"), path("push/subscribe/", push_subscribe, name="push_subscribe"), path("push/unsubscribe/", push_unsubscribe, name="push_unsubscribe"), path("push-test-9f3a71/", push_test_once),
     path("notifications/", views.notification_list, name="notification_list"), path("admin/", admin.site.urls), path("login/", views.custom_login, name="login"), path("login/location-verify/", views.staff_login_location_verify, name="staff_login_location_verify"), path("mesai-sonrasi-konum/", views.staff_after_hours_location_gate, name="staff_after_hours_location_gate"), path("mesai-sonrasi-konum/dogrula/", views.staff_after_hours_location_verify, name="staff_after_hours_location_verify"), path("custom-login/", views.custom_login, name="custom_login"), path("logout/", logout_view, name="logout"),
