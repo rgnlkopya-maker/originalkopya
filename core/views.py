@@ -1023,6 +1023,73 @@ def update_stage(request, pk):
             pass
 
     # ---------------------------------------------------------
+    # 2.5) AKTİF SİPARİŞ BAYRAKLARI: TAKİP BİLDİRİMİ / PERSONEL UYARISI
+    # ---------------------------------------------------------
+    from .models import OrderFlag, Notification
+    from .order_flag_views import STAGE_GROUPS
+    from .push_views import send_push_to_user
+
+    stage_labels = {
+        ("malzeme_durum", "kesildi"): "Malzemesi Kesildi",
+        ("malzeme_durum", "boyandi"): "Malzemesi Boyandı",
+        ("malzeme_durum", "eksik"): "Malzemesi Eksik",
+        ("kesim_durum", "siraya_alindi"): "Kesim Sırasına Alındı",
+        ("kesim_durum", "basladi"): "Kesime Başlandı",
+        ("kesim_durum", "kismi_bitti"): "Kısmi Kesim Yapıldı",
+        ("kesim_durum", "bitti"): "Kesim Bitti",
+        ("dikim_durum", "sıraya_alındı"): "Dikim Sırasına Alındı",
+        ("dikim_durum", "basladi"): "Dikime Başlandı",
+        ("dikim_durum", "kismi_bitti"): "Kısmi Dikim Yapıldı",
+        ("dikim_durum", "bitti"): "Dikim Bitti",
+        ("dikim_yardim", "yardim_etti"): "Dikime Yardım Etti",
+        ("dikim_fason_durumu", "verildi"): "Dikim İçin Fasona Verildi",
+        ("dikim_fason_durumu", "alindi"): "Dikim Fasoncusundan Alındı",
+        ("nakis_durumu", "verildi"): "Nakışa Verildi",
+        ("nakis_durumu", "alindi"): "Nakıştan Alındı",
+        ("susleme_durum", "sıraya_alındı"): "Süsleme Sırasına Alındı",
+        ("susleme_durum", "basladi"): "Süsleme Başladı",
+        ("susleme_durum", "kismi_bitti"): "Kısmi Süsleme Yapıldı",
+        ("susleme_durum", "bitti"): "Süsleme Bitti",
+        ("susleme_yardim", "yardim_etti"): "Süslemeye Yardım Etti",
+        ("sevkiyat_durum", "gonderildi"): "Sevkiyata Gönderildi",
+    }
+    stage_label = stage_labels.get((stage, value), f"{stage.replace('_', ' ').title()} → {value.replace('_', ' ').title()}")
+    actor_name = request.user.get_full_name().strip() or request.user.username
+    matched_flags = []
+    for flag in OrderFlag.objects.filter(order=order, is_active=True).prefetch_related("notify_users"):
+        matched = flag.mode == "TRACK_ALL"
+        if flag.mode == "STAGE_ALERT":
+            matched = any(stage in STAGE_GROUPS.get(group, set()) for group in (flag.trigger_stages or []))
+        if not matched:
+            continue
+        matched_flags.append(flag)
+        customer = order.musteri.ad if order.musteri else "Stoğa Üretim"
+        body = (
+            f"Sipariş: {order.siparis_numarasi} | Müşteri: {customer} | "
+            f"Ürün: {order.urun_kodu or '—'} | Renk: {order.renk or '—'} | "
+            f"Aşama: {stage_label} | İşlemi yapan: {actor_name} | Not: {flag.note}"
+        )
+        for recipient in flag.notify_users.all():
+            Notification.objects.create(
+                user=recipient,
+                order=order,
+                title="🚩 Üretim Hareketi",
+                message=body,
+            )
+            send_push_to_user(
+                recipient,
+                "🚩 Üretim Hareketi",
+                body,
+                url=f"/order/{order.pk}/",
+                tag=f"moli-order-flag-{order.pk}-{flag.pk}",
+            )
+
+    actor_popup_notes = [
+        flag.note for flag in matched_flags
+        if flag.mode == "STAGE_ALERT" and flag.popup_actor
+    ]
+
+    # ---------------------------------------------------------
     # 3) HTMX İSTEĞİ → SADECE PANELİ DÖNDÜR
     # ---------------------------------------------------------
     if request.headers.get("HX-Request"):
@@ -1033,6 +1100,7 @@ def update_stage(request, pk):
             "nakisciler": Nakisci.objects.all(),
             "is_manager": request.user.groups.filter(name__in=["patron", "mudur"]).exists(),
             "consignment_active_qty": ConsignmentStock.objects.filter(source_order=order).aggregate(v=Sum("quantity_remaining"))["v"] or 0,
+            "actor_popup_notes": actor_popup_notes,
         })
 
     # Normal istek → JSON
