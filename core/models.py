@@ -262,6 +262,7 @@ class Order(models.Model):
     maliyet_para_birimi = models.CharField(max_length=3, choices=CURRENCY_CHOICES, default="TRY")
     maliyet_override = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
     ekstra_maliyet = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    maliyet_indirimi = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     last_updated = models.DateTimeField(auto_now=True)
     is_active = models.BooleanField(default=True, db_index=True)
 
@@ -304,9 +305,10 @@ class Order(models.Model):
 
     @property
     def toplam_maliyet(self):
-        """Etkin maliyet + ekstra maliyet"""
+        """Etkin maliyet + ekstra maliyet - maliyet indirimi (en az 0)."""
         ekstra = Decimal(self.ekstra_maliyet or 0)
-        return self.efektif_maliyet + ekstra
+        indirim = Decimal(self.maliyet_indirimi or 0)
+        return max(Decimal("0"), self.efektif_maliyet + ekstra - indirim)
 
     @property
     def kar_backend(self):
