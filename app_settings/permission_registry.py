@@ -15,6 +15,7 @@ FEATURE_GROUPS = [
         ("orders.delete_image", "Sipariş Görseli Sil", "can_edit_orders"),
         ("orders.view_image", "Sipariş Görselini Gör", "can_view_orders"),
         ("orders.print", "Sipariş Yazdır", "can_create_orders"),
+        ("orders.share", "Sipariş Paylaş", "can_share_orders"),
         ("orders.label_print", "Etiket Yazdır", "can_create_orders"),
         ("orders.mark_printed", "Çıktı Alındı İşaretle", "can_create_orders"),
         ("orders.toggle_active", "Sipariş Aktif / Pasif", "can_edit_orders"),
