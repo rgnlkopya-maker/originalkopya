@@ -57,7 +57,7 @@ def order_list(request):
     total_count = all_orders.count()
     if hasattr(request.user,"userprofile"):
         request.user.userprofile.last_seen_orders=timezone.now(); request.user.userprofile.save(update_fields=["last_seen_orders"])
-    latest_event=(OrderEvent.objects.filter(order=OuterRef("pk")).exclude(event_type="order_update").exclude(stage__in=["satis_fiyati","ekstra_maliyet","maliyet_override","maliyet_uygulanan"]).order_by("-timestamp","-id")[:1])
+    latest_event=(OrderEvent.objects.filter(order=OuterRef("pk")).exclude(event_type="order_update").exclude(stage__in=["satis_fiyati","ekstra_maliyet","maliyet_indirimi","maliyet_override","maliyet_uygulanan"]).order_by("-timestamp","-id")[:1])
     base_qs=(Order.objects.select_related("musteri").annotate(latest_stage=Subquery(latest_event.values("stage")),latest_value=Subquery(latest_event.values("value")),latest_parca=Subquery(latest_event.values("parca")),last_status_date=Subquery(latest_event.values("timestamp"),output_field=DateTimeField())).order_by("-id"))
     if scope_orders == "active_only":
         base_qs = base_qs.filter(is_active=True)
