@@ -177,11 +177,29 @@ def employee_detail(request,user_id):
     access_scope = access.data_scope or {}
     scope_orders = access_scope.get("orders", "all")
     scope_customers = access_scope.get("customers", "all")
+
+    # Personel detayinda tum yetkiler ayni kullanici icin listeleniyor.
+    # Grup ve UserAccess bilgisini her yetki satirinda tekrar sorgulamak yerine
+    # mevcut access nesnesi ve tek grup sorgusu uzerinden ayni sonucu hesapla.
+    employee_has_full_access = employee.is_superuser or employee.groups.filter(name__in=["patron", "mudur"]).exists()
+    explicit_permissions = access.feature_permissions or {}
+    from app_settings.permission_registry import FEATURES
+
+    def employee_feature_enabled(feature_key):
+        if employee_has_full_access:
+            return True
+        if feature_key in explicit_permissions:
+            return bool(explicit_permissions[feature_key])
+        fallback = (FEATURES.get(feature_key) or {}).get("fallback")
+        if fallback is None:
+            return True
+        return bool(getattr(access, fallback, False))
+
     access_sections = [
         SimpleNamespace(
             title=section,
             fields=[
-                SimpleNamespace(name=feature_key, label=label, enabled=has_feature_access(employee, feature_key))
+                SimpleNamespace(name=feature_key, label=label, enabled=employee_feature_enabled(feature_key))
                 for feature_key, label, _fallback in items
             ],
         )
@@ -195,4 +213,4 @@ def employee_detail(request,user_id):
     for event in work_events_qs:activity_items.append(SimpleNamespace(timestamp=event.timestamp,operation_label=_event_label(event.stage,event.value),order=event.order,aciklama=event.aciklama or ""))
     for issue in issue_qs:activity_items.append(SimpleNamespace(timestamp=issue.created_at,operation_label=f"⚠️ Hata: {issue.konu} · {'Açık' if issue.durum=='ACIK' else 'Çözüldü'}",order=issue.order,aciklama=issue.aciklama or ""))
     activity_items.sort(key=lambda item:item.timestamp,reverse=True);work_events_total=len(activity_items);work_events_page=Paginator(activity_items,100).get_page(request.GET.get("work_page"));role=employee.groups.first().name if employee.groups.exists() else "personel";role_labels={"personel":"Personel","mudur":"Müdür","patron":"Patron"};team_label=dict(TEAM_CHOICES).get(user_profile.gorev,user_profile.gorev.title())
-    return render(request,"teams/employee_detail.html",{"employee":employee,"access":access,"access_sections":access_sections,"scope_orders":scope_orders,"scope_customers":scope_customers,"role_has_full_access":employee.is_superuser or employee.groups.filter(name__in=["patron","mudur"]).exists(),"profile":profile,"today":today,"role":role,"role_label":role_labels.get(role,role.title()),"team_label":team_label,"user_profile":user_profile,"gorevler":TEAM_CHOICES,"range_start":range_start,"range_end":range_end,"preset":preset,"service_years":service_years,"service_months":service_months,"service_days":service_days,"earned_leave":earned_leave,"used_annual_leave":used_annual_leave,"total_leave":total_leave,"remaining_leave":remaining_leave,"worked_days":worked_days,"leave_days":leave_days,"sick_days":sick_days,"annual_leave_period":annual_leave_period,"late_minutes":late_minutes,"overtime_minutes":overtime_minutes,"operation_counts":operation_counts,"work_events_total":work_events_total,"work_events_page":work_events_page,"issue_count":issue_count,"open_issue_count":open_issue_count})
+    return render(request,"teams/employee_detail.html",{"employee":employee,"access":access,"access_sections":access_sections,"scope_orders":scope_orders,"scope_customers":scope_customers,"role_has_full_access":employee_has_full_access,"profile":profile,"today":today,"role":role,"role_label":role_labels.get(role,role.title()),"team_label":team_label,"user_profile":user_profile,"gorevler":TEAM_CHOICES,"range_start":range_start,"range_end":range_end,"preset":preset,"service_years":service_years,"service_months":service_months,"service_days":service_days,"earned_leave":earned_leave,"used_annual_leave":used_annual_leave,"total_leave":total_leave,"remaining_leave":remaining_leave,"worked_days":worked_days,"leave_days":leave_days,"sick_days":sick_days,"annual_leave_period":annual_leave_period,"late_minutes":late_minutes,"overtime_minutes":overtime_minutes,"operation_counts":operation_counts,"work_events_total":work_events_total,"work_events_page":work_events_page,"issue_count":issue_count,"open_issue_count":open_issue_count})
