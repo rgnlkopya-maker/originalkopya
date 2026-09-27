@@ -708,9 +708,10 @@ def order_detail(request, pk):
     from django.contrib.auth import get_user_model
     from .models import OrderFlag
     active_order_flags = OrderFlag.objects.filter(
+        Q(created_by=request.user) | Q(notify_users=request.user),
         order=order,
         is_active=True,
-    ).select_related("created_by").prefetch_related("notify_users")
+    ).distinct().select_related("created_by").prefetch_related("notify_users", "detail_notify_users")
     flag_users = get_user_model().objects.filter(is_active=True).order_by(
         "first_name", "last_name", "username"
     )
