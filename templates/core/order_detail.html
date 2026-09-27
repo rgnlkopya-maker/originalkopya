@@ -90,42 +90,67 @@ document.addEventListener('DOMContentLoaded', function () {
 </script>
 {% endif %}
 {% if change_events or order.aciklama %}
-<div class="modal fade change-modal no-print" id="orderChangeModal" tabindex="-1" aria-labelledby="orderChangeModalLabel" aria-hidden="true">
+<div class="modal fade change-modal no-print" id="orderChangeModal" tabindex="-1" aria-labelledby="orderChangeModalLabel" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
   <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title" id="orderChangeModalLabel">{% if change_events %}⚠️ SİPARİŞ BİLGİSİ{% else %}📝 SİPARİŞ AÇIKLAMASI{% endif %}</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Kapat"></button>
+    <div class="modal-content" style="border:2px solid #e44b4b">
+      <div class="modal-header" style="background:#fff0f0">
+        <h5 class="modal-title" id="orderChangeModalLabel">⚠️ SİPARİŞ UYARISI</h5>
       </div>
       <div class="modal-body">
-        {% if order.aciklama %}
-        <div class="change-modal-note" style="margin-bottom:12px"><strong>Açıklama</strong><div style="margin-top:5px">{{ order.aciklama }}</div></div>
-        {% endif %}
         {% if change_events %}
-        <div class="change-modal-note">Bu siparişte üretimi ilgilendiren değişiklikler var. Finans ve maliyet değişiklikleri bu listede yer almaz.</div>
-        <div class="change-history-list" style="margin-top:10px">
-          {% for ev in change_events %}
-          <div class="change-history-item">
-            <div class="change-history-top">
-              <span class="change-history-field">{{ ev.field_label }}</span>
-              <span class="change-history-meta">{{ ev.timestamp|date:"d.m.Y H:i" }} · {{ ev.user|default:"-" }}</span>
+        <div style="border:1px solid #efb3b3;background:#fff7f7;border-radius:14px;padding:14px;margin-bottom:12px">
+          <div style="font-weight:900;color:#a61b1b;margin-bottom:8px">⚠️ SİPARİŞTE DEĞİŞİKLİK</div>
+          <div class="change-history-list">
+            {% for ev in change_events %}
+            <div class="change-history-item">
+              <div class="change-history-top"><span class="change-history-field">{{ ev.field_label }}</span><span class="change-history-meta">{{ ev.timestamp|date:"d.m.Y H:i" }} · {{ ev.user|default:"-" }}</span></div>
+              <div class="change-history-values"><span class="change-old">{{ ev.old_display }}</span><span class="change-arrow">→</span><span class="change-new">{{ ev.new_display }}</span></div>
             </div>
-            <div class="change-history-values"><span class="change-old">{{ ev.old_display }}</span><span class="change-arrow">→</span><span class="change-new">{{ ev.new_display }}</span></div>
+            {% endfor %}
           </div>
-          {% endfor %}
         </div>
         {% endif %}
+        {% if order.aciklama %}
+        <div style="border:1px solid #efb3b3;background:#fff7f7;border-radius:14px;padding:14px">
+          <div style="font-weight:900;color:#a61b1b;margin-bottom:8px">⚠️ AÇIKLAMA</div>
+          <div style="font-size:15px;font-weight:700;white-space:pre-wrap">{{ order.aciklama }}</div>
+        </div>
+        {% endif %}
+        {% if is_manager %}<div id="orderNoticeReaders" style="margin-top:14px"></div>{% endif %}
       </div>
-      <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Kapat</button></div>
+      <div class="modal-footer" style="display:block">
+        <div id="orderNoticeMessage" style="font-size:12px;color:#a61b1b;margin-bottom:8px"></div>
+        <button type="button" id="orderNoticeReadBtn" class="btn btn-danger w-100" style="font-weight:900;min-height:48px">✓ OKUDUM</button>
+      </div>
     </div>
   </div>
 </div>
 <script>
-document.addEventListener('DOMContentLoaded', function () {
-  var el = document.getElementById('orderChangeModal');
-  if (el && window.bootstrap && bootstrap.Modal) {
-    new bootstrap.Modal(el, {backdrop:true, keyboard:true}).show();
+document.addEventListener('DOMContentLoaded', async function () {
+  var el=document.getElementById('orderChangeModal'), btn=document.getElementById('orderNoticeReadBtn'), msg=document.getElementById('orderNoticeMessage'), readers=document.getElementById('orderNoticeReaders');
+  if(!el||!window.bootstrap||!bootstrap.Modal)return;
+  var modal=new bootstrap.Modal(el,{backdrop:'static',keyboard:false}), notice=null;
+  function csrf(){var m=document.cookie.match(/csrftoken=([^;]+)/);return m?m[1]:''}
+  function renderReaders(rows){
+    if(!readers||!rows)return;
+    readers.innerHTML='<div style="font-weight:900;margin-bottom:7px">Kimler okudu?</div><div style="display:flex;gap:6px;flex-wrap:wrap">'+rows.map(function(r){return '<span style="padding:5px 8px;border-radius:9px;background:'+(r.read?'#eaf8ef':'#f2f3f6')+';color:'+(r.read?'#177245':'#7b8495')+';font-size:11px;font-weight:800">'+r.user+' '+(r.read?'✓':'—')+'</span>'}).join('')+'</div>';
   }
+  try{
+    var r=await fetch('{% url "order_notice" order.id %}',{headers:{'X-Requested-With':'XMLHttpRequest'}});
+    notice=await r.json();
+    renderReaders(notice.read_status);
+    if(notice.has_notice&&!notice.is_read)modal.show();
+  }catch(e){ modal.show(); }
+  btn&&btn.addEventListener('click',async function(){
+    if(!notice){msg.textContent='Uyarı kaydı alınamadı. Sayfayı yenileyip tekrar deneyin.';return}
+    btn.disabled=true;msg.textContent='Kaydediliyor...';
+    try{
+      var r=await fetch('{% url "order_notice" order.id %}',{method:'POST',headers:{'Content-Type':'application/json','X-CSRFToken':csrf(),'X-Requested-With':'XMLHttpRequest'},body:JSON.stringify({notice_hash:notice.notice_hash})});
+      var d=await r.json();
+      if(!r.ok){if(d.changed){location.reload();return}throw new Error(d.message||'Okundu kaydedilemedi.')}
+      msg.textContent='';modal.hide();
+    }catch(e){msg.textContent=e.message||'Okundu kaydedilemedi.';btn.disabled=false}
+  });
 });
 </script>
 {% endif %}
