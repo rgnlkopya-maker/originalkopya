@@ -1,17 +1,27 @@
 {% extends "base.html" %}
 {% block extra_css %}<style>
-.stage-control{max-width:1450px;margin:0 auto;padding:24px 14px 50px}.control-head{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;margin-bottom:18px}.control-title{margin:0;font-size:27px;font-weight:850;color:#182033}.control-sub{margin-top:5px;color:#7b8597;font-size:13px}.count-pill{display:inline-flex;align-items:center;justify-content:center;min-width:42px;height:34px;padding:0 12px;border-radius:999px;background:#fff1f1;color:#c73535;font-weight:850;border:1px solid #f1d1d1}.control-card{background:#fff;border:1px solid #e8ebf2;border-radius:18px;overflow:hidden;box-shadow:0 6px 20px rgba(15,23,42,.05)}.control-table{width:100%;border-collapse:collapse}.control-table th{background:#f7f8fb;color:#7b8597;font-size:10.5px;font-weight:850;text-transform:uppercase;padding:11px 12px;border-bottom:1px solid #e8ebf2}.control-table td{padding:13px 12px;border-bottom:1px solid #eef0f5;vertical-align:middle;font-size:13px}.control-table tr:last-child td{border-bottom:0}.order-link{font-weight:850;color:#4058dd;text-decoration:none}.reason-list{display:flex;gap:5px;flex-wrap:wrap}.reason{display:inline-flex;padding:5px 8px;border-radius:8px;background:#fff2e8;color:#a85c12;border:1px solid #f2d4b7;font-size:10.5px;font-weight:850}.shipped{display:inline-flex;padding:4px 7px;border-radius:7px;background:#eef8f2;color:#238557;font-size:9px;font-weight:850;margin-top:5px}.empty{padding:50px 20px;text-align:center;color:#7d8798}.empty i{display:block;font-size:35px;color:#2b9362;margin-bottom:8px}.pager{display:flex;justify-content:center;gap:7px;margin-top:16px}.pager a,.pager span{height:36px;padding:0 12px;border:1px solid #e1e5ed;border-radius:10px;background:#fff;display:inline-flex;align-items:center;text-decoration:none;color:#526079;font-size:12px;font-weight:750}.pager .current{background:#4a63ff;color:#fff;border-color:#4a63ff}@media(max-width:800px){.stage-control{padding:15px 8px 35px}.control-title{font-size:21px}.control-head{align-items:center}.control-card{overflow-x:auto}.control-table{min-width:760px}.control-table td{padding:10px 8px}.control-sub{font-size:11px}}
+.stage-control{max-width:1450px;margin:0 auto;padding:24px 14px 50px}.control-head{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;margin-bottom:18px}.control-title{margin:0;font-size:27px;font-weight:850;color:#182033}.control-sub{margin-top:5px;color:#7b8597;font-size:13px}.count-pill{display:inline-flex;align-items:center;justify-content:center;min-width:42px;height:34px;padding:0 12px;border-radius:999px;background:#fff1f1;color:#c73535;font-weight:850;border:1px solid #f1d1d1}.section-tabs{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 18px}.section-tab{display:inline-flex;align-items:center;gap:7px;padding:9px 13px;border:1px solid #dde3ee;border-radius:11px;background:#fff;color:#566175;text-decoration:none;font-size:12px;font-weight:800}.section-tab.active{background:#4a63ff;color:#fff;border-color:#4a63ff}.section-tab .tab-count{display:inline-flex;min-width:21px;height:21px;padding:0 6px;align-items:center;justify-content:center;border-radius:999px;background:rgba(255,255,255,.18);font-size:10px}.section-tab:not(.active) .tab-count{background:#eef1ff;color:#4a63ff}.control-card{background:#fff;border:1px solid #e8ebf2;border-radius:18px;overflow:hidden;box-shadow:0 6px 20px rgba(15,23,42,.05)}.control-table{width:100%;border-collapse:collapse}.control-table th{background:#f7f8fb;color:#7b8597;font-size:10.5px;font-weight:850;text-transform:uppercase;padding:11px 12px;border-bottom:1px solid #e8ebf2}.control-table td{padding:13px 12px;border-bottom:1px solid #eef0f5;vertical-align:middle;font-size:13px}.control-table tr:last-child td{border-bottom:0}.order-link{font-weight:850;color:#4058dd;text-decoration:none}.reason-list{display:flex;gap:5px;flex-wrap:wrap}.reason{display:inline-flex;padding:5px 8px;border-radius:8px;background:#fff2e8;color:#a85c12;border:1px solid #f2d4b7;font-size:10.5px;font-weight:850}.shipped{display:inline-flex;padding:4px 7px;border-radius:7px;background:#eef8f2;color:#238557;font-size:9px;font-weight:850;margin-top:5px}.empty{padding:50px 20px;text-align:center;color:#7d8798}.empty i{display:block;font-size:35px;color:#2b9362;margin-bottom:8px}.pager{display:flex;justify-content:center;gap:7px;margin-top:16px}.pager a,.pager span{height:36px;padding:0 12px;border:1px solid #e1e5ed;border-radius:10px;background:#fff;display:inline-flex;align-items:center;text-decoration:none;color:#526079;font-size:12px;font-weight:750}.pager .current{background:#4a63ff;color:#fff;border-color:#4a63ff}@media(max-width:800px){.stage-control{padding:15px 8px 35px}.control-title{font-size:21px}.control-head{align-items:center}.control-card{overflow-x:auto}.control-table{min-width:760px}.control-table td{padding:10px 8px}.control-sub{font-size:11px}}
 </style>{% endblock %}
 {% block content %}
 <main class="stage-control">
   <div class="control-head">
-    <div><h1 class="control-title">Üretim Aşama Kontrolü</h1><div class="control-sub">Sonraki üretim aşamasına geçildiği halde önceki aşama kayıtları eksik kalan siparişler.</div></div>
+    <div><h1 class="control-title">Üretim Aşama Kontrolü</h1><div class="control-sub">Kontrol etmek istediğiniz bölümü seçin.</div></div>
+  </div>
+  <div class="section-tabs">
+    <a class="section-tab {% if section == 'problems' %}active{% endif %}" href="?section=problems">Aşama Problemleri <span class="tab-count">{{ problem_count }}</span></a>
+    <a class="section-tab {% if section == 'unshipped' %}active{% endif %}" href="?section=unshipped">7 Gündür Sevk Edilmeyenler <span class="tab-count">{{ unshipped_count }}</span></a>
+    <a class="section-tab {% if section == 'excluded' %}active{% endif %}" href="?section=excluded">Listeden Çıkarılanlar <span class="tab-count">{{ excluded_count }}</span></a>
+  </div>
+
+  {% if section == "problems" %}
+  <div class="control-head">
+    <div><h2 class="control-title" style="font-size:21px">Aşama Problemleri</h2><div class="control-sub">Sonraki üretim aşamasına geçildiği halde önceki aşama kayıtları eksik kalan siparişler.</div></div>
     <span class="count-pill">{{ problem_count }}</span>
   </div>
   <div class="control-card">
     {% if problems %}
     <table class="control-table">
-      <thead><tr><th>Sipariş</th><th>Müşteri</th><th>Ürün</th><th>Renk / Beden</th><th>Tespit Edilen Eksik İşlem</th><th>Son Kayıt</th></tr></thead>
+      <thead><tr><th>Sipariş</th><th>Müşteri</th><th>Ürün</th><th>Renk / Beden</th><th>Tespit Edilen Eksik İşlem</th><th>Son Kayıt</th><th>İşlem</th></tr></thead>
       <tbody>
       {% for row in problems %}
       <tr>
@@ -21,6 +31,7 @@
         <td>{{ row.order.renk|default:"—" }} / {{ row.order.beden|default:"—" }}</td>
         <td><div class="reason-list">{% for reason in row.reasons %}<span class="reason">{{ reason }} eksik</span>{% endfor %}</div></td>
         <td>{{ row.last_event.timestamp|date:"d.m.Y H:i" }}<br><span class="text-muted">{{ row.last_event.user|default:"—" }}</span></td>
+        <td><form method="post" action="{% url 'exclude_from_production_stage_control' row.order.id %}">{% csrf_token %}<input type="hidden" name="control_type" value="stage_problem"><input type="hidden" name="next" value="{{ request.get_full_path }}"><button class="btn btn-sm btn-outline-secondary">Listeden Çıkar</button></form></td>
       </tr>
       {% endfor %}
       </tbody>
@@ -29,16 +40,18 @@
     <div class="empty"><i class="bi bi-check-circle"></i><strong>Üretim aşamalarında tutarsızlık bulunmadı.</strong></div>
     {% endif %}
   </div>
-  {% if problems.paginator.num_pages > 1 %}<div class="pager">{% if problems.has_previous %}<a href="?page={{ problems.previous_page_number }}">← Önceki</a>{% endif %}<span class="current">{{ problems.number }} / {{ problems.paginator.num_pages }}</span>{% if problems.has_next %}<a href="?page={{ problems.next_page_number }}">Sonraki →</a>{% endif %}</div>{% endif %}
+  {% if problems.paginator.num_pages > 1 %}<div class="pager">{% if problems.has_previous %}<a href="?section=problems&page={{ problems.previous_page_number }}">← Önceki</a>{% endif %}<span class="current">{{ problems.number }} / {{ problems.paginator.num_pages }}</span>{% if problems.has_next %}<a href="?section=problems&page={{ problems.next_page_number }}">Sonraki →</a>{% endif %}</div>{% endif %}
+  {% endif %}
   
-  <div class="control-head" style="margin-top:26px">
+  {% if section == "unshipped" %}
+  <div class="control-head" style="margin-top:6px">
     <div><h2 class="control-title" style="font-size:21px">7 Gündür Sevk Edilmeyenler</h2><div class="control-sub">Herhangi bir üretim aşaması başlatılmış, ilk üretim hareketinin üzerinden en az 7 gün geçmiş ve hâlâ “Sevkedildi” kaydı bulunmayan siparişler.</div></div>
     <span class="count-pill">{{ unshipped_count }}</span>
   </div>
   <div class="control-card">
     {% if unshipped_orders %}
     <table class="control-table">
-      <thead><tr><th>Sipariş</th><th>Müşteri</th><th>Ürün</th><th>Renk / Beden</th><th>İlk Üretim Hareketi</th><th>Son Hareket</th><th>Süre</th></tr></thead>
+      <thead><tr><th>Sipariş</th><th>Müşteri</th><th>Ürün</th><th>Renk / Beden</th><th>İlk Üretim Hareketi</th><th>Son Hareket</th><th>Süre</th><th>İşlem</th></tr></thead>
       <tbody>
       {% for row in unshipped_orders %}
       <tr>
@@ -49,6 +62,7 @@
         <td>{{ row.first_event.timestamp|date:"d.m.Y H:i" }}<br><span class="text-muted">{{ row.first_event.user|default:"—" }}</span></td>
         <td>{{ row.last_event.timestamp|date:"d.m.Y H:i" }}<br><span class="text-muted">{{ row.last_event.user|default:"—" }}</span></td>
         <td><span class="reason">{{ row.days_open }} gün</span></td>
+        <td><form method="post" action="{% url 'exclude_from_production_stage_control' row.order.id %}">{% csrf_token %}<input type="hidden" name="control_type" value="unshipped_7d"><input type="hidden" name="next" value="{{ request.get_full_path }}"><button class="btn btn-sm btn-outline-secondary">Listeden Çıkar</button></form></td>
       </tr>
       {% endfor %}
       </tbody>
@@ -57,7 +71,37 @@
     <div class="empty"><i class="bi bi-check-circle"></i><strong>7 günü aşmış sevk edilmemiş üretim bulunmadı.</strong></div>
     {% endif %}
   </div>
-  {% if unshipped_orders.paginator.num_pages > 1 %}<div class="pager">{% if unshipped_orders.has_previous %}<a href="?unshipped_page={{ unshipped_orders.previous_page_number }}">← Önceki</a>{% endif %}<span class="current">{{ unshipped_orders.number }} / {{ unshipped_orders.paginator.num_pages }}</span>{% if unshipped_orders.has_next %}<a href="?unshipped_page={{ unshipped_orders.next_page_number }}">Sonraki →</a>{% endif %}</div>{% endif %}
+  {% if unshipped_orders.paginator.num_pages > 1 %}<div class="pager">{% if unshipped_orders.has_previous %}<a href="?section=unshipped&unshipped_page={{ unshipped_orders.previous_page_number }}">← Önceki</a>{% endif %}<span class="current">{{ unshipped_orders.number }} / {{ unshipped_orders.paginator.num_pages }}</span>{% if unshipped_orders.has_next %}<a href="?section=unshipped&unshipped_page={{ unshipped_orders.next_page_number }}">Sonraki →</a>{% endif %}</div>{% endif %}
+  {% endif %}
+
+  {% if section == "excluded" %}
+  <div class="control-head" style="margin-top:6px">
+    <div><h2 class="control-title" style="font-size:21px">Listeden Çıkarılanlar</h2><div class="control-sub">Kontrol listelerinden bilinçli olarak çıkarılan siparişler. İsterseniz tekrar aktif listeye alabilirsiniz.</div></div>
+    <span class="count-pill">{{ excluded_count }}</span>
+  </div>
+  <div class="control-card">
+    {% if excluded_rows %}
+    <table class="control-table">
+      <thead><tr><th>Sipariş</th><th>Müşteri</th><th>Ürün</th><th>Çıkarıldığı Bölüm</th><th>Çıkaran</th><th>Tarih</th><th>İşlem</th></tr></thead>
+      <tbody>
+      {% for row in excluded_rows %}
+      <tr>
+        <td><a class="order-link" href="{% url 'order_detail' row.order.id %}?return_url={{ request.get_full_path|urlencode }}">{{ row.order.siparis_numarasi }}</a></td>
+        <td>{{ row.order.musteri|default:"—" }}</td>
+        <td><strong>{{ row.order.urun_kodu|default:"—" }}</strong></td>
+        <td>{{ row.get_control_type_display }}</td>
+        <td>{{ row.excluded_by|default:"—" }}</td>
+        <td>{{ row.excluded_at|date:"d.m.Y H:i" }}</td>
+        <td><form method="post" action="{% url 'restore_to_production_stage_control' row.id %}">{% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}"><button class="btn btn-sm btn-outline-primary">Listeye Geri Al</button></form></td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div class="empty"><i class="bi bi-inbox"></i><strong>Listeden çıkarılmış sipariş yok.</strong></div>
+    {% endif %}
+  </div>
+  {% endif %}
 
 </main>
 {% endblock %}
