@@ -139,7 +139,7 @@ document.addEventListener('DOMContentLoaded', async function () {
     var r=await fetch('{% url "order_notice" order.id %}',{headers:{'X-Requested-With':'XMLHttpRequest'}});
     notice=await r.json();
     renderReaders(notice.read_status);
-    if(notice.has_notice&&!notice.is_read)modal.show();
+    if(notice.has_notice)modal.show();
   }catch(e){ modal.show(); }
   btn&&btn.addEventListener('click',async function(){
     if(!notice){msg.textContent='Uyarı kaydı alınamadı. Sayfayı yenileyip tekrar deneyin.';return}
