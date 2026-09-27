@@ -8,7 +8,7 @@ from django.utils import timezone
 from django.views.decorators.cache import never_cache
 import re
 
-from .models import Order, OrderEvent, URUN_TIPI_CHOICES
+from .models import Order, OrderEvent, OrderFlag, URUN_TIPI_CHOICES
 
 STAGE_TRANSLATIONS = {
     ("malzeme_durum", "kesildi"): "Malzemesi Kesildi", ("malzeme_durum", "boyandi"): "Malzemesi Boyandı", ("malzeme_durum", "eksik"): "Malzemesi Eksik",
@@ -110,7 +110,16 @@ def order_list(request):
     elif kalite=="yok": qs=qs.filter(quality_issues__isnull=True)
     aktif_count=base_qs.filter(is_active=True).count(); pasif_count=base_qs.filter(is_active=False).count(); sevke_count=base_qs.filter(is_active=True,latest_stage="sevkiyat_durum",latest_value="gonderildi").count(); filtered_count=qs.count()
     paginator=Paginator(qs,50); page_obj=paginator.get_page(request.GET.get("page"))
+    page_order_ids = [o.id for o in page_obj.object_list]
+    visible_flag_order_ids = set(
+        OrderFlag.objects.filter(
+            Q(created_by=request.user) | Q(notify_users=request.user),
+            is_active=True,
+            order_id__in=page_order_ids,
+        ).values_list("order_id", flat=True).distinct()
+    )
     for order in page_obj:
+        order.has_visible_flag = order.id in visible_flag_order_ids
         if not order.latest_stage or not order.latest_value: order.formatted_status="-"; continue
         transfer_status=_transfer_status(order.latest_stage,order.latest_value,order.latest_parca)
         if transfer_status: order.formatted_status=transfer_status; continue
