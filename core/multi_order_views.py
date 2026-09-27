@@ -65,6 +65,7 @@ def order_multi_create(request):
         maliyet_uygulanan = _to_decimal(request.POST.get("maliyet_uygulanan")) or Decimal("0")
         maliyet_override = _to_decimal(request.POST.get("maliyet_override"))
         ekstra_maliyet = _to_decimal(request.POST.get("ekstra_maliyet")) or Decimal("0")
+        maliyet_indirimi = _to_decimal(request.POST.get("maliyet_indirimi")) or Decimal("0")
         para_birimi = request.POST.get("para_birimi") or "TRY"
         maliyet_para_birimi = request.POST.get("maliyet_para_birimi") or "TRY"
         pricing_rule = CustomerPricingRule.objects.filter(customer=musteri, active=True).first() if musteri else None
@@ -124,6 +125,7 @@ def order_multi_create(request):
                             customer_pricing_rule="Basen ölçüsü ve üç bedenlik fiyat grubu" if pricing_rule else "",
                             maliyet_uygulanan=maliyet_uygulanan, maliyet_para_birimi=maliyet_para_birimi,
                             maliyet_override=maliyet_override, ekstra_maliyet=ekstra_maliyet,
+                            maliyet_indirimi=maliyet_indirimi,
                         ))
 
         image_errors = 0
