@@ -133,7 +133,7 @@ def order_notice(request, order_id):
     is_manager = request.user.is_superuser or request.user.groups.filter(name__in=["patron", "mudur"]).exists()
     if is_manager and notice["has_notice"]:
         User = get_user_model()
-        active_users = User.objects.filter(is_active=True).exclude(is_superuser=True).order_by("first_name", "username")
+        active_users = User.objects.filter(is_active=True).order_by("first_name", "username")
         valid_reads = {
             r.user_id: r.read_at
             for r in OrderNoticeRead.objects.filter(order=order, notice_hash=current_hash).select_related("user")
