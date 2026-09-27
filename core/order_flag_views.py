@@ -35,6 +35,9 @@ def create_order_flag(request, order_id):
     if mode not in {"TRACK_ALL", "STAGE_ALERT"}:
         mode = "TRACK_ALL"
     stages = [s for s in request.POST.getlist("trigger_stages") if s in STAGE_GROUPS]
+    detail_note = (request.POST.get("detail_note") or "").strip()
+    if stages and not detail_note:
+        return JsonResponse({"ok": False, "error": "Detaylı aşama uyarısı için açıklama yazın."}, status=400)
     if not note:
         return JsonResponse({"ok": False, "error": "Bayrak açıklaması zorunludur."}, status=400)
     if mode == "STAGE_ALERT" and not stages:
@@ -52,6 +55,9 @@ def create_order_flag(request, order_id):
     ids.add(request.user.id)
     users = get_user_model().objects.filter(id__in=ids, is_active=True)
     flag.notify_users.set(users)
+    detail_ids = {int(v) for v in request.POST.getlist("detail_notify_users") if str(v).isdigit()}
+    detail_users = get_user_model().objects.filter(id__in=detail_ids, is_active=True)
+    flag.detail_notify_users.set(detail_users)
     return JsonResponse({"ok": True, "flag_id": flag.id})
 
 
