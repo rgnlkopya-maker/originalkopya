@@ -234,7 +234,7 @@ document.addEventListener('DOMContentLoaded', async function () {
     notice=await r.json();
     renderReaders(notice.read_status);
     if(notice.has_notice)modal.show();
-  }catch(e){ modal.show(); }
+  }catch(e){ notice=null; }
   btn&&btn.addEventListener('click',async function(){
     if(!notice){msg.textContent='Uyarı kaydı alınamadı. Sayfayı yenileyip tekrar deneyin.';return}
     btn.disabled=true;msg.textContent='Kaydediliyor...';
