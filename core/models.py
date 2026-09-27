@@ -526,6 +526,27 @@ class UretimGecmisi(models.Model):
 
 
 
+
+
+class OrderNoticeRead(models.Model):
+    """Tracks the exact warning revision a user acknowledged for an order."""
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="order_notice_reads")
+    order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name="notice_reads")
+    notice_hash = models.CharField(max_length=64)
+    read_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=["user", "order"], name="uniq_order_notice_read_user_order"),
+        ]
+        indexes = [
+            models.Index(fields=["order", "notice_hash"]),
+            models.Index(fields=["user", "read_at"]),
+        ]
+
+    def __str__(self):
+        return f"{self.user.username} - {self.order.siparis_numarasi} - {self.notice_hash[:8]}"
+
 class Notification(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="notification_set")
     order = models.ForeignKey(Order, on_delete=models.CASCADE, null=True, blank=True)
