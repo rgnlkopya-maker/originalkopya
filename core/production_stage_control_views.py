@@ -59,7 +59,7 @@ def restore_to_production_stage_control(request, exclusion_id):
     target = request.POST.get("next")
     if target:
         return redirect(target)
-    return redirect("/uretim-asama-kontrolu/?excluded=1")
+    return redirect("/uretim-asama-kontrolu/?section=excluded")
 
 
 @login_required
@@ -173,11 +173,15 @@ def production_stage_control(request):
     unshipped_paginator = Paginator(unshipped_after_week, 50)
     unshipped_page_obj = unshipped_paginator.get_page(request.GET.get("unshipped_page"))
 
+    section = (request.GET.get("section") or "problems").strip()
+    if section not in {"problems", "unshipped", "excluded"}:
+        section = "problems"
+
     excluded_rows = (
         ProductionStageControlExclusion.objects
         .select_related("order", "order__musteri", "excluded_by")
         .order_by("-excluded_at", "-id")
-        if request.GET.get("excluded") == "1"
+        if section == "excluded"
         else ProductionStageControlExclusion.objects.none()
     )
 
@@ -187,6 +191,6 @@ def production_stage_control(request):
         "unshipped_orders": unshipped_page_obj,
         "unshipped_count": len(unshipped_after_week),
         "excluded_rows": excluded_rows,
-        "show_excluded": request.GET.get("excluded") == "1",
         "excluded_count": ProductionStageControlExclusion.objects.count(),
+        "section": section,
     })
