@@ -745,3 +745,24 @@ class PushSubscription(models.Model):
 
     def __str__(self):
         return f"{self.user.username} · {self.endpoint[:60]}"
+
+
+class ProductionStageControlExclusion(models.Model):
+    CONTROL_TYPES = (
+        ("stage_problem", "Üretim aşama problemi"),
+        ("unshipped_7d", "7 gündür sevk edilmeyen"),
+    )
+
+    order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name="stage_control_exclusions")
+    control_type = models.CharField(max_length=30, choices=CONTROL_TYPES)
+    excluded_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name="production_stage_exclusions")
+    excluded_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=["order", "control_type"], name="unique_stage_control_exclusion")
+        ]
+        ordering = ["-excluded_at", "-id"]
+
+    def __str__(self):
+        return f"{self.order.siparis_numarasi} · {self.get_control_type_display()}"
