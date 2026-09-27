@@ -1069,15 +1069,14 @@ def update_stage(request, pk):
     }
     stage_label = stage_labels.get((stage, value), f"{stage.replace('_', ' ').title()} → {value.replace('_', ' ').title()}")
     actor_name = request.user.get_full_name().strip() or request.user.username
-    matched_flags = []
-    for flag in OrderFlag.objects.filter(order=order, is_active=True).prefetch_related("notify_users"):
-        matched = flag.mode == "TRACK_ALL"
-        if flag.mode == "STAGE_ALERT":
-            matched = any(stage in STAGE_GROUPS.get(group, set()) for group in (flag.trigger_stages or []))
-        if not matched:
-            continue
-        matched_flags.append(flag)
-        customer = order.musteri.ad if order.musteri else "Stoğa Üretim"
+    matched_flags = list(
+        OrderFlag.objects.filter(order=order, is_active=True)
+        .prefetch_related("notify_users", "detail_notify_users")
+    )
+    customer = order.musteri.ad if order.musteri else "Stoğa Üretim"
+
+    # Ana bayrak takibi: aktif bayrak varsa HER üretim hareketinde daima çalışır.
+    for flag in matched_flags:
         body = (
             f"Sipariş: {order.siparis_numarasi} | Müşteri: {customer} | "
             f"Ürün: {order.urun_kodu or '—'} | Renk: {order.renk or '—'} | "
@@ -1098,10 +1097,41 @@ def update_stage(request, pk):
                 tag=f"moli-order-flag-{order.pk}-{flag.pk}",
             )
 
-    actor_popup_notes = [
-        flag.note for flag in matched_flags
-        if flag.mode == "STAGE_ALERT" and flag.popup_actor
-    ]
+    # Detaylı aşama kuralı: yalnız seçilen aşamada, seçilen kişilere ve işlemi yapana.
+    actor_popup_notes = []
+    for flag in matched_flags:
+        detail_matches = bool(flag.trigger_stages) and any(
+            stage in STAGE_GROUPS.get(group, set()) for group in (flag.trigger_stages or [])
+        )
+        if not detail_matches or not flag.detail_note:
+            continue
+
+        detail_body = (
+            f"Sipariş: {order.siparis_numarasi} | Müşteri: {customer} | "
+            f"Ürün: {order.urun_kodu or '—'} | Renk: {order.renk or '—'} | "
+            f"Aşama: {stage_label} | Açıklama: {flag.detail_note}"
+        )
+        recipients = list(flag.detail_notify_users.all())
+        if not any(u.pk == request.user.pk for u in recipients):
+            recipients.append(request.user)
+
+        for recipient in recipients:
+            Notification.objects.create(
+                user=recipient,
+                order=order,
+                title="🚩 Üretim Aşaması Uyarısı",
+                message=detail_body,
+            )
+            send_push_to_user(
+                recipient,
+                "🚩 Üretim Aşaması Uyarısı",
+                detail_body,
+                url=f"/order/{order.pk}/",
+                tag=f"moli-order-stage-flag-{order.pk}-{flag.pk}",
+            )
+
+        if flag.popup_actor:
+            actor_popup_notes.append(flag.detail_note)
 
     # ---------------------------------------------------------
     # 3) HTMX İSTEĞİ → SADECE PANELİ DÖNDÜR
