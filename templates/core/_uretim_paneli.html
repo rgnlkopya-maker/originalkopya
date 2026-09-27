@@ -224,6 +224,25 @@
     </div>
 </div>
 
+{% if actor_popup_notes %}
+<div id="order-stage-flag-alert" class="modal fade" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content" style="border:2px solid #e2a400">
+      <div class="modal-header" style="background:#fff8df"><h5 class="modal-title">🚩 Sipariş Uyarısı</h5></div>
+      <div class="modal-body">
+        {% for note in actor_popup_notes %}
+        <div style="white-space:pre-wrap;font-weight:800;padding:10px 0{% if not forloop.last %};border-bottom:1px solid #eee{% endif %}">{{ note }}</div>
+        {% endfor %}
+      </div>
+      <div class="modal-footer"><button type="button" class="btn btn-warning w-100 fw-bold" data-bs-dismiss="modal">✓ OKUDUM</button></div>
+    </div>
+  </div>
+</div>
+<script>
+setTimeout(function(){var el=document.getElementById('order-stage-flag-alert');if(el&&window.bootstrap)bootstrap.Modal.getOrCreateInstance(el,{backdrop:'static',keyboard:false}).show()},80);
+</script>
+{% endif %}
+
 <script>
 function malzemeEksik(button) {
     const text = prompt("Eksik malzemeyi açıklayınız:");
