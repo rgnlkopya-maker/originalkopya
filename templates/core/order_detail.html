@@ -19,40 +19,52 @@ body{background:#f4f6fb}.order-detail-wrap{max-width:1180px;margin:0 auto;paddin
 </section>
 {% if can_manage_order_flags %}
 <div class="modal fade no-print" id="orderFlagModal" tabindex="-1">
- <div class="modal-dialog modal-lg modal-dialog-scrollable"><div class="modal-content">
-  <div class="modal-header"><h5 class="modal-title">🚩 Sipariş Bayrağı Ekle</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+ <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable"><div class="modal-content" style="border:0;border-radius:18px;overflow:hidden">
+  <div class="modal-header" style="background:#fafbfe;border-bottom:1px solid #edf0f5;padding:14px 16px"><div><h5 class="modal-title" style="font-weight:900;color:#20283a;margin:0">🚩 Sipariş Bayrağı</h5><div style="font-size:11px;color:#8a93a4;margin-top:3px">Üretim hareketlerini takip et ve istersen aşama uyarısı ekle.</div></div><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
   <form id="orderFlagForm" action="{% url 'create_order_flag' order.id %}" method="post">{% csrf_token %}
-   <div class="modal-body">
-    <label class="form-label fw-bold">Bayrak açıklaması</label><textarea class="form-control" name="note" rows="3" required placeholder="Bu siparişle ilgili hatırlatmak istediğiniz not..."></textarea>
-    <div class="mt-3 fw-bold">Nasıl çalışsın?</div>
-    <label class="d-block mt-2"><input type="radio" name="mode" value="TRACK_ALL" checked> Bu siparişteki her üretim hareketini takip et</label>
-    <label class="d-block mt-2"><input type="radio" name="mode" value="STAGE_ALERT"> Sadece seçtiğim üretim aşamalarında uyar</label>
-    <div id="flagStageChoices" style="display:none;margin-top:12px;padding:11px;background:#f8f9fb;border-radius:10px">
-      <div class="fw-bold mb-2">Üretim aşamaları</div>
-      {% for value,label in flag_stage_choices %}{% endfor %}
-      <label class="me-3 mb-2"><input type="checkbox" name="trigger_stages" value="malzeme"> Malzeme</label>
-      <label class="me-3 mb-2"><input type="checkbox" name="trigger_stages" value="kesim"> Kesim</label>
-      <label class="me-3 mb-2"><input type="checkbox" name="trigger_stages" value="dikim"> Dikim</label>
-      <label class="me-3 mb-2"><input type="checkbox" name="trigger_stages" value="fason_dikim"> Fason Dikim</label>
-      <label class="me-3 mb-2"><input type="checkbox" name="trigger_stages" value="nakis"> Nakış</label>
-      <label class="me-3 mb-2"><input type="checkbox" name="trigger_stages" value="susleme"> Süsleme</label>
-      <label class="me-3 mb-2"><input type="checkbox" name="trigger_stages" value="sevkiyat"> Sevkiyat</label>
-      <label class="d-block mt-2 fw-bold"><input type="checkbox" name="popup_actor" value="1" checked> Bu aşamada işlem yapan personele aynı açıklamayı popup olarak göster</label>
+   <div class="modal-body" style="padding:16px">
+    <label class="form-label" style="font-size:12px;font-weight:850;color:#485266">Bayrak notu</label>
+    <textarea class="form-control" name="note" rows="2" required placeholder="Bu siparişi neden takip ediyorsunuz?" style="border-radius:11px"></textarea>
+
+    <div style="margin-top:16px;padding:12px;border:1px solid #edf0f5;border-radius:13px;background:#f8f9fc">
+      <div style="font-size:12px;font-weight:900;color:#293247">Bildirim alacak kişiler</div>
+      <div style="font-size:10.5px;color:#8a93a4;margin:2px 0 8px">Bu kişiler siparişteki her üretim hareketinden haberdar olur.</div>
+      <div style="max-height:150px;overflow:auto">
+       {% for u in flag_users %}<label style="display:flex;align-items:center;gap:7px;padding:5px 2px;font-size:12px"><input type="checkbox" name="notify_users" value="{{ u.id }}" {% if u.id == user.id %}checked{% endif %}> <span>{{ u.get_full_name|default:u.username }}</span></label>{% endfor %}
+      </div>
     </div>
-    <div class="mt-3 fw-bold">Kimlere bildirim gitsin?</div>
-    <div style="max-height:210px;overflow:auto;border:1px solid #e5e7eb;border-radius:10px;padding:8px">
-      {% for u in flag_users %}<label class="d-block py-1"><input type="checkbox" name="notify_users" value="{{ u.id }}" {% if u.id == user.id %}checked{% endif %}> {{ u.get_full_name|default:u.username }} <small class="text-muted">({{ u.username }})</small></label>{% endfor %}
+
+    <button type="button" id="flagDetailToggle" style="width:100%;margin-top:14px;border:1px solid #dfe4ec;background:#fff;border-radius:12px;padding:11px 12px;text-align:left;font-size:12px;font-weight:850;color:#344054">＋ Detaylı aşama uyarısı ekle <span style="float:right">›</span></button>
+    <div id="flagStageChoices" style="display:none;margin-top:9px;padding:12px;border:1px solid #e7eaf0;border-radius:13px;background:#fff">
+      <div style="font-size:12px;font-weight:900;color:#293247">Hangi aşamada?</div>
+      <div style="display:flex;flex-wrap:wrap;gap:7px;margin-top:8px">
+       <label class="btn btn-outline-secondary btn-sm"><input type="checkbox" class="d-none flag-stage" name="trigger_stages" value="malzeme"> Malzeme</label>
+       <label class="btn btn-outline-secondary btn-sm"><input type="checkbox" class="d-none flag-stage" name="trigger_stages" value="kesim"> Kesim</label>
+       <label class="btn btn-outline-secondary btn-sm"><input type="checkbox" class="d-none flag-stage" name="trigger_stages" value="dikim"> Dikim</label>
+       <label class="btn btn-outline-secondary btn-sm"><input type="checkbox" class="d-none flag-stage" name="trigger_stages" value="fason_dikim"> Fason Dikim</label>
+       <label class="btn btn-outline-secondary btn-sm"><input type="checkbox" class="d-none flag-stage" name="trigger_stages" value="nakis"> Nakış</label>
+       <label class="btn btn-outline-secondary btn-sm"><input type="checkbox" class="d-none flag-stage" name="trigger_stages" value="susleme"> Süsleme</label>
+       <label class="btn btn-outline-secondary btn-sm"><input type="checkbox" class="d-none flag-stage" name="trigger_stages" value="sevkiyat"> Sevkiyat</label>
+      </div>
+      <label class="form-label mt-3" style="font-size:12px;font-weight:850">Bu aşamada gösterilecek açıklama</label>
+      <textarea class="form-control" name="detail_note" rows="2" placeholder="Örn. Bu işlemden önce müşteriyle tekrar görüşün." style="border-radius:11px"></textarea>
+      <div style="font-size:12px;font-weight:900;color:#293247;margin-top:13px">Bu özel uyarı kimlere gitsin?</div>
+      <div style="font-size:10.5px;color:#8a93a4;margin:2px 0 7px">Seçtiklerinize ve üretim butonuna basan kişiye aynı açıklama gönderilir.</div>
+      <div style="max-height:130px;overflow:auto">
+       {% for u in flag_users %}<label style="display:flex;align-items:center;gap:7px;padding:5px 2px;font-size:12px"><input type="checkbox" name="detail_notify_users" value="{{ u.id }}"> <span>{{ u.get_full_name|default:u.username }}</span></label>{% endfor %}
+      </div>
     </div>
     <div id="orderFlagError" class="text-danger small mt-2"></div>
    </div>
-   <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button><button type="submit" class="btn btn-warning fw-bold">🚩 Bayrağı Kur</button></div>
+   <div class="modal-footer" style="border-top:1px solid #edf0f5;padding:11px 16px"><button type="button" class="btn btn-light" data-bs-dismiss="modal">İptal</button><button type="submit" class="btn btn-warning fw-bold">🚩 Bayrağı Kur</button></div>
   </form>
  </div></div>
 </div>
 <script>
 document.addEventListener('DOMContentLoaded',function(){
- const form=document.getElementById('orderFlagForm'),stages=document.getElementById('flagStageChoices'),err=document.getElementById('orderFlagError');
- document.querySelectorAll('input[name="mode"]').forEach(r=>r.addEventListener('change',()=>stages.style.display=r.value==='STAGE_ALERT'&&r.checked?'block':(document.querySelector('input[name="mode"]:checked')?.value==='STAGE_ALERT'?'block':'none')));
+ const form=document.getElementById('orderFlagForm'),detail=document.getElementById('flagStageChoices'),toggle=document.getElementById('flagDetailToggle'),err=document.getElementById('orderFlagError');
+ toggle?.addEventListener('click',()=>{const open=detail.style.display!=='none';detail.style.display=open?'none':'block';toggle.innerHTML=open?'＋ Detaylı aşama uyarısı ekle <span style="float:right">›</span>':'− Detaylı aşama uyarısını kapat <span style="float:right">⌄</span>'});
+ document.querySelectorAll('.flag-stage').forEach(cb=>cb.addEventListener('change',()=>{cb.closest('label').classList.toggle('btn-secondary',cb.checked);cb.closest('label').classList.toggle('btn-outline-secondary',!cb.checked)}));
  form?.addEventListener('submit',async function(e){e.preventDefault();err.textContent='';try{const r=await fetch(form.action,{method:'POST',body:new FormData(form)}),d=await r.json();if(!r.ok||!d.ok)throw new Error(d.error||'Bayrak eklenemedi.');location.reload()}catch(x){err.textContent=x.message}});
  document.querySelectorAll('.order-flag-close').forEach(btn=>btn.addEventListener('click',async()=>{if(!confirm('Bu bayrak kaldırılsın mı?'))return;const fd=new FormData();fd.append('csrfmiddlewaretoken','{{ csrf_token }}');const r=await fetch(btn.dataset.url,{method:'POST',body:fd});if(r.ok)location.reload()}));
 });
