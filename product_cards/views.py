@@ -87,8 +87,11 @@ def sync_unshipped_order_costs(product_code, product_cost_tl):
         if snapshot is None:
             continue
 
-        current_cost_tl = (
-            Decimal(product_cost_tl) + Decimal(order.ekstra_maliyet or 0)
+        current_cost_tl = max(
+            Decimal("0"),
+            Decimal(product_cost_tl)
+            + Decimal(order.ekstra_maliyet or 0)
+            - Decimal(order.maliyet_indirimi or 0),
         ).quantize(Decimal("0.01"))
         profit = (
             Decimal(snapshot.satis_tl) - current_cost_tl
