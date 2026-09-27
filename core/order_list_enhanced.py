@@ -108,6 +108,13 @@ def order_list(request):
     if kalite=="acik": qs=qs.filter(quality_issues__durum="ACIK").distinct()
     elif kalite=="var": qs=qs.filter(quality_issues__isnull=False).distinct()
     elif kalite=="yok": qs=qs.filter(quality_issues__isnull=True)
+    flag_filter=request.GET.get("bayrak","").strip()
+    if flag_filter=="1":
+        visible_flag_orders = OrderFlag.objects.filter(
+            Q(created_by=request.user) | Q(notify_users=request.user),
+            is_active=True,
+        ).values_list("order_id", flat=True)
+        qs=qs.filter(id__in=visible_flag_orders).distinct()
     aktif_count=base_qs.filter(is_active=True).count(); pasif_count=base_qs.filter(is_active=False).count(); sevke_count=base_qs.filter(is_active=True,latest_stage="sevkiyat_durum",latest_value="gonderildi").count(); filtered_count=qs.count()
     paginator=Paginator(qs,50); page_obj=paginator.get_page(request.GET.get("page"))
     page_order_ids = [o.id for o in page_obj.object_list]
@@ -129,5 +136,6 @@ def order_list(request):
             nice_stage=(order.latest_stage.replace("_durum","").replace("_fason_durumu"," Fason").replace("_"," ").title()); order.formatted_status=f"{nice_stage} → {order.latest_value.replace('_',' ').title()}"
     selected_order_types=_multi(request,"siparis_tipi")
     quick_order_type=selected_order_types[0] if len(selected_order_types)==1 and selected_order_types[0] in {"OZEL","SERI","TEKLI","STOK","KONSINYE"} else "ALL"
-    context={"orders":page_obj,"siparis_options":Order.objects.values_list("siparis_numarasi",flat=True).distinct().order_by("siparis_numarasi"),"musteri_options":Order.objects.values_list("musteri__ad",flat=True).distinct().order_by("musteri__ad"),"urun_options":Order.objects.values_list("urun_kodu",flat=True).distinct().order_by("urun_kodu"),"urun_tipi_options":URUN_TIPI_CHOICES,"renk_options":Order.objects.values_list("renk",flat=True).distinct().order_by("renk"),"beden_options":Order.objects.values_list("beden",flat=True).distinct().order_by("beden"),"musteri_referans_options":Order.objects.exclude(musteri_referans__isnull=True).exclude(musteri_referans__exact="").values_list("musteri_referans",flat=True).distinct().order_by("musteri_referans"),"status_options":sorted(set(STAGE_TRANSLATIONS.values())),"siparis_tipi_options":Order.SIPARIS_TIPLERI,"quick_order_type":quick_order_type,"total_count":total_count,"filtered_count":filtered_count,"aktif_count":aktif_count,"pasif_count":pasif_count,"sevke_count":sevke_count,"is_manager":request.user.is_superuser or request.user.groups.filter(name__in=["patron","mudur"]).exists(),"request":request}
+    quick_flag_filter=request.GET.get("bayrak","").strip()=="1"
+    context={"orders":page_obj,"siparis_options":Order.objects.values_list("siparis_numarasi",flat=True).distinct().order_by("siparis_numarasi"),"musteri_options":Order.objects.values_list("musteri__ad",flat=True).distinct().order_by("musteri__ad"),"urun_options":Order.objects.values_list("urun_kodu",flat=True).distinct().order_by("urun_kodu"),"urun_tipi_options":URUN_TIPI_CHOICES,"renk_options":Order.objects.values_list("renk",flat=True).distinct().order_by("renk"),"beden_options":Order.objects.values_list("beden",flat=True).distinct().order_by("beden"),"musteri_referans_options":Order.objects.exclude(musteri_referans__isnull=True).exclude(musteri_referans__exact="").values_list("musteri_referans",flat=True).distinct().order_by("musteri_referans"),"status_options":sorted(set(STAGE_TRANSLATIONS.values())),"siparis_tipi_options":Order.SIPARIS_TIPLERI,"quick_order_type":quick_order_type,"quick_flag_filter":quick_flag_filter,"total_count":total_count,"filtered_count":filtered_count,"aktif_count":aktif_count,"pasif_count":pasif_count,"sevke_count":sevke_count,"is_manager":request.user.is_superuser or request.user.groups.filter(name__in=["patron","mudur"]).exists(),"request":request}
     response=render(request,"core/order_list.html",context); response["Cache-Control"]="no-cache, no-store, must-revalidate"; response["Pragma"]="no-cache"; response["Expires"]="0"; return response
