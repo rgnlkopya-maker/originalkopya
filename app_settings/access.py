@@ -18,7 +18,16 @@ def has_full_access(user):
         return False
     if user.is_superuser:
         return True
-    return user.groups.filter(name__in=FULL_ACCESS_GROUPS).exists()
+
+    # The same User instance is reused throughout a request (view + templates).
+    # Cache this stable role check on that instance so repeated permission
+    # filters do not issue the same auth_group query over and over.
+    cached = getattr(user, "_full_access_cache", None)
+    if cached is not None:
+        return cached
+    result = user.groups.filter(name__in=FULL_ACCESS_GROUPS).exists()
+    user._full_access_cache = result
+    return result
 
 
 def has_access(user, permission_name):
