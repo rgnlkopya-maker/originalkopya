@@ -28,6 +28,7 @@ class OrderForm(forms.ModelForm):
             "maliyet_para_birimi",
             "maliyet_override",
             "ekstra_maliyet",
+            "maliyet_indirimi",
         ]
         widgets = {
             "siparis_tarihi": forms.DateInput(
@@ -53,6 +54,7 @@ class OrderForm(forms.ModelForm):
             "maliyet_para_birimi": forms.Select(attrs={"class": "form-control"}),
             "maliyet_override": forms.NumberInput(attrs={"class": "form-control", "step": "0.01"}),
             "ekstra_maliyet": forms.NumberInput(attrs={"class": "form-control", "step": "0.01"}),
+            "maliyet_indirimi": forms.NumberInput(attrs={"class": "form-control", "step": "0.01", "min": "0"}),
         }
 
     def __init__(self, *args, **kwargs):
@@ -88,11 +90,11 @@ class OrderForm(forms.ModelForm):
                     self.fields["satis_fiyati"].disabled = True
 
             if not has_feature_access(user, "orders.view_cost"):
-                for field in ["maliyet_uygulanan", "maliyet_para_birimi", "maliyet_override", "ekstra_maliyet"]:
+                for field in ["maliyet_uygulanan", "maliyet_para_birimi", "maliyet_override", "ekstra_maliyet", "maliyet_indirimi"]:
                     if field in self.fields:
                         self.fields[field].widget = forms.HiddenInput()
             elif not has_feature_access(user, "orders.edit_cost"):
-                for field in ["maliyet_uygulanan", "maliyet_para_birimi", "maliyet_override", "ekstra_maliyet"]:
+                for field in ["maliyet_uygulanan", "maliyet_para_birimi", "maliyet_override", "ekstra_maliyet", "maliyet_indirimi"]:
                     if field in self.fields:
                         self.fields[field].disabled = True
 
@@ -124,7 +126,7 @@ class OrderForm(forms.ModelForm):
             if not has_feature_access(user, "orders.edit_vat"):
                 preserve.extend(["vat_rate", "para_birimi"])
             if not has_feature_access(user, "orders.edit_cost"):
-                preserve.extend(["maliyet_uygulanan", "maliyet_para_birimi", "maliyet_override", "ekstra_maliyet"])
+                preserve.extend(["maliyet_uygulanan", "maliyet_para_birimi", "maliyet_override", "ekstra_maliyet", "maliyet_indirimi"])
             field_rules = {
                 "teslim_tarihi": "orders.edit_delivery_date",
                 "aciklama": "orders.edit_description",
