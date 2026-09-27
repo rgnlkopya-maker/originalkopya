@@ -457,6 +457,12 @@ def order_list(request):
     # -----------------------------------------
     is_manager = request.user.groups.filter(name__in=["patron", "mudur"]).exists()
 
+    from django.contrib.auth import get_user_model
+    from .models import OrderFlag
+    active_order_flags = OrderFlag.objects.filter(order=order, is_active=True).select_related("created_by").prefetch_related("notify_users")
+    flag_users = get_user_model().objects.filter(is_active=True).order_by("first_name", "last_name", "username")
+    can_manage_order_flags = has_access(request.user, "can_edit_orders")
+
     context = {
         "orders": page_obj,
         "siparis_options": Order.objects.values_list("siparis_numarasi", flat=True).distinct().order_by("siparis_numarasi"),
@@ -744,6 +750,9 @@ def order_detail(request, pk):
             "consignment_sent_qty": consignment_sent_qty,
             "consignment_unsent_qty": consignment_unsent_qty,
             "consignment_active_qty": consignment_active_qty,
+            "active_order_flags": active_order_flags,
+            "flag_users": flag_users,
+            "can_manage_order_flags": can_manage_order_flags,
         },
     )
 
