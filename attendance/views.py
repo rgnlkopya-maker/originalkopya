@@ -455,7 +455,7 @@ def dashboard(request):
 
     default_year = today.year
     default_month = today.month
-    if today.day < 5:
+    if today.day <= 5:
         if default_month == 1:
             default_year -= 1
             default_month = 12
@@ -492,11 +492,11 @@ def dashboard(request):
         users.append(user)
 
     def period_bounds(period_year, period_month):
-        start_date = date(period_year, period_month, 5)
+        start_date = date(period_year, period_month, 6)
         if period_month == 12:
-            end_date = date(period_year + 1, 1, 4)
+            end_date = date(period_year + 1, 1, 5)
         else:
-            end_date = date(period_year, period_month + 1, 4)
+            end_date = date(period_year, period_month + 1, 5)
         return start_date, end_date
 
     def totals_for(user_records):
@@ -543,8 +543,8 @@ def dashboard(request):
     annual_rows = []
     annual_totals = []
     if view_mode == "annual":
-        annual_start = date(year, 1, 5)
-        annual_end = date(year + 1, 1, 4)
+        annual_start = date(year, 1, 6)
+        annual_end = date(year + 1, 1, 5)
         annual_records = list(
             AttendanceRecord.objects
             .filter(work_date__range=(annual_start, annual_end))
