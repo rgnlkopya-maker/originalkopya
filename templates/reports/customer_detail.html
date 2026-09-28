@@ -40,6 +40,10 @@
 </div>
 {% endblock %}
 {% block extra_js %}
+{{ period_labels|json_script:"customer-period-labels" }}
+{{ period_counts|json_script:"customer-period-counts" }}
+{{ period_revenue|json_script:"customer-period-revenue" }}
+{{ period_profit|json_script:"customer-period-profit" }}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded',function(){
@@ -47,7 +51,7 @@ document.addEventListener('DOMContentLoaded',function(){
  if(infoBox&&infoToggle){infoToggle.addEventListener('click',function(){const open=infoBox.classList.toggle('open');infoToggle.setAttribute('aria-expanded',open?'true':'false');});}
  const consignmentBox=document.getElementById('customerConsignmentBox'),consignmentToggle=document.getElementById('customerConsignmentToggle');
  if(consignmentBox&&consignmentToggle){consignmentToggle.addEventListener('click',function(){const open=consignmentBox.classList.toggle('open');consignmentToggle.setAttribute('aria-expanded',open?'true':'false');});}
- const labels={{ period_labels_json|safe }}; const counts={{ period_counts_json|safe }}; const revenue={{ period_revenue_json|safe }}; const profit={{ period_profit_json|safe }};
+ const labels=JSON.parse(document.getElementById('customer-period-labels').textContent); const counts=JSON.parse(document.getElementById('customer-period-counts').textContent); const revenue=JSON.parse(document.getElementById('customer-period-revenue').textContent); const profit=JSON.parse(document.getElementById('customer-period-profit').textContent);
  const common={responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},elements:{line:{tension:.28},point:{radius:3}},scales:{y:{beginAtZero:true}}};
  const s=document.getElementById('shipmentChart'); if(s)new Chart(s,{type:'line',data:{labels:labels,datasets:[{label:'Sevkiyat',data:counts,fill:false}]},options:{...common,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,ticks:{precision:0}}}}});
  const f=document.getElementById('financeChart'); if(f)new Chart(f,{type:'line',data:{labels:labels,datasets:[{label:'Ciro (TL)',data:revenue,fill:false},{label:'Kâr (TL)',data:profit,fill:false}]},options:common});
