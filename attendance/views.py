@@ -526,8 +526,12 @@ def save_workplace(request):
     try: lat = float(request.POST.get("latitude")); lon = float(request.POST.get("longitude"))
     except (TypeError, ValueError): return JsonResponse({"ok": False, "message": "Konum alınamadı."}, status=400)
     location_slot = (request.POST.get("location_slot") or "primary").strip()
-    if location_slot == "secondary": workplace.second_latitude = lat; workplace.second_longitude = lon
-    else: workplace.latitude = lat; workplace.longitude = lon
+    if location_slot in {"second", "secondary"}:
+        workplace.second_latitude = lat
+        workplace.second_longitude = lon
+    else:
+        workplace.latitude = lat
+        workplace.longitude = lon
     workplace.save(); return JsonResponse({"ok": True, "message": "İşyeri konumu kaydedildi."})
 
 
