@@ -5,7 +5,7 @@ from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from django.views.decorators.http import require_POST
 
-from app_settings.access import has_access
+from app_settings.access import has_access, order_scope_allows
 from .models import Order, OrderFlag
 
 
@@ -30,6 +30,8 @@ def create_order_flag(request, order_id):
     if not _can_manage_flags(request.user):
         return HttpResponseForbidden("Sipariş bayrağı ekleme yetkiniz yok.")
     order = get_object_or_404(Order, pk=order_id)
+    if not order_scope_allows(request.user, order):
+        return HttpResponseForbidden("Bu siparişe bayrak ekleme yetkiniz yok.")
     note = (request.POST.get("note") or "").strip()
     mode = (request.POST.get("mode") or "TRACK_ALL").strip()
     if mode not in {"TRACK_ALL", "STAGE_ALERT"}:
