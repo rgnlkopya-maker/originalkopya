@@ -86,6 +86,8 @@ def transfer_production_history(request, source_order_id):
         return JsonResponse({"ok": False, "error": "Bu işlem için yetkiniz yok."}, status=403)
 
     source = get_object_or_404(Order, pk=source_order_id)
+    if not order_scope_allows(request.user, source):
+        return JsonResponse({"ok": False, "error": "Kaynak sipariş için yetkiniz yok."}, status=403)
     target_id = (request.POST.get("target_order_id") or "").strip()
     target_number = (request.POST.get("target_order_number") or "").strip()
 
