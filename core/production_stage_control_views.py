@@ -131,20 +131,33 @@ def production_stage_control(request):
             for stage_name, label in STAGES.values():
                 reasons.extend(_missing_stage_steps(events, stage_name, label))
 
-        # Üretimde herhangi bir sevkiyat dışı aşama hareketi başladıktan sonra
-        # 7 gün geçmiş ve hâlâ "Sevkedildi" kaydı oluşmamışsa ayrı kontrol listesine al.
+        # Son gerçek üretim hareketinden itibaren 3 gün boyunca sevkiyat yoksa
+        # ayrı kontrol listesine al. Fiyat/açıklama gibi order_update kayıtları
+        # üretim sayacını sıfırlamaz.
+        production_stage_names = {
+            "malzeme_durum",
+            "kesim_durum",
+            "dikim_durum",
+            "dikim_fason_durumu",
+            "nakis_durum",
+            "susleme_durum",
+            "susleme_fason_durumu",
+            "hazir_durum",
+            "uretim_aktarimi",
+            "uretim_aktarimı",
+        }
         production_events = [
             event for event in events
-            if event.stage != "sevkiyat_durum"
+            if event.event_type == "stage" and event.stage in production_stage_names
         ]
         if production_events and not shipped:
-            first_production_event = production_events[0]
-            age = timezone.now() - first_production_event.timestamp
-            if age >= timedelta(days=7) and (order.id, "unshipped_7d") not in exclusions:
+            last_production_event = production_events[-1]
+            age = timezone.now() - last_production_event.timestamp
+            if age >= timedelta(days=3) and (order.id, "unshipped_7d") not in exclusions:
                 unshipped_after_week.append({
                     "order": order,
-                    "first_event": first_production_event,
-                    "last_event": events[-1],
+                    "first_event": production_events[0],
+                    "last_event": last_production_event,
                     "days_open": age.days,
                 })
 
