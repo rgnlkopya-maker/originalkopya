@@ -6,11 +6,19 @@
   .attendance-fixed-head { position: fixed; display: none; overflow: hidden; z-index: 90; background: #f8f9fa; box-shadow: 0 3px 8px rgba(15,23,42,.18); }
   .attendance-fixed-head table { margin: 0; table-layout: fixed; }
   .attendance-fixed-head th { background: #f8f9fa !important; }
+  .attendance-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin:0 0 12px;padding:12px 14px;background:#fff;border:1px solid #e7eaf2;border-radius:16px;box-shadow:0 4px 14px rgba(15,23,42,.05)}
+  .attendance-toolbar-left,.attendance-toolbar-right{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .attendance-view-btn{height:38px;padding:0 14px;border-radius:11px;border:1px solid #dfe4ff;background:#f7f8ff;color:#42526e;text-decoration:none;font-weight:800;display:inline-flex;align-items:center}
+  .attendance-view-btn.active{background:#4a63ff;border-color:#4a63ff;color:#fff;box-shadow:0 4px 12px rgba(74,99,255,.22)}
+  .attendance-view-btn:hover{background:#eef1ff;color:#3349d8}.attendance-view-btn.active:hover{background:#4058eb;color:#fff}
+  .attendance-period-arrow{width:38px;height:38px;border-radius:11px;border:1px solid #dfe4ed;background:#fff;color:#4a5568;text-decoration:none;display:inline-flex;align-items:center;justify-content:center;font-weight:900}
+  .attendance-period-arrow:hover{background:#f3f5fb;color:#3349d8}
+  .attendance-period-label{min-width:190px;text-align:center;padding:2px 8px}.attendance-period-label strong{display:block;font-size:14px;color:#1f2937}.attendance-period-label span{display:block;font-size:12px;color:#7a8498;margin-top:2px}
 </style>
 <div class="container-fluid py-4 px-md-4">
   <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
     <div><div class="text-muted small">YÖNETİM</div><h2 class="fw-bold mb-1">Puantaj & Mesai Takvimi</h2><div class="text-muted">08:30–19:00 • erken çıkış 19:00'a göre • fazla mesai 19:05 sonrası</div></div>
-    <div class="d-flex align-items-center gap-2 flex-wrap justify-content-end">{% if can_edit %}<a class="btn btn-outline-secondary" href="{% url 'attendance_device_management' %}">📱 Cihaz Onayları</a><a class="btn btn-dark" href="{% url 'attendance_qr_print' %}" target="_blank">QR Göster / Yazdır</a>{% endif %}<div class="btn-group" role="group"><a class="btn {% if view_mode == 'monthly' %}btn-dark{% else %}btn-outline-dark{% endif %}" href="?view=monthly&year={{ year }}&month={{ month }}">Aylık</a><a class="btn {% if view_mode == 'annual' %}btn-dark{% else %}btn-outline-dark{% endif %}" href="?view=annual&year={{ year }}&month={{ month }}">Yıllık</a></div>{% if view_mode == 'monthly' %}<a class="btn btn-outline-secondary" href="?view=monthly&year={{ prev_year }}&month={{ prev_month }}">←</a><div class="fw-bold px-2 text-center"><div>{{ month_name }} {{ year }}</div><div class="small text-muted">{{ period_start|date:"d.m.Y" }} – {{ period_end|date:"d.m.Y" }}</div></div><a class="btn btn-outline-secondary" href="?view=monthly&year={{ next_year }}&month={{ next_month }}">→</a>{% else %}<a class="btn btn-outline-secondary" href="?view=annual&year={{ year|add:"-1" }}&month={{ month }}">←</a><div class="fw-bold px-2 text-center"><div>{{ year }} Maaş Dönemleri</div><div class="small text-muted">05.01.{{ year }} – 04.01.{{ year|add:"1" }}</div></div><a class="btn btn-outline-secondary" href="?view=annual&year={{ year|add:"1" }}&month={{ month }}">→</a>{% endif %}</div>
+    <div class="d-flex align-items-center gap-2 flex-wrap justify-content-end">{% if can_edit %}<a class="btn btn-outline-secondary" href="{% url 'attendance_device_management' %}">📱 Cihaz Onayları</a><a class="btn btn-dark" href="{% url 'attendance_qr_print' %}" target="_blank">QR Göster / Yazdır</a>{% endif %}</div>
   </div>
   {% for message in messages %}<div class="alert alert-info">{{ message }}</div>{% endfor %}
 
@@ -21,6 +29,24 @@
       <div class="col-md-6"><div class="border rounded-4 p-3 h-100"><div class="d-flex justify-content-between"><strong>📍 Gaziemir</strong>{% if workplace.second_location_ready %}<span class="badge text-bg-success">Konum hazır</span>{% else %}<span class="badge text-bg-warning">Konum gerekli</span>{% endif %}</div><form class="workplace-location-form mt-3" method="post" action="{% url 'attendance_save_workplace' %}">{% csrf_token %}<input type="hidden" name="location_slot" value="second"><input type="hidden" name="latitude" class="location-lat"><input type="hidden" name="longitude" class="location-lon"><button type="button" class="btn btn-outline-dark save-location">📍 Bulunduğum Yeri Gaziemir Olarak Kaydet</button><div class="location-status text-muted small mt-2"></div></form></div></div>
     </div>
   </div></div>
+
+  <div class="attendance-toolbar">
+    <div class="attendance-toolbar-left">
+      <a class="attendance-view-btn {% if view_mode == 'monthly' %}active{% endif %}" href="?view=monthly&year={{ year }}&month={{ month }}">Aylık</a>
+      <a class="attendance-view-btn {% if view_mode == 'annual' %}active{% endif %}" href="?view=annual&year={{ year }}&month={{ month }}">Yıllık</a>
+    </div>
+    <div class="attendance-toolbar-right">
+      {% if view_mode == 'monthly' %}
+      <a class="attendance-period-arrow" href="?view=monthly&year={{ prev_year }}&month={{ prev_month }}">←</a>
+      <div class="attendance-period-label"><strong>{{ month_name }} {{ year }}</strong><span>{{ period_start|date:"d.m.Y" }} – {{ period_end|date:"d.m.Y" }}</span></div>
+      <a class="attendance-period-arrow" href="?view=monthly&year={{ next_year }}&month={{ next_month }}">→</a>
+      {% else %}
+      <a class="attendance-period-arrow" href="?view=annual&year={{ year|add:"-1" }}&month={{ month }}">←</a>
+      <div class="attendance-period-label"><strong>{{ year }} Maaş Dönemleri</strong><span>06.01.{{ year }} – 05.01.{{ year|add:"1" }}</span></div>
+      <a class="attendance-period-arrow" href="?view=annual&year={{ year|add:"1" }}&month={{ month }}">→</a>
+      {% endif %}
+    </div>
+  </div>
 
   {% if view_mode == 'monthly' %}
   <div class="card border-0 shadow-sm rounded-4"><div class="attendance-table-wrap"><table class="table table-bordered align-middle mb-0" style="min-width:1100px"><thead class="table-light attendance-sticky-head"><tr><th style="min-width:115px">Tarih</th>{% for user in users %}<th class="text-center" style="min-width:190px">{{ user.get_full_name|default:user.username }}</th>{% endfor %}</tr></thead><tbody>
