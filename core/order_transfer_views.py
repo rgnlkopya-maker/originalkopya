@@ -5,7 +5,7 @@ from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect
 from django.views.decorators.http import require_GET, require_POST
 
-from app_settings.access import has_access
+from app_settings.access import has_access, order_scope_allows
 from core.models import Order, OrderEvent
 from core.services.order_status import sync_order_stage_from_events
 
@@ -44,12 +44,16 @@ def search_transfer_targets(request, source_order_id):
         return JsonResponse({"results": []}, status=403)
 
     source = get_object_or_404(Order, pk=source_order_id)
+    if not order_scope_allows(request.user, source):
+        return JsonResponse({"results": []}, status=403)
     raw_q = (request.GET.get("q") or "").strip()
     terms = [part for part in raw_q.split() if part]
     if not terms:
         return JsonResponse({"results": []})
 
     orders = Order.objects.filter(is_active=True).exclude(pk=source.pk).select_related("musteri")
+    if not order_scope_allows(request.user, source):
+        return JsonResponse({"results": []}, status=403)
     for term in terms:
         orders = orders.filter(_term_filter(term))
 
