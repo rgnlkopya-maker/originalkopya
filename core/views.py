@@ -997,19 +997,19 @@ def staff_after_hours_location_verify(request):
 
 
 @login_required
+@require_POST
 def update_stage(request, pk):
     order = get_object_or_404(Order, pk=pk)
     if not order_scope_allows(request.user, order):
         return HttpResponseForbidden("Bu siparişte işlem yapma yetkiniz yok.")
 
-    # Stage ve value (POST>GET)
-    stage = request.POST.get("stage") or request.GET.get("stage")
-    value = request.POST.get("value") or request.GET.get("value")
+    stage = request.POST.get("stage")
+    value = request.POST.get("value")
 
     # Ek alanlar
-    aciklama = request.POST.get("aciklama") or request.GET.get("aciklama")
-    fasoncu_id = request.POST.get("fasoncu") or request.GET.get("fasoncu")
-    nakisci_id = request.POST.get("nakisci") or request.GET.get("nakisci")
+    aciklama = request.POST.get("aciklama")
+    fasoncu_id = request.POST.get("fasoncu")
+    nakisci_id = request.POST.get("nakisci")
 
     if not stage or not value:
         return HttpResponseForbidden("Eksik veri")
