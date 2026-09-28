@@ -9,7 +9,7 @@
   </div>
   <div class="section-tabs">
     <a class="section-tab {% if section == 'problems' %}active{% endif %}" href="?section=problems">Aşama Problemleri <span class="tab-count">{{ problem_count }}</span></a>
-    <a class="section-tab {% if section == 'unshipped' %}active{% endif %}" href="?section=unshipped">7 Gündür Sevk Edilmeyenler <span class="tab-count">{{ unshipped_count }}</span></a>
+    <a class="section-tab {% if section == 'unshipped' %}active{% endif %}" href="?section=unshipped">Son Üretimden Sonra 3 Gündür Sevk Edilmeyenler <span class="tab-count">{{ unshipped_count }}</span></a>
   </div>
 
   {% if section == "problems" %}
@@ -54,7 +54,7 @@
   
   {% if section == "unshipped" %}
   <div class="control-head" style="margin-top:6px">
-    <div><h2 class="control-title" style="font-size:21px">7 Gündür Sevk Edilmeyenler</h2><div class="control-sub">Herhangi bir üretim aşaması başlatılmış, ilk üretim hareketinin üzerinden en az 7 gün geçmiş ve hâlâ “Sevkedildi” kaydı bulunmayan siparişler.</div></div>
+    <div><h2 class="control-title" style="font-size:21px">Son Üretimden Sonra 3 Gündür Sevk Edilmeyenler</h2><div class="control-sub">Herhangi bir üretim aşaması başlatılmış, ilk üretim hareketinin üzerinden en az 7 gün geçmiş ve hâlâ “Sevkedildi” kaydı bulunmayan siparişler.</div></div>
     <div class="d-flex gap-2 align-items-center"><a class="section-tab {% if show_excluded %}active{% endif %}" href="?section=unshipped&excluded=1&order_type={{ order_type }}">Bu Bölümden Çıkarılanlar <span class="tab-count">{{ excluded_count }}</span></a><span class="count-pill">{{ unshipped_count }}</span></div>
   </div>
   {% if not show_excluded %}
