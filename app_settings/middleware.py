@@ -2,7 +2,7 @@ from django.shortcuts import redirect
 from django.contrib.auth import get_user_model
 from django.urls import reverse
 from django.utils import timezone
-from datetime import time
+from datetime import time, timedelta
 
 from .access import has_feature_access, has_full_access
 from .permission_registry import feature_for_path
@@ -99,8 +99,18 @@ class MoliAccessMiddleware:
             )
             if active_record and after_hours:
                 if request.path not in self.STAFF_PRE_ATTENDANCE_PATHS:
-                    one_request_ok = request.session.pop("moli_after_hours_one_request_ok", False)
-                    if not one_request_ok:
+                    verified_raw = request.session.get("moli_after_hours_verified_at")
+                    verified_ok = False
+                    if verified_raw:
+                        try:
+                            verified_at = timezone.datetime.fromisoformat(verified_raw)
+                            if timezone.is_naive(verified_at):
+                                verified_at = timezone.make_aware(verified_at, timezone.get_current_timezone())
+                            verified_ok = timezone.now() - verified_at <= timedelta(minutes=10)
+                        except (TypeError, ValueError):
+                            request.session.pop("moli_after_hours_verified_at", None)
+
+                    if not verified_ok:
                         # Yalnızca gerçek sayfa gezintileri dönüş adresini değiştirsin.
                         # favicon, service worker ve arka plan API istekleri kullanıcının
                         # gitmek istediği sayfayı ezmemeli.
