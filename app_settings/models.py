@@ -67,6 +67,7 @@ class UserAccess(models.Model):
     can_manage_quality = models.BooleanField(default=False)
     can_view_shipping_finance = models.BooleanField(default=False)
     can_manage_planning = models.BooleanField(default=False)
+    can_view_production_stage_control = models.BooleanField(default=False)
     can_manage_users = models.BooleanField(default=False)
     can_view_settings = models.BooleanField(default=False)
     feature_permissions = models.JSONField(default=dict, blank=True)
