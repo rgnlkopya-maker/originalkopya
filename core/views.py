@@ -3329,34 +3329,34 @@ def dashboard_view(request):
         "top_urunler": top_urunler,
         "last_orders": last_orders,
 
-        "siparis_trend_labels": json.dumps(siparis_trend_labels),
-        "siparis_trend_values": json.dumps(siparis_trend_values),
+        "siparis_trend_labels": siparis_trend_labels,
+        "siparis_trend_values": siparis_trend_values,
 
-        "sevkiyat_trend_labels": json.dumps(sevkiyat_trend_labels),
-        "sevkiyat_trend_values": json.dumps(sevkiyat_trend_values),
+        "sevkiyat_trend_labels": sevkiyat_trend_labels,
+        "sevkiyat_trend_values": sevkiyat_trend_values,
 
-        "kar_trend_labels": json.dumps(kar_trend_labels),
-        "kar_trend_values": json.dumps(kar_trend_values),
+        "kar_trend_labels": kar_trend_labels,
+        "kar_trend_values": kar_trend_values,
 
-        "top_personel_labels": json.dumps(top_personel_labels),
-        "top_personel_values": json.dumps(top_personel_values),
+        "top_personel_labels": top_personel_labels,
+        "top_personel_values": top_personel_values,
 
-        "stack_labels": json.dumps(stack_labels),
-        "stack_series": json.dumps(stack_series),
+        "stack_labels": stack_labels,
+        "stack_series": stack_series,
 
-        "heat_series": json.dumps(heat_series),
+        "heat_series": heat_series,
 
-        "musteri_top_labels": json.dumps(musteri_top_labels),
-        "musteri_top_values": json.dumps(musteri_top_values),
+        "musteri_top_labels": musteri_top_labels,
+        "musteri_top_values": musteri_top_values,
 
-        "musteri_ciro_labels": json.dumps(musteri_ciro_labels),
-        "musteri_ciro_values": json.dumps(musteri_ciro_values),
+        "musteri_ciro_labels": musteri_ciro_labels,
+        "musteri_ciro_values": musteri_ciro_values,
 
-        "urun_top_labels": json.dumps(urun_top_labels),
-        "urun_top_values": json.dumps(urun_top_values),
+        "urun_top_labels": urun_top_labels,
+        "urun_top_values": urun_top_values,
 
-        "urun_kar_labels": json.dumps(urun_kar_labels),
-        "urun_kar_values": json.dumps(urun_kar_values),
+        "urun_kar_labels": urun_kar_labels,
+        "urun_kar_values": urun_kar_values,
     }
 
     return render(request, "reports/dashboard.html", context)
