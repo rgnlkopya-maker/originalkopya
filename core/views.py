@@ -177,7 +177,9 @@ def apply_filters(request, qs):
 # 🖼️ Tek görseli tam ekranda görüntüleme
 @login_required
 def view_image(request, image_id):
-    image = get_object_or_404(OrderImage, id=image_id)
+    image = get_object_or_404(OrderImage.objects.select_related("order"), id=image_id)
+    if not order_scope_allows(request.user, image.order):
+        return HttpResponseForbidden("Bu sipariş görselini görme yetkiniz yok.")
     return render(request, "core/view_image.html", {"image": image})
 
 
@@ -997,6 +999,8 @@ def staff_after_hours_location_verify(request):
 @login_required
 def update_stage(request, pk):
     order = get_object_or_404(Order, pk=pk)
+    if not order_scope_allows(request.user, order):
+        return HttpResponseForbidden("Bu siparişte işlem yapma yetkiniz yok.")
 
     # Stage ve value (POST>GET)
     stage = request.POST.get("stage") or request.GET.get("stage")
@@ -1176,6 +1180,8 @@ def update_stage(request, pk):
 @login_required
 def order_upload_image(request, pk):
     order = get_object_or_404(Order, pk=pk)
+    if not order_scope_allows(request.user, order):
+        return HttpResponseForbidden("Bu siparişte işlem yapma yetkiniz yok.")
 
     if request.method == "POST" and request.FILES.get("resim"):
         from django.core.exceptions import ValidationError
@@ -1351,6 +1357,8 @@ def order_edit(request, pk):
 @login_required
 def order_add_image(request, pk):
     order = get_object_or_404(Order, pk=pk)
+    if not order_scope_allows(request.user, order):
+        return HttpResponseForbidden("Bu siparişte işlem yapma yetkiniz yok.")
 
     # 🛡️ Yalnızca patron veya müdür yükleme yapabilir
     if not request.user.groups.filter(name__in=["patron", "mudur"]).exists():
@@ -1389,7 +1397,9 @@ def delete_order_image(request, image_id):
     if not request.user.groups.filter(name__in=["patron", "mudur"]).exists():
         return HttpResponseForbidden("Bu işlemi yapma yetkiniz yok.")
 
-    image = get_object_or_404(OrderImage, id=image_id)
+    image = get_object_or_404(OrderImage.objects.select_related("order"), id=image_id)
+    if not order_scope_allows(request.user, image.order):
+        return HttpResponseForbidden("Bu sipariş görselinde işlem yapma yetkiniz yok.")
     order_id = image.order.id
 
     # 🧹 Supabase tarafında da silmeyi istiyorsan (opsiyonel)
