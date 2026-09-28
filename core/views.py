@@ -1383,6 +1383,7 @@ def order_add_image(request, pk):
     return HttpResponseForbidden("Geçersiz istek yöntemi.")
 
 @login_required
+@require_POST
 def delete_order_image(request, image_id):
     # 🛡️ Sadece patron veya müdür silebilir
     if not request.user.groups.filter(name__in=["patron", "mudur"]).exists():
@@ -1411,6 +1412,7 @@ def delete_order_image(request, image_id):
 
 
 @login_required
+@require_POST
 def delete_order_event(request, event_id):
     event = get_object_or_404(OrderEvent, id=event_id)
 
@@ -1537,7 +1539,7 @@ def delete_order_event(request, event_id):
 
 
 @login_required
-@csrf_exempt
+@require_POST
 def order_delete(request, pk):
 
     # 🛡️ YETKİ KONTROLÜ
