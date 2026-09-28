@@ -447,12 +447,28 @@ def reset_device(request, user_id):
 @login_required
 @user_passes_test(is_manager)
 def dashboard(request):
-    workplace = WorkplaceSettings.get_solo(); today = timezone.localdate()
+    workplace = WorkplaceSettings.get_solo()
+    today = timezone.localdate()
+    view_mode = (request.GET.get("view") or "monthly").strip().lower()
+    if view_mode not in {"monthly", "annual"}:
+        view_mode = "monthly"
+
+    default_year = today.year
+    default_month = today.month
+    if today.day < 5:
+        if default_month == 1:
+            default_year -= 1
+            default_month = 12
+        else:
+            default_month -= 1
+
     try:
-        year = int(request.GET.get("year", today.year)); month = int(request.GET.get("month", today.month))
-        if month < 1 or month > 12: raise ValueError
+        year = int(request.GET.get("year", default_year))
+        month = int(request.GET.get("month", default_month))
+        if month < 1 or month > 12:
+            raise ValueError
     except (TypeError, ValueError):
-        year, month = today.year, today.month
+        year, month = default_year, default_month
 
     hidden_attendance_names = {
         "emine kanyış", "oğuzhan kanyış", "mustafa kanyış", "osman kanyış",
@@ -467,24 +483,111 @@ def dashboard(request):
     )
     users = []
     for user in active_users:
-        full_name = user.get_full_name().strip().casefold(); username = user.username.strip().casefold()
-        if full_name in hidden_attendance_names or username in hidden_attendance_names: continue
-        if "mihriban" in hidden_attendance_names and (full_name == "mihriban" or full_name.startswith("mihriban ")): continue
+        full_name = user.get_full_name().strip().casefold()
+        username = user.username.strip().casefold()
+        if full_name in hidden_attendance_names or username in hidden_attendance_names:
+            continue
+        if "mihriban" in hidden_attendance_names and (full_name == "mihriban" or full_name.startswith("mihriban ")):
+            continue
         users.append(user)
 
-    last_day = monthrange(year, month)[1]; start = date(year, month, 1); end = date(year, month, last_day)
-    records_qs = list(AttendanceRecord.objects.filter(work_date__range=(start, end)).select_related("user"))
-    records = {(r.user_id, r.work_date): r for r in records_qs}; matrix_rows = []
-    for day_number in range(1, last_day + 1):
-        d = date(year, month, day_number)
-        matrix_rows.append({"date": d, "is_weekend": d.weekday() >= 5, "cells": [{"user": user, "record": records.get((user.id, d))} for user in users]})
+    def period_bounds(period_year, period_month):
+        start_date = date(period_year, period_month, 5)
+        if period_month == 12:
+            end_date = date(period_year + 1, 1, 4)
+        else:
+            end_date = date(period_year, period_month + 1, 4)
+        return start_date, end_date
+
+    def totals_for(user_records):
+        return {
+            "total_late": sum(r.late_minutes or 0 for r in user_records),
+            "total_early_leave": sum(r.early_leave_minutes or 0 for r in user_records),
+            "total_overtime": sum(r.overtime_minutes or 0 for r in user_records),
+            "leave_days": sum(1 for r in user_records if r.status == "leave"),
+            "annual_leave_days": sum(1 for r in user_records if r.status == "annual_leave"),
+            "sick_days": sum(1 for r in user_records if r.status == "sick"),
+        }
+
+    period_start, period_end = period_bounds(year, month)
+    records_qs = list(
+        AttendanceRecord.objects
+        .filter(work_date__range=(period_start, period_end))
+        .select_related("user")
+    )
+    records = {(r.user_id, r.work_date): r for r in records_qs}
+
+    matrix_rows = []
+    d = period_start
+    while d <= period_end:
+        matrix_rows.append({
+            "date": d,
+            "is_weekend": d.weekday() >= 5,
+            "cells": [{"user": user, "record": records.get((user.id, d))} for user in users],
+        })
+        d += timedelta(days=1)
+
     monthly_totals = []
     for user in users:
         user_records = [r for r in records_qs if r.user_id == user.id]
-        monthly_totals.append({"user": user, "total_late": sum(r.late_minutes or 0 for r in user_records), "total_early_leave": sum(r.early_leave_minutes or 0 for r in user_records), "total_overtime": sum(r.overtime_minutes or 0 for r in user_records), "leave_days": sum(1 for r in user_records if r.status == "leave"), "annual_leave_days": sum(1 for r in user_records if r.status == "annual_leave"), "sick_days": sum(1 for r in user_records if r.status == "sick")})
-    prev_year, prev_month = (year - 1, 12) if month == 1 else (year, month - 1); next_year, next_month = (year + 1, 1) if month == 12 else (year, month + 1)
-    return render(request, "attendance_v2/dashboard.html", {"workplace": workplace, "users": users, "matrix_rows": matrix_rows, "monthly_totals": monthly_totals, "today": today, "year": year, "month": month, "prev_year": prev_year, "prev_month": prev_month, "next_year": next_year, "next_month": next_month, "can_edit": is_patron(request.user)})
+        monthly_totals.append({"user": user, **totals_for(user_records)})
 
+    prev_year, prev_month = (year - 1, 12) if month == 1 else (year, month - 1)
+    next_year, next_month = (year + 1, 1) if month == 12 else (year, month + 1)
+
+    month_names = [
+        "", "Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran",
+        "Temmuz", "Ağustos", "Eylül", "Ekim", "Kasım", "Aralık",
+    ]
+
+    annual_rows = []
+    annual_totals = []
+    if view_mode == "annual":
+        annual_start = date(year, 1, 5)
+        annual_end = date(year + 1, 1, 4)
+        annual_records = list(
+            AttendanceRecord.objects
+            .filter(work_date__range=(annual_start, annual_end))
+            .select_related("user")
+        )
+        for period_month in range(1, 13):
+            row_start, row_end = period_bounds(year, period_month)
+            row_records = [r for r in annual_records if row_start <= r.work_date <= row_end]
+            cells = []
+            for user in users:
+                user_records = [r for r in row_records if r.user_id == user.id]
+                cells.append({"user": user, **totals_for(user_records)})
+            annual_rows.append({
+                "month": period_month,
+                "month_name": month_names[period_month],
+                "start": row_start,
+                "end": row_end,
+                "cells": cells,
+            })
+        for user in users:
+            user_records = [r for r in annual_records if r.user_id == user.id]
+            annual_totals.append({"user": user, **totals_for(user_records)})
+
+    return render(request, "attendance_v2/dashboard.html", {
+        "workplace": workplace,
+        "users": users,
+        "matrix_rows": matrix_rows,
+        "monthly_totals": monthly_totals,
+        "annual_rows": annual_rows,
+        "annual_totals": annual_totals,
+        "today": today,
+        "year": year,
+        "month": month,
+        "month_name": month_names[month],
+        "period_start": period_start,
+        "period_end": period_end,
+        "prev_year": prev_year,
+        "prev_month": prev_month,
+        "next_year": next_year,
+        "next_month": next_month,
+        "view_mode": view_mode,
+        "can_edit": is_patron(request.user),
+    })
 
 @login_required
 @user_passes_test(is_patron)
