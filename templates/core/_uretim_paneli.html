@@ -144,8 +144,8 @@
         <div class="stage-card">
             <div class="stage-card-header"><div class="stage-card-title"><span class="icon">🧶</span> <span>Malzeme</span></div><div class="stage-card-sub">Kesim öncesi malzeme işlemleri</div></div>
             <div class="stage-actions">
-                <button class="soft-btn btn-soft-primary" hx-get="{% url 'update_stage' order.id %}" hx-vals='{"stage":"malzeme_durum","value":"kesildi"}' hx-target="#uretim-paneli" hx-swap="innerHTML">Malzemesi Kesildi</button>
-                <button class="soft-btn btn-soft-success" hx-get="{% url 'update_stage' order.id %}" hx-vals='{"stage":"malzeme_durum","value":"boyandi"}' hx-target="#uretim-paneli" hx-swap="innerHTML">Malzemesi Boyandı</button>
+                <button class="soft-btn btn-soft-primary" hx-post="{% url 'update_stage' order.id %}" hx-headers='{"X-CSRFToken":"{{ csrf_token }}"}' hx-vals='{"stage":"malzeme_durum","value":"kesildi"}' hx-target="#uretim-paneli" hx-swap="innerHTML">Malzemesi Kesildi</button>
+                <button class="soft-btn btn-soft-success" hx-post="{% url 'update_stage' order.id %}" hx-headers='{"X-CSRFToken":"{{ csrf_token }}"}' hx-vals='{"stage":"malzeme_durum","value":"boyandi"}' hx-target="#uretim-paneli" hx-swap="innerHTML">Malzemesi Boyandı</button>
                 <button class="soft-btn btn-soft-warning" onclick="return malzemeEksik(this);">Malzemesi Eksik</button>
             </div>
         </div>
@@ -153,21 +153,21 @@
         <div class="stage-card">
             <div class="stage-card-header"><div class="stage-card-title"><span class="icon">✂️</span> <span>Kesim</span></div><div class="stage-card-sub">Kesim süreç adımları</div></div>
             <div class="stage-actions">
-                <button class="soft-btn btn-soft-secondary" hx-get="{% url 'update_stage' order.id %}" hx-vals='{"stage":"kesim_durum","value":"siraya_alindi"}' hx-target="#uretim-paneli" hx-swap="innerHTML">Kesim Sırasına Alındı</button>
-                <button class="soft-btn btn-soft-primary" hx-get="{% url 'update_stage' order.id %}" hx-vals='{"stage":"kesim_durum","value":"basladi"}' hx-target="#uretim-paneli" hx-swap="innerHTML">Başla</button>
+                <button class="soft-btn btn-soft-secondary" hx-post="{% url 'update_stage' order.id %}" hx-headers='{"X-CSRFToken":"{{ csrf_token }}"}' hx-vals='{"stage":"kesim_durum","value":"siraya_alindi"}' hx-target="#uretim-paneli" hx-swap="innerHTML">Kesim Sırasına Alındı</button>
+                <button class="soft-btn btn-soft-primary" hx-post="{% url 'update_stage' order.id %}" hx-headers='{"X-CSRFToken":"{{ csrf_token }}"}' hx-vals='{"stage":"kesim_durum","value":"basladi"}' hx-target="#uretim-paneli" hx-swap="innerHTML">Başla</button>
                 <button class="soft-btn btn-soft-warning" onclick="return kismiIslem(this,'kesim_durum','kismi_bitti');">Kısmi Kesim</button>
-                <button class="soft-btn btn-soft-success" hx-get="{% url 'update_stage' order.id %}" hx-vals='{"stage":"kesim_durum","value":"bitti"}' hx-target="#uretim-paneli" hx-swap="innerHTML">Kesim Bitti</button>
+                <button class="soft-btn btn-soft-success" hx-post="{% url 'update_stage' order.id %}" hx-headers='{"X-CSRFToken":"{{ csrf_token }}"}' hx-vals='{"stage":"kesim_durum","value":"bitti"}' hx-target="#uretim-paneli" hx-swap="innerHTML">Kesim Bitti</button>
             </div>
         </div>
 
         <div class="stage-card">
             <div class="stage-card-header"><div class="stage-card-title"><span class="icon">🧵</span> <span>Dikim</span></div><div class="stage-card-sub">Dikim süreç adımları</div></div>
             <div class="stage-actions">
-                <button class="soft-btn btn-soft-secondary" hx-get="{% url 'update_stage' order.id %}" hx-vals='{"stage":"dikim_durum","value":"sıraya_alındı"}' hx-target="#uretim-paneli" hx-swap="innerHTML">Sıraya Alındı</button>
-                <button class="soft-btn btn-soft-primary" hx-get="{% url 'update_stage' order.id %}" hx-vals='{"stage":"dikim_durum","value":"basladi"}' hx-target="#uretim-paneli" hx-swap="innerHTML">Dikim Başladı</button>
+                <button class="soft-btn btn-soft-secondary" hx-post="{% url 'update_stage' order.id %}" hx-headers='{"X-CSRFToken":"{{ csrf_token }}"}' hx-vals='{"stage":"dikim_durum","value":"sıraya_alındı"}' hx-target="#uretim-paneli" hx-swap="innerHTML">Sıraya Alındı</button>
+                <button class="soft-btn btn-soft-primary" hx-post="{% url 'update_stage' order.id %}" hx-headers='{"X-CSRFToken":"{{ csrf_token }}"}' hx-vals='{"stage":"dikim_durum","value":"basladi"}' hx-target="#uretim-paneli" hx-swap="innerHTML">Dikim Başladı</button>
                 <button class="soft-btn btn-soft-warning" onclick="return kismiIslem(this,'dikim_durum','kismi_bitti');">Kısmi Dikim</button>
                 <button class="soft-btn btn-soft-help" onclick="return yardimEttim('dikim_yardim','Dikime');">🤝 Yardım Ettim</button>
-                <button class="soft-btn btn-soft-success" hx-get="{% url 'update_stage' order.id %}" hx-vals='{"stage":"dikim_durum","value":"bitti"}' hx-target="#uretim-paneli" hx-swap="innerHTML">Dikim Bitti</button>
+                <button class="soft-btn btn-soft-success" hx-post="{% url 'update_stage' order.id %}" hx-headers='{"X-CSRFToken":"{{ csrf_token }}"}' hx-vals='{"stage":"dikim_durum","value":"bitti"}' hx-target="#uretim-paneli" hx-swap="innerHTML">Dikim Bitti</button>
             </div>
         </div>
 
@@ -190,11 +190,11 @@
         <div class="stage-card">
             <div class="stage-card-header"><div class="stage-card-title"><span class="icon">✨</span> <span>Süsleme</span></div><div class="stage-card-sub">Süsleme süreç adımları</div></div>
             <div class="stage-actions">
-                <button class="soft-btn btn-soft-secondary" hx-get="{% url 'update_stage' order.id %}" hx-vals='{"stage":"susleme_durum","value":"sıraya_alındı"}' hx-target="#uretim-paneli" hx-swap="innerHTML">Sıraya Alındı</button>
-                <button class="soft-btn btn-soft-primary" hx-get="{% url 'update_stage' order.id %}" hx-vals='{"stage":"susleme_durum","value":"basladi"}' hx-target="#uretim-paneli" hx-swap="innerHTML">Süsleme Başladı</button>
+                <button class="soft-btn btn-soft-secondary" hx-post="{% url 'update_stage' order.id %}" hx-headers='{"X-CSRFToken":"{{ csrf_token }}"}' hx-vals='{"stage":"susleme_durum","value":"sıraya_alındı"}' hx-target="#uretim-paneli" hx-swap="innerHTML">Sıraya Alındı</button>
+                <button class="soft-btn btn-soft-primary" hx-post="{% url 'update_stage' order.id %}" hx-headers='{"X-CSRFToken":"{{ csrf_token }}"}' hx-vals='{"stage":"susleme_durum","value":"basladi"}' hx-target="#uretim-paneli" hx-swap="innerHTML">Süsleme Başladı</button>
                 <button class="soft-btn btn-soft-warning" onclick="return kismiIslem(this,'susleme_durum','kismi_bitti');">Kısmi Süsleme</button>
                 <button class="soft-btn btn-soft-help" onclick="return yardimEttim('susleme_yardim','Süslemeye');">🤝 Yardım Ettim</button>
-                <button class="soft-btn btn-soft-success" hx-get="{% url 'update_stage' order.id %}" hx-vals='{"stage":"susleme_durum","value":"bitti"}' hx-target="#uretim-paneli" hx-swap="innerHTML">Süsleme Bitti</button>
+                <button class="soft-btn btn-soft-success" hx-post="{% url 'update_stage' order.id %}" hx-headers='{"X-CSRFToken":"{{ csrf_token }}"}' hx-vals='{"stage":"susleme_durum","value":"bitti"}' hx-target="#uretim-paneli" hx-swap="innerHTML">Süsleme Bitti</button>
             </div>
         </div>
 
@@ -202,7 +202,7 @@
             <div class="stage-card-header"><div class="stage-card-title"><span class="icon">📦</span> <span>Hazır & Sevkiyat</span></div><div class="stage-card-sub">Depoya giriş & sevkiyat</div></div>
             <div class="stage-actions">
                 <button type="button" class="soft-btn btn-soft-success" data-bs-toggle="modal" data-bs-target="#stokModal">Depoya Girdi</button>
-                <button class="soft-btn btn-soft-dark" hx-get="{% url 'update_stage' order.id %}" hx-vals='{"stage":"sevkiyat_durum","value":"gonderildi"}' hx-target="#uretim-paneli" hx-swap="innerHTML">🚚 Gönderildi</button>
+                <button class="soft-btn btn-soft-dark" hx-post="{% url 'update_stage' order.id %}" hx-headers='{"X-CSRFToken":"{{ csrf_token }}"}' hx-vals='{"stage":"sevkiyat_durum","value":"gonderildi"}' hx-target="#uretim-paneli" hx-swap="innerHTML">🚚 Gönderildi</button>
                 {% if user|can_feature:'consignment.send' %}
                 <button type="button" class="soft-btn btn-soft-info"
                     hx-post="{% url 'consignment_send_order' order.id %}"
@@ -247,21 +247,21 @@ setTimeout(function(){var el=document.getElementById('order-stage-flag-alert');i
 function malzemeEksik(button) {
     const text = prompt("Eksik malzemeyi açıklayınız:");
     if (!text || !text.trim()) return false;
-    htmx.ajax('GET', "{% url 'update_stage' order.id %}", {target:'#uretim-paneli',swap:'innerHTML',values:{stage:'malzeme_durum',value:'eksik',aciklama:text.trim()}});
+    htmx.ajax('POST', "{% url 'update_stage' order.id %}", {headers:{'X-CSRFToken':'{{ csrf_token }}'},target:'#uretim-paneli',swap:'innerHTML',values:{stage:'malzeme_durum',value:'eksik',aciklama:text.trim()}});
     return false;
 }
 
 function kismiIslem(button, stage, value) {
     const text = prompt("Kısmi işlemi belirtiniz (ör: Kol, Etek, Yaka)");
     if (!text || !text.trim()) return false;
-    htmx.ajax('GET', "{% url 'update_stage' order.id %}", {target:'#uretim-paneli',swap:'innerHTML',values:{stage:stage,value:value,aciklama:text.trim()}});
+    htmx.ajax('POST', "{% url 'update_stage' order.id %}", {headers:{'X-CSRFToken':'{{ csrf_token }}'},target:'#uretim-paneli',swap:'innerHTML',values:{stage:stage,value:value,aciklama:text.trim()}});
     return false;
 }
 
 function yardimEttim(stage, alan) {
     const text = prompt(alan + " nasıl yardım ettiğinizi kısaca yazın:");
     if (!text || !text.trim()) return false;
-    htmx.ajax('GET', "{% url 'update_stage' order.id %}", {
+    htmx.ajax('POST', "{% url 'update_stage' order.id %}", {headers:{'X-CSRFToken':'{{ csrf_token }}'},
         target:'#uretim-paneli',
         swap:'innerHTML',
         values:{stage:stage,value:'yardim_etti',aciklama:text.trim()}
@@ -275,7 +275,7 @@ function fasonIslem(event, secilenId, stage, value) {
     const valuesPayload = {stage:stage,value:value};
     if (stage === "nakis_durumu") valuesPayload["nakisci"] = secilenId;
     else valuesPayload["fasoncu"] = secilenId;
-    htmx.ajax('GET', "{% url 'update_stage' order.id %}", {target:'#uretim-paneli',swap:'innerHTML',values:valuesPayload});
+    htmx.ajax('POST', "{% url 'update_stage' order.id %}", {headers:{'X-CSRFToken':'{{ csrf_token }}'},target:'#uretim-paneli',swap:'innerHTML',values:valuesPayload});
     return false;
 }
 
