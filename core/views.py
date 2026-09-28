@@ -1178,8 +1178,15 @@ def order_upload_image(request, pk):
     order = get_object_or_404(Order, pk=pk)
 
     if request.method == "POST" and request.FILES.get("resim"):
-        order.resim = request.FILES["resim"]
-        order.save()
+        from django.core.exceptions import ValidationError
+        from .upload_security import validate_image_upload
+        uploaded = request.FILES["resim"]
+        try:
+            validate_image_upload(uploaded)
+            order.resim = uploaded
+            order.save()
+        except ValidationError as exc:
+            messages.error(request, exc.messages[0])
 
     return redirect("order_detail", pk=order.pk)
 
@@ -1355,14 +1362,22 @@ def order_add_image(request, pk):
             messages.warning(request, "Herhangi bir dosya seçilmedi.")
             return redirect("order_detail", pk=pk)
 
+        uploaded_count = 0
+        from django.core.exceptions import ValidationError
+        from .upload_security import validate_image_upload
         for file in images:
             try:
+                validate_image_upload(file)
                 OrderImage.objects.create(order=order, image=file)
+                uploaded_count += 1
+            except ValidationError as exc:
+                messages.error(request, f"{file.name} yüklenemedi: {exc.messages[0]}")
             except Exception as e:
                 print("⚠️ Görsel yükleme hatası:", e)
-                messages.error(request, f"{file.name} yüklenemedi: {e}")
+                messages.error(request, f"{file.name} yüklenemedi.")
 
-        messages.success(request, f"{len(images)} görsel başarıyla yüklendi ✅")
+        if uploaded_count:
+            messages.success(request, f"{uploaded_count} görsel başarıyla yüklendi ✅")
         return redirect("order_detail", pk=pk)
 
     return HttpResponseForbidden("Geçersiz istek yöntemi.")
