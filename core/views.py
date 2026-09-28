@@ -799,14 +799,27 @@ def _active_attendance_for_login(user):
         check_out__isnull=True,
     ).first()
 
-@csrf_exempt
 def custom_login(request):
     if request.method == "POST":
         username = request.POST.get("username", "").strip()
         password = request.POST.get("password", "").strip()
 
+        from .login_security import (
+            MAX_FAILED_ATTEMPTS,
+            clear_login_failures,
+            login_lock_status,
+            register_login_failure,
+        )
+
+        locked, _attempts = login_lock_status(request, username)
+        if locked:
+            return render(request, "registration/custom_login.html", {
+                "access_error": "Çok fazla hatalı giriş denemesi yapıldı. 10 dakika sonra tekrar deneyin."
+            }, status=429)
+
         user = authenticate(request, username=username, password=password)
         if user is not None:
+            clear_login_failures(request, username)
             # Patron/Müdür mevcut yetkileriyle bu mesai kapısından muaftır.
             if _is_management_login(user):
                 login(request, user)
@@ -852,6 +865,11 @@ def custom_login(request):
             login(request, user)
             return redirect(request.GET.get("next") or "/")
 
+        failed_attempts = register_login_failure(request, username)
+        if failed_attempts >= MAX_FAILED_ATTEMPTS:
+            return render(request, "registration/custom_login.html", {
+                "access_error": "5 hatalı giriş denemesi yapıldı. Giriş 10 dakika kilitlendi."
+            }, status=429)
         return render(request, "registration/custom_login.html", {"error": True})
 
     return render(request, "registration/custom_login.html")
