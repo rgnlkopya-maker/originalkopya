@@ -8,6 +8,7 @@ from django.urls import reverse
 from django.views.decorators.http import require_POST
 
 from core.models import Order
+from app_settings.access import order_scope_allows
 from core.services.order_status import latest_status_event, status_label
 from .models import PlanningEntry, ShipmentPlan
 
@@ -83,6 +84,9 @@ def toggle_shipment_invoice(request, plan_id):
 @require_POST
 def plan_order_shipment(request, order_id):
     order = get_object_or_404(Order, pk=order_id)
+    if not order_scope_allows(request.user, order):
+        from django.http import HttpResponseForbidden
+        return HttpResponseForbidden("Bu siparişi planlama yetkiniz yok.")
     try: planned_date = date.fromisoformat(request.POST.get("planned_date", ""))
     except ValueError: return redirect("order_detail", pk=order.pk)
     ShipmentPlan.objects.update_or_create(order=order, defaults={"planned_date": planned_date, "created_by": request.user})
