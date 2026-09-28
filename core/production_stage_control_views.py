@@ -81,8 +81,13 @@ def production_stage_control(request):
     order_ids = list(orders.values_list("id", flat=True))
     events_by_order = defaultdict(list)
     relevant_stages = {
-        "kesim_durum", "dikim_durum", "dikim_fason_durumu",
-        "susleme_durum", "susleme_fason_durumu", "hazir_durum",
+        "malzeme_durum",
+        "kesim_durum",
+        "dikim_durum", "dikim_fason_durumu",
+        "nakis_durum",
+        "susleme_durum", "susleme_fason_durumu",
+        "hazir_durum",
+        "uretim_aktarimi", "uretim_aktarimı",
         "sevkiyat_durum",
     }
     for event in (
