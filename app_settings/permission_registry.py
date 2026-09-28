@@ -44,6 +44,7 @@ FEATURE_GROUPS = [
         ("catalog.product_code_manage", "Ürün Kodu Ekle / Düzenle / Pasife Al", "can_create_orders"),
     ]),
     ("Planlama / Operasyon", [
+        ("operations.production_stage_control", "Üretim Aşama Kontrolü", "can_view_orders"),
         ("planning.main", "Planlama", "can_manage_planning"),
         ("planning.shipment", "Sevkiyat Planlama", "can_manage_planning"),
         ("planning.actions", "Planlama İşlemleri", "can_manage_planning"),
@@ -168,6 +169,7 @@ _RULES = [
     (re.compile(r"^/ajax/beden/"), "catalog.size_manage"),
     (re.compile(r"^/ajax/urun-kod/"), "catalog.product_code_manage"),
 
+    (re.compile(r"^/uretim-asama-kontrolu/"), "operations.production_stage_control"),
     (re.compile(r"^/planlama/sevkiyat/$"), "planning.shipment"),
     (re.compile(r"^/planlama/(?:sevkiyat/.+|not/.+|kaydet/)$"), "planning.actions"),
     (re.compile(r"^/planlama/$"), "planning.main"),
