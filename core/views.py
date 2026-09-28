@@ -986,7 +986,8 @@ def staff_after_hours_location_verify(request):
             "message": f"İşyeri konumu doğrulanamadı. En yakın işyerine yaklaşık {distance} m uzaktasınız."
         }, status=403)
 
-    request.session["moli_after_hours_one_request_ok"] = True
+    request.session["moli_after_hours_verified_at"] = timezone.now().isoformat()
+    request.session.pop("moli_after_hours_one_request_ok", None)
     next_url = request.session.pop("moli_after_hours_next", "/")
     request.session.modified = True
     return JsonResponse({
