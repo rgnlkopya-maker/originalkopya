@@ -5,6 +5,7 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponseForbidden
 from django.shortcuts import get_object_or_404, redirect
+from django.views.decorators.http import require_POST
 from supabase import create_client
 
 from . import views as core_views
@@ -52,11 +53,12 @@ def _delete_supabase_object(public_url):
 
 
 @login_required
+@require_POST
 def delete_order_image_by_url(request, pk):
     if not request.user.groups.filter(name__in=["patron", "mudur"]).exists():
         return HttpResponseForbidden("Bu işlemi yapma yetkiniz yok.")
 
-    image_url = (request.GET.get("url") or "").strip()
+    image_url = (request.POST.get("url") or "").strip()
     image = get_object_or_404(OrderImage, order_id=pk, image_url=image_url)
 
     try:
@@ -217,7 +219,7 @@ function moliPrintViewerImage(e) {
         html = html.replace("</body>", utility_script + "</body>") if "</body>" in html else html + utility_script
 
         if request.user.groups.filter(name__in=["patron", "mudur"]).exists():
-            delete_base = f"/order/{pk}/delete-image-by-url/?url="
+            delete_url = f"/order/{pk}/delete-image-by-url/"
             script = f"""
 <script>
 (function() {{
@@ -232,13 +234,21 @@ function moliPrintViewerImage(e) {
   deleteBtn.textContent = '🗑️ Sil';
   deleteBtn.title = 'Bu görseli sil';
   actions.insertBefore(deleteBtn, closeBtn);
-  deleteBtn.onclick = function(e) {{
+  deleteBtn.onclick = async function(e) {{
     e.preventDefault();
     e.stopPropagation();
     const src = viewerImg.src || '';
     if (!src) return false;
     if (!confirm('Bu fotoğraf silinsin mi?')) return false;
-    window.location.href = '{delete_base}' + encodeURIComponent(src);
+    const csrf = document.querySelector('[name=csrfmiddlewaretoken]')?.value || '';
+    const body = new URLSearchParams({{url: src}});
+    const r = await fetch('{delete_url}', {{
+      method: 'POST',
+      headers: {{'X-CSRFToken': csrf, 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8'}},
+      body
+    }});
+    if (r.ok) window.location.reload();
+    else alert('Görsel silinemedi.');
     return false;
   }};
 }})();
