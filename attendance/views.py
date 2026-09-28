@@ -181,11 +181,12 @@ def _upload_report_image(uploaded_file, user_id, work_date):
         return ""
     if not settings.SUPABASE_URL or not settings.SUPABASE_SERVICE_ROLE_KEY:
         raise RuntimeError("Supabase ayarları eksik.")
-    ext = os.path.splitext(uploaded_file.name)[1].lower() or ".jpg"
+    from core.upload_security import validate_image_upload
+    ext, content_type = validate_image_upload(uploaded_file)
     path = f"attendance/reports/{user_id}/{work_date.isoformat()}_{uuid.uuid4().hex}{ext}"
     client = create_client(settings.SUPABASE_URL, settings.SUPABASE_SERVICE_ROLE_KEY)
     bucket = client.storage.from_(settings.SUPABASE_BUCKET_NAME)
-    bucket.upload(path, uploaded_file.read(), file_options={"content-type": uploaded_file.content_type or "application/octet-stream", "upsert": "false"})
+    bucket.upload(path, uploaded_file.read(), file_options={"content-type": content_type, "upsert": "false"})
     return bucket.get_public_url(path)
 
 
