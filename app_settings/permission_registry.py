@@ -44,7 +44,7 @@ FEATURE_GROUPS = [
         ("catalog.product_code_manage", "Ürün Kodu Ekle / Düzenle / Pasife Al", "can_create_orders"),
     ]),
     ("Planlama / Operasyon", [
-        ("operations.production_stage_control", "Üretim Aşama Kontrolü", "can_view_orders"),
+        ("operations.production_stage_control", "Üretim Aşama Kontrolü", "can_view_production_stage_control"),
         ("planning.main", "Planlama", "can_manage_planning"),
         ("planning.shipment", "Sevkiyat Planlama", "can_manage_planning"),
         ("planning.actions", "Planlama İşlemleri", "can_manage_planning"),
