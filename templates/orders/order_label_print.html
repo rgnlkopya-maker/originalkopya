@@ -39,6 +39,7 @@
             width: 100%;
             max-width: 76mm;
             min-height: 34mm;
+            position: relative;
             display: grid;
             grid-template-columns: minmax(0, 1fr) 19mm;
             gap: 2mm;
@@ -123,12 +124,12 @@
         .qr {
             width: 19mm;
             height: 19mm;
+            position: absolute;
+            top: 0;
+            right: 0;
             display: flex;
             align-items: flex-start;
             justify-content: flex-end;
-            justify-self: end;
-            align-self: start;
-            flex: 0 0 19mm;
         }
 
         .qr img {
