@@ -21,9 +21,9 @@
         .label {
             width: 100%;
             height: 100vh;
-            padding: 3mm 4mm;
+            padding: 1.5mm 4mm 1mm;
             display: flex;
-            align-items: center;
+            align-items: flex-start;
             justify-content: center;
             overflow: hidden;
             page-break-after: always;
@@ -42,7 +42,7 @@
             display: grid;
             grid-template-columns: minmax(0, 1fr) 22mm;
             gap: 2mm;
-            align-items: center;
+            align-items: start;
         }
 
         .info {
@@ -109,15 +109,13 @@
             font-size: 7pt;
             line-height: 1.08;
             min-height: 7mm;
-            max-height: 10.5mm;
-            overflow: hidden;
+            max-height: none;
+            overflow: visible;
         }
         .description-text {
-            display: -webkit-box;
-            -webkit-line-clamp: 3;
-            -webkit-box-orient: vertical;
+            display: block;
             white-space: normal;
-            overflow: hidden;
+            overflow: visible;
             overflow-wrap: anywhere;
         }
         .info strong { font-weight: 700; }
@@ -160,8 +158,8 @@
                 <div class="row"><strong>Müşteri:</strong> {{ order.musteri }}</div>
                 <div class="product-row"><strong>Ürün:</strong> {{ order.urun_kodu }}</div>
                 <div class="color-size-row"><span class="color"><strong>Renk:</strong> {{ order.renk }}</span><span class="size"><strong>Beden:</strong> {{ order.beden }}</span></div>
-                <div class="order-no-row"><strong>Sipariş:</strong> {{ order.siparis_numarasi }}</div>
-                <div class="compact-row"><strong>Teslim:</strong> {{ order.teslim_tarihi|date:"d.m.Y" }} &nbsp;|&nbsp; <strong>Ref:</strong> {{ order.musteri_referans|default:"-" }}</div>
+                <div class="compact-row"><strong>Sipariş:</strong> {{ order.siparis_numarasi }} &nbsp;|&nbsp; <strong>Teslim:</strong> {{ order.teslim_tarihi|date:"d.m.Y" }}</div>
+                <div class="compact-row"><strong>Ref:</strong> {{ order.musteri_referans|default:"-" }}</div>
                 {% if order.aciklama %}
                 <div class="description-block">
                     <div class="description-text"><strong>Açıklama:</strong> {{ order.aciklama }}</div>
