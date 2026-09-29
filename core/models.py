@@ -802,7 +802,8 @@ class PushSubscription(models.Model):
 class ProductionStageControlExclusion(models.Model):
     CONTROL_TYPES = (
         ("stage_problem", "Üretim aşama problemi"),
-        ("unshipped_7d", "7 gündür sevk edilmeyen"),
+        ("unshipped_7d", "3 gündür hareket görülmeyen"),
+        ("unshipped_3d_temp", "3 gün geçici gizlenen"),
     )
 
     order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name="stage_control_exclusions")
