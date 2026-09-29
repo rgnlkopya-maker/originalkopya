@@ -43,6 +43,10 @@ def exclude_from_production_stage_control(request, order_id):
     if control_type not in valid_types:
         return redirect("production_stage_control")
 
+    hide_days = (request.POST.get("hide_days") or "").strip()
+    if control_type == "unshipped_7d" and hide_days == "3":
+        control_type = "unshipped_3d_temp"
+
     ProductionStageControlExclusion.objects.update_or_create(
         order=order,
         control_type=control_type,
@@ -71,7 +75,7 @@ def production_stage_control(request):
         .exclude(siparis_tipi="MALZEME")
         .only(
             "id", "siparis_numarasi", "musteri__ad", "urun_kodu", "renk",
-            "beden", "siparis_tipi", "is_active"
+            "beden", "siparis_tipi", "is_active", "sevkiyat_durum"
         )
         .order_by("-id")
     )
@@ -101,6 +105,12 @@ def production_stage_control(request):
     ):
         events_by_order[event.order_id].append(event)
 
+    now = timezone.now()
+    ProductionStageControlExclusion.objects.filter(
+        control_type="unshipped_3d_temp",
+        excluded_at__lte=now - timedelta(days=3),
+    ).delete()
+
     exclusions = {
         (row.order_id, row.control_type)
         for row in ProductionStageControlExclusion.objects.all().only("order_id", "control_type")
@@ -127,42 +137,34 @@ def production_stage_control(request):
         if _has_stage_evidence(events, "hazir_durum"):
             reasons.extend(_missing_stage_steps(events, "susleme_durum", "Süsleme"))
 
-        # Sevk gerçekleştiyse temel üretim zincirinin tamamını kontrol et.
-        shipped = any(
-            event.stage == "sevkiyat_durum" and event.value == "gonderildi"
-            for event in events
+        # Güncel sevkiyat durumunu son sevkiyat hareketinden belirle.
+        shipment_events = [event for event in events if event.stage == "sevkiyat_durum"]
+        shipped = (
+            shipment_events[-1].value == "gonderildi"
+            if shipment_events
+            else order.sevkiyat_durum == "gonderildi"
         )
         if shipped:
             for stage_name, label in STAGES.values():
                 reasons.extend(_missing_stage_steps(events, stage_name, label))
 
-        # Son gerçek üretim hareketinden itibaren 3 gün boyunca sevkiyat yoksa
-        # ayrı kontrol listesine al. Fiyat/açıklama gibi order_update kayıtları
-        # üretim sayacını sıfırlamaz.
-        production_stage_names = {
-            "malzeme_durum",
-            "kesim_durum",
-            "dikim_durum",
-            "dikim_fason_durumu",
-            "nakis_durum",
-            "susleme_durum",
-            "susleme_fason_durumu",
-            "hazir_durum",
-            "uretim_aktarimi",
-            "uretim_aktarimı",
-        }
-        production_events = [
+        # Son üretim / operasyon hareketinden itibaren 3 gün boyunca hiçbir
+        # hareket yoksa ayrı kontrol listesine al. Fiyat/açıklama gibi order_update
+        # kayıtları bu sayacı sıfırlamaz. Sevk edilmiş siparişler listeye girmez.
+        movement_events = [
             event for event in events
-            if event.event_type == "stage" and event.stage in production_stage_names
+            if event.event_type == "stage"
         ]
-        if production_events and not shipped:
-            last_production_event = production_events[-1]
-            age = timezone.now() - last_production_event.timestamp
-            if age >= timedelta(days=3) and (order.id, "unshipped_7d") not in exclusions:
+        temporarily_hidden = (order.id, "unshipped_3d_temp") in exclusions
+        permanently_hidden = (order.id, "unshipped_7d") in exclusions
+        if movement_events and not shipped and not temporarily_hidden and not permanently_hidden:
+            last_movement_event = movement_events[-1]
+            age = now - last_movement_event.timestamp
+            if age >= timedelta(days=3):
                 unshipped_after_week.append({
                     "order": order,
-                    "first_event": production_events[0],
-                    "last_event": last_production_event,
+                    "first_event": movement_events[0],
+                    "last_event": last_movement_event,
                     "days_open": age.days,
                 })
 
