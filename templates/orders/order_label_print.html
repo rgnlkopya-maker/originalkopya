@@ -40,7 +40,7 @@
             max-width: 76mm;
             min-height: 34mm;
             display: grid;
-            grid-template-columns: minmax(0, 1fr) 22mm;
+            grid-template-columns: minmax(0, 1fr) 19mm;
             gap: 2mm;
             align-items: start;
         }
@@ -121,17 +121,18 @@
         .info strong { font-weight: 700; }
 
         .qr {
-            width: 22mm;
-            height: 22mm;
+            width: 19mm;
+            height: 19mm;
             display: flex;
             align-items: center;
-            justify-content: center;
-            flex: 0 0 22mm;
+            justify-content: flex-end;
+            justify-self: end;
+            flex: 0 0 19mm;
         }
 
         .qr img {
-            width: 22mm;
-            height: 22mm;
+            width: 19mm;
+            height: 19mm;
             display: block;
             object-fit: contain;
         }
