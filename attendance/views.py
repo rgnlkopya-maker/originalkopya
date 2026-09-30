@@ -165,7 +165,7 @@ def _recalculate(record, workplace):
         return
     work_start = _local_dt(record.work_date, workplace.work_start)
     work_end = _local_dt(record.work_date, workplace.work_end)
-    overtime_start = work_end + timedelta(minutes=5)
+    overtime_start = work_end
     if record.check_in and record.check_in > work_start:
         actual_late_minutes = max(0, int((record.check_in - work_start).total_seconds() // 60))
         if actual_late_minutes > workplace.late_tolerance_minutes:
