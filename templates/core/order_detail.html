@@ -98,14 +98,14 @@ document.addEventListener('DOMContentLoaded',function(){
 <div class="info-item"><span class="info-label">Sipariş Tipi</span><div class="info-value">{{ order.siparis_tipi }}</div></div>
 <div class="info-item"><span class="info-label">Müşteri</span><div class="info-value">{{ order.musteri|default:'—' }}</div></div>
 <div class="info-item compact-ref"><span class="info-label">Müşteri Ref</span><div class="info-value">{{ order.musteri_referans|default:'—' }}</div></div>
-<div class="info-item"><span class="info-label">Sipariş Tarihi</span><div class="info-value">{{ order.siparis_tarihi|date:'d.m.Y' }}</div></div>
+<div class="info-item"><span class="info-label">Teslim Tarihi</span><div class="info-value">{{ order.teslim_tarihi|date:'d.m.Y'|default:'Belirtilmemiş' }}</div></div>
 
 <div class="info-item product-field"><span class="info-label">Ürün Kodu</span><div class="info-value">{{ order.urun_kodu|default:'—' }}</div></div>
 <div class="info-item product-field"><span class="info-label">Ürün Tipi</span><div class="info-value">{{ order.get_urun_tipi_display|default:'—' }}</div></div>
 <div class="info-item product-field"><span class="info-label">Renk</span><div class="info-value">{{ order.renk|default:'—' }}</div></div>
 <div class="info-item product-field"><span class="info-label">Beden</span><div class="info-value">{{ order.beden|default:'—' }}</div></div>
 
-<div class="info-item"><span class="info-label">Teslim Tarihi</span><div class="info-value">{{ order.teslim_tarihi|date:'d.m.Y'|default:'Belirtilmemiş' }}</div></div>
+<div class="info-item"><span class="info-label">Sipariş Tarihi</span><div class="info-value">{{ order.siparis_tarihi|date:'d.m.Y' }}</div></div>
 <div class="info-item"><span class="info-label">Adet</span><div class="info-value">{{ order.adet }}</div></div>
 <div class="info-item description-wide"><span class="info-label">Açıklama</span><div class="info-value">{{ order.aciklama|default:'Açıklama yok' }}</div></div>
 </div>
