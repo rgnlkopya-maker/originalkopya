@@ -225,7 +225,7 @@ document.addEventListener('DOMContentLoaded', function () {
           <div style="font-size:15px;font-weight:700;white-space:pre-wrap">{{ order.aciklama }}</div>
         </div>
         {% endif %}
-        {% if is_manager %}<div id="orderNoticeReaders" style="margin-top:14px"></div>{% endif %}
+        {% if user|is_management %}<div id="orderNoticeReaders" style="margin-top:14px"></div>{% endif %}
       </div>
       <div class="modal-footer" style="display:block">
         <div id="orderNoticeMessage" style="font-size:12px;color:#a61b1b;margin-bottom:8px"></div>
