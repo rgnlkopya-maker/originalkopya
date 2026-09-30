@@ -116,6 +116,48 @@ def order_list(request):
         ).values_list("order_id", flat=True)
         qs=qs.filter(id__in=visible_flag_orders).distinct()
     aktif_count=base_qs.filter(is_active=True).count(); pasif_count=base_qs.filter(is_active=False).count(); sevke_count=base_qs.filter(is_active=True,latest_stage="sevkiyat_durum",latest_value="gonderildi").count(); filtered_count=qs.count()
+    # Grafik görünümü de tablodaki Son Durum ile birebir aynı latest_stage/latest_value kaynağını kullanır.
+    # Sayfalama öncesi hesaplanır; böylece grafik filtreye uyan TÜM siparişleri gösterir.
+    graph_groups = [
+        ("no_action", "İşlem Yok", set()),
+        ("material", "Malzeme", {"malzeme_durum"}),
+        ("cutting", "Kesim", {"kesim_durum"}),
+        ("sewing", "Dikim", {"dikim_durum"}),
+        ("embroidery_outsource", "Nakış / Fason", {"nakis_durum", "dikim_fason_durumu", "susleme_fason_durumu"}),
+        ("embellishment", "Süsleme", {"susleme_durum"}),
+        ("warehouse", "Hazır / Depo", {"sevkiyat_durum"}),
+        ("consignment", "Konsinye", {"konsinye_durum"}),
+    ]
+    graph = {key: {"key": key, "label": label, "count": 0, "orders": [], "details": {}} for key, label, _ in graph_groups}
+    graph_total = qs.count()
+    graph_rows = qs.values("id","siparis_numarasi","musteri__ad","urun_kodu","renk","beden","latest_stage","latest_value","latest_parca")
+    for row in graph_rows:
+        stage = row["latest_stage"] or ""
+        value = row["latest_value"] or ""
+        if not stage or not value:
+            key = "no_action"
+            detail = "Hiç işlem yapılmadı"
+        else:
+            key = next((k for k, _, stages in graph_groups if stage in stages), "no_action")
+            if key == "warehouse" and value not in {"depoya"}:
+                # Sevk ve sevkiyat istisnaları aynı ana başlıkta, detayda ayrıştırılır.
+                pass
+            detail = STAGE_TRANSLATIONS.get((stage, value)) or _transfer_status(stage, value, row["latest_parca"]) or value.replace("_"," ").title()
+        item = {
+            "id": row["id"], "no": row["siparis_numarasi"] or "-", "customer": row["musteri__ad"] or "-",
+            "product": row["urun_kodu"] or "-", "color": row["renk"] or "-", "size": row["beden"] or "-",
+            "detail": detail,
+        }
+        graph[key]["orders"].append(item)
+        graph[key]["count"] += 1
+        graph[key]["details"][detail] = graph[key]["details"].get(detail, 0) + 1
+    graph_data = []
+    for key, _, _ in graph_groups:
+        bucket = graph[key]
+        bucket["percent"] = round((bucket["count"] / graph_total * 100), 1) if graph_total else 0
+        bucket["details"] = [{"label": k, "count": v} for k, v in sorted(bucket["details"].items(), key=lambda x: (-x[1], x[0]))]
+        graph_data.append(bucket)
+
     paginator=Paginator(qs,50); page_obj=paginator.get_page(request.GET.get("page"))
     page_order_ids = [o.id for o in page_obj.object_list]
     visible_flag_order_ids = set(
@@ -137,5 +179,5 @@ def order_list(request):
     selected_order_types=_multi(request,"siparis_tipi")
     quick_order_type=selected_order_types[0] if len(selected_order_types)==1 and selected_order_types[0] in {"OZEL","SERI","TEKLI","STOK","KONSINYE"} else "ALL"
     quick_flag_filter=request.GET.get("bayrak","").strip()=="1"
-    context={"orders":page_obj,"siparis_options":Order.objects.values_list("siparis_numarasi",flat=True).distinct().order_by("siparis_numarasi"),"musteri_options":Order.objects.values_list("musteri__ad",flat=True).distinct().order_by("musteri__ad"),"urun_options":Order.objects.values_list("urun_kodu",flat=True).distinct().order_by("urun_kodu"),"urun_tipi_options":URUN_TIPI_CHOICES,"renk_options":Order.objects.values_list("renk",flat=True).distinct().order_by("renk"),"beden_options":Order.objects.values_list("beden",flat=True).distinct().order_by("beden"),"musteri_referans_options":Order.objects.exclude(musteri_referans__isnull=True).exclude(musteri_referans__exact="").values_list("musteri_referans",flat=True).distinct().order_by("musteri_referans"),"status_options":sorted(set(STAGE_TRANSLATIONS.values())),"siparis_tipi_options":Order.SIPARIS_TIPLERI,"quick_order_type":quick_order_type,"quick_flag_filter":quick_flag_filter,"total_count":total_count,"filtered_count":filtered_count,"aktif_count":aktif_count,"pasif_count":pasif_count,"sevke_count":sevke_count,"is_manager":request.user.is_superuser or request.user.groups.filter(name__in=["patron","mudur"]).exists(),"request":request}
+    context={"orders":page_obj,"siparis_options":Order.objects.values_list("siparis_numarasi",flat=True).distinct().order_by("siparis_numarasi"),"musteri_options":Order.objects.values_list("musteri__ad",flat=True).distinct().order_by("musteri__ad"),"urun_options":Order.objects.values_list("urun_kodu",flat=True).distinct().order_by("urun_kodu"),"urun_tipi_options":URUN_TIPI_CHOICES,"renk_options":Order.objects.values_list("renk",flat=True).distinct().order_by("renk"),"beden_options":Order.objects.values_list("beden",flat=True).distinct().order_by("beden"),"musteri_referans_options":Order.objects.exclude(musteri_referans__isnull=True).exclude(musteri_referans__exact="").values_list("musteri_referans",flat=True).distinct().order_by("musteri_referans"),"status_options":sorted(set(STAGE_TRANSLATIONS.values())),"siparis_tipi_options":Order.SIPARIS_TIPLERI,"quick_order_type":quick_order_type,"quick_flag_filter":quick_flag_filter,"total_count":total_count,"filtered_count":filtered_count,"aktif_count":aktif_count,"pasif_count":pasif_count,"sevke_count":sevke_count,"is_manager":request.user.is_superuser or request.user.groups.filter(name__in=["patron","mudur"]).exists(),"graph_data":graph_data,"graph_total":graph_total,"request":request}
     response=render(request,"core/order_list.html",context); response["Cache-Control"]="no-cache, no-store, must-revalidate"; response["Pragma"]="no-cache"; response["Expires"]="0"; return response
