@@ -30,7 +30,6 @@
         <div class="field full"><label>İşyeri Adı</label><input class="soft-input" name="workplace_name" value="{{ workplace.name }}"></div>
         <div class="field"><label>Mesai Başlangıç</label><input class="soft-input" type="time" name="work_start" value="{{ workplace.work_start|time:'H:i' }}"></div>
         <div class="field"><label>Mesai Bitiş</label><input class="soft-input" type="time" name="work_end" value="{{ workplace.work_end|time:'H:i' }}"></div>
-        <div class="field"><label>Geç Kalma Toleransı (dk)</label><input class="soft-input" type="number" min="0" name="late_tolerance_minutes" value="{{ workplace.late_tolerance_minutes }}"></div>
         <div class="field"><label>Normal Giriş Mesafesi (m)</label><input class="soft-input" type="number" min="1" name="normal_radius_m" value="{{ workplace.normal_radius_m }}"></div>
         <div class="field"><label>Mesai Mesafesi (m)</label><input class="soft-input" type="number" min="1" name="overtime_radius_m" value="{{ workplace.overtime_radius_m }}"></div>
       </div><div class="save-row"><button class="save-btn">Kaydet</button></div>
