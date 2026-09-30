@@ -17,16 +17,16 @@
 </style>
 <div class="container-fluid py-4 px-md-4">
   <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
-    <div><div class="text-muted small">YÖNETİM</div><h2 class="fw-bold mb-1">Puantaj & Mesai Takvimi</h2><div class="text-muted">08:30–19:00 • erken çıkış 19:00'a göre • fazla mesai 19:05 sonrası</div></div>
+    <div><div class="text-muted small">YÖNETİM</div><h2 class="fw-bold mb-1">Puantaj & Mesai Takvimi</h2><div class="text-muted">Çalışma saatleri 08:30–19:00</div></div>
     <div class="d-flex align-items-center gap-2 flex-wrap justify-content-end">{% if can_edit %}<a class="btn btn-outline-secondary" href="{% url 'attendance_device_management' %}">📱 Cihaz Onayları</a><a class="btn btn-dark" href="{% url 'attendance_qr_print' %}" target="_blank">QR Göster / Yazdır</a>{% endif %}</div>
   </div>
   {% for message in messages %}<div class="alert alert-info">{{ message }}</div>{% endfor %}
 
   <div class="card border-0 shadow-sm rounded-4 mb-4"><div class="card-body p-4">
-    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2"><div><h5 class="fw-bold mb-1">İşyeri Konumları</h5><div class="text-muted small">Normal giriş/çıkış: 50 m • 19:00 sonrası ve hafta sonu: 100 m • aynı QR iki konumda da geçerli</div></div></div>
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2"><div><h5 class="fw-bold mb-1">İşyeri Konumları</h5><div class="text-muted small">Kayıtlı işyeri merkezleri. Personel giriş/çıkışında telefonun gerçek konumu doğrulanır.</div></div></div>
     <div class="row g-3 mt-1">
-      <div class="col-md-6"><div class="border rounded-4 p-3 h-100"><div class="d-flex justify-content-between"><strong>📍 Çankaya</strong>{% if workplace.location_ready %}<span class="badge text-bg-success">Konum hazır</span>{% else %}<span class="badge text-bg-warning">Konum gerekli</span>{% endif %}</div><form class="workplace-location-form mt-3" method="post" action="{% url 'attendance_save_workplace' %}">{% csrf_token %}<input type="hidden" name="location_slot" value="primary"><input type="hidden" name="latitude" class="location-lat"><input type="hidden" name="longitude" class="location-lon"><button type="button" class="btn btn-outline-dark save-location">📍 Bulunduğum Yeri Çankaya Olarak Kaydet</button><div class="location-status text-muted small mt-2"></div></form></div></div>
-      <div class="col-md-6"><div class="border rounded-4 p-3 h-100"><div class="d-flex justify-content-between"><strong>📍 Gaziemir</strong>{% if workplace.second_location_ready %}<span class="badge text-bg-success">Konum hazır</span>{% else %}<span class="badge text-bg-warning">Konum gerekli</span>{% endif %}</div><form class="workplace-location-form mt-3" method="post" action="{% url 'attendance_save_workplace' %}">{% csrf_token %}<input type="hidden" name="location_slot" value="second"><input type="hidden" name="latitude" class="location-lat"><input type="hidden" name="longitude" class="location-lon"><button type="button" class="btn btn-outline-dark save-location">📍 Bulunduğum Yeri Gaziemir Olarak Kaydet</button><div class="location-status text-muted small mt-2"></div></form></div></div>
+      <div class="col-md-6"><div class="border rounded-4 p-3 h-100"><div class="d-flex justify-content-between"><strong>📍 Çankaya</strong>{% if workplace.location_ready %}<span class="badge text-bg-success">Konum hazır</span>{% else %}<span class="badge text-bg-warning">Konum gerekli</span>{% endif %}</div><form class="workplace-location-form mt-3" method="post" action="{% url 'attendance_save_workplace' %}">{% csrf_token %}<input type="hidden" name="location_slot" value="primary"><input type="hidden" name="latitude" class="location-lat"><input type="hidden" name="longitude" class="location-lon"><div class="d-flex gap-2 flex-wrap"><button type="button" class="btn btn-outline-dark save-location">📍 Konumumu Kullan</button><button type="button" class="btn btn-outline-primary choose-map-location" data-slot="primary" data-label="Çankaya" data-lat="{{ workplace.latitude|default_if_none:'' }}" data-lon="{{ workplace.longitude|default_if_none:'' }}">🗺️ Haritadan Seç</button></div><div class="location-status text-muted small mt-2"></div></form></div></div>
+      <div class="col-md-6"><div class="border rounded-4 p-3 h-100"><div class="d-flex justify-content-between"><strong>📍 Gaziemir</strong>{% if workplace.second_location_ready %}<span class="badge text-bg-success">Konum hazır</span>{% else %}<span class="badge text-bg-warning">Konum gerekli</span>{% endif %}</div><form class="workplace-location-form mt-3" method="post" action="{% url 'attendance_save_workplace' %}">{% csrf_token %}<input type="hidden" name="location_slot" value="second"><input type="hidden" name="latitude" class="location-lat"><input type="hidden" name="longitude" class="location-lon"><div class="d-flex gap-2 flex-wrap"><button type="button" class="btn btn-outline-dark save-location">📍 Konumumu Kullan</button><button type="button" class="btn btn-outline-primary choose-map-location" data-slot="second" data-label="Gaziemir" data-lat="{{ workplace.second_latitude|default_if_none:'' }}" data-lon="{{ workplace.second_longitude|default_if_none:'' }}">🗺️ Haritadan Seç</button></div><div class="location-status text-muted small mt-2"></div></form></div></div>
     </div>
   </div></div>
 
@@ -62,6 +62,20 @@
   {% endif %}
 </div>
 
+
+<div class="modal fade" id="mapLocationModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered"><div class="modal-content rounded-4 border-0 shadow">
+    <div class="modal-header border-0 pb-0"><div><h5 class="modal-title fw-bold">İşyeri Konumunu Haritadan Seç</h5><div class="text-muted small" id="mapLocationLabel">Haritada işyerinin tam noktasına dokunun.</div></div><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+    <div class="modal-body p-4">
+      <div id="workplaceMap" style="height:420px;border-radius:16px;overflow:hidden;background:#eef1f5"></div>
+      <div class="small text-muted mt-2">Haritada bir noktaya dokunun veya pini sürükleyin. Bu seçenek yalnız işyeri merkezini tanımlar; personelin giriş/çıkış konumu telefondan otomatik alınır.</div>
+      <div class="d-flex justify-content-end gap-2 mt-3"><button type="button" class="btn btn-light" data-bs-dismiss="modal">Vazgeç</button><button type="button" class="btn btn-dark" id="saveMapLocation" disabled>Bu Konumu Kaydet</button></div>
+      <div id="mapSaveStatus" class="small mt-2"></div>
+    </div>
+  </div></div>
+</div>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <div class="modal fade" id="editAttendanceModal" tabindex="-1" aria-hidden="true"><div class="modal-dialog modal-dialog-centered"><div class="modal-content rounded-4 border-0 shadow"><div class="modal-header border-0 pb-0"><div><h5 class="modal-title fw-bold" id="editTitle">Puantaj Düzenle</h5><div class="text-muted small" id="editDate"></div></div><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body p-4"><form id="editAttendanceForm" enctype="multipart/form-data">{% csrf_token %}<input type="hidden" name="user_id" id="editUserId"><input type="hidden" name="work_date" id="editWorkDate"><div class="mb-3"><label class="form-label fw-semibold">Durum</label><select class="form-select form-select-lg" name="status" id="editStatus"><option value="worked">Çalıştı</option><option value="leave">İzinli</option><option value="annual_leave">Yıllık İzin</option><option value="sick">Raporlu</option><option value="other">Diğer</option></select></div><div id="timeFields"><div class="mb-3"><label class="form-label fw-semibold" id="checkInLabel">Mesaiye başladı</label><input type="time" class="form-control form-control-lg" name="check_in" id="editCheckIn"></div><div class="mb-3"><label class="form-label fw-semibold" id="checkOutLabel">Mesaiyi bitirdi</label><input type="time" class="form-control form-control-lg" name="check_out" id="editCheckOut"></div></div><div class="mb-3"><label class="form-label fw-semibold">Açıklama</label><textarea class="form-control" rows="3" name="note" id="editNote"></textarea></div><div class="mb-3"><label class="form-label fw-semibold">Rapor görseli</label><input type="file" class="form-control" name="report_image" id="editReportImage" accept="image/*,application/pdf"><div id="existingReport" class="small mt-2"></div><div class="form-check mt-2"><input class="form-check-input" type="checkbox" value="1" name="remove_report_image" id="removeReport"><label class="form-check-label" for="removeReport">Mevcut rapor görselini kaldır</label></div></div><div id="editError" class="text-danger small mb-2"></div><button type="submit" class="btn btn-dark w-100 py-2">Kaydet</button></form></div></div></div></div>
 <script>
 window.addEventListener('load',()=>{
@@ -103,6 +117,41 @@ window.addEventListener('load',()=>{
    if(window.ResizeObserver)new ResizeObserver(syncFixedHead).observe(tableWrap);
    syncFixedHead();
  }
+
+ let mapInstance=null,mapMarker=null,mapSlot='primary',mapSelected=null;
+ const mapModalEl=document.getElementById('mapLocationModal');
+ const mapModal=mapModalEl?bootstrap.Modal.getOrCreateInstance(mapModalEl):null;
+ function setMapPoint(lat,lon){
+   mapSelected={lat:Number(lat),lon:Number(lon)};
+   if(!mapMarker){mapMarker=L.marker([mapSelected.lat,mapSelected.lon],{draggable:true}).addTo(mapInstance);mapMarker.on('dragend',()=>{const p=mapMarker.getLatLng();mapSelected={lat:p.lat,lon:p.lng};});}
+   else mapMarker.setLatLng([mapSelected.lat,mapSelected.lon]);
+   document.getElementById('saveMapLocation').disabled=false;
+ }
+ document.querySelectorAll('.choose-map-location').forEach(btn=>btn.addEventListener('click',()=>{
+   mapSlot=btn.dataset.slot||'primary';mapSelected=null;
+   document.getElementById('mapLocationLabel').textContent=btn.dataset.label+' için işyerinin tam noktasına dokunun.';
+   document.getElementById('mapSaveStatus').textContent='';
+   document.getElementById('saveMapLocation').disabled=true;
+   mapModal.show();
+   setTimeout(()=>{
+     const savedLat=parseFloat(btn.dataset.lat),savedLon=parseFloat(btn.dataset.lon);
+     const initial=(Number.isFinite(savedLat)&&Number.isFinite(savedLon))?[savedLat,savedLon]:[38.4237,27.1428];
+     if(!mapInstance){mapInstance=L.map('workplaceMap').setView(initial,15);L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'&copy; OpenStreetMap'}).addTo(mapInstance);mapInstance.on('click',e=>setMapPoint(e.latlng.lat,e.latlng.lng));}
+     mapInstance.setView(initial,Number.isFinite(savedLat)?17:13);mapInstance.invalidateSize();
+     if(Number.isFinite(savedLat)&&Number.isFinite(savedLon))setMapPoint(savedLat,savedLon);
+     else if(navigator.geolocation)navigator.geolocation.getCurrentPosition(p=>{mapInstance.setView([p.coords.latitude,p.coords.longitude],15);},()=>{});
+   },250);
+ }));
+ document.getElementById('saveMapLocation')?.addEventListener('click',async()=>{
+   if(!mapSelected)return;
+   const form=document.querySelector('.workplace-location-form [name="location_slot"][value="'+mapSlot+'"]')?.closest('form');
+   if(!form)return;
+   const status=document.getElementById('mapSaveStatus'),saveBtn=document.getElementById('saveMapLocation');
+   form.querySelector('.location-lat').value=mapSelected.lat;form.querySelector('.location-lon').value=mapSelected.lon;
+   saveBtn.disabled=true;status.textContent='Konum kaydediliyor…';
+   try{const response=await fetch(form.action,{method:'POST',body:new FormData(form),credentials:'same-origin'});const data=await response.json();if(!response.ok||!data.ok)throw new Error(data.message||'Konum kaydedilemedi.');status.textContent='Konum kaydedildi ✓';status.className='small mt-2 text-success';setTimeout(()=>window.location.reload(),500);}
+   catch(err){status.textContent=err.message||'Konum kaydedilemedi.';status.className='small mt-2 text-danger';saveBtn.disabled=false;}
+ });
  document.querySelectorAll('.save-location').forEach(btn=>btn.addEventListener('click',()=>{const form=btn.closest('form'),s=form.querySelector('.location-status'),slot=form.querySelector('[name="location_slot"]')?.value||'primary',label=slot==='second'?'Gaziemir':'Çankaya';s.textContent='Konum alınıyor…';btn.disabled=true;navigator.geolocation.getCurrentPosition(async p=>{form.querySelector('.location-lat').value=p.coords.latitude;form.querySelector('.location-lon').value=p.coords.longitude;try{const response=await fetch(form.action,{method:'POST',body:new FormData(form),credentials:'same-origin'});const data=await response.json();if(!response.ok||!data.ok)throw new Error(data.message||'Konum kaydedilemedi.');s.textContent=label+' konumu kaydedildi ✓';s.classList.remove('text-muted','text-danger');s.classList.add('text-success');btn.disabled=false;}catch(err){s.textContent=err.message||'Konum kaydedilemedi.';s.classList.remove('text-muted','text-success');s.classList.add('text-danger');btn.disabled=false;}},()=>{s.textContent='Konum alınamadı.';s.classList.remove('text-muted','text-success');s.classList.add('text-danger');btn.disabled=false;},{enableHighAccuracy:true,timeout:12000,maximumAge:0});}));
  {% if can_edit %}const modal=bootstrap.Modal.getOrCreateInstance(document.getElementById('editAttendanceModal'));const status=document.getElementById('editStatus'),timeFields=document.getElementById('timeFields'),checkInLabel=document.getElementById('checkInLabel'),checkOutLabel=document.getElementById('checkOutLabel');function syncFields(){const show=status.value==='worked'||status.value==='leave';timeFields.style.display=show?'block':'none';checkInLabel.textContent='Mesaiye başladı';checkOutLabel.textContent=status.value==='leave'?'İzne çıktı':'Mesaiyi bitirdi';}status.addEventListener('change',syncFields);document.querySelectorAll('.attendance-cell').forEach(cell=>cell.addEventListener('click',()=>{document.getElementById('editUserId').value=cell.dataset.userId;document.getElementById('editWorkDate').value=cell.dataset.date;document.getElementById('editTitle').textContent=cell.dataset.userName;document.getElementById('editDate').textContent=cell.dataset.date;status.value=cell.dataset.status||'worked';document.getElementById('editCheckIn').value=cell.dataset.checkIn||'';document.getElementById('editCheckOut').value=cell.dataset.checkOut||'';document.getElementById('editNote').value=cell.dataset.note||'';document.getElementById('editReportImage').value='';document.getElementById('removeReport').checked=false;const existing=document.getElementById('existingReport');existing.innerHTML=cell.dataset.reportUrl?`<a href="${cell.dataset.reportUrl}" target="_blank">Mevcut rapor görselini aç</a>`:'Rapor görseli yok';document.getElementById('editError').textContent='';syncFields();modal.show();}));document.getElementById('editAttendanceForm').addEventListener('submit',async e=>{e.preventDefault();const error=document.getElementById('editError');error.textContent='';try{const response=await fetch('{% url "attendance_edit_record" %}',{method:'POST',body:new FormData(e.target)});const data=await response.json();if(!data.ok){error.textContent=data.message||'Kayıt güncellenemedi.';return;}window.location.reload();}catch(err){error.textContent='Bağlantı hatası oluştu.';}});{% endif %}
 });
