@@ -35,6 +35,8 @@
 </div></div></div>
 <script>
 document.addEventListener('DOMContentLoaded', function(){
+  // Bootstrap modal'larini backdrop-filter kullanan kartin stacking context'inden cikar.
+  document.querySelectorAll('.cost-detail-modal').forEach(modal => document.body.appendChild(modal));
   const rows = Array.from(document.querySelectorAll('.cost-row'));
   const wrap = document.getElementById('clientPagination');
   const input = document.getElementById('costLiveSearch');
