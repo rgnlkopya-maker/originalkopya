@@ -171,7 +171,7 @@ def _recalculate(record, workplace):
     if record.check_out and record.check_out < work_end:
         record.early_leave_minutes = max(0, math.ceil((work_end - record.check_out).total_seconds() / 60))
     if record.check_out and record.check_out > overtime_start:
-        record.overtime_minutes = max(0, int((record.check_out - overtime_start).total_seconds() // 60))
+        record.overtime_minutes = max(0, math.ceil((record.check_out - overtime_start).total_seconds() / 60))
 
 
 def _upload_report_image(uploaded_file, user_id, work_date):
