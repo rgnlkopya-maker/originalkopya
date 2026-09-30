@@ -1839,6 +1839,38 @@ def product_cost_list(request):
     page_number = request.GET.get("page")
     page_obj = paginator.get_page(page_number)
 
+    # Maliyet listesindeki her ürün için mevcut ürün kartı/reçete kırılımını hazırla.
+    # ProductCost ana toplamını değiştirmez; yalnızca detay görünümü sağlar.
+    from product_cards.models import ProductCard
+    cost_codes = [item.urun_kodu for item in page_obj.object_list]
+    cards = (
+        ProductCard.objects
+        .filter(urun__kod__in=cost_codes)
+        .select_related("urun")
+        .prefetch_related("materials__material")
+    )
+    card_map = {card.urun.kod.upper(): card for card in cards}
+    for cost in page_obj.object_list:
+        card = card_map.get((cost.urun_kodu or "").upper())
+        breakdown = []
+        if card:
+            material_rows = []
+            for row in card.materials.all():
+                material_rows.append({
+                    "label": row.material.ad or row.material.kod,
+                    "amount": row.satir_maliyeti,
+                })
+            breakdown = [
+                {"label": "Malzemeler", "amount": card.malzeme_maliyeti, "children": material_rows},
+                {"label": "Finansman", "amount": card.finansman_maliyeti_tl},
+                {"label": "Nakış", "amount": card.nakis_maliyeti_tl},
+                {"label": "Genel gider", "amount": card.genel_gider_tl},
+                {"label": "İşçilik", "amount": card.iscilik_maliyeti_tl},
+                {"label": "Paketleme", "amount": card.paketleme_maliyeti_tl},
+            ]
+        cost.cost_breakdown = breakdown
+        cost.has_cost_breakdown = bool(card)
+
     return render(request, "core/product_cost_list.html", {"costs": page_obj})
 
 
