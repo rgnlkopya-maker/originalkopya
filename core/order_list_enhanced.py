@@ -125,7 +125,7 @@ def order_list(request):
         ("sewing", "Dikim", {"dikim_durum"}),
         ("embroidery_outsource", "Nakış / Fason", {"nakis_durum", "dikim_fason_durumu", "susleme_fason_durumu"}),
         ("embellishment", "Süsleme", {"susleme_durum"}),
-        ("warehouse", "Hazır ve Sevkiyat", {"sevkiyat_durum", "konsinye_durum"}),
+        ("warehouse", "Hazır ve Sevkiyat", {"sevkiyat_durum", "konsinye_durum", "konsinye"}),
     ]
     graph_stage = request.GET.get("graph_stage", "").strip()
     graph_status = request.GET.get("graph_status", "").strip()
