@@ -60,7 +60,7 @@
     {% if user|can:'can_view_reports' %}<li><a href="{% url 'customer_list' %}" class="dropdown-item {% if request.resolver_match.url_name == 'customer_list' or request.resolver_match.url_name == 'customer_detail_report' %}active{% endif %}"><i class="bi bi-person-vcard"></i>Müşteriler</a></li>{% endif %}
     {% if user|can:'can_view_costs' %}<li><a href="{% url 'price_list' %}" class="dropdown-item {% if request.resolver_match.url_name == 'price_list' %}active{% endif %}"><i class="bi bi-tags"></i>Fiyat Listeleri</a></li>{% endif %}
     {% if user|can:'can_create_orders' or user|can:'can_view_costs' %}<li><a href="{% url 'showroom_page' %}" class="dropdown-item {% if request.resolver_match.url_name == 'showroom_page' %}active{% endif %}"><i class="bi bi-receipt"></i>Sipariş Föyü</a></li>{% endif %}
-    {% if user|can:'can_create_orders' or user|can:'can_view_costs' %}<li><a href="{% url 'showroom_approved_page' %}" class="dropdown-item {% if request.resolver_match.url_name == 'showroom_approved_page' %}active{% endif %}"><i class="bi bi-check2-circle"></i>Onaylanan Sipariş Föyleri</a></li>{% endif %}
+    {% if user|can:'can_create_orders' or user|can:'can_view_costs' %}<li><a href="{% url 'showroom_approved_page' %}" class="dropdown-item"><i class="bi bi-check2-circle"></i>Onaylanan Sipariş Föyleri</a></li>{% endif %}
   </ul>
 </div>
 
