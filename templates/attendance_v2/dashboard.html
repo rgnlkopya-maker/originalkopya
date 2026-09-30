@@ -15,6 +15,28 @@
   .attendance-period-arrow{width:38px;height:38px;border-radius:11px;border:1px solid #dfe4ed;background:#fff;color:#4a5568;text-decoration:none;display:inline-flex;align-items:center;justify-content:center;font-weight:900}
   .attendance-period-arrow:hover{background:#f3f5fb;color:#3349d8}
   .attendance-period-label{min-width:190px;text-align:center;padding:2px 8px}.attendance-period-label strong{display:block;font-size:14px;color:#1f2937}.attendance-period-label span{display:block;font-size:12px;color:#7a8498;margin-top:2px}
+  .location-panel{background:linear-gradient(180deg,#fff 0%,#fbfcff 100%);border:1px solid #e8ebf4;border-radius:20px;box-shadow:0 8px 24px rgba(15,23,42,.06);overflow:hidden}
+  .location-panel-head{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;padding:20px 22px 10px}
+  .location-panel-title{display:flex;align-items:center;gap:10px;font-size:18px;font-weight:800;color:#20283a}
+  .location-panel-title-icon{width:38px;height:38px;border-radius:12px;background:#eef1ff;color:#4058eb;display:flex;align-items:center;justify-content:center;font-size:18px}
+  .location-panel-sub{font-size:12px;color:#7a8498;margin-top:5px;max-width:680px}
+  .location-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;padding:14px 22px 22px}
+  .location-card{background:#fff;border:1px solid #e7eaf1;border-radius:16px;padding:16px;transition:.18s ease}
+  .location-card:hover{border-color:#d3d9f5;box-shadow:0 8px 18px rgba(33,45,90,.06);transform:translateY(-1px)}
+  .location-card-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+  .location-name{font-size:15px;font-weight:800;color:#252d3d;display:flex;align-items:center;gap:8px}
+  .location-meta{font-size:11px;color:#8a91a3;margin-top:3px}
+  .location-status-badge{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:6px 9px;font-size:11px;font-weight:800;white-space:nowrap}
+  .location-status-badge.ready{background:#eefaf3;color:#218a52;border:1px solid #d7f0e1}
+  .location-status-badge.missing{background:#fff8e8;color:#a46b00;border:1px solid #f7e6b5}
+  .location-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:14px}
+  .location-action-btn{min-height:40px;border-radius:11px;font-size:12px;font-weight:800;display:flex;align-items:center;justify-content:center;gap:7px}
+  .location-action-primary{border:1px solid #dfe4ed;background:#fff;color:#30394d}
+  .location-action-primary:hover{background:#f7f8fb}
+  .location-action-map{border:1px solid #dbe1ff;background:#f6f7ff;color:#4058eb}
+  .location-action-map:hover{background:#eef1ff}
+  .location-help{display:flex;align-items:center;gap:7px;margin:0 22px 20px;padding:10px 12px;border-radius:12px;background:#f7f8fb;color:#6f788d;font-size:11px}
+  @media(max-width:768px){.location-grid{grid-template-columns:1fr}.location-panel-head{padding:18px 16px 8px}.location-grid{padding:12px 16px 16px}.location-help{margin:0 16px 16px}.location-actions{grid-template-columns:1fr}}
 </style>
 <div class="container-fluid py-4 px-md-4">
   <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
@@ -23,13 +45,45 @@
   </div>
   {% for message in messages %}<div class="alert alert-info">{{ message }}</div>{% endfor %}
 
-  <div class="card border-0 shadow-sm rounded-4 mb-4"><div class="card-body p-4">
-    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2"><div><h5 class="fw-bold mb-1">İşyeri Konumları</h5><div class="text-muted small">Kayıtlı işyeri merkezleri. Personel giriş/çıkışında telefonun gerçek konumu doğrulanır.</div></div></div>
-    <div class="row g-3 mt-1">
-      <div class="col-md-6"><div class="border rounded-4 p-3 h-100"><div class="d-flex justify-content-between"><strong>📍 Çankaya</strong>{% if workplace.location_ready %}<span class="badge text-bg-success">Konum hazır</span>{% else %}<span class="badge text-bg-warning">Konum gerekli</span>{% endif %}</div><form class="workplace-location-form mt-3" method="post" action="{% url 'attendance_save_workplace' %}">{% csrf_token %}<input type="hidden" name="location_slot" value="primary"><input type="hidden" name="latitude" class="location-lat"><input type="hidden" name="longitude" class="location-lon"><div class="d-flex gap-2 flex-wrap"><button type="button" class="btn btn-outline-dark save-location">📍 Konumumu Kullan</button><button type="button" class="btn btn-outline-primary choose-map-location" data-slot="primary" data-label="Çankaya" data-lat="{{ workplace.latitude|unlocalize|default_if_none:'' }}" data-lon="{{ workplace.longitude|unlocalize|default_if_none:'' }}">🗺️ Haritadan Seç</button></div><div class="location-status text-muted small mt-2"></div></form></div></div>
-      <div class="col-md-6"><div class="border rounded-4 p-3 h-100"><div class="d-flex justify-content-between"><strong>📍 Gaziemir</strong>{% if workplace.second_location_ready %}<span class="badge text-bg-success">Konum hazır</span>{% else %}<span class="badge text-bg-warning">Konum gerekli</span>{% endif %}</div><form class="workplace-location-form mt-3" method="post" action="{% url 'attendance_save_workplace' %}">{% csrf_token %}<input type="hidden" name="location_slot" value="second"><input type="hidden" name="latitude" class="location-lat"><input type="hidden" name="longitude" class="location-lon"><div class="d-flex gap-2 flex-wrap"><button type="button" class="btn btn-outline-dark save-location">📍 Konumumu Kullan</button><button type="button" class="btn btn-outline-primary choose-map-location" data-slot="second" data-label="Gaziemir" data-lat="{{ workplace.second_latitude|unlocalize|default_if_none:'' }}" data-lon="{{ workplace.second_longitude|unlocalize|default_if_none:'' }}">🗺️ Haritadan Seç</button></div><div class="location-status text-muted small mt-2"></div></form></div></div>
+  <section class="location-panel mb-4">
+    <div class="location-panel-head">
+      <div>
+        <div class="location-panel-title"><span class="location-panel-title-icon">📍</span><span>İşyeri Konumları</span></div>
+        <div class="location-panel-sub">Personel giriş ve çıkışlarında bu merkezlere olan mesafe telefonun gerçek GPS konumuyla doğrulanır.</div>
+      </div>
     </div>
-  </div></div>
+    <div class="location-grid">
+      <div class="location-card">
+        <div class="location-card-head">
+          <div><div class="location-name">🏢 Çankaya</div><div class="location-meta">Ana işyeri konumu</div></div>
+          {% if workplace.location_ready %}<span class="location-status-badge ready">● Hazır</span>{% else %}<span class="location-status-badge missing">● Konum gerekli</span>{% endif %}
+        </div>
+        <form class="workplace-location-form" method="post" action="{% url 'attendance_save_workplace' %}">{% csrf_token %}
+          <input type="hidden" name="location_slot" value="primary"><input type="hidden" name="latitude" class="location-lat"><input type="hidden" name="longitude" class="location-lon">
+          <div class="location-actions">
+            <button type="button" class="location-action-btn location-action-primary save-location">◎ Konumumu Kullan</button>
+            <button type="button" class="location-action-btn location-action-map choose-map-location" data-slot="primary" data-label="Çankaya" data-lat="{{ workplace.latitude|unlocalize|default_if_none:'' }}" data-lon="{{ workplace.longitude|unlocalize|default_if_none:'' }}">⌖ Haritadan Seç</button>
+          </div>
+          <div class="location-status text-muted small mt-2"></div>
+        </form>
+      </div>
+      <div class="location-card">
+        <div class="location-card-head">
+          <div><div class="location-name">🏭 Gaziemir</div><div class="location-meta">İkinci işyeri konumu</div></div>
+          {% if workplace.second_location_ready %}<span class="location-status-badge ready">● Hazır</span>{% else %}<span class="location-status-badge missing">● Konum gerekli</span>{% endif %}
+        </div>
+        <form class="workplace-location-form" method="post" action="{% url 'attendance_save_workplace' %}">{% csrf_token %}
+          <input type="hidden" name="location_slot" value="second"><input type="hidden" name="latitude" class="location-lat"><input type="hidden" name="longitude" class="location-lon">
+          <div class="location-actions">
+            <button type="button" class="location-action-btn location-action-primary save-location">◎ Konumumu Kullan</button>
+            <button type="button" class="location-action-btn location-action-map choose-map-location" data-slot="second" data-label="Gaziemir" data-lat="{{ workplace.second_latitude|unlocalize|default_if_none:'' }}" data-lon="{{ workplace.second_longitude|unlocalize|default_if_none:'' }}">⌖ Haritadan Seç</button>
+          </div>
+          <div class="location-status text-muted small mt-2"></div>
+        </form>
+      </div>
+    </div>
+    <div class="location-help">🔒 Konumu yalnız Patron/Müdür tanımlar. Personel bu noktaları elle değiştiremez.</div>
+  </section>
 
   <div class="attendance-toolbar">
     <div class="attendance-toolbar-left">
