@@ -125,8 +125,7 @@ def order_list(request):
         ("sewing", "Dikim", {"dikim_durum"}),
         ("embroidery_outsource", "Nakış / Fason", {"nakis_durum", "dikim_fason_durumu", "susleme_fason_durumu"}),
         ("embellishment", "Süsleme", {"susleme_durum"}),
-        ("warehouse", "Hazır / Depo", {"sevkiyat_durum"}),
-        ("consignment", "Konsinye", {"konsinye_durum"}),
+        ("warehouse", "Hazır ve Sevkiyat", {"sevkiyat_durum", "konsinye_durum"}),
     ]
     graph = {key: {"key": key, "label": label, "count": 0, "orders": [], "details": {}} for key, label, _ in graph_groups}
     graph_total = qs.count()
