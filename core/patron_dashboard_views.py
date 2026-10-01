@@ -1,7 +1,11 @@
 from datetime import timedelta
 from decimal import Decimal
+import json
+import urllib.parse
+import urllib.request
 
 from django.contrib.auth.decorators import login_required
+from django.core.cache import cache
 from django.db.models import Q, Sum, Value, DecimalField
 from django.db.models.functions import Coalesce
 from django.http import HttpResponseForbidden
@@ -10,7 +14,59 @@ from django.utils import timezone
 
 from app_settings.access import has_access
 from attendance.models import AttendanceRecord
+from product_cards.models import PriceListSettings
 from .models import Order, OrderEvent, ProductionStageControlExclusion
+
+
+def _izmir_weather():
+    """İzmir için günün hava özetini kısa süreli cache ile getir."""
+    key = f"patron:izmir-weather:{timezone.localdate().isoformat()}"
+    cached = cache.get(key)
+    if cached:
+        return cached
+    params = urllib.parse.urlencode({
+        "latitude": "38.4237",
+        "longitude": "27.1428",
+        "current": "temperature_2m,weather_code",
+        "daily": "precipitation_probability_max",
+        "timezone": "Europe/Istanbul",
+        "forecast_days": "1",
+    })
+    url = f"https://api.open-meteo.com/v1/forecast?{params}"
+    try:
+        req = urllib.request.Request(url, headers={"User-Agent": "MoliApp/1.0"})
+        with urllib.request.urlopen(req, timeout=5) as response:
+            data = json.loads(response.read().decode("utf-8"))
+        code = int((data.get("current") or {}).get("weather_code", 0))
+        temp = (data.get("current") or {}).get("temperature_2m")
+        rain = ((data.get("daily") or {}).get("precipitation_probability_max") or [None])[0]
+        if code == 0:
+            label, icon = "Güneşli", "bi-sun"
+        elif code in {1, 2}:
+            label, icon = "Parçalı bulutlu", "bi-cloud-sun"
+        elif code == 3:
+            label, icon = "Bulutlu", "bi-clouds"
+        elif code in {45, 48}:
+            label, icon = "Sisli", "bi-cloud-fog2"
+        elif code in {51, 53, 55, 56, 57, 61, 63, 65, 66, 67, 80, 81, 82}:
+            label, icon = "Yağışlı", "bi-cloud-rain"
+        elif code in {71, 73, 75, 77, 85, 86}:
+            label, icon = "Karlı", "bi-snow"
+        elif code in {95, 96, 99}:
+            label, icon = "Fırtınalı", "bi-cloud-lightning-rain"
+        else:
+            label, icon = "Hava durumu", "bi-cloud"
+        result = {
+            "label": label,
+            "icon": icon,
+            "temperature": round(float(temp)) if temp is not None else None,
+            "rain": int(rain) if rain is not None else None,
+            "checked_at": timezone.localtime().strftime("%H:%M"),
+        }
+        cache.set(key, result, 60 * 60 * 6)
+        return result
+    except Exception:
+        return None
 
 
 @login_required
@@ -79,20 +135,22 @@ def patron_dashboard(request):
     inactive_ids = [oid for oid, ts in latest_stage.items() if ts <= cutoff and oid not in hidden_ids]
     inactive_qs = open_orders.filter(id__in=inactive_ids)
 
-    # Personel: patron/müdür hesaplarını puantaj toplamından çıkar.
+    # Personel geldi/gelmedi özeti Patron Ekranı'ndan kaldırıldı.
+    # Sadece aksiyon gerektiren unutulan çıkış sayısı uyarılar için korunuyor.
     staff = request.user.__class__.objects.filter(is_active=True).exclude(
         Q(is_superuser=True) | Q(groups__name__in=["patron", "mudur"])
     ).distinct()
-    today_records = AttendanceRecord.objects.filter(work_date=today, user__in=staff)
-    arrived_ids = set(today_records.filter(check_in__isnull=False).values_list("user_id", flat=True))
-    excused_ids = set(today_records.filter(status__in=["leave", "annual_leave", "sick"]).values_list("user_id", flat=True))
-    late_today = today_records.filter(late_minutes__gt=0).count()
-    absent_today = staff.exclude(id__in=arrived_ids | excused_ids).count()
-
     y_records = AttendanceRecord.objects.filter(work_date=yesterday, user__in=staff)
-    early_yesterday = y_records.filter(early_leave_minutes__gt=0).count()
-    overtime_yesterday = y_records.filter(overtime_minutes__gt=0).count()
     forgotten = y_records.filter(checkout_forgotten=True, checkout_forgotten_resolved_at__isnull=True).count()
+
+    weather = _izmir_weather()
+    rate_settings = PriceListSettings.get_solo()
+    rate_info = {
+        "usd": rate_settings.usd_try,
+        "eur": rate_settings.eur_try,
+        "source": rate_settings.rate_source,
+        "checked_at": timezone.localtime(rate_settings.rate_checked_at).strftime("%H:%M") if rate_settings.rate_checked_at else "",
+    }
 
     # Finans: sevk edilen siparişlerin mevcut snapshot alanlarından, para birimi bazında.
     finance = []
@@ -116,10 +174,7 @@ def patron_dashboard(request):
         "production": production, "completed": completed,
         "shipped_count": yesterday_shipped.count(), "shipped_qty": yesterday_shipped_qty,
         "inactive_count": inactive_qs.count(), "inactive_qty": qty(inactive_qs),
-        "staff_total": staff.count(), "arrived_count": len(arrived_ids),
-        "absent_count": absent_today, "late_count": late_today,
-        "early_yesterday": early_yesterday, "overtime_yesterday": overtime_yesterday,
         "forgotten_count": forgotten, "attention_count": attention_count,
-        "finance": finance,
+        "finance": finance, "weather": weather, "rate_info": rate_info,
     }
     return render(request, "patron/dashboard.html", context)
