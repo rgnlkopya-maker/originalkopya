@@ -15,6 +15,7 @@ from django.utils import timezone
 from app_settings.access import has_access
 from attendance.models import AttendanceRecord
 from product_cards.models import PriceListSettings
+from product_cards.price_list_views import _ensure_price_rates
 from .models import Order, OrderEvent
 from .production_stage_control_views import get_unshipped_inactive_orders
 
@@ -155,6 +156,7 @@ def patron_dashboard(request):
 
     weather = _izmir_weather()
     rate_settings = PriceListSettings.get_solo()
+    _ensure_price_rates(rate_settings)
     rate_info = {
         "usd": rate_settings.usd_try,
         "eur": rate_settings.eur_try,
