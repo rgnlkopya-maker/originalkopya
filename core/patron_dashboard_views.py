@@ -158,6 +158,7 @@ def patron_dashboard(request):
     rate_info = {
         "usd": rate_settings.usd_try,
         "eur": rate_settings.eur_try,
+        "gbp": rate_settings.gbp_try,
         "source": rate_settings.rate_source,
         "checked_at": timezone.localtime(rate_settings.rate_checked_at).strftime("%H:%M") if rate_settings.rate_checked_at else "",
     }
