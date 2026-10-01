@@ -13,6 +13,7 @@ from django.views.decorators.http import require_GET, require_POST
 from app_settings.access import has_access
 from core.models import Beden, CustomerPricingRule, Musteri, Order, OrderEvent, Renk, URUN_TIPI_CHOICES, UrunKod
 from core.order_list_enhanced import STAGE_TRANSLATIONS
+from .price_list_views import _ensure_price_rates
 from .models import PriceListSettings, ProductCard, ShowroomDraft, ShowroomDraftItem, ShowroomOrderLink
 from .payment_models import ShowroomPayment
 from .price_list_views import _can_manage, _ensure_price_rates, _price_rows, _real_profit_rate
@@ -103,6 +104,7 @@ def _decimal(value, default="0"):
 
 def _create_draft(user, customer=None):
     settings = PriceListSettings.get_solo()
+    _ensure_price_rates(settings)
     return ShowroomDraft.objects.create(created_by=user, customer=customer, status="DRAFT", currency="TRY", profit_rate=settings.profit_rate, discount_rate=Decimal("0"), monthly_term_rate=settings.monthly_term_rate, usd_try=settings.usd_try, eur_try=settings.eur_try, gbp_try=settings.gbp_try, overall_discount_amount=Decimal("0"), vat_rate=Decimal("0"))
 
 
@@ -312,6 +314,7 @@ def _delete_draft_safely(draft):
 
 def _showroom_page_context(request):
     settings=PriceListSettings.get_solo()
+    _ensure_price_rates(settings)
     if settings.profit_rate<=0 and settings.discount_rate>0: settings.discount_rate=Decimal("0"); settings.save(update_fields=["discount_rate","updated_at"])
     rate_error=_ensure_price_rates(settings); show_inactive=request.GET.get("durum")=="pasif"; musteriler=Musteri.objects.filter(aktif=True).order_by("ad"); renkler=Renk.objects.filter(aktif=True).order_by("ad"); bedenler=Beden.objects.filter(aktif=True).order_by("ad"); urun_kodlari=UrunKod.objects.filter(aktif=True).order_by("kod")
     return {"settings":settings,"rows":_price_rows(settings,active=not show_inactive),"show_inactive":show_inactive,"inactive_count":ProductCard.objects.filter(price_list_active=False).count(),"rate_error":rate_error,"real_profit_rate":_real_profit_rate(settings.profit_rate,settings.discount_rate),"showroom_mode":True,"musteriler":musteriler,"renkler":renkler,"bedenler":bedenler,"urun_kodlari":urun_kodlari,"aktif_musteriler":musteriler,"aktif_renkler":renkler,"aktif_bedenler":bedenler,"aktif_urun_kodlari":urun_kodlari,"urun_tipi_secenekleri":URUN_TIPI_CHOICES,"pricing_customer_ids":_pricing_customer_ids(),"customer_base_price_size":CUSTOMER_BASE_PRICE_SIZE}
