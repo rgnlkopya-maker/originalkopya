@@ -30,12 +30,14 @@ from core.reminder_views import reminder_management, reminder_complete, reminder
 from core.todo_views import todo_list, todo_complete, todo_snooze, todo_delete
 from core.message_views import messages_home, start_direct, create_group, send_message, thread_messages, unread_count, group_manage, message_action, forward_message, create_poll, vote_poll, search_messages, starred_messages, share_contact
 from core.push_views import push_config, push_subscribe, push_unsubscribe, service_worker, push_test_once
+from core.patron_dashboard_views import patron_dashboard
 
 def logout_view(request):
     logout(request)
     return redirect('/login/')
 
 urlpatterns = [
+    path("patron/", patron_dashboard, name="patron_dashboard"),
     path("orders/<int:order_id>/bayrak/ekle/", create_order_flag, name="create_order_flag"),
     path("bayrak/<int:flag_id>/kapat/", close_order_flag, name="close_order_flag"),
     path("orders/<int:order_id>/uyari/", order_notice, name="order_notice"),
