@@ -100,6 +100,19 @@ def order_list(request):
     if te: qs=qs.filter(teslim_tarihi__lte=te)
     if db: qs=qs.filter(last_status_date__date__gte=db)
     if de: qs=qs.filter(last_status_date__date__lte=de)
+
+    # Patron Ekranı "geciken siparişler" bağlantısı:
+    # aktif, malzeme olmayan, henüz sevk edilmemiş ve teslim tarihi geçmiş siparişler.
+    delivery_filter = request.GET.get("teslim", "").strip()
+    if delivery_filter == "geciken":
+        qs = qs.filter(
+            is_active=True,
+            teslim_tarihi__lt=timezone.localdate(),
+        ).exclude(
+            siparis_tipi="MALZEME",
+        ).exclude(
+            sevkiyat_durum="gonderildi",
+        )
     etiket=request.GET.get("etiket","").strip()
     if etiket=="printed": qs=qs.filter(cikti_alindi=True)
     elif etiket=="unprinted": qs=qs.filter(cikti_alindi=False)
