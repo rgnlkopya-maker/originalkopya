@@ -7,6 +7,7 @@ from django.shortcuts import render
 from django.utils import timezone
 from django.views.decorators.cache import never_cache
 import re
+from datetime import timedelta
 
 from .models import Order, OrderEvent, OrderFlag, URUN_TIPI_CHOICES
 
@@ -117,6 +118,28 @@ def order_list(request):
         qs = qs.filter(
             is_active=True,
             teslim_tarihi=timezone.localdate(),
+        ).exclude(
+            siparis_tipi="MALZEME",
+        ).exclude(
+            sevkiyat_durum="gonderildi",
+        )
+    elif delivery_filter == "3gun":
+        today = timezone.localdate()
+        qs = qs.filter(
+            is_active=True,
+            teslim_tarihi__gt=today,
+            teslim_tarihi__lte=today + timedelta(days=3),
+        ).exclude(
+            siparis_tipi="MALZEME",
+        ).exclude(
+            sevkiyat_durum="gonderildi",
+        )
+    elif delivery_filter == "1hafta":
+        today = timezone.localdate()
+        qs = qs.filter(
+            is_active=True,
+            teslim_tarihi__gt=today + timedelta(days=3),
+            teslim_tarihi__lte=today + timedelta(days=7),
         ).exclude(
             siparis_tipi="MALZEME",
         ).exclude(
