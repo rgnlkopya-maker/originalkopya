@@ -91,8 +91,14 @@ def patron_dashboard(request):
     ready_qs = open_orders.filter(hazir_durum="bitti")
     overdue_qs = open_orders.filter(teslim_tarihi__lt=today)
     due_today_qs = open_orders.filter(teslim_tarihi=today)
-    due_tomorrow_qs = open_orders.filter(teslim_tarihi=today + timedelta(days=1))
-    due_3_qs = open_orders.filter(teslim_tarihi__gt=today + timedelta(days=1), teslim_tarihi__lte=today + timedelta(days=3))
+    due_3_qs = open_orders.filter(
+        teslim_tarihi__gt=today,
+        teslim_tarihi__lte=today + timedelta(days=3),
+    )
+    due_7_qs = open_orders.filter(
+        teslim_tarihi__gt=today + timedelta(days=3),
+        teslim_tarihi__lte=today + timedelta(days=7),
+    )
 
     # Dünün üretim özeti: aynı sipariş aynı işlem için birden çok event üretse bile
     # yalnızca bir kez sayılır; sayı sipariş adedi toplamıdır.
@@ -167,14 +173,14 @@ def patron_dashboard(request):
         if rows.exists():
             finance.append({"currency": currency, "revenue": revenue, "cost": cost, "profit": profit, "margin": margin})
 
-    attention_count = overdue_qs.count() + inactive_qs.count() + forgotten
+    attention_count = overdue_qs.count() + due_today_qs.count() + due_3_qs.count() + due_7_qs.count()
     context = {
         "today": today, "yesterday": yesterday,
         "ready_count": ready_qs.count(), "ready_qty": qty(ready_qs),
         "overdue_count": overdue_qs.count(), "overdue_qty": qty(overdue_qs),
         "due_today_count": due_today_qs.count(), "due_today_qty": qty(due_today_qs),
-        "due_tomorrow_count": due_tomorrow_qs.count(), "due_tomorrow_qty": qty(due_tomorrow_qs),
         "due_3_count": due_3_qs.count(), "due_3_qty": qty(due_3_qs),
+        "due_7_count": due_7_qs.count(), "due_7_qty": qty(due_7_qs),
         "production": production,
         "shipped_count": yesterday_shipped.count(), "shipped_qty": yesterday_shipped_qty,
         "yesterday_new_count": yesterday_new_count, "yesterday_new_qty": yesterday_new_qty,
