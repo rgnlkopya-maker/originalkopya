@@ -204,23 +204,9 @@ def recalculate_costs_for_material(material, usd_try=None):
 
 
 def fetch_tcmb_usd_rate():
-    request = urllib.request.Request("https://www.tcmb.gov.tr/kurlar/today.xml", headers={"User-Agent": "MoliApp/1.0"})
-    with urllib.request.urlopen(request, timeout=12) as response:
-        xml_data = response.read()
-    root = ET.fromstring(xml_data)
-    usd_node = root.find(".//Currency[@CurrencyCode='USD']")
-    if usd_node is None:
-        raise RuntimeError("TCMB verisinde USD bulunamadı.")
-    selling_text = usd_node.findtext("ForexSelling") or usd_node.findtext("BanknoteSelling")
-    if not selling_text:
-        raise RuntimeError("TCMB USD satış kuru alınamadı.")
-    usd_try = Decimal(selling_text.strip().replace(",", "."))
-    source_date = root.attrib.get("Date", "")
-    today = timezone.localdate()
-    rate, _ = ExchangeRate.objects.update_or_create(rate_date=today, defaults={"usd_try": usd_try, "source_date": source_date})
-    recalculate_approved_product_costs()
-    return rate
-
+    """Geriye donuk uyumluluk: tum kurlari tek TCMB istegiyle yeniler."""
+    from .price_list_views import fetch_price_list_tcmb_rates
+    return fetch_price_list_tcmb_rates()
 
 def ensure_daily_rate():
     # Sayfa acilisi kur cekmez. 09:20 otomatik gorevinin yazdigi son gecerli
@@ -242,7 +228,8 @@ def refresh_exchange_rate(request):
         return HttpResponseForbidden("Bu işlem için yetkiniz yok.")
     try:
         rate = fetch_tcmb_usd_rate()
-        messages.success(request, f"TCMB USD satış kuru güncellendi: 1 USD = {rate.usd_try} TL. Onaylı ürün maliyetleri de yenilendi.")
+        updated = recalculate_approved_product_costs(rate.usd_try)
+        messages.success(request, f"TCMB kurları güncellendi: USD {rate.usd_try}, EUR {rate.eur_try}, GBP {rate.gbp_try} TL. {updated} onaylı ürün maliyeti yenilendi.")
     except Exception as exc:
         messages.error(request, f"Kur güncellenemedi: {exc}")
     return redirect(request.POST.get("next") or "product_card_list")
