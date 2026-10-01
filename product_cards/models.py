@@ -9,7 +9,7 @@ from core.models import Order, OrderEvent, ProductCost, UrunKod
 CURRENCY_CHOICES = [("TRY", "TL"), ("USD", "USD")]
 
 class ExchangeRate(models.Model):
-    rate_date=models.DateField(unique=True); usd_try=models.DecimalField(max_digits=12,decimal_places=6); eur_try=models.DecimalField(max_digits=12,decimal_places=6,default=1); source_date=models.CharField(max_length=20,blank=True,default=""); fetched_at=models.DateTimeField(auto_now=True)
+    rate_date=models.DateField(unique=True); usd_try=models.DecimalField(max_digits=12,decimal_places=6); eur_try=models.DecimalField(max_digits=12,decimal_places=6,default=1); gbp_try=models.DecimalField(max_digits=12,decimal_places=6,default=1); source_date=models.CharField(max_length=20,blank=True,default=""); fetched_at=models.DateTimeField(auto_now=True)
     class Meta: ordering=["-rate_date"]
     @classmethod
     def latest_usd_try(cls):
@@ -22,6 +22,7 @@ class PriceListSettings(models.Model):
     monthly_term_rate=models.DecimalField(max_digits=7,decimal_places=2,default=0)
     usd_try=models.DecimalField(max_digits=12,decimal_places=6,default=1)
     eur_try=models.DecimalField(max_digits=12,decimal_places=6,default=1)
+    gbp_try=models.DecimalField(max_digits=12,decimal_places=6,default=1)
     rate_source=models.CharField(max_length=30,default="TCMB")
     rate_source_date=models.CharField(max_length=20,blank=True,default="")
     rate_checked_at=models.DateTimeField(null=True,blank=True)
@@ -32,7 +33,7 @@ class PriceListSettings(models.Model):
         latest=ExchangeRate.objects.order_by("-rate_date","-fetched_at").first()
         defaults={}
         if latest:
-            defaults={"usd_try":latest.usd_try,"eur_try":latest.eur_try,"rate_source":"TCMB","rate_source_date":latest.source_date,"rate_checked_at":latest.fetched_at}
+            defaults={"usd_try":latest.usd_try,"eur_try":latest.eur_try,"gbp_try":latest.gbp_try,"rate_source":"TCMB","rate_source_date":latest.source_date,"rate_checked_at":latest.fetched_at}
         obj,_=cls.objects.get_or_create(pk=1,defaults=defaults)
         return obj
 
@@ -219,6 +220,7 @@ class ShowroomDraft(models.Model):
     monthly_term_rate=models.DecimalField(max_digits=7,decimal_places=2,default=0)
     usd_try=models.DecimalField(max_digits=12,decimal_places=6,default=1)
     eur_try=models.DecimalField(max_digits=12,decimal_places=6,default=1)
+    gbp_try=models.DecimalField(max_digits=12,decimal_places=6,default=1)
     overall_discount_amount=models.DecimalField(max_digits=16,decimal_places=2,default=0)
     vat_rate=models.DecimalField(max_digits=7,decimal_places=2,default=0)
     previous_balance=models.DecimalField(max_digits=16,decimal_places=2,default=0)
