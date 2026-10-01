@@ -15,7 +15,8 @@ from django.utils import timezone
 from app_settings.access import has_access
 from attendance.models import AttendanceRecord
 from product_cards.models import PriceListSettings
-from .models import Order, OrderEvent, ProductionStageControlExclusion
+from .models import Order, OrderEvent
+from .production_stage_control_views import get_unshipped_inactive_orders
 
 
 def _izmir_weather():
@@ -122,17 +123,9 @@ def patron_dashboard(request):
     yesterday_shipped = active.filter(id__in=shipped_ids)
     yesterday_shipped_qty = qty(yesterday_shipped)
 
-    # 3 gündür hareket yok: mevcut Üretim Aşama Kontrolü ile aynı event/exclusion kuralı.
-    cutoff = timezone.now() - timedelta(days=3)
-    hidden_ids = set(ProductionStageControlExclusion.objects.filter(
-        control_type__in=["unshipped_7d", "unshipped_3d_temp"]
-    ).values_list("order_id", flat=True))
-    latest_stage = {}
-    for event in OrderEvent.objects.filter(
-        order__in=open_orders, event_type="stage"
-    ).only("order_id", "timestamp").order_by("order_id", "timestamp", "id"):
-        latest_stage[event.order_id] = event.timestamp
-    inactive_ids = [oid for oid, ts in latest_stage.items() if ts <= cutoff and oid not in hidden_ids]
+    # Üretim Aşama Kontrolü ile aynı ortak hareketsiz sipariş kaynağı.
+    inactive_rows = get_unshipped_inactive_orders(request.user)
+    inactive_ids = [row["order"].id for row in inactive_rows]
     inactive_qs = open_orders.filter(id__in=inactive_ids)
 
     # Personel geldi/gelmedi özeti Patron Ekranı'ndan kaldırıldı.
