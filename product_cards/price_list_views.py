@@ -41,9 +41,26 @@ def fetch_price_list_tcmb_rates():
 
 
 def _ensure_price_rates(settings):
-    # Sayfa acilisinda TCMB'ye gitme. Gunluk otomatik gorev aktif kuru
-    # PriceListSettings'e yazar; sayfalar gun boyunca bu kayitli kuru kullanir.
-    if settings.usd_try > 1 and settings.eur_try > 1:
+    # Ana yol zamanlanmis gorevdir. Yedek olarak, is gunlerinde 09:20'den
+    # sonra o gun kur yazilmamissa ilgili ilk ekran acilisinda TCMB'ye tek
+    # istek atilir. Boylece scheduler aksasa bile kur gunlerce donup kalmaz.
+    now = timezone.localtime()
+    checked_today = (
+        settings.rate_checked_at
+        and timezone.localtime(settings.rate_checked_at).date() == now.date()
+    )
+    if now.weekday() < 5 and (now.hour, now.minute) >= (9, 20) and not checked_today:
+        try:
+            fetch_price_list_tcmb_rates()
+            settings.refresh_from_db()
+            return None
+        except Exception as exc:
+            latest = ExchangeRate.objects.order_by("-rate_date", "-fetched_at").first()
+            if latest:
+                return f"Bugunun TCMB kuru alinamadi; son gecerli kur kullaniliyor. {exc}"
+            return f"TCMB kuru alinamadi. {exc}"
+
+    if settings.usd_try > 1 and settings.eur_try > 1 and settings.gbp_try > 1:
         return None
     latest = ExchangeRate.objects.order_by("-rate_date", "-fetched_at").first()
     if latest:
