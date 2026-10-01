@@ -114,7 +114,7 @@ def patron_dashboard(request):
 
     production = [
         ("Kesildi", yesterday_stage_qty("kesim_durum", "bitti"), "bi-scissors"),
-        ("Dikildi", yesterday_stage_qty("dikim_durum", "bitti"), "bi-thread"),
+        ("Dikildi", yesterday_stage_qty("dikim_durum", "bitti"), "bi-tools"),
         ("Süslendi", yesterday_stage_qty("susleme_durum", "bitti"), "bi-stars"),
         ("Hazırlandı", yesterday_stage_qty("hazir_durum", "bitti"), "bi-check2-circle"),
         ("Konsinyeye Verildi", yesterday_stage_qty("konsinye_durum", "verildi"), "bi-box-arrow-up-right"),
