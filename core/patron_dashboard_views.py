@@ -129,6 +129,11 @@ def patron_dashboard(request):
     yesterday_shipped = active.filter(id__in=shipped_ids)
     yesterday_shipped_qty = qty(yesterday_shipped)
 
+    # Dün sisteme yeni girilen siparişler (sevkiyattan bağımsız).
+    yesterday_new_orders = active.filter(siparis_tarihi=yesterday)
+    yesterday_new_count = yesterday_new_orders.count()
+    yesterday_new_qty = qty(yesterday_new_orders)
+
     # Üretim Aşama Kontrolü ile aynı ortak hareketsiz sipariş kaynağı.
     inactive_rows = get_unshipped_inactive_orders(request.user)
     inactive_ids = [row["order"].id for row in inactive_rows]
@@ -172,6 +177,7 @@ def patron_dashboard(request):
         "due_3_count": due_3_qs.count(), "due_3_qty": qty(due_3_qs),
         "production": production,
         "shipped_count": yesterday_shipped.count(), "shipped_qty": yesterday_shipped_qty,
+        "yesterday_new_count": yesterday_new_count, "yesterday_new_qty": yesterday_new_qty,
         "inactive_count": inactive_qs.count(), "inactive_qty": qty(inactive_qs),
         "forgotten_count": forgotten, "attention_count": attention_count,
         "finance": finance, "weather": weather, "rate_info": rate_info,
