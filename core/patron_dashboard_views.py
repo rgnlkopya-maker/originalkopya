@@ -113,12 +113,12 @@ def patron_dashboard(request):
         )
 
     production = [
-        ("Kesildi", yesterday_stage_qty("kesim_durum", "bitti"), "bi-scissors"),
-        ("Dikildi", yesterday_stage_qty("dikim_durum", "bitti"), "bi-tools"),
-        ("Süslendi", yesterday_stage_qty("susleme_durum", "bitti"), "bi-stars"),
-        ("Hazırlandı", yesterday_stage_qty("hazir_durum", "bitti"), "bi-check2-circle"),
-        ("Konsinyeye Verildi", yesterday_stage_qty("konsinye_durum", "verildi"), "bi-box-arrow-up-right"),
-        ("Sevk Edildi", yesterday_stage_qty("sevkiyat_durum", "gonderildi"), "bi-truck"),
+        ("Kesildi", yesterday_stage_qty("kesim_durum", "bitti"), "bi-scissors", "kesim_durum", "bitti"),
+        ("Dikildi", yesterday_stage_qty("dikim_durum", "bitti"), "bi-tools", "dikim_durum", "bitti"),
+        ("Süslendi", yesterday_stage_qty("susleme_durum", "bitti"), "bi-stars", "susleme_durum", "bitti"),
+        ("Hazırlandı", yesterday_stage_qty("hazir_durum", "bitti"), "bi-check2-circle", "hazir_durum", "bitti"),
+        ("Konsinyeye Verildi", yesterday_stage_qty("konsinye_durum", "verildi"), "bi-box-arrow-up-right", "konsinye_durum", "verildi"),
+        ("Sevk Edildi", yesterday_stage_qty("sevkiyat_durum", "gonderildi"), "bi-truck", "sevkiyat_durum", "gonderildi"),
     ]
 
     # Sevkiyat: mevcut alan + sevkiyat event fallback.
