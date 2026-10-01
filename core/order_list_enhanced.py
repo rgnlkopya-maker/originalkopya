@@ -137,6 +137,18 @@ def order_list(request):
             is_active=True,
         ).values_list("order_id", flat=True)
         qs=qs.filter(id__in=visible_flag_orders).distinct()
+
+    production_stage = request.GET.get("uretim_stage", "").strip()
+    production_value = request.GET.get("uretim_value", "").strip()
+    production_date = request.GET.get("uretim_tarih", "").strip()
+    if production_stage and production_value and production_date:
+        event_order_ids = OrderEvent.objects.filter(
+            event_type="stage",
+            stage=production_stage,
+            value=production_value,
+            timestamp__date=production_date,
+        ).values_list("order_id", flat=True).distinct()
+        qs=qs.filter(id__in=event_order_ids).exclude(siparis_tipi="MALZEME")
     aktif_count=base_qs.filter(is_active=True).count(); pasif_count=base_qs.filter(is_active=False).count(); sevke_count=base_qs.filter(is_active=True,latest_stage="sevkiyat_durum",latest_value="gonderildi").count()
     # Grafik görünümü tablodaki Son Durum ile birebir aynı latest_stage/latest_value kaynağını kullanır.
     # Sayfalama öncesi hesaplanır; böylece grafik filtreye uyan TÜM siparişleri gösterir.
