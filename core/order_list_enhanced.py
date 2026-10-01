@@ -113,6 +113,15 @@ def order_list(request):
         ).exclude(
             sevkiyat_durum="gonderildi",
         )
+    elif delivery_filter == "bugun":
+        qs = qs.filter(
+            is_active=True,
+            teslim_tarihi=timezone.localdate(),
+        ).exclude(
+            siparis_tipi="MALZEME",
+        ).exclude(
+            sevkiyat_durum="gonderildi",
+        )
     etiket=request.GET.get("etiket","").strip()
     if etiket=="printed": qs=qs.filter(cikti_alindi=True)
     elif etiket=="unprinted": qs=qs.filter(cikti_alindi=False)
