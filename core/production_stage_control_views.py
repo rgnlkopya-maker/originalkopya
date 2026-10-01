@@ -34,6 +34,81 @@ def _missing_stage_steps(events, stage_name, label):
     return missing
 
 
+def get_unshipped_inactive_orders(user):
+    """Üretim Aşama Kontrolü ile aynı 3+ gün hareketsiz listesini üret."""
+    orders = (
+        Order.objects.select_related("musteri")
+        .filter(is_active=True)
+        .exclude(siparis_tipi="MALZEME")
+        .only(
+            "id", "siparis_numarasi", "musteri__ad", "urun_kodu", "renk",
+            "beden", "siparis_tipi", "is_active", "sevkiyat_durum"
+        )
+        .order_by("-id")
+    )
+    if data_scope_value(user, "orders") == "active_only":
+        orders = orders.filter(is_active=True)
+
+    order_ids = list(orders.values_list("id", flat=True))
+    events_by_order = defaultdict(list)
+    relevant_stages = {
+        "malzeme_durum",
+        "kesim_durum",
+        "dikim_durum", "dikim_fason_durumu",
+        "nakis_durum",
+        "susleme_durum", "susleme_fason_durumu",
+        "hazir_durum",
+        "uretim_aktarimi", "uretim_aktarimı",
+        "sevkiyat_durum",
+    }
+    for event in (
+        OrderEvent.objects.filter(
+            order_id__in=order_ids,
+            event_type="stage",
+            stage__in=relevant_stages,
+        )
+        .only("order_id", "stage", "value", "timestamp", "user")
+        .order_by("order_id", "timestamp", "id")
+    ):
+        events_by_order[event.order_id].append(event)
+
+    now = timezone.now()
+    ProductionStageControlExclusion.objects.filter(
+        control_type="unshipped_3d_temp",
+        excluded_at__lte=now - timedelta(days=3),
+    ).delete()
+    exclusions = {
+        (row.order_id, row.control_type)
+        for row in ProductionStageControlExclusion.objects.all().only("order_id", "control_type")
+    }
+
+    rows = []
+    for order in orders:
+        events = events_by_order.get(order.id, [])
+        if not events:
+            continue
+        shipment_events = [event for event in events if event.stage == "sevkiyat_durum"]
+        shipped = (
+            shipment_events[-1].value == "gonderildi"
+            if shipment_events
+            else order.sevkiyat_durum == "gonderildi"
+        )
+        temporarily_hidden = (order.id, "unshipped_3d_temp") in exclusions
+        permanently_hidden = (order.id, "unshipped_7d") in exclusions
+        if not shipped and not temporarily_hidden and not permanently_hidden:
+            last_event = events[-1]
+            age = now - last_event.timestamp
+            if age >= timedelta(days=3):
+                rows.append({
+                    "order": order,
+                    "first_event": events[0],
+                    "last_event": last_event,
+                    "days_open": age.days,
+                })
+    rows.sort(key=lambda row: (-row["days_open"], row["first_event"].timestamp))
+    return rows
+
+
 @login_required
 @require_POST
 def exclude_from_production_stage_control(request, order_id):
@@ -117,7 +192,7 @@ def production_stage_control(request):
     }
 
     problems = []
-    unshipped_after_week = []
+    unshipped_after_week = get_unshipped_inactive_orders(request.user)
     for order in orders:
         events = events_by_order.get(order.id, [])
         if not events:
@@ -148,26 +223,6 @@ def production_stage_control(request):
             for stage_name, label in STAGES.values():
                 reasons.extend(_missing_stage_steps(events, stage_name, label))
 
-        # Son üretim / operasyon hareketinden itibaren 3 gün boyunca hiçbir
-        # hareket yoksa ayrı kontrol listesine al. Fiyat/açıklama gibi order_update
-        # kayıtları bu sayacı sıfırlamaz. Sevk edilmiş siparişler listeye girmez.
-        movement_events = [
-            event for event in events
-            if event.event_type == "stage"
-        ]
-        temporarily_hidden = (order.id, "unshipped_3d_temp") in exclusions
-        permanently_hidden = (order.id, "unshipped_7d") in exclusions
-        if movement_events and not shipped and not temporarily_hidden and not permanently_hidden:
-            last_movement_event = movement_events[-1]
-            age = now - last_movement_event.timestamp
-            if age >= timedelta(days=3):
-                unshipped_after_week.append({
-                    "order": order,
-                    "first_event": movement_events[0],
-                    "last_event": last_movement_event,
-                    "days_open": age.days,
-                })
-
         # Aynı eksikliği birden fazla kural yakalasa bile ekranda bir kez göster.
         reasons = list(dict.fromkeys(reasons))
         if reasons and (order.id, "stage_problem") not in exclusions:
@@ -181,10 +236,6 @@ def production_stage_control(request):
 
     problems.sort(
         key=lambda row: (not row["shipped"], -row["last_event"].timestamp.timestamp())
-    )
-
-    unshipped_after_week.sort(
-        key=lambda row: (-row["days_open"], row["first_event"].timestamp)
     )
 
     order_type = (request.GET.get("order_type") or "ALL").strip().upper()
