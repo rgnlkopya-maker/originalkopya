@@ -103,7 +103,7 @@ def _decimal(value, default="0"):
 
 def _create_draft(user, customer=None):
     settings = PriceListSettings.get_solo()
-    return ShowroomDraft.objects.create(created_by=user, customer=customer, status="DRAFT", currency="TRY", profit_rate=settings.profit_rate, discount_rate=Decimal("0"), monthly_term_rate=settings.monthly_term_rate, usd_try=settings.usd_try, eur_try=settings.eur_try, overall_discount_amount=Decimal("0"), vat_rate=Decimal("0"))
+    return ShowroomDraft.objects.create(created_by=user, customer=customer, status="DRAFT", currency="TRY", profit_rate=settings.profit_rate, discount_rate=Decimal("0"), monthly_term_rate=settings.monthly_term_rate, usd_try=settings.usd_try, eur_try=settings.eur_try, gbp_try=settings.gbp_try, overall_discount_amount=Decimal("0"), vat_rate=Decimal("0"))
 
 
 def _payment_data(draft):
