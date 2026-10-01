@@ -94,26 +94,32 @@ def patron_dashboard(request):
     due_tomorrow_qs = open_orders.filter(teslim_tarihi=today + timedelta(days=1))
     due_3_qs = open_orders.filter(teslim_tarihi__gt=today + timedelta(days=1), teslim_tarihi__lte=today + timedelta(days=3))
 
-    # Üretim: o aşamada başlamış ve henüz bitmemiş işler.
-    production = [
-        ("Kesim", qty(open_orders.filter(kesim_durum="basladi")), "bi-scissors"),
-        ("Dikim", qty(open_orders.filter(dikim_durum="basladi")), "bi-thread"),
-        ("Süsleme", qty(open_orders.filter(susleme_durum="basladi")), "bi-stars"),
-        ("Nakış", qty(open_orders.filter(nakis_durumu="verildi")), "bi-flower1"),
-        ("Hazır", qty(ready_qs), "bi-check2-circle"),
-    ]
+    # Dünün üretim özeti: aynı sipariş aynı işlem için birden çok event üretse bile
+    # yalnızca bir kez sayılır; sayı sipariş adedi toplamıdır.
+    def yesterday_stage_qty(stage, value):
+        order_ids = (
+            OrderEvent.objects.filter(
+                timestamp__date=yesterday,
+                event_type="stage",
+                stage=stage,
+                value=value,
+            )
+            .values_list("order_id", flat=True)
+            .distinct()
+        )
+        return qty(
+            Order.objects.filter(id__in=order_ids)
+            .exclude(siparis_tipi="MALZEME")
+        )
 
-    yesterday_events = OrderEvent.objects.filter(
-        timestamp__date=yesterday, event_type="stage", value="bitti"
-    )
-    completed = []
-    for stage, label in [
-        ("kesim_durum", "Kesim"),
-        ("dikim_durum", "Dikim"),
-        ("susleme_durum", "Süsleme"),
-        ("hazir_durum", "Hazır"),
-    ]:
-        completed.append((label, yesterday_events.filter(stage=stage).aggregate(v=Coalesce(Sum("adet"), 0))["v"] or yesterday_events.filter(stage=stage).count()))
+    production = [
+        ("Kesildi", yesterday_stage_qty("kesim_durum", "bitti"), "bi-scissors"),
+        ("Dikildi", yesterday_stage_qty("dikim_durum", "bitti"), "bi-thread"),
+        ("Süslendi", yesterday_stage_qty("susleme_durum", "bitti"), "bi-stars"),
+        ("Hazırlandı", yesterday_stage_qty("hazir_durum", "bitti"), "bi-check2-circle"),
+        ("Konsinyeye Verildi", yesterday_stage_qty("konsinye_durum", "verildi"), "bi-box-arrow-up-right"),
+        ("Sevk Edildi", yesterday_stage_qty("sevkiyat_durum", "gonderildi"), "bi-truck"),
+    ]
 
     # Sevkiyat: mevcut alan + sevkiyat event fallback.
     shipped_ids = set(active.filter(sevkiyat_tarihi=yesterday).values_list("id", flat=True))
@@ -164,7 +170,7 @@ def patron_dashboard(request):
         "due_today_count": due_today_qs.count(), "due_today_qty": qty(due_today_qs),
         "due_tomorrow_count": due_tomorrow_qs.count(), "due_tomorrow_qty": qty(due_tomorrow_qs),
         "due_3_count": due_3_qs.count(), "due_3_qty": qty(due_3_qs),
-        "production": production, "completed": completed,
+        "production": production,
         "shipped_count": yesterday_shipped.count(), "shipped_qty": yesterday_shipped_qty,
         "inactive_count": inactive_qs.count(), "inactive_qty": qty(inactive_qs),
         "forgotten_count": forgotten, "attention_count": attention_count,
