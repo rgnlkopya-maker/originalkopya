@@ -25,7 +25,7 @@ def fetch_price_list_tcmb_rates():
     with urllib.request.urlopen(request, timeout=12) as response:
         root = ET.fromstring(response.read())
     values = {}
-    for code in ("USD", "EUR"):
+    for code in ("USD", "EUR", "GBP"):
         node = root.find(f".//Currency[@CurrencyCode='{code}']")
         text = (node.findtext("ForexSelling") or node.findtext("BanknoteSelling") if node is not None else None)
         if not text:
@@ -33,10 +33,10 @@ def fetch_price_list_tcmb_rates():
         values[code] = Decimal(text.strip().replace(",", "."))
     source_date = root.attrib.get("Date", "")
     today = timezone.localdate()
-    rate, _ = ExchangeRate.objects.update_or_create(rate_date=today, defaults={"usd_try": values["USD"], "eur_try": values["EUR"], "source_date": source_date})
+    rate, _ = ExchangeRate.objects.update_or_create(rate_date=today, defaults={"usd_try": values["USD"], "eur_try": values["EUR"], "gbp_try": values["GBP"], "source_date": source_date})
     settings = PriceListSettings.get_solo()
-    settings.usd_try = values["USD"]; settings.eur_try = values["EUR"]; settings.rate_source = "TCMB"; settings.rate_source_date = source_date; settings.rate_checked_at = timezone.now()
-    settings.save(update_fields=["usd_try", "eur_try", "rate_source", "rate_source_date", "rate_checked_at", "updated_at"])
+    settings.usd_try = values["USD"]; settings.eur_try = values["EUR"]; settings.gbp_try = values["GBP"]; settings.rate_source = "TCMB"; settings.rate_source_date = source_date; settings.rate_checked_at = timezone.now()
+    settings.save(update_fields=["usd_try", "eur_try", "gbp_try", "rate_source", "rate_source_date", "rate_checked_at", "updated_at"])
     return rate
 
 
@@ -49,10 +49,11 @@ def _ensure_price_rates(settings):
     if latest:
         settings.usd_try = latest.usd_try
         settings.eur_try = latest.eur_try
+        settings.gbp_try = latest.gbp_try
         settings.rate_source = "Son gecerli TCMB"
         settings.rate_source_date = latest.source_date
         settings.rate_checked_at = latest.fetched_at
-        settings.save(update_fields=["usd_try", "eur_try", "rate_source", "rate_source_date", "rate_checked_at", "updated_at"])
+        settings.save(update_fields=["usd_try", "eur_try", "gbp_try", "rate_source", "rate_source_date", "rate_checked_at", "updated_at"])
         return None
     return "Kayitli TCMB kuru bulunamadi."
 
