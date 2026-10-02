@@ -6,7 +6,7 @@ import urllib.request
 
 from django.contrib.auth.decorators import login_required
 from django.core.cache import cache
-from django.db.models import Q, Sum, Value, DecimalField
+from django.db.models import Q, Sum, Value, DecimalField, OuterRef, Subquery
 from django.db.models.functions import Coalesce
 from django.http import HttpResponseForbidden, JsonResponse
 from django.shortcuts import render
@@ -228,7 +228,16 @@ def patron_dashboard(request):
     inactive_qs = open_orders.filter(id__in=inactive_ids)
 
     # Dikkat gerektirenler: mevcut operasyon kayıtlarından beslenir.
-    material_missing_qs = open_orders.filter(malzeme_durum="eksik")
+    latest_operational_event = (
+        OrderEvent.objects.filter(order=OuterRef("pk"))
+        .exclude(event_type="order_update")
+        .exclude(stage__in=["satis_fiyati", "ekstra_maliyet", "maliyet_indirimi", "maliyet_override", "maliyet_uygulanan"])
+        .order_by("-timestamp", "-id")
+    )
+    material_missing_qs = open_orders.annotate(
+        latest_stage=Subquery(latest_operational_event.values("stage")[:1]),
+        latest_value=Subquery(latest_operational_event.values("value")[:1]),
+    ).filter(latest_stage="malzeme_durum", latest_value="eksik")
     open_issue_count = (
         QualityIssue.objects.filter(
             durum="ACIK",
