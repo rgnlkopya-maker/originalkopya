@@ -183,6 +183,31 @@ def patron_dashboard(request):
         ("Sevk Edildi", yesterday_stage_qty("sevkiyat_durum", "gonderildi"), "bi-truck", "sevkiyat_durum", "gonderildi"),
     ]
 
+    def today_stage_qty(stage, value):
+        order_ids = (
+            OrderEvent.objects.filter(
+                timestamp__date=today,
+                event_type="stage",
+                stage=stage,
+                value=value,
+            )
+            .values_list("order_id", flat=True)
+            .distinct()
+        )
+        return qty(
+            Order.objects.filter(id__in=order_ids)
+            .exclude(siparis_tipi="MALZEME")
+        )
+
+    today_production = [
+        ("Kesildi", today_stage_qty("kesim_durum", "bitti"), "bi-scissors", "kesim_durum", "bitti"),
+        ("Dikildi", today_stage_qty("dikim_durum", "bitti"), "bi-tools", "dikim_durum", "bitti"),
+        ("Süslendi", today_stage_qty("susleme_durum", "bitti"), "bi-stars", "susleme_durum", "bitti"),
+        ("Hazırlandı", today_stage_qty("hazir_durum", "bitti"), "bi-check2-circle", "hazir_durum", "bitti"),
+        ("Konsinyeye Verildi", today_stage_qty("konsinye_durum", "verildi"), "bi-box-arrow-up-right", "konsinye_durum", "verildi"),
+        ("Sevk Edildi", today_stage_qty("sevkiyat_durum", "gonderildi"), "bi-truck", "sevkiyat_durum", "gonderildi"),
+    ]
+
     # Sevkiyat: mevcut alan + sevkiyat event fallback.
     shipped_ids = set(active.filter(sevkiyat_tarihi=yesterday).values_list("id", flat=True))
     shipped_ids.update(OrderEvent.objects.filter(
@@ -236,6 +261,7 @@ def patron_dashboard(request):
         "due_3_count": due_3_qs.count(), "due_3_qty": qty(due_3_qs),
         "due_7_count": due_7_qs.count(), "due_7_qty": qty(due_7_qs),
         "production": production,
+        "today_production": today_production,
         "shipped_count": yesterday_shipped.count(), "shipped_qty": yesterday_shipped_qty,
         "yesterday_new_count": yesterday_new_count, "yesterday_new_qty": yesterday_new_qty,
         "inactive_count": inactive_qs.count(), "inactive_qty": qty(inactive_qs),
