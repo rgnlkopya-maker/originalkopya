@@ -14,6 +14,7 @@ from django.utils import timezone
 
 from app_settings.access import has_access
 from attendance.models import AttendanceRecord
+from attendance.views import attendance_calendar_users
 from product_cards.models import PriceListSettings
 from product_cards.price_list_views import _ensure_price_rates
 from .models import Order, OrderEvent, UserProfile
@@ -73,9 +74,9 @@ def _izmir_weather():
 
 def _today_staff_summary(user):
     today = timezone.localdate()
-    base_staff = user.__class__.objects.filter(is_active=True).exclude(
-        Q(is_superuser=True) | Q(groups__name__in=["patron", "mudur"])
-    ).distinct()
+    calendar_users = attendance_calendar_users()
+    calendar_user_ids = [person.id for person in calendar_users]
+    base_staff = user.__class__.objects.filter(id__in=calendar_user_ids)
 
     team_defs = [
         ("kesim", "Kesim", "bi-scissors"),
