@@ -442,6 +442,12 @@ def reset_device(request, user_id):
     return redirect("attendance_device_management")
 
 
+def attendance_calendar_users():
+    """Puantaj & Mesai Takvimi'nde gorunen personelin tek kaynak listesi."""
+    users = attendance_calendar_users()
+    return users
+
+
 @login_required
 @user_passes_test(is_manager)
 def dashboard(request):
