@@ -16,7 +16,7 @@ from app_settings.access import has_access
 from attendance.models import AttendanceRecord
 from product_cards.models import PriceListSettings
 from product_cards.price_list_views import _ensure_price_rates
-from .models import Order, OrderEvent
+from .models import Order, OrderEvent, UserProfile
 from .production_stage_control_views import get_unshipped_inactive_orders
 
 
@@ -73,42 +73,47 @@ def _izmir_weather():
 
 def _today_staff_summary(user):
     today = timezone.localdate()
-    staff = user.__class__.objects.filter(is_active=True).exclude(
+    base_staff = user.__class__.objects.filter(is_active=True).exclude(
         Q(is_superuser=True) | Q(groups__name__in=["patron", "mudur"])
     ).distinct()
 
-    records = AttendanceRecord.objects.filter(work_date=today, user__in=staff)
-    worked = records.filter(status="worked")
-    excused_user_ids = set(
-        records.exclude(status="worked").values_list("user_id", flat=True)
-    )
+    team_defs = [
+        ("kesim", "Kesim", "bi-scissors"),
+        ("dikim", "Dikim", "bi-tools"),
+        ("modelleme", "Modelleme", "bi-rulers"),
+        ("susleme", "Süsleme", "bi-stars"),
+        ("utucu", "Ütücü", "bi-steam"),
+        ("yardimci", "Yardımcı", "bi-people"),
+        ("sevkiyat", "Sevkiyat", "bi-truck"),
+    ]
 
-    arrived_user_ids = set(
-        worked.filter(check_in__isnull=False).values_list("user_id", flat=True)
-    )
-    arrived = len(arrived_user_ids)
-    late = worked.filter(check_in__isnull=False, late_minutes__gt=0).count()
-    inside = worked.filter(check_in__isnull=False, check_out__isnull=True).count()
-    checked_out = worked.filter(check_out__isnull=False).count()
+    teams = []
+    for code, label, icon in team_defs:
+        team_staff = base_staff.filter(userprofile__gorev=code)
+        team_ids = set(team_staff.values_list("id", flat=True))
+        records = AttendanceRecord.objects.filter(work_date=today, user_id__in=team_ids)
+        worked = records.filter(status="worked")
+        excused_ids = set(records.exclude(status="worked").values_list("user_id", flat=True))
+        arrived_ids = set(worked.filter(check_in__isnull=False).values_list("user_id", flat=True))
 
-    if today.weekday() < 5:
-        absent = staff.exclude(id__in=arrived_user_ids | excused_user_ids).count()
-    else:
+        arrived = len(arrived_ids)
+        late = worked.filter(check_in__isnull=False, late_minutes__gt=0).count()
         absent = 0
+        if today.weekday() < 5:
+            absent = len(team_ids - arrived_ids - excused_ids)
 
-    incomplete = AttendanceRecord.objects.filter(
-        user__in=staff,
-        checkout_forgotten=True,
-        checkout_forgotten_resolved_at__isnull=True,
-    ).count()
+        teams.append({
+            "code": code,
+            "label": label,
+            "icon": icon,
+            "total": len(team_ids),
+            "arrived": arrived,
+            "late": late,
+            "absent": absent,
+        })
 
     return {
-        "arrived": arrived,
-        "late": late,
-        "absent": absent,
-        "inside": inside,
-        "checked_out": checked_out,
-        "incomplete": incomplete,
+        "teams": teams,
         "checked_at": timezone.localtime().strftime("%H:%M"),
     }
 
@@ -197,7 +202,7 @@ def patron_dashboard(request):
 
     # Bugünün personel özeti canlı kartlarda kullanılır.
     staff_summary = _today_staff_summary(request.user)
-    forgotten = staff_summary["incomplete"]
+    forgotten = 0
 
     weather = _izmir_weather()
     rate_settings = PriceListSettings.get_solo()
