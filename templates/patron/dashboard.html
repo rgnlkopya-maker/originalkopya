@@ -55,11 +55,6 @@
         <b><span id="staffCheckedOut">{{ staff_summary.checked_out }}</span><small>personel</small></b>
         <span>Çıkış Yaptı</span>
       </a>
-      <a class="stage stage-link" href="{% url 'attendance_dashboard' %}">
-        <i class="bi bi-exclamation-circle"></i>
-        <b><span id="staffIncomplete">{{ staff_summary.incomplete }}</span><small>kayıt</small></b>
-        <span>Eksik Kayıt</span>
-      </a>
     </div>
   </div>
 
@@ -81,7 +76,6 @@
     absent: "staffAbsent",
     inside: "staffInside",
     checked_out: "staffCheckedOut",
-    incomplete: "staffIncomplete"
   };
 
   async function refreshStaffSummary(){
