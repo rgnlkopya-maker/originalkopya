@@ -17,6 +17,7 @@ from attendance.models import AttendanceRecord
 from attendance.views import attendance_calendar_users
 from product_cards.models import PriceListSettings
 from product_cards.price_list_views import _ensure_price_rates
+from quality_tracking.models import QualityIssue
 from .models import Order, OrderEvent, UserProfile
 from .production_stage_control_views import get_unshipped_inactive_orders
 
@@ -226,6 +227,17 @@ def patron_dashboard(request):
     inactive_ids = [row["order"].id for row in inactive_rows]
     inactive_qs = open_orders.filter(id__in=inactive_ids)
 
+    # Dikkat gerektirenler: mevcut operasyon kayıtlarından beslenir.
+    material_missing_qs = open_orders.filter(malzeme_durum="eksik")
+    open_issue_count = (
+        QualityIssue.objects.filter(
+            durum="ACIK",
+            order__is_active=True,
+        )
+        .exclude(order__siparis_tipi="MALZEME")
+        .count()
+    )
+
     # Bugünün personel özeti canlı kartlarda kullanılır.
     staff_summary = _today_staff_summary(request.user)
     forgotten = 0
@@ -265,6 +277,8 @@ def patron_dashboard(request):
         "shipped_count": yesterday_shipped.count(), "shipped_qty": yesterday_shipped_qty,
         "yesterday_new_count": yesterday_new_count, "yesterday_new_qty": yesterday_new_qty,
         "inactive_count": inactive_qs.count(), "inactive_qty": qty(inactive_qs),
+        "material_missing_count": material_missing_qs.count(), "material_missing_qty": qty(material_missing_qs),
+        "open_issue_count": open_issue_count,
         "forgotten_count": forgotten, "attention_count": attention_count,
         "staff_summary": staff_summary,
         "finance": finance, "weather": weather, "rate_info": rate_info,
