@@ -8,7 +8,7 @@ from django.contrib.auth.decorators import login_required
 from django.core.cache import cache
 from django.db.models import Q, Sum, Value, DecimalField
 from django.db.models.functions import Coalesce
-from django.http import HttpResponseForbidden
+from django.http import HttpResponseForbidden, JsonResponse
 from django.shortcuts import render
 from django.utils import timezone
 
@@ -69,6 +69,55 @@ def _izmir_weather():
         return result
     except Exception:
         return None
+
+
+def _today_staff_summary(user):
+    today = timezone.localdate()
+    staff = user.__class__.objects.filter(is_active=True).exclude(
+        Q(is_superuser=True) | Q(groups__name__in=["patron", "mudur"])
+    ).distinct()
+
+    records = AttendanceRecord.objects.filter(work_date=today, user__in=staff)
+    worked = records.filter(status="worked")
+    excused_user_ids = set(
+        records.exclude(status="worked").values_list("user_id", flat=True)
+    )
+
+    arrived_user_ids = set(
+        worked.filter(check_in__isnull=False).values_list("user_id", flat=True)
+    )
+    arrived = len(arrived_user_ids)
+    late = worked.filter(check_in__isnull=False, late_minutes__gt=0).count()
+    inside = worked.filter(check_in__isnull=False, check_out__isnull=True).count()
+    checked_out = worked.filter(check_out__isnull=False).count()
+
+    if today.weekday() < 5:
+        absent = staff.exclude(id__in=arrived_user_ids | excused_user_ids).count()
+    else:
+        absent = 0
+
+    incomplete = AttendanceRecord.objects.filter(
+        user__in=staff,
+        checkout_forgotten=True,
+        checkout_forgotten_resolved_at__isnull=True,
+    ).count()
+
+    return {
+        "arrived": arrived,
+        "late": late,
+        "absent": absent,
+        "inside": inside,
+        "checked_out": checked_out,
+        "incomplete": incomplete,
+        "checked_at": timezone.localtime().strftime("%H:%M"),
+    }
+
+
+@login_required
+def patron_staff_summary(request):
+    if not (request.user.is_superuser or request.user.groups.filter(name__in=["patron", "mudur"]).exists()):
+        return JsonResponse({"ok": False}, status=403)
+    return JsonResponse({"ok": True, **_today_staff_summary(request.user)})
 
 
 @login_required
@@ -146,13 +195,9 @@ def patron_dashboard(request):
     inactive_ids = [row["order"].id for row in inactive_rows]
     inactive_qs = open_orders.filter(id__in=inactive_ids)
 
-    # Personel geldi/gelmedi özeti Patron Ekranı'ndan kaldırıldı.
-    # Sadece aksiyon gerektiren unutulan çıkış sayısı uyarılar için korunuyor.
-    staff = request.user.__class__.objects.filter(is_active=True).exclude(
-        Q(is_superuser=True) | Q(groups__name__in=["patron", "mudur"])
-    ).distinct()
-    y_records = AttendanceRecord.objects.filter(work_date=yesterday, user__in=staff)
-    forgotten = y_records.filter(checkout_forgotten=True, checkout_forgotten_resolved_at__isnull=True).count()
+    # Bugünün personel özeti canlı kartlarda kullanılır.
+    staff_summary = _today_staff_summary(request.user)
+    forgotten = staff_summary["incomplete"]
 
     weather = _izmir_weather()
     rate_settings = PriceListSettings.get_solo()
@@ -189,6 +234,7 @@ def patron_dashboard(request):
         "yesterday_new_count": yesterday_new_count, "yesterday_new_qty": yesterday_new_qty,
         "inactive_count": inactive_qs.count(), "inactive_qty": qty(inactive_qs),
         "forgotten_count": forgotten, "attention_count": attention_count,
+        "staff_summary": staff_summary,
         "finance": finance, "weather": weather, "rate_info": rate_info,
     }
     return render(request, "patron/dashboard.html", context)
