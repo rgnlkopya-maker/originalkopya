@@ -44,6 +44,11 @@
     </div>
   </div>
 
+  <div class="section-head"><div><h2>Bugünün Üretim Özeti</h2><small>{{ today|date:"d.m.Y" }} tarihinde gerçekleşen işlemler · adet toplamı</small></div></div>
+  <div class="cardx">
+    <div class="flow">{% for label,value,icon,stage_code,event_value in today_production %}{% if stage_code == 'sevkiyat_durum' %}<a class="stage stage-link" href="{% url 'sevkiyat_finans_tablosu' %}?start={{ today|date:'Y-m-d' }}&end={{ today|date:'Y-m-d' }}"><i class="bi {{ icon }}"></i><b>{{ value }}<small>adet</small></b><span>{{ label }}</span></a>{% else %}<a class="stage stage-link" href="{% url 'order_list' %}?uretim_stage={{ stage_code|urlencode }}&uretim_value={{ event_value|urlencode }}&uretim_tarih={{ today|date:'Y-m-d' }}"><i class="bi {{ icon }}"></i><b>{{ value }}<small>adet</small></b><span>{{ label }}</span></a>{% endif %}{% endfor %}</div>
+  </div>
+
   <div class="section-head"><div><h2>Dünün Üretim Özeti</h2><small>{{ yesterday|date:"d.m.Y" }} tarihinde gerçekleşen işlemler · adet toplamı</small></div></div>
   <div class="cardx">
     <div class="flow">{% for label,value,icon,stage_code,event_value in production %}{% if stage_code == 'sevkiyat_durum' %}<a class="stage stage-link" href="{% url 'sevkiyat_finans_tablosu' %}?start={{ yesterday|date:'Y-m-d' }}&end={{ yesterday|date:'Y-m-d' }}"><i class="bi {{ icon }}"></i><b>{{ value }}<small>adet</small></b><span>{{ label }}</span></a>{% else %}<a class="stage stage-link" href="{% url 'order_list' %}?uretim_stage={{ stage_code|urlencode }}&uretim_value={{ event_value|urlencode }}&uretim_tarih={{ yesterday|date:'Y-m-d' }}"><i class="bi {{ icon }}"></i><b>{{ value }}<small>adet</small></b><span>{{ label }}</span></a>{% endif %}{% endfor %}</div>
