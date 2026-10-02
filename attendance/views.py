@@ -444,7 +444,26 @@ def reset_device(request, user_id):
 
 def attendance_calendar_users():
     """Puantaj & Mesai Takvimi'nde gorunen personelin tek kaynak listesi."""
-    users = attendance_calendar_users()
+    hidden_attendance_names = {
+        "emine kanyış", "oğuzhan kanyış", "mustafa kanyış", "osman kanyış",
+        "mehmet şener", "mehmet", "mihriban", "patron",
+        "nursel demiral", "nurseldemiral",
+    }
+    active_users = (
+        User.objects.filter(is_active=True)
+        .exclude(groups__name__iexact="patron")
+        .distinct()
+        .order_by("first_name", "username")
+    )
+    users = []
+    for user in active_users:
+        full_name = user.get_full_name().strip().casefold()
+        username = user.username.strip().casefold()
+        if full_name in hidden_attendance_names or username in hidden_attendance_names:
+            continue
+        if full_name == "mihriban" or full_name.startswith("mihriban "):
+            continue
+        users.append(user)
     return users
 
 
@@ -474,26 +493,7 @@ def dashboard(request):
     except (TypeError, ValueError):
         year, month = default_year, default_month
 
-    hidden_attendance_names = {
-        "emine kanyış", "oğuzhan kanyış", "mustafa kanyış", "osman kanyış",
-        "mehmet şener", "mehmet", "mihriban", "patron",
-        "nursel demiral", "nurseldemiral",
-    }
-    active_users = (
-        User.objects.filter(is_active=True)
-        .exclude(groups__name__iexact="patron")
-        .distinct()
-        .order_by("first_name", "username")
-    )
-    users = []
-    for user in active_users:
-        full_name = user.get_full_name().strip().casefold()
-        username = user.username.strip().casefold()
-        if full_name in hidden_attendance_names or username in hidden_attendance_names:
-            continue
-        if "mihriban" in hidden_attendance_names and (full_name == "mihriban" or full_name.startswith("mihriban ")):
-            continue
-        users.append(user)
+    users = attendance_calendar_users()
 
     def period_bounds(period_year, period_month):
         start_date = date(period_year, period_month, 6)
