@@ -212,6 +212,7 @@ class ShowroomDraft(models.Model):
     created_by=models.ForeignKey(settings.AUTH_USER_MODEL,on_delete=models.PROTECT,related_name="showroom_drafts")
     customer=models.ForeignKey("core.Musteri",on_delete=models.SET_NULL,null=True,blank=True,related_name="showroom_drafts")
     order_taken_by=models.CharField(max_length=120,blank=True,default="")
+    delivery_date=models.DateField(null=True,blank=True)
     order_type=models.CharField(max_length=20,choices=Order.SIPARIS_TIPLERI,default="SERI")
     status=models.CharField(max_length=12,choices=STATUS_CHOICES,default="DRAFT")
     currency=models.CharField(max_length=3,choices=CURRENCY_CHOICES,default="TRY")
