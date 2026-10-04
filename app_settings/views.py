@@ -56,7 +56,7 @@ def settings_home(request):
         section = request.POST.get('section')
 
         if section == 'general':
-            system.company_name = request.POST.get('company_name', '').strip() or 'Moli Tekstil'
+            system.company_name = request.POST.get('company_name', '').strip() or 'EYLUS'
             system.company_phone = request.POST.get('company_phone', '').strip()
             system.company_email = request.POST.get('company_email', '').strip()
             system.company_address = request.POST.get('company_address', '').strip()
@@ -69,7 +69,7 @@ def settings_home(request):
             messages.success(request, 'Firma ve sipariş ayarları kaydedildi.')
 
         elif section == 'attendance':
-            workplace.name = request.POST.get('workplace_name', '').strip() or 'Moli Tekstil'
+            workplace.name = request.POST.get('workplace_name', '').strip() or 'EYLUS'
             workplace.work_start = _time_value(request.POST.get('work_start'), workplace.work_start)
             workplace.work_end = _time_value(request.POST.get('work_end'), workplace.work_end)
             try:
