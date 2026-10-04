@@ -5,7 +5,7 @@ from django.dispatch import receiver
 
 
 class SystemSettings(models.Model):
-    company_name = models.CharField(max_length=160, default="Moli Tekstil")
+    company_name = models.CharField(max_length=160, default="EYLUS")
     company_phone = models.CharField(max_length=40, blank=True, default="")
     company_email = models.EmailField(blank=True, default="")
     company_address = models.TextField(blank=True, default="")
@@ -44,7 +44,7 @@ class SystemSettings(models.Model):
         return obj
 
     def __str__(self):
-        return "Moli Sistem Ayarları"
+        return "EYLUS Sistem Ayarları"
 
 
 class UserAccess(models.Model):
