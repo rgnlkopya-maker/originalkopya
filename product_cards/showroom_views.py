@@ -1,4 +1,5 @@
 import json
+from datetime import datetime
 from collections import Counter
 from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 
@@ -341,7 +342,8 @@ def showroom_draft_autosave(request):
     customer_id=payload.get("customer_id") or None; order_taken_by=str(payload.get("order_taken_by") or "").strip()[:120]; delivery_date_raw=str(payload.get("delivery_date") or "").strip(); delivery_date=None
     if delivery_date_raw:
         try: delivery_date=datetime.strptime(delivery_date_raw, "%Y-%m-%d").date()
-        except ValueError: return JsonResponse({"ok":False,"message":"Teslimat tarihi geçersiz."},status=400); order_type=str(payload.get("order_type") or "SERI").strip().upper(); raw_items=payload.get("items") or []; raw_payments=payload.get("payments") or []; pricing_operations=_normalize_pricing_operations(payload.get("pricing_operations") or []); raw_target=payload.get("folio_adjustment_target"); folio_adjustment_target=None if raw_target in (None,"") else max(Decimal("0"),_decimal(raw_target,"0")); pricing_operations=_normalize_pricing_operations(payload.get("pricing_operations") or []); raw_target=payload.get("folio_adjustment_target"); folio_adjustment_target=None if raw_target in (None,"") else max(Decimal("0"),_decimal(raw_target,"0")); vat_rate=max(Decimal("0"),min(Decimal("100"),_decimal(payload.get("vat_rate"),"0"))); previous_balance=max(Decimal("0"),_decimal(payload.get("previous_balance"),"0"))
+        except ValueError: return JsonResponse({"ok":False,"message":"Teslimat tarihi geçersiz."},status=400)
+    order_type=str(payload.get("order_type") or "SERI").strip().upper(); raw_items=payload.get("items") or []; raw_payments=payload.get("payments") or []; pricing_operations=_normalize_pricing_operations(payload.get("pricing_operations") or []); raw_target=payload.get("folio_adjustment_target"); folio_adjustment_target=None if raw_target in (None,"") else max(Decimal("0"),_decimal(raw_target,"0")); vat_rate=max(Decimal("0"),min(Decimal("100"),_decimal(payload.get("vat_rate"),"0"))); previous_balance=max(Decimal("0"),_decimal(payload.get("previous_balance"),"0"))
     if not isinstance(raw_items,list) or not isinstance(raw_payments,list): return JsonResponse({"ok":False,"message":"Föy verisi geçersiz."},status=400)
     customer=Musteri.objects.filter(pk=customer_id).first() if customer_id else None
     validation_error = _validate_customer_base_price_rows(customer, raw_items)
