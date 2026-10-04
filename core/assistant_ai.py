@@ -18,7 +18,7 @@ MAX_MODEL_ROWS = 30
 MAX_TARGET_ROWS = 50
 MAX_VALUE_CHARS = 220
 
-# Django altyapı tabloları şirket verisi değildir. Yeni Moli uygulamaları/model tabloları ise
+# Django altyapı tabloları şirket verisi değildir. Yeni EYLUS uygulamaları/model tabloları ise
 # otomatik olarak keşfedilir ve salt okunur bağlama dahil edilir.
 EXCLUDED_APP_LABELS = {"admin", "contenttypes", "sessions", "messages", "staticfiles"}
 SENSITIVE_FIELD_PARTS = {
@@ -75,7 +75,7 @@ def _safe_value(value):
 
 
 def _business_models():
-    """Moli'nin mevcut ve gelecekte eklenecek iş modellerini otomatik keşfet."""
+    """EYLUS'un mevcut ve gelecekte eklenecek iş modellerini otomatik keşfet."""
     discovered = []
     for model in apps.get_models():
         meta = model._meta
@@ -184,7 +184,7 @@ def _dynamic_business_context(message):
     models_found = _business_models()
     scored = sorted(((m, _relevance_score(m, message)) for m in models_found), key=lambda x: (-x[1], x[0]._meta.label))
 
-    lines = ["", "MOLI GENEL VERİ KATALOĞU (SALT OKUNUR):"]
+    lines = ["", "EYLUS GENEL VERİ KATALOĞU (SALT OKUNUR):"]
     for model, _score in scored:
         try:
             count = model._default_manager.count()
@@ -233,7 +233,7 @@ def _dynamic_business_context(message):
 
 
 def build_moli_context(user, message):
-    """Moli veritabanını yalnızca SELECT sorguları ile okur; hiçbir yazma işlemi içermez."""
+    """EYLUS veritabanını yalnızca SELECT sorguları ile okur; hiçbir yazma işlemi içermez."""
     today = timezone.localdate()
     latest = _latest_event_subquery()
     qs = (
@@ -248,7 +248,7 @@ def build_moli_context(user, message):
 
     active = qs.filter(is_active=True)
     lines = [
-        "MOLI VERİLERİ (SALT OKUNUR / TAM İŞ VERİSİ ERİŞİMİ):",
+        "EYLUS VERİLERİ (SALT OKUNUR / TAM İŞ VERİSİ ERİŞİMİ):",
         f"Bugün: {today.isoformat()}",
         f"Aktif sipariş: {active.count()}",
         f"Sevk edilmiş aktif kayıt: {active.filter(latest_stage='sevkiyat_durum', latest_value='gonderildi').count()}",
@@ -306,10 +306,10 @@ def ask_gemini(user, message, history):
     moli_context = build_moli_context(user, message)
 
     system_text = f"""
-Sen MoliApp içindeki Moli Asistan'sın. Türkçe konuş.
+Sen EYLUS içindeki EYLUS Asistan'sın. Türkçe konuş.
 
-MoliApp veritabanındaki iş verilerine GENİŞ SALT OKUNUR erişimin vardır. Sana her soruda mevcut veri
-kataloğu, model alanları ve soruyla ilgili kayıtlar sağlanır. Yeni MoliApp modelleri eklendiğinde bunlar da
+EYLUS veritabanındaki iş verilerine GENİŞ SALT OKUNUR erişimin vardır. Sana her soruda mevcut veri
+kataloğu, model alanları ve soruyla ilgili kayıtlar sağlanır. Yeni EYLUS modelleri eklendiğinde bunlar da
 otomatik olarak veri kataloğuna dahil edilir. Veriyi analiz edebilir, sayabilir, karşılaştırabilir, özetleyebilir,
 risk/gecikme/hata eğilimleri çıkarabilir ve öneri sunabilirsin.
 
