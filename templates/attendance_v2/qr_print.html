@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Moli Puantaj QR</title>
+  <title>EYLUS Puantaj QR</title>
   <style>
     *{box-sizing:border-box}
     html,body{margin:0;min-height:100%;font-family:Arial,sans-serif;color:#18211f;background:#f3f4f6}
@@ -29,16 +29,16 @@
 </head>
 <body>
   <main class="sheet">
-    <div class="brand">MoliApp</div>
+    <div class="brand">EYLUS</div>
 
     <div class="instruction">Mesainiz başlarken ve mesainiz biterken QR kodunu okutun.</div>
     <div class="location">Konum doğrulamasına izin verin.</div>
 
     <div class="qr-wrap">
-      <img src="{% url 'attendance_qr_image' %}" alt="Moli Puantaj QR">
+      <img src="{% url 'attendance_qr_image' %}" alt="EYLUS Puantaj QR">
     </div>
 
-    <div class="footer">Moli Tekstil • İzmir</div>
+    <div class="footer">EYLUS • İzmir</div>
     <div class="actions"><button onclick="window.print()">Yazdır</button></div>
   </main>
 </body>
