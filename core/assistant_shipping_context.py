@@ -28,7 +28,7 @@ def build_shipping_context():
     )
 
     lines = [
-        "MOLI SEVKIYAT PLANLAMA TAKVIMI (SALT OKUNUR):",
+        "EYLUS SEVKIYAT PLANLAMA TAKVIMI (SALT OKUNUR):",
         f"Bugün: {today.isoformat()}",
         f"Önümüzdeki hafta: {next_week_start.isoformat()} - {next_week_end.isoformat()}",
         "ÖNEMLİ: Sevkiyat Planı, sipariş teslim tarihinden ayrı bir kaynaktır. Kullanıcı 'planlanan sevkiyat', 'sevkiyat takvimi', 'önümüzdeki hafta sevkiyat' gibi bir şey sorarsa aşağıdaki ShipmentPlan ve sevkiyat notlarını esas al. Teslim tarihiyle karıştırma.",
