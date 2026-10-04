@@ -94,7 +94,7 @@ def service_worker(request):
     js = r'''self.addEventListener('push', function(event) {
   let data = {};
   try { data = event.data ? event.data.json() : {}; } catch (e) { data = {body: event.data ? event.data.text() : ''}; }
-  const title = data.title || 'MoliApp';
+  const title = data.title || 'EYLUS';
   const options = {
     body: data.body || 'Yeni mesajınız var.',
     icon: '/static/icons/icon-192.png',
@@ -163,7 +163,7 @@ def send_push_to_user(user, title, body, url="/", tag="moli-reminder"):
         return 0
 
     payload = json.dumps({
-        "title": title or "MoliApp",
+        "title": title or "EYLUS",
         "body": body or "Hatırlatmanız var.",
         "url": url or "/",
         "tag": tag or "moli-reminder",
@@ -186,7 +186,7 @@ def send_chat_push(message):
     if not public_key or not private_key:
         return
 
-    sender_name = "MoliApp"
+    sender_name = "EYLUS"
     if message.sender:
         sender_name = message.sender.get_full_name() or message.sender.username
     preview = (message.body or "").strip()
@@ -204,7 +204,7 @@ def send_chat_push(message):
         return
 
     payload = json.dumps({
-        "title": sender_name if message.thread.thread_type == "direct" else (message.thread.name or "MoliApp Grubu"),
+        "title": sender_name if message.thread.thread_type == "direct" else (message.thread.name or "EYLUS Grubu"),
         "body": preview,
         "url": f"/mesajlar/{message.thread_id}/",
         "tag": f"moli-chat-{message.thread_id}",
@@ -263,7 +263,7 @@ def push_test_once(request):
                 "keys": {"p256dh": sub.p256dh, "auth": sub.auth},
             },
             data=json.dumps({
-                "title": "MoliApp",
+                "title": "EYLUS",
                 "body": "Test bildirimi başarılı 🎉",
                 "url": "/mesajlar/",
                 "tag": "moli-push-test",
@@ -289,7 +289,7 @@ def send_test_push_to_user(user):
                 "keys": {"p256dh": sub.p256dh, "auth": sub.auth},
             },
             data=json.dumps({
-                "title": "MoliApp",
+                "title": "EYLUS",
                 "body": "Test bildirimi başarılı 🎉",
                 "url": "/mesajlar/",
                 "tag": "moli-push-test",
