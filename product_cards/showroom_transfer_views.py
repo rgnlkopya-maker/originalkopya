@@ -298,6 +298,7 @@ def showroom_transfer_create(request, draft_id):
                 urun_tipi=row["urun_tipi"],
                 renk=row["renk"] or None,
                 beden=row["beden"] or None,
+                teslim_tarihi=draft.delivery_date,
                 adet=1,
                 aciklama=row["aciklama"] or None,
                 satis_fiyati=final_price,
