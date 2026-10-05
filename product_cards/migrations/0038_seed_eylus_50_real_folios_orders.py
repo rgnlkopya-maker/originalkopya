@@ -39,6 +39,19 @@ def seed_eylus_demo_folios_and_orders(apps, schema_editor):
     methods = ["CASH", "CARD", "CHECK", "NOTE"]
     today = date(2026, 10, 4)
 
+    next_numbers = {}
+    for order_type in ["SERI", "OZEL", "TEKLI"]:
+        prefix = "OZEL" if order_type == "OZEL" else order_type
+        max_num = 0
+        for existing in Order.objects.filter(siparis_tipi=order_type).exclude(siparis_numarasi="").values_list("siparis_numarasi", flat=True):
+            digits = "".join(ch for ch in (existing or "") if ch.isdigit())
+            if digits:
+                try:
+                    max_num = max(max_num, int(digits))
+                except ValueError:
+                    pass
+        next_numbers[order_type] = max_num + 1
+
     for i in range(50):
         customer = customers[i % len(customers)]
         card = cards[(i * 7) % len(cards)]
@@ -99,8 +112,17 @@ def seed_eylus_demo_folios_and_orders(apps, schema_editor):
             net_price = net_price * (Decimal("1") - discount / Decimal("100"))
         net_price = net_price.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
 
+        order_type = draft.order_type
+        prefix = "OZEL" if order_type == "OZEL" else order_type
+        order_number = f"{prefix}{next_numbers[order_type]:04d}"
+        while Order.objects.filter(siparis_numarasi=order_number).exists():
+            next_numbers[order_type] += 1
+            order_number = f"{prefix}{next_numbers[order_type]:04d}"
+        next_numbers[order_type] += 1
+
         order = Order.objects.create(
-            siparis_tipi=draft.order_type,
+            siparis_tipi=order_type,
+            siparis_numarasi=order_number,
             musteri=customer,
             urun_kodu=code,
             urun_tipi=getattr(card.urun, "urun_tipi", "") or "",
