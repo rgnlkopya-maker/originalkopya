@@ -422,7 +422,19 @@ $(document).ready(function () {
         const rowEl = document.querySelector(`.renk-beden-row[data-index="${index}"]`);
         initSelect2(rowEl);
         initAutocomplete(rowEl);
-        applyCustomerPricingMode();
+
+        // Yeni satir ilk satirla ayni gorunum kurallarini kullansin.
+        // Ozel basen fiyatlandirmasi yoksa Bedenler alani mutlaka gorunsun.
+        const activeRule = activeCustomerPricingRule();
+        const standardField = rowEl.querySelector(".standard-size-field");
+        const hipField = rowEl.querySelector(".hip-pricing-field");
+        const hipInput = rowEl.querySelector(".hip-measurement");
+        const pricingEnabled = Boolean(activeRule);
+        if (standardField) standardField.classList.toggle("d-none", pricingEnabled);
+        if (hipField) hipField.classList.toggle("d-none", !pricingEnabled);
+        if (hipInput) hipInput.required = pricingEnabled;
+
+        refreshCustomerPricePreview(rowEl);
         index++;
     });
 
