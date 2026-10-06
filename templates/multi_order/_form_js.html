@@ -420,8 +420,15 @@ $(document).ready(function () {
         let row = `<div class="renk-beden-card renk-beden-row" data-index="${index}"><div class="row"><div class="col-md-3"><label class="form-label">Renk</label><select name="renk_row_${index}" class="form-select renk-select"><option></option>{% for r in renkler %}<option value="{{ r.ad }}">{{ r.ad }}</option>{% endfor %}</select></div><div class="col-md-4 standard-size-field"><label class="form-label">Bedenler</label><select name="beden_row_${index}[]" class="form-select select2 beden-select" multiple>{% for b in bedenler %}<option value="{{ b.ad }}">{{ b.ad }}</option>{% endfor %}</select></div><div class="col-md-4 hip-pricing-field d-none"><label class="form-label">Basen Ölçüsü (cm)</label><input type="number" min="1" step="0.1" name="basen_row_${index}" class="form-control hip-measurement" placeholder="Örn: 113"><div class="small mt-2 customer-price-preview text-muted">Ölçü girildiğinde beden ve fiyat hesaplanır.</div></div><div class="col-md-2"><label class="form-label">Adet</label><input type="number" min="1" value="1" name="adet_row_${index}" class="form-control"></div><div class="col-md-3"><label class="form-label">Müşteri Ref</label><input type="text" name="musteri_ref_row_${index}" class="form-control"></div></div><div class="mt-3 text-end"><button type="button" class="btn btn-danger remove-row">Sil</button></div></div>`;
         $("#rows-container").append(row);
         const rowEl = document.querySelector(`.renk-beden-row[data-index="${index}"]`);
-        initSelect2(rowEl);
         initAutocomplete(rowEl);
+
+        // Beden alanini sayfa acilisinda kullanilan ayni Select2 akisi ile kur.
+        // Boylece yeni satir ile ilk satir birebir ayni davranir.
+        if (typeof refreshBedenSelects === "function") {
+            refreshBedenSelects();
+        } else {
+            initSelect2(rowEl);
+        }
 
         // Yeni satir ilk satirla ayni gorunum kurallarini kullansin.
         // Ozel basen fiyatlandirmasi yoksa Bedenler alani mutlaka gorunsun.
