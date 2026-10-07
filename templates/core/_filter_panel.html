@@ -68,12 +68,14 @@
         </select>
       </div>
 
+{% if is_manager or request.user.username == "Tahir" %}
       <div class="filter-field">
         <label class="filter-label">Son Durum</label>
         <select id="f_status" class="filter-select" multiple>
           {% for s in status_options %}<option value="{{ s }}">{{ s }}</option>{% endfor %}
         </select>
       </div>
+{% endif %}
 
       <div class="filter-field">
         <label class="filter-label">Son Durum Tarihi</label>
@@ -115,15 +117,19 @@
         </select>
       </div>
 
+{% if is_manager or request.user.username == "Tahir" %}
       <div class="filter-field">
         <label class="filter-label">Sipariş Girilme Tarihi</label>
         <div class="date-pair"><input id="f_siparis_baslangic" class="date-input" type="date" title="Başlangıç"><input id="f_siparis_bitis" class="date-input" type="date" title="Bitiş"></div>
       </div>
+{% endif %}
 
+{% if is_manager or request.user.username == "Tahir" %}
       <div class="filter-field">
         <label class="filter-label">Planlanan Teslim Tarihi</label>
         <div class="date-pair"><input id="f_teslim_baslangic" class="date-input" type="date" title="Başlangıç"><input id="f_teslim_bitis" class="date-input" type="date" title="Bitiş"></div>
       </div>
+{% endif %}
 
       <div class="filter-field">
         <label class="filter-label">Etiket Durumu</label>
