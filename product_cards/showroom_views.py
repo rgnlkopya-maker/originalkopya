@@ -636,6 +636,15 @@ def showroom_edit_save(request,draft_id):
             for size in row.get("bedenler") or []: create_rows.append(ShowroomDraftItem(draft=draft,product_card=card,color=str(row.get("renk") or "")[:120],size=str(size or "")[:120],description=str(row.get("aciklama") or "")[:500],quantity=qty,unit_price=price))
     if not create_rows: return JsonResponse({"ok":False,"message":"Geçerli ürün satırı bulunamadı."},status=400)
     payment_rows=_build_payment_rows(draft,raw_payments)
+    if draft.status == "TRANSFERRED":
+        proposed_currency = str(payload.get("currency", draft.currency or "TRY")).upper()
+        if proposed_currency != (draft.currency or "TRY"):
+            return JsonResponse({"ok": False, "message": "Siparise aktarilmis foyun para birimi degistirilemez."}, status=400)
+        if proposed_currency != "TRY":
+            field = proposed_currency.lower() + "_try"
+            proposed_rate = _decimal(payload.get(field, getattr(draft, field)), "0")
+            if proposed_rate != getattr(draft, field):
+                return JsonResponse({"ok": False, "message": "Siparise aktarilmis foyun sabit satis kuru degistirilemez."}, status=400)
     with transaction.atomic():
         # Siparişe aktarılmış föylerde bağlantıları item silinmeden önce sakla.
         existing_links = list(
