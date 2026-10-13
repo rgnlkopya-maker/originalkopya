@@ -29,7 +29,8 @@ def create_table_if_needed(apps, schema_editor):
     if schema_editor.connection.vendor == "postgresql":
         schema_editor.execute(CREATE_TABLE_IF_MISSING)
     elif schema_editor.connection.vendor == "sqlite":
-        model = apps.get_model("product_cards", "ShowroomOrderLink")
+        from django.apps import apps as global_apps
+        model = global_apps.get_model("product_cards", "ShowroomOrderLink")
         if model._meta.db_table not in schema_editor.connection.introspection.table_names():
             schema_editor.create_model(model)
 
