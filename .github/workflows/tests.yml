@@ -19,10 +19,10 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
       - name: Check for model changes without migrations
-        continue-on-error: true
         run: python manage.py makemigrations --check --dry-run
         env:
           DEBUG: 'False'
+          SECRET_KEY: 'ci-test-only-not-for-production-2026'
       - name: Run tests
         run: python manage.py test --verbosity 2
         env:
