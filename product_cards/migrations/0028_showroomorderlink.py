@@ -25,6 +25,15 @@ CREATE INDEX IF NOT EXISTS product_cards_showroomorderlink_draft_item_id_idx
 """
 
 
+def create_table_if_needed(apps, schema_editor):
+    if schema_editor.connection.vendor == "postgresql":
+        schema_editor.execute(CREATE_TABLE_IF_MISSING)
+    elif schema_editor.connection.vendor == "sqlite":
+        model = apps.get_model("product_cards", "ShowroomOrderLink")
+        if model._meta.db_table not in schema_editor.connection.introspection.table_names():
+            schema_editor.create_model(model)
+
+
 class Migration(migrations.Migration):
     dependencies = [
         ("product_cards", "0027_showroomdraft_pricing_operations"),
@@ -34,7 +43,7 @@ class Migration(migrations.Migration):
     operations = [
         migrations.SeparateDatabaseAndState(
             database_operations=[
-                migrations.RunSQL(CREATE_TABLE_IF_MISSING, migrations.RunSQL.noop),
+                migrations.RunPython(create_table_if_needed, migrations.RunPython.noop),
             ],
             state_operations=[
                 migrations.CreateModel(
