@@ -48,6 +48,7 @@ CURRENCY_CHOICES = (
     ("TRY", "TRY"),
     ("USD", "USD"),
     ("EUR", "EUR"),
+    ("GBP", "GBP"),
 )
 
 URUN_TIPI_CHOICES = (
