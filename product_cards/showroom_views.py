@@ -16,6 +16,7 @@ from core.order_list_enhanced import STAGE_TRANSLATIONS
 from .price_list_views import _ensure_price_rates
 from .models import PriceListSettings, ProductCard, ShowroomDraft, ShowroomDraftItem, ShowroomOrderLink
 from .payment_models import ShowroomPayment
+from .sales_fx import sale_amount_in_try
 from .price_list_views import _can_manage, _ensure_price_rates, _price_rows, _real_profit_rate
 from .drive_folio_backup import queue_folio_drive_sync
 
@@ -720,9 +721,9 @@ def showroom_edit_save(request,draft_id):
                         snap = None
                     if snap is not None:
                         sale_tl = (
-                            final_price * Decimal(snap.usd_try)
-                            if (order.para_birimi or "TRY") == "USD" and snap.usd_try
-                            else final_price
+                            sale_amount_in_try(final_price, order.para_birimi, order.satis_kuru)
+                            if order.satis_kuru is not None else
+                            (final_price * Decimal(snap.usd_try) if (order.para_birimi or "TRY") == "USD" and snap.usd_try else final_price)
                         )
                         profit = (
                             sale_tl - Decimal(snap.maliyet_tl)
@@ -750,9 +751,9 @@ def showroom_edit_save(request,draft_id):
                         shipment = None
                     if shipment is not None:
                         shipment_sale_tl = (
-                            final_price * Decimal(shipment.usd_try)
-                            if (order.para_birimi or "TRY") == "USD" and shipment.usd_try
-                            else final_price
+                            sale_amount_in_try(final_price, order.para_birimi, order.satis_kuru)
+                            if order.satis_kuru is not None else
+                            (final_price * Decimal(shipment.usd_try) if (order.para_birimi or "TRY") == "USD" and shipment.usd_try else final_price)
                         )
                         shipment_profit = (
                             shipment_sale_tl - Decimal(shipment.toplam_maliyet_tl)
