@@ -183,9 +183,13 @@ def _draft_summary(draft):
     folio_adjustment_applied = draft.folio_adjustment_target is not None
     if pricing_ops and folio_adjustment_applied:
         folio_adjustment = pricing["adjustment"]
-    previous_balance=max(Decimal("0"),draft.previous_balance or Decimal("0")); total=folio_total+previous_balance
+    previous_balance=max(Decimal("0"),draft.previous_balance or Decimal("0"))
+    currency=draft.currency or "TRY"
+    rate=Decimal("1") if currency=="TRY" else Decimal(getattr(draft,currency.lower()+"_try"))
+    previous_balance_sale=previous_balance if currency=="TRY" else (previous_balance/rate if rate.is_finite() and rate>0 else Decimal("0"))
+    total=folio_total+previous_balance_sale
     collected=draft.payments.filter(entry_type="COLLECTION").aggregate(v=Sum("amount"))["v"] or Decimal("0"); promised=draft.payments.filter(entry_type="PROMISE").aggregate(v=Sum("amount"))["v"] or Decimal("0"); remaining=max(Decimal("0"),total-collected)
-    return {"id":draft.id,"customer":draft.customer.ad if draft.customer else "Müşteri seçilmedi","product_count":items["product_count"] or 0,"total_qty":items["total_qty"] or 0,"subtotal":str(subtotal.quantize(Decimal("0.01"))),"discount":str(discount.quantize(Decimal("0.01"))),"vat_rate":str(vat_rate.quantize(Decimal("0.01"))),"vat":str(vat.quantize(Decimal("0.01"))),"pricing_steps":pricing_steps,"folio_adjustment":str(folio_adjustment.quantize(Decimal("0.01"))),"folio_adjustment_applied":folio_adjustment_applied,"folio_total":str(folio_total.quantize(Decimal("0.01"))),"previous_balance":str(previous_balance.quantize(Decimal("0.01"))),"total":str(total.quantize(Decimal("0.01"))),"collected":str(collected.quantize(Decimal("0.01"))),"promised":str(promised.quantize(Decimal("0.01"))),"remaining":str(remaining.quantize(Decimal("0.01"))),"updated_at":timezone.localtime(draft.updated_at).strftime("%d.%m.%Y %H:%M"),"status":draft.status}
+    return {"id":draft.id,"customer":draft.customer.ad if draft.customer else "Müşteri seçilmedi","product_count":items["product_count"] or 0,"total_qty":items["total_qty"] or 0,"subtotal":str(subtotal.quantize(Decimal("0.01"))),"discount":str(discount.quantize(Decimal("0.01"))),"vat_rate":str(vat_rate.quantize(Decimal("0.01"))),"vat":str(vat.quantize(Decimal("0.01"))),"pricing_steps":pricing_steps,"folio_adjustment":str(folio_adjustment.quantize(Decimal("0.01"))),"folio_adjustment_applied":folio_adjustment_applied,"folio_total":str(folio_total.quantize(Decimal("0.01"))),"previous_balance":str(previous_balance.quantize(Decimal("0.01"))),"previous_balance_sale":str(previous_balance_sale.quantize(Decimal("0.01"))),"currency":currency,"total":str(total.quantize(Decimal("0.01"))),"collected":str(collected.quantize(Decimal("0.01"))),"promised":str(promised.quantize(Decimal("0.01"))),"remaining":str(remaining.quantize(Decimal("0.01"))),"updated_at":timezone.localtime(draft.updated_at).strftime("%d.%m.%Y %H:%M"),"status":draft.status}
 
 
 def _effective_price_factor(draft):
