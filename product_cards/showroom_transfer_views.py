@@ -281,9 +281,13 @@ def showroom_transfer_create(request, draft_id):
     if sale_currency not in {"TRY", "USD", "EUR", "GBP"}:
         messages.error(request, "Gecersiz satis para birimi.")
         return redirect("showroom_transfer_preview", draft_id=draft.id)
-    sale_rate = Decimal("1") if sale_currency == "TRY" else Decimal(
-        getattr(draft, sale_currency.lower() + "_try")
-    )
+    try:
+        sale_rate = Decimal("1") if sale_currency == "TRY" else Decimal(
+            str(getattr(draft, sale_currency.lower() + "_try"))
+        )
+    except (TypeError, ValueError, ArithmeticError):
+        messages.error(request, "Gecerli bir satis kuru girilmelidir.")
+        return redirect("showroom_transfer_preview", draft_id=draft.id)
     if not sale_rate.is_finite() or sale_rate <= 0:
         messages.error(request, "Gecerli bir satis kuru girilmelidir.")
         return redirect("showroom_transfer_preview", draft_id=draft.id)
