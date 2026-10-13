@@ -131,7 +131,11 @@ def _apply_sale_fx(draft, payload):
     rates = {}
     for code in ("usd", "eur", "gbp"):
         key = code + "_try"
-        value = _decimal(payload.get(key, getattr(draft, key)), "0")
+        raw = payload.get(key, getattr(draft, key))
+        try:
+            value = Decimal(str(raw))
+        except (InvalidOperation, TypeError, ValueError):
+            raise ValueError("Gecersiz satis kuru: " + code.upper()) from None
         if not value.is_finite() or value <= 0:
             raise ValueError("Satis kuru sifirdan buyuk olmalidir")
         rates[key] = value
