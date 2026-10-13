@@ -378,6 +378,11 @@ def showroom_draft_autosave(request):
     validation_error = _validate_customer_base_price_rows(customer, raw_items)
     if validation_error:
         return JsonResponse({"ok":False,"message":validation_error},status=400)
+    from copy import copy
+    try:
+        _apply_sale_fx(copy(_active_draft(request.user) or ShowroomDraft()), payload)
+    except ValueError as exc:
+        return JsonResponse({"ok": False, "message": str(exc)}, status=400)
     with transaction.atomic():
         _lock_showroom_user(request.user)
         draft=_active_draft(request.user) or _create_draft(request.user,customer); _apply_sale_fx(draft,payload); draft.customer=customer; draft.order_taken_by=order_taken_by; draft.order_type=order_type if order_type in dict(Order.SIPARIS_TIPLERI) else "SERI"; draft.pricing_operations=pricing_operations; draft.folio_adjustment_target=folio_adjustment_target; draft.vat_rate=vat_rate; draft.previous_balance=previous_balance; draft.save(update_fields=["customer","order_taken_by","order_type","pricing_operations","folio_adjustment_target","vat_rate","previous_balance","currency","usd_try","eur_try","gbp_try","updated_at"]); draft.items.all().delete(); create_rows=[]
@@ -644,6 +649,11 @@ def showroom_edit_save(request,draft_id):
             for size in row.get("bedenler") or []: create_rows.append(ShowroomDraftItem(draft=draft,product_card=card,color=str(row.get("renk") or "")[:120],size=str(size or "")[:120],description=str(row.get("aciklama") or "")[:500],quantity=qty,unit_price=price))
     if not create_rows: return JsonResponse({"ok":False,"message":"Geçerli ürün satırı bulunamadı."},status=400)
     payment_rows=_build_payment_rows(draft,raw_payments)
+    from copy import copy
+    try:
+        _apply_sale_fx(copy(draft), payload)
+    except ValueError as exc:
+        return JsonResponse({"ok": False, "message": str(exc)}, status=400)
     if draft.status == "TRANSFERRED":
         proposed_currency = str(payload.get("currency", draft.currency or "TRY")).upper()
         if proposed_currency != (draft.currency or "TRY"):
