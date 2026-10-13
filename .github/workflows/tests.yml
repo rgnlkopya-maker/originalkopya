@@ -30,3 +30,4 @@ jobs:
           DEBUG: 'False'
           BASE_URL: 'http://127.0.0.1:8000'
           SUPABASE_BUCKET_NAME: 'order-qr'
+          SECRET_KEY: 'ci-test-only-not-for-production-2026'
