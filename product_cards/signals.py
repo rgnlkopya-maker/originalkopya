@@ -5,6 +5,7 @@ from django.dispatch import receiver
 
 from core.models import Order, ProductCost, UrunKod
 from .models import ExchangeRate, OrderFinancialSnapshot, ProductCard, ShipmentFinancialSnapshot, amount_to_try
+from .sales_fx import sale_amount_in_try
 
 
 @receiver(post_save, sender=UrunKod)
@@ -28,7 +29,7 @@ def sync_order_financial_snapshot(sender, instance, created, **kwargs):
 
     sale = Decimal(instance.satis_fiyati or 0)
     sale_currency = instance.para_birimi or "TRY"
-    sale_tl = amount_to_try(sale, sale_currency, usd_try)
+    sale_tl = sale_amount_in_try(sale, sale_currency, instance.satis_kuru) if instance.satis_kuru is not None else amount_to_try(sale, sale_currency, usd_try)
 
     product_cost = ProductCost.objects.filter(
         urun_kodu__iexact=(instance.urun_kodu or ""),
@@ -74,7 +75,7 @@ def sync_order_financial_snapshot(sender, instance, created, **kwargs):
     # ShipmentFinancialSnapshot satış tarafı da aynı kayıtta senkronlanmalıdır.
     snapshot.usd_try = snapshot.usd_try or usd_try
     conversion_rate = snapshot.usd_try or usd_try
-    sale_tl = amount_to_try(sale, sale_currency, conversion_rate)
+    sale_tl = sale_amount_in_try(sale, sale_currency, instance.satis_kuru) if instance.satis_kuru is not None else amount_to_try(sale, sale_currency, conversion_rate)
     shipped = ShipmentFinancialSnapshot.objects.filter(order=instance).exists()
 
     if shipped:
@@ -84,7 +85,7 @@ def sync_order_financial_snapshot(sender, instance, created, **kwargs):
         if shipment_snapshot is not None:
             shipment_rate = shipment_snapshot.usd_try or conversion_rate
 
-            shipment_sale_tl = amount_to_try(sale, sale_currency, shipment_rate)
+            shipment_sale_tl = sale_amount_in_try(sale, sale_currency, instance.satis_kuru) if instance.satis_kuru is not None else amount_to_try(sale, sale_currency, shipment_rate)
 
             base_cost_tl = None
             extra_cost_tl = Decimal("0")
