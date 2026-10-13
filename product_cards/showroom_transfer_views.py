@@ -277,6 +277,17 @@ def showroom_transfer_create(request, draft_id):
         messages.error(request, "Bu Föyü KONSİNYE siparişine dönüştürme yetkiniz yok.")
         return redirect("showroom_transfer_preview", draft_id=draft.id)
 
+    sale_currency = draft.currency or "TRY"
+    if sale_currency not in {"TRY", "USD", "EUR", "GBP"}:
+        messages.error(request, "Gecersiz satis para birimi.")
+        return redirect("showroom_transfer_preview", draft_id=draft.id)
+    sale_rate = Decimal("1") if sale_currency == "TRY" else Decimal(
+        getattr(draft, sale_currency.lower() + "_try")
+    )
+    if not sale_rate.is_finite() or sale_rate <= 0:
+        messages.error(request, "Gecerli bir satis kuru girilmelidir.")
+        return redirect("showroom_transfer_preview", draft_id=draft.id)
+
     customer = draft.customer
     cost_cache = {}
     created = 0
@@ -301,6 +312,7 @@ def showroom_transfer_create(request, draft_id):
                 adet=1,
                 aciklama=row["aciklama"] or None,
                 satis_fiyati=final_price,
+                satis_kuru=sale_rate,
                 vat_rate=vat_rate_for_order,
                 para_birimi=draft.currency or "TRY",
                 maliyet_uygulanan=cost,
