@@ -116,7 +116,10 @@ def _payment_data(draft):
 
 def _sale_fx_payload(draft):
     if not draft:
-        return {"currency": "TRY", "usd_try": "1", "eur_try": "1", "gbp_try": "1"}
+        settings = PriceListSettings.get_solo()
+        _ensure_price_rates(settings)
+        return {"currency": "TRY", "usd_try": str(settings.usd_try),
+                "eur_try": str(settings.eur_try), "gbp_try": str(settings.gbp_try)}
     return {"currency": draft.currency or "TRY", "usd_try": str(draft.usd_try),
             "eur_try": str(draft.eur_try), "gbp_try": str(draft.gbp_try)}
 
