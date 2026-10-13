@@ -113,9 +113,31 @@ def _payment_data(draft):
     return [{"entry_type":p.entry_type,"method":p.method,"amount":str(p.amount),"payment_date":p.payment_date.isoformat() if p.payment_date else "","due_date":p.due_date.isoformat() if p.due_date else "","note":p.note} for p in draft.payments.all().order_by("due_date","payment_date","id")]
 
 
+def _sale_fx_payload(draft):
+    if not draft:
+        return {"currency": "TRY", "usd_try": "1", "eur_try": "1", "gbp_try": "1"}
+    return {"currency": draft.currency or "TRY", "usd_try": str(draft.usd_try),
+            "eur_try": str(draft.eur_try), "gbp_try": str(draft.gbp_try)}
+
+
+def _apply_sale_fx(draft, payload):
+    currency = str(payload.get("currency", draft.currency or "TRY")).upper()
+    if currency not in {"TRY", "USD", "EUR", "GBP"}:
+        raise ValueError("Gecersiz satis para birimi")
+    rates = {}
+    for code in ("usd", "eur", "gbp"):
+        key = code + "_try"
+        value = _decimal(payload.get(key, getattr(draft, key)), "0")
+        if not value.is_finite() or value <= 0:
+            raise ValueError("Satis kuru sifirdan buyuk olmalidir")
+        rates[key] = value
+    draft.currency = currency
+    draft.usd_try, draft.eur_try, draft.gbp_try = rates["usd_try"], rates["eur_try"], rates["gbp_try"]
+
+
 def _serialize_draft(draft):
     if not draft:
-        return {"ok": True, "draft": None, "customer_id": "", "order_taken_by": "", "order_type": "SERI", "items": [], "payments": [], "pricing_operations": [], "folio_adjustment_target": "", "discount_rate": "0", "discount_amount": "0", "vat_rate": "0", "previous_balance": "0"}
+        return {"ok": True, "draft": None, "customer_id": "", "order_taken_by": "", "order_type": "SERI", "items": [], "payments": [], "pricing_operations": [], "folio_adjustment_target": "", "discount_rate": "0", "discount_amount": "0", "vat_rate": "0", "previous_balance": "0", **_sale_fx_payload(None)}
     groups=[]; group_map={}; row_maps={}
     for db_item in draft.items.select_related("product_card__urun").order_by("created_at", "id"):
         code=db_item.product_card.urun.kod; unit_price=str(db_item.unit_price); group_key=(db_item.product_card_id,unit_price)
@@ -125,7 +147,7 @@ def _serialize_draft(draft):
         if row_key not in row_maps[group_key]:
             row_maps[group_key][row_key]=len(group["satirlar"]); group["satirlar"].append({"renk":db_item.color,"bedenler":[],"adet":db_item.quantity,"aciklama":db_item.description})
         group["satirlar"][row_maps[group_key][row_key]]["bedenler"].append(db_item.size)
-    return {"ok":True,"draft":draft.id,"customer_id":str(draft.customer_id or ""),"order_taken_by":draft.order_taken_by or "","order_type":draft.order_type or "SERI","items":groups,"payments":_payment_data(draft),"pricing_operations":draft.pricing_operations or [],"folio_adjustment_target":str(draft.folio_adjustment_target) if draft.folio_adjustment_target is not None else "","discount_rate":str(draft.discount_rate or 0),"discount_amount":str(draft.overall_discount_amount or 0),"vat_rate":str(draft.vat_rate or 0),"previous_balance":str(draft.previous_balance or 0),"updated_at":draft.updated_at.isoformat() if draft.updated_at else None}
+    return {"ok":True,"draft":draft.id,"customer_id":str(draft.customer_id or ""),"order_taken_by":draft.order_taken_by or "","order_type":draft.order_type or "SERI","items":groups,"payments":_payment_data(draft),"pricing_operations":draft.pricing_operations or [],"folio_adjustment_target":str(draft.folio_adjustment_target) if draft.folio_adjustment_target is not None else "","discount_rate":str(draft.discount_rate or 0),"discount_amount":str(draft.overall_discount_amount or 0),"vat_rate":str(draft.vat_rate or 0),"previous_balance":str(draft.previous_balance or 0),"updated_at":draft.updated_at.isoformat() if draft.updated_at else None, **_sale_fx_payload(draft)}
 
 
 def _draft_summary(draft):
@@ -346,7 +368,7 @@ def showroom_draft_autosave(request):
         return JsonResponse({"ok":False,"message":validation_error},status=400)
     with transaction.atomic():
         _lock_showroom_user(request.user)
-        draft=_active_draft(request.user) or _create_draft(request.user,customer); draft.customer=customer; draft.order_taken_by=order_taken_by; draft.order_type=order_type if order_type in dict(Order.SIPARIS_TIPLERI) else "SERI"; draft.pricing_operations=pricing_operations; draft.folio_adjustment_target=folio_adjustment_target; draft.vat_rate=vat_rate; draft.previous_balance=previous_balance; draft.save(update_fields=["customer","order_taken_by","order_type","pricing_operations","folio_adjustment_target","vat_rate","previous_balance","updated_at"]); draft.items.all().delete(); create_rows=[]
+        draft=_active_draft(request.user) or _create_draft(request.user,customer); _apply_sale_fx(draft,payload); draft.customer=customer; _apply_sale_fx(draft,payload); draft.order_taken_by=order_taken_by; draft.order_type=order_type if order_type in dict(Order.SIPARIS_TIPLERI) else "SERI"; draft.pricing_operations=pricing_operations; draft.folio_adjustment_target=folio_adjustment_target; draft.vat_rate=vat_rate; draft.previous_balance=previous_balance; draft.save(update_fields=["customer","order_taken_by","order_type","pricing_operations","folio_adjustment_target","vat_rate","previous_balance","currency","usd_try","eur_try","gbp_try","updated_at"]); draft.items.all().delete(); create_rows=[]
         for item in raw_items:
             code=str(item.get("urun_kodu") or "").strip(); product_card=ProductCard.objects.select_related("urun").filter(urun__kod__iexact=code).first() if code else None
             if not product_card: continue
@@ -618,7 +640,7 @@ def showroom_edit_save(request,draft_id):
             .order_by("id")
         ) if draft.status == "TRANSFERRED" else []
 
-        draft.customer=customer; draft.order_taken_by=order_taken_by; draft.order_type=order_type if order_type in dict(Order.SIPARIS_TIPLERI) else "SERI"; draft.pricing_operations=pricing_operations; draft.folio_adjustment_target=folio_adjustment_target; draft.discount_rate=rate; draft.overall_discount_amount=amount; draft.vat_rate=vat_rate; draft.previous_balance=previous_balance; draft.save(update_fields=["customer","order_taken_by","order_type","pricing_operations","folio_adjustment_target","discount_rate","overall_discount_amount","vat_rate","previous_balance","updated_at"]); draft.items.all().delete(); ShowroomDraftItem.objects.bulk_create(create_rows); draft.payments.all().delete()
+        draft.customer=customer; draft.order_taken_by=order_taken_by; draft.order_type=order_type if order_type in dict(Order.SIPARIS_TIPLERI) else "SERI"; draft.pricing_operations=pricing_operations; draft.folio_adjustment_target=folio_adjustment_target; draft.discount_rate=rate; draft.overall_discount_amount=amount; draft.vat_rate=vat_rate; draft.previous_balance=previous_balance; draft.save(update_fields=["customer","order_taken_by","order_type","pricing_operations","folio_adjustment_target","discount_rate","overall_discount_amount","vat_rate","previous_balance","currency","usd_try","eur_try","gbp_try","updated_at"]); draft.items.all().delete(); ShowroomDraftItem.objects.bulk_create(create_rows); draft.payments.all().delete()
         if payment_rows: ShowroomPayment.objects.bulk_create(payment_rows)
 
         # Föy daha önce siparişe dönüştüyse yeni satırları mevcut siparişlerle yeniden bağla
