@@ -286,6 +286,9 @@ def add_order_finance_movement(request, order_id):
     # finans ekranındaki düzeltmeyi Sipariş Detayı'na da taşı.
     # Order.save() finans signal'ını çalıştırarak sevkiyat snapshot bazını da eşitler.
     if movement_type == "FIYAT_DUZELT":
+        if order.satis_kuru is not None and currency != (order.para_birimi or "TRY"):
+            messages.error(request, "Sabit kurla kaydedilmis siparisin para birimi bu ekrandan degistirilemez.")
+            return redirect("order_finance_movements", order_id=order.id)
         order.satis_fiyati = amount
         order.para_birimi = currency
         order.save(update_fields=["satis_fiyati", "para_birimi", "last_updated"])
