@@ -247,6 +247,7 @@ class Order(models.Model):
     nakis_durumu = models.CharField(max_length=20, choices=[('yok', 'Yok'), ('verildi', 'Nakışa Verildi'), ('alindi', 'Nakıştan Alındı')], default='yok')
 
     satis_fiyati = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
+    satis_kuru = models.DecimalField(max_digits=12, decimal_places=6, null=True, blank=True, help_text="Siparis olusturulurken sabitlenen satis doviz kuru")
     vat_rate = models.DecimalField(
         max_digits=7,
         decimal_places=2,
