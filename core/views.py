@@ -572,12 +572,15 @@ def order_detail(request, pk):
         current_currency = order.para_birimi or "TRY"
         if current_sale is None:
             current_sale_tl = None
-        elif current_currency == "USD":
-            current_sale_tl = (
-                current_sale * financial_snapshot.usd_try
-                if financial_snapshot.usd_try
-                else None
+        elif current_currency in ("USD", "EUR", "GBP"):
+            from product_cards.models import ExchangeRate
+            latest_rate = ExchangeRate.objects.order_by("-rate_date", "-fetched_at").first()
+            rate = (
+                financial_snapshot.usd_try or (latest_rate.usd_try if latest_rate else None)
+                if current_currency == "USD"
+                else getattr(latest_rate, current_currency.lower() + "_try", None)
             )
+            current_sale_tl = current_sale * Decimal(rate) if rate and Decimal(rate) > 0 else None
         else:
             current_sale_tl = current_sale
 
