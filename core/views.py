@@ -572,6 +572,9 @@ def order_detail(request, pk):
         current_currency = order.para_birimi or "TRY"
         if current_sale is None:
             current_sale_tl = None
+        elif order.satis_kuru is not None:
+            from product_cards.sales_fx import sale_amount_in_try
+            current_sale_tl = sale_amount_in_try(current_sale, current_currency, order.satis_kuru)
         elif current_currency == "USD":
             current_sale_tl = (
                 current_sale * financial_snapshot.usd_try

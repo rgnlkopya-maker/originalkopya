@@ -16,6 +16,7 @@ from core.order_list_enhanced import STAGE_TRANSLATIONS
 from .price_list_views import _ensure_price_rates
 from .models import PriceListSettings, ProductCard, ShowroomDraft, ShowroomDraftItem, ShowroomOrderLink
 from .payment_models import ShowroomPayment
+from .sales_fx import sale_amount_in_try
 from .price_list_views import _can_manage, _ensure_price_rates, _price_rows, _real_profit_rate
 from .drive_folio_backup import queue_folio_drive_sync
 
@@ -113,9 +114,38 @@ def _payment_data(draft):
     return [{"entry_type":p.entry_type,"method":p.method,"amount":str(p.amount),"payment_date":p.payment_date.isoformat() if p.payment_date else "","due_date":p.due_date.isoformat() if p.due_date else "","note":p.note} for p in draft.payments.all().order_by("due_date","payment_date","id")]
 
 
+def _sale_fx_payload(draft):
+    if not draft:
+        settings = PriceListSettings.get_solo()
+        _ensure_price_rates(settings)
+        return {"currency": "TRY", "usd_try": str(settings.usd_try),
+                "eur_try": str(settings.eur_try), "gbp_try": str(settings.gbp_try)}
+    return {"currency": draft.currency or "TRY", "usd_try": str(draft.usd_try),
+            "eur_try": str(draft.eur_try), "gbp_try": str(draft.gbp_try)}
+
+
+def _apply_sale_fx(draft, payload):
+    currency = str(payload.get("currency", draft.currency or "TRY")).upper()
+    if currency not in {"TRY", "USD", "EUR", "GBP"}:
+        raise ValueError("Gecersiz satis para birimi")
+    rates = {}
+    for code in ("usd", "eur", "gbp"):
+        key = code + "_try"
+        raw = payload.get(key, getattr(draft, key))
+        try:
+            value = Decimal(str(raw))
+        except (InvalidOperation, TypeError, ValueError):
+            raise ValueError("Gecersiz satis kuru: " + code.upper()) from None
+        if not value.is_finite() or value <= 0:
+            raise ValueError("Satis kuru sifirdan buyuk olmalidir")
+        rates[key] = value
+    draft.currency = currency
+    draft.usd_try, draft.eur_try, draft.gbp_try = rates["usd_try"], rates["eur_try"], rates["gbp_try"]
+
+
 def _serialize_draft(draft):
     if not draft:
-        return {"ok": True, "draft": None, "customer_id": "", "order_taken_by": "", "order_type": "SERI", "items": [], "payments": [], "pricing_operations": [], "folio_adjustment_target": "", "discount_rate": "0", "discount_amount": "0", "vat_rate": "0", "previous_balance": "0"}
+        return {"ok": True, "draft": None, "customer_id": "", "order_taken_by": "", "order_type": "SERI", "items": [], "payments": [], "pricing_operations": [], "folio_adjustment_target": "", "discount_rate": "0", "discount_amount": "0", "vat_rate": "0", "previous_balance": "0", **_sale_fx_payload(None)}
     groups=[]; group_map={}; row_maps={}
     for db_item in draft.items.select_related("product_card__urun").order_by("created_at", "id"):
         code=db_item.product_card.urun.kod; unit_price=str(db_item.unit_price); group_key=(db_item.product_card_id,unit_price)
@@ -125,7 +155,7 @@ def _serialize_draft(draft):
         if row_key not in row_maps[group_key]:
             row_maps[group_key][row_key]=len(group["satirlar"]); group["satirlar"].append({"renk":db_item.color,"bedenler":[],"adet":db_item.quantity,"aciklama":db_item.description})
         group["satirlar"][row_maps[group_key][row_key]]["bedenler"].append(db_item.size)
-    return {"ok":True,"draft":draft.id,"customer_id":str(draft.customer_id or ""),"order_taken_by":draft.order_taken_by or "","order_type":draft.order_type or "SERI","items":groups,"payments":_payment_data(draft),"pricing_operations":draft.pricing_operations or [],"folio_adjustment_target":str(draft.folio_adjustment_target) if draft.folio_adjustment_target is not None else "","discount_rate":str(draft.discount_rate or 0),"discount_amount":str(draft.overall_discount_amount or 0),"vat_rate":str(draft.vat_rate or 0),"previous_balance":str(draft.previous_balance or 0),"updated_at":draft.updated_at.isoformat() if draft.updated_at else None}
+    return {"ok":True,"draft":draft.id,"customer_id":str(draft.customer_id or ""),"order_taken_by":draft.order_taken_by or "","order_type":draft.order_type or "SERI","items":groups,"payments":_payment_data(draft),"pricing_operations":draft.pricing_operations or [],"folio_adjustment_target":str(draft.folio_adjustment_target) if draft.folio_adjustment_target is not None else "","discount_rate":str(draft.discount_rate or 0),"discount_amount":str(draft.overall_discount_amount or 0),"vat_rate":str(draft.vat_rate or 0),"previous_balance":str(draft.previous_balance or 0),"updated_at":draft.updated_at.isoformat() if draft.updated_at else None, **_sale_fx_payload(draft)}
 
 
 def _draft_summary(draft):
@@ -153,9 +183,13 @@ def _draft_summary(draft):
     folio_adjustment_applied = draft.folio_adjustment_target is not None
     if pricing_ops and folio_adjustment_applied:
         folio_adjustment = pricing["adjustment"]
-    previous_balance=max(Decimal("0"),draft.previous_balance or Decimal("0")); total=folio_total+previous_balance
+    previous_balance=max(Decimal("0"),draft.previous_balance or Decimal("0"))
+    currency=draft.currency or "TRY"
+    rate=Decimal("1") if currency=="TRY" else Decimal(getattr(draft,currency.lower()+"_try"))
+    previous_balance_sale=previous_balance if currency=="TRY" else (previous_balance/rate if rate.is_finite() and rate>0 else Decimal("0"))
+    total=folio_total+previous_balance_sale
     collected=draft.payments.filter(entry_type="COLLECTION").aggregate(v=Sum("amount"))["v"] or Decimal("0"); promised=draft.payments.filter(entry_type="PROMISE").aggregate(v=Sum("amount"))["v"] or Decimal("0"); remaining=max(Decimal("0"),total-collected)
-    return {"id":draft.id,"customer":draft.customer.ad if draft.customer else "Müşteri seçilmedi","product_count":items["product_count"] or 0,"total_qty":items["total_qty"] or 0,"subtotal":str(subtotal.quantize(Decimal("0.01"))),"discount":str(discount.quantize(Decimal("0.01"))),"vat_rate":str(vat_rate.quantize(Decimal("0.01"))),"vat":str(vat.quantize(Decimal("0.01"))),"pricing_steps":pricing_steps,"folio_adjustment":str(folio_adjustment.quantize(Decimal("0.01"))),"folio_adjustment_applied":folio_adjustment_applied,"folio_total":str(folio_total.quantize(Decimal("0.01"))),"previous_balance":str(previous_balance.quantize(Decimal("0.01"))),"total":str(total.quantize(Decimal("0.01"))),"collected":str(collected.quantize(Decimal("0.01"))),"promised":str(promised.quantize(Decimal("0.01"))),"remaining":str(remaining.quantize(Decimal("0.01"))),"updated_at":timezone.localtime(draft.updated_at).strftime("%d.%m.%Y %H:%M"),"status":draft.status}
+    return {"id":draft.id,"customer":draft.customer.ad if draft.customer else "Müşteri seçilmedi","product_count":items["product_count"] or 0,"total_qty":items["total_qty"] or 0,"subtotal":str(subtotal.quantize(Decimal("0.01"))),"discount":str(discount.quantize(Decimal("0.01"))),"vat_rate":str(vat_rate.quantize(Decimal("0.01"))),"vat":str(vat.quantize(Decimal("0.01"))),"pricing_steps":pricing_steps,"folio_adjustment":str(folio_adjustment.quantize(Decimal("0.01"))),"folio_adjustment_applied":folio_adjustment_applied,"folio_total":str(folio_total.quantize(Decimal("0.01"))),"previous_balance":str(previous_balance.quantize(Decimal("0.01"))),"previous_balance_sale":str(previous_balance_sale.quantize(Decimal("0.01"))),"currency":currency,"total":str(total.quantize(Decimal("0.01"))),"collected":str(collected.quantize(Decimal("0.01"))),"promised":str(promised.quantize(Decimal("0.01"))),"remaining":str(remaining.quantize(Decimal("0.01"))),"updated_at":timezone.localtime(draft.updated_at).strftime("%d.%m.%Y %H:%M"),"status":draft.status}
 
 
 def _effective_price_factor(draft):
@@ -344,9 +378,14 @@ def showroom_draft_autosave(request):
     validation_error = _validate_customer_base_price_rows(customer, raw_items)
     if validation_error:
         return JsonResponse({"ok":False,"message":validation_error},status=400)
+    from copy import copy
+    try:
+        _apply_sale_fx(copy(_active_draft(request.user) or ShowroomDraft()), payload)
+    except ValueError as exc:
+        return JsonResponse({"ok": False, "message": str(exc)}, status=400)
     with transaction.atomic():
         _lock_showroom_user(request.user)
-        draft=_active_draft(request.user) or _create_draft(request.user,customer); draft.customer=customer; draft.order_taken_by=order_taken_by; draft.order_type=order_type if order_type in dict(Order.SIPARIS_TIPLERI) else "SERI"; draft.pricing_operations=pricing_operations; draft.folio_adjustment_target=folio_adjustment_target; draft.vat_rate=vat_rate; draft.previous_balance=previous_balance; draft.save(update_fields=["customer","order_taken_by","order_type","pricing_operations","folio_adjustment_target","vat_rate","previous_balance","updated_at"]); draft.items.all().delete(); create_rows=[]
+        draft=_active_draft(request.user) or _create_draft(request.user,customer); _apply_sale_fx(draft,payload); draft.customer=customer; draft.order_taken_by=order_taken_by; draft.order_type=order_type if order_type in dict(Order.SIPARIS_TIPLERI) else "SERI"; draft.pricing_operations=pricing_operations; draft.folio_adjustment_target=folio_adjustment_target; draft.vat_rate=vat_rate; draft.previous_balance=previous_balance; draft.save(update_fields=["customer","order_taken_by","order_type","pricing_operations","folio_adjustment_target","vat_rate","previous_balance","currency","usd_try","eur_try","gbp_try","updated_at"]); draft.items.all().delete(); create_rows=[]
         for item in raw_items:
             code=str(item.get("urun_kodu") or "").strip(); product_card=ProductCard.objects.select_related("urun").filter(urun__kod__iexact=code).first() if code else None
             if not product_card: continue
@@ -610,6 +649,20 @@ def showroom_edit_save(request,draft_id):
             for size in row.get("bedenler") or []: create_rows.append(ShowroomDraftItem(draft=draft,product_card=card,color=str(row.get("renk") or "")[:120],size=str(size or "")[:120],description=str(row.get("aciklama") or "")[:500],quantity=qty,unit_price=price))
     if not create_rows: return JsonResponse({"ok":False,"message":"Geçerli ürün satırı bulunamadı."},status=400)
     payment_rows=_build_payment_rows(draft,raw_payments)
+    from copy import copy
+    try:
+        _apply_sale_fx(copy(draft), payload)
+    except ValueError as exc:
+        return JsonResponse({"ok": False, "message": str(exc)}, status=400)
+    if draft.status == "TRANSFERRED":
+        proposed_currency = str(payload.get("currency", draft.currency or "TRY")).upper()
+        if proposed_currency != (draft.currency or "TRY"):
+            return JsonResponse({"ok": False, "message": "Siparise aktarilmis foyun para birimi degistirilemez."}, status=400)
+        if proposed_currency != "TRY":
+            field = proposed_currency.lower() + "_try"
+            proposed_rate = _decimal(payload.get(field, getattr(draft, field)), "0")
+            if proposed_rate != getattr(draft, field):
+                return JsonResponse({"ok": False, "message": "Siparise aktarilmis foyun sabit satis kuru degistirilemez."}, status=400)
     with transaction.atomic():
         # Siparişe aktarılmış föylerde bağlantıları item silinmeden önce sakla.
         existing_links = list(
@@ -618,7 +671,7 @@ def showroom_edit_save(request,draft_id):
             .order_by("id")
         ) if draft.status == "TRANSFERRED" else []
 
-        draft.customer=customer; draft.order_taken_by=order_taken_by; draft.order_type=order_type if order_type in dict(Order.SIPARIS_TIPLERI) else "SERI"; draft.pricing_operations=pricing_operations; draft.folio_adjustment_target=folio_adjustment_target; draft.discount_rate=rate; draft.overall_discount_amount=amount; draft.vat_rate=vat_rate; draft.previous_balance=previous_balance; draft.save(update_fields=["customer","order_taken_by","order_type","pricing_operations","folio_adjustment_target","discount_rate","overall_discount_amount","vat_rate","previous_balance","updated_at"]); draft.items.all().delete(); ShowroomDraftItem.objects.bulk_create(create_rows); draft.payments.all().delete()
+        draft.customer=customer; _apply_sale_fx(draft,payload); draft.order_taken_by=order_taken_by; draft.order_type=order_type if order_type in dict(Order.SIPARIS_TIPLERI) else "SERI"; draft.pricing_operations=pricing_operations; draft.folio_adjustment_target=folio_adjustment_target; draft.discount_rate=rate; draft.overall_discount_amount=amount; draft.vat_rate=vat_rate; draft.previous_balance=previous_balance; draft.save(update_fields=["customer","order_taken_by","order_type","pricing_operations","folio_adjustment_target","discount_rate","overall_discount_amount","vat_rate","previous_balance","currency","usd_try","eur_try","gbp_try","updated_at"]); draft.items.all().delete(); ShowroomDraftItem.objects.bulk_create(create_rows); draft.payments.all().delete()
         if payment_rows: ShowroomPayment.objects.bulk_create(payment_rows)
 
         # Föy daha önce siparişe dönüştüyse yeni satırları mevcut siparişlerle yeniden bağla
@@ -698,9 +751,9 @@ def showroom_edit_save(request,draft_id):
                         snap = None
                     if snap is not None:
                         sale_tl = (
-                            final_price * Decimal(snap.usd_try)
-                            if (order.para_birimi or "TRY") == "USD" and snap.usd_try
-                            else final_price
+                            sale_amount_in_try(final_price, order.para_birimi, order.satis_kuru)
+                            if order.satis_kuru is not None else
+                            (final_price * Decimal(snap.usd_try) if (order.para_birimi or "TRY") == "USD" and snap.usd_try else final_price)
                         )
                         profit = (
                             sale_tl - Decimal(snap.maliyet_tl)
@@ -728,9 +781,9 @@ def showroom_edit_save(request,draft_id):
                         shipment = None
                     if shipment is not None:
                         shipment_sale_tl = (
-                            final_price * Decimal(shipment.usd_try)
-                            if (order.para_birimi or "TRY") == "USD" and shipment.usd_try
-                            else final_price
+                            sale_amount_in_try(final_price, order.para_birimi, order.satis_kuru)
+                            if order.satis_kuru is not None else
+                            (final_price * Decimal(shipment.usd_try) if (order.para_birimi or "TRY") == "USD" and shipment.usd_try else final_price)
                         )
                         shipment_profit = (
                             shipment_sale_tl - Decimal(shipment.toplam_maliyet_tl)

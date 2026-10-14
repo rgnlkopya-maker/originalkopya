@@ -9,6 +9,7 @@ from app_settings.access import has_access
 from core.models import Order
 from product_cards.models import ShowroomDraft
 from product_cards.showroom_views import _apply_pricing_operations
+from product_cards.sales_fx import sale_amount_in_try
 
 
 MONEY = Decimal("0.01")
@@ -56,6 +57,13 @@ def _folio_finance(draft, include_items=False):
         gross_total = taxable * vat_multiplier
 
     net_total = gross_total / vat_multiplier if vat_multiplier > 0 else gross_total
+    currency = draft.currency or "TRY"
+    rate = Decimal("1") if currency == "TRY" else Decimal(getattr(draft, currency.lower() + "_try"))
+    if rate <= 0 or not rate.is_finite():
+        raise ValueError("Invalid folio sale rate")
+    def sale_try(amount):
+        return sale_amount_in_try(amount, currency, rate)
+
     net_factor = (net_total / subtotal) if subtotal > 0 else Decimal("0")
 
     linked_orders_by_item = {}
@@ -88,11 +96,11 @@ def _folio_finance(draft, include_items=False):
             unit_cost = Decimal(item.product_card.toplam_maliyet or 0)
             row_cost = unit_cost * Decimal(qty)
         row_revenue = net_unit * Decimal(qty)
-        row_profit = row_revenue - row_cost
-        unit_profit = net_unit - unit_cost
+        row_profit = sale_try(row_revenue) - row_cost
+        unit_profit = sale_try(net_unit) - unit_cost
         unit_profit_rate = (
-            (unit_profit / net_unit) * Decimal("100")
-            if net_unit > 0 else Decimal("0")
+            (unit_profit / sale_try(net_unit)) * Decimal("100")
+            if sale_try(net_unit) > 0 else Decimal("0")
         )
 
         total_cost += row_cost
@@ -104,19 +112,20 @@ def _folio_finance(draft, include_items=False):
                 "size": item.size or "—",
                 "quantity": qty,
                 "description": item.description or "—",
-                "net_unit_price": _q(net_unit),
+                "net_unit_price": _q(sale_try(net_unit)),
                 "unit_cost": _q(unit_cost),
                 "unit_profit": _q(unit_profit),
                 "unit_profit_rate": _q(unit_profit_rate),
-                "row_revenue": _q(row_revenue),
+                "row_revenue": _q(sale_try(row_revenue)),
                 "row_cost": _q(row_cost),
                 "row_profit": _q(row_profit),
             })
 
-    total_profit = net_total - total_cost
+    total_revenue_tl = sale_try(net_total)
+    total_profit = total_revenue_tl - total_cost
     profit_rate = (
-        (total_profit / net_total) * Decimal("100")
-        if net_total > 0 else Decimal("0")
+        (total_profit / total_revenue_tl) * Decimal("100")
+        if total_revenue_tl > 0 else Decimal("0")
     )
 
     return {
@@ -126,8 +135,8 @@ def _folio_finance(draft, include_items=False):
         "updated_at": draft.updated_at,
         "product_count": len(product_count),
         "total_qty": total_qty,
-        "revenue": _q(net_total),
-        "gross_total": _q(gross_total),
+        "revenue": _q(total_revenue_tl),
+        "gross_total": _q(sale_try(gross_total)),
         "cost": _q(total_cost),
         "profit": _q(total_profit),
         "profit_rate": _q(profit_rate),
@@ -140,7 +149,14 @@ def _order_type_summary(qs):
     cost = Decimal("0")
     for order in qs:
         sale = Decimal(order.satis_fiyati or 0)
-        revenue += sale * Decimal(order.adet or 1)
+        if order.satis_kuru is not None:
+            sale_tl = sale_amount_in_try(sale, order.para_birimi, order.satis_kuru)
+        elif (order.para_birimi or "TRY") == "TRY":
+            sale_tl = sale
+        else:
+            snapshot = getattr(order, "financial_snapshot", None)
+            sale_tl = Decimal(snapshot.satis_tl) if snapshot and snapshot.satis_tl is not None else Decimal("0")
+        revenue += sale_tl * Decimal(order.adet or 1)
         # Sipariş finans ekranında siparişe kilitlenmiş maliyet mantığını koru.
         cost += Decimal(order.toplam_maliyet or 0) * Decimal(order.adet or 1)
     profit = revenue - cost

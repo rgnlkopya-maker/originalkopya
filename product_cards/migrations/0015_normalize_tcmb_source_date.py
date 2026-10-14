@@ -29,11 +29,21 @@ DROP FUNCTION IF EXISTS product_cards_normalize_source_date();
 '''
 
 
+def apply_postgres_sql(apps, schema_editor):
+    if schema_editor.connection.vendor == "postgresql":
+        schema_editor.execute(FORWARD_SQL)
+
+
+def reverse_postgres_sql(apps, schema_editor):
+    if schema_editor.connection.vendor == "postgresql":
+        schema_editor.execute(REVERSE_SQL)
+
+
 class Migration(migrations.Migration):
     dependencies = [
         ("product_cards", "0014_repair_incomplete_financial_snapshots"),
     ]
 
     operations = [
-        migrations.RunSQL(FORWARD_SQL, REVERSE_SQL),
+        migrations.RunPython(apply_postgres_sql, reverse_postgres_sql),
     ]

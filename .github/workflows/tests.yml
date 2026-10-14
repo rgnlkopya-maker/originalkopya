@@ -23,9 +23,23 @@ jobs:
         run: python manage.py makemigrations --check --dry-run
         env:
           DEBUG: 'False'
+          SECRET_KEY: 'ci-test-only-not-for-production-2026'
+      - name: Run isolated sale FX tests
+        run: python manage.py test product_cards.test_sales_fx --verbosity 2
+        env:
+          DEBUG: 'True'
+          BASE_URL: 'http://127.0.0.1:8000'
+          SECRET_KEY: 'ci-test-only-not-for-production-2026'
+      - name: Verify shipped cost remains frozen
+        run: python manage.py test product_cards.tests.FinanceSnapshotRegressionTests.test_sale_price_change_after_shipment_keeps_snapshot_cost_frozen --verbosity 2
+        env:
+          DEBUG: 'True'
+          BASE_URL: 'http://127.0.0.1:8000'
+          SECRET_KEY: 'ci-test-only-not-for-production-2026'
       - name: Run tests
         run: python manage.py test --verbosity 2
         env:
-          DEBUG: 'False'
+          DEBUG: 'True'
           BASE_URL: 'http://127.0.0.1:8000'
           SUPABASE_BUCKET_NAME: 'order-qr'
+          SECRET_KEY: 'ci-test-only-not-for-production-2026'
