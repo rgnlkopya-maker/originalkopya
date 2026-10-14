@@ -365,7 +365,7 @@ def showroom_draft_autosave(request):
             rates[field] = rate
         draft.currency = currency
         draft.usd_try, draft.eur_try, draft.gbp_try = rates["usd_try"], rates["eur_try"], rates["gbp_try"]
-        draft.customer= draft.order_taken_by=order_taken_by; draft.order_type=order_type if order_type in dict(Order.SIPARIS_TIPLERI) else "SERI"; draft.pricing_operations=pricing_operations; draft.folio_adjustment_target=folio_adjustment_target; draft.vat_rate=vat_rate; draft.previous_balance=previous_balance; draft.save(update_fields=["currency","usd_try","eur_try","gbp_try","customer","order_taken_by","order_type","pricing_operations","folio_adjustment_target","vat_rate","previous_balance","updated_at"]); draft.items.all().delete(); create_rows=[]
+        draft.customer=customer; draft.order_taken_by=order_taken_by; draft.order_type=order_type if order_type in dict(Order.SIPARIS_TIPLERI) else "SERI"; draft.pricing_operations=pricing_operations; draft.folio_adjustment_target=folio_adjustment_target; draft.vat_rate=vat_rate; draft.previous_balance=previous_balance; draft.save(update_fields=["currency","usd_try","eur_try","gbp_try","customer","order_taken_by","order_type","pricing_operations","folio_adjustment_target","vat_rate","previous_balance","updated_at"]); draft.items.all().delete(); create_rows=[]
         for item in raw_items:
             code=str(item.get("urun_kodu") or "").strip(); product_card=ProductCard.objects.select_related("urun").filter(urun__kod__iexact=code).first() if code else None
             if not product_card: continue
