@@ -79,7 +79,7 @@ def sync_order_financial_snapshot(sender, instance, created, **kwargs):
     shipped = ShipmentFinancialSnapshot.objects.filter(order=instance).exists()
 
     if shipped:
-        # Sevk edilmiş siparişlerde de satış ve maliyet güncel sipariş verisini izler.
+        # Sevk edilmiş siparişlerde satış güncellenir; maliyet sevkiyat anında sabit kalır.
         # Finans hareketleri bu baz değerlerin üzerine uygulanır.
         shipment_snapshot = ShipmentFinancialSnapshot.objects.filter(order=instance).first()
         if shipment_snapshot is not None:
@@ -87,31 +87,11 @@ def sync_order_financial_snapshot(sender, instance, created, **kwargs):
 
             shipment_sale_tl = sale_amount_in_try(sale, sale_currency, instance.satis_kuru) if instance.satis_kuru is not None else amount_to_try(sale, sale_currency, shipment_rate)
 
-            base_cost_tl = None
-            extra_cost_tl = Decimal("0")
-            if cost is not None:
-                base_cost_tl = amount_to_try(cost, cost_currency, shipment_rate)
-                extra_cost_tl = (
-                    amount_to_try(
-                        Decimal(instance.ekstra_maliyet or 0),
-                        cost_currency,
-                        shipment_rate,
-                    )
-                    or Decimal("0")
-                )
-                discount_tl = (
-                    amount_to_try(
-                        Decimal(instance.maliyet_indirimi or 0),
-                        cost_currency,
-                        shipment_rate,
-                    )
-                    or Decimal("0")
-                )
-            shipment_total_cost_tl = (
-                max(Decimal("0"), base_cost_tl + extra_cost_tl - discount_tl)
-                if base_cost_tl is not None
-                else None
-            )
+            # Shipment cost is immutable: later product-card edits must not
+            # retroactively change the shipped order's cost basis.
+            base_cost_tl = shipment_snapshot.urun_maliyeti_tl
+            extra_cost_tl = shipment_snapshot.sevkiyat_ekstra_maliyet_tl or Decimal("0")
+            shipment_total_cost_tl = shipment_snapshot.toplam_maliyet_tl
 
             shipment_profit = (
                 shipment_sale_tl - shipment_total_cost_tl
