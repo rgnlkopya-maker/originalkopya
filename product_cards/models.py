@@ -207,7 +207,7 @@ def restore_materials_when_stage_deleted(sender,instance,**kwargs):
 
 class ShowroomDraft(models.Model):
     STATUS_CHOICES=[("DRAFT","Taslak"),("PENDING","Onay Bekliyor"),("APPROVED","Onaylandı"),("TRANSFERRED","Siparişe Aktarıldı")]
-    CURRENCY_CHOICES=[("TRY","TL"),("USD","USD"),("EUR","EUR")]
+    CURRENCY_CHOICES=[("TRY","TL"),("USD","USD"),("EUR","EUR"),("GBP","GBP")]
     DISCOUNT_SCOPE_CHOICES=[("ALL","Tüm ürünler"),("SELECTED","Seçili ürünler")]
     created_by=models.ForeignKey(settings.AUTH_USER_MODEL,on_delete=models.PROTECT,related_name="showroom_drafts")
     customer=models.ForeignKey("core.Musteri",on_delete=models.SET_NULL,null=True,blank=True,related_name="showroom_drafts")
