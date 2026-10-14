@@ -3505,9 +3505,20 @@ def sevkiyat_finans_tablosu(request):
 
     # Toplu yuklenen sevkiyat snapshotlarini finance helper'a hazirla.
     orders = list(qs)
+    from product_cards.models import ExchangeRate
+    latest_exchange = ExchangeRate.objects.order_by("-rate_date", "-fetched_at").first()
     for o in orders:
         try:
-            o._shipment_snapshot_prefetched = o.shipment_financial_snapshot
+            snap = o.shipment_financial_snapshot
+            # Earlier EUR/GBP shipments could have their nominal amount stored as TL.
+            # Correct those legacy snapshots for display without changing stored records.
+            currency = (o.para_birimi or "TRY").upper()
+            if snap and currency in ("EUR", "GBP") and latest_exchange:
+                rate = getattr(latest_exchange, currency.lower() + "_try", None)
+                nominal = Decimal(o.satis_fiyati or 0)
+                if rate and Decimal(rate) > 0 and snap.satis_tl == nominal:
+                    snap.satis_tl = (nominal * Decimal(rate)).quantize(Decimal("0.01"))
+            o._shipment_snapshot_prefetched = snap
         except Exception:
             o._shipment_snapshot_prefetched = None
 
