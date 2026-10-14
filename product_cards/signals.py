@@ -12,6 +12,17 @@ def ensure_product_card(sender, instance, **kwargs):
     ProductCard.objects.get_or_create(urun=instance)
 
 
+def _convert_to_try(amount, currency, usd_rate, rates):
+    """Convert an order amount using the corresponding exchange rate."""
+    if amount is None:
+        return None
+    currency = (currency or "TRY").upper()
+    if currency == "TRY":
+        return Decimal(amount)
+    rate = usd_rate if currency == "USD" else getattr(rates, currency.lower() + "_try", None) if currency in ("EUR", "GBP") else None
+    return Decimal(amount) * Decimal(rate) if rate and Decimal(rate) > 0 else None
+
+
 def _money2(value):
     return value.quantize(Decimal("0.01")) if value is not None else None
 
@@ -28,7 +39,7 @@ def sync_order_financial_snapshot(sender, instance, created, **kwargs):
 
     sale = Decimal(instance.satis_fiyati or 0)
     sale_currency = instance.para_birimi or "TRY"
-    sale_tl = amount_to_try(sale, sale_currency, usd_try)
+    sale_tl = _convert_to_try(sale, sale_currency, usd_try, rate_obj)
 
     product_cost = ProductCost.objects.filter(
         urun_kodu__iexact=(instance.urun_kodu or ""),
@@ -53,7 +64,7 @@ def sync_order_financial_snapshot(sender, instance, created, **kwargs):
     cost_tl = None
     if cost is not None:
         effective_cost = max(Decimal("0"), cost + Decimal(instance.ekstra_maliyet or 0) - Decimal(instance.maliyet_indirimi or 0))
-        cost_tl = amount_to_try(effective_cost, cost_currency, usd_try)
+        cost_tl = _convert_to_try(effective_cost, cost_currency, usd_try, rate_obj)
 
     profit = sale_tl - cost_tl if sale_tl is not None and cost_tl is not None else None
     profit_rate = (profit / sale_tl * Decimal("100")) if profit is not None and sale_tl else None
@@ -74,7 +85,7 @@ def sync_order_financial_snapshot(sender, instance, created, **kwargs):
     # ShipmentFinancialSnapshot satış tarafı da aynı kayıtta senkronlanmalıdır.
     snapshot.usd_try = snapshot.usd_try or usd_try
     conversion_rate = snapshot.usd_try or usd_try
-    sale_tl = amount_to_try(sale, sale_currency, conversion_rate)
+    sale_tl = _convert_to_try(sale, sale_currency, conversion_rate, rate_obj)
     shipped = ShipmentFinancialSnapshot.objects.filter(order=instance).exists()
 
     if shipped:
@@ -84,25 +95,27 @@ def sync_order_financial_snapshot(sender, instance, created, **kwargs):
         if shipment_snapshot is not None:
             shipment_rate = shipment_snapshot.usd_try or conversion_rate
 
-            shipment_sale_tl = amount_to_try(sale, sale_currency, shipment_rate)
+            shipment_sale_tl = _convert_to_try(sale, sale_currency, shipment_rate, rate_obj)
 
             base_cost_tl = None
             extra_cost_tl = Decimal("0")
             if cost is not None:
-                base_cost_tl = amount_to_try(cost, cost_currency, shipment_rate)
+                base_cost_tl = _convert_to_try(cost, cost_currency, shipment_rate, rate_obj)
                 extra_cost_tl = (
-                    amount_to_try(
+                    _convert_to_try(
                         Decimal(instance.ekstra_maliyet or 0),
                         cost_currency,
                         shipment_rate,
+                        rate_obj,
                     )
                     or Decimal("0")
                 )
                 discount_tl = (
-                    amount_to_try(
+                    _convert_to_try(
                         Decimal(instance.maliyet_indirimi or 0),
                         cost_currency,
                         shipment_rate,
+                        rate_obj,
                     )
                     or Decimal("0")
                 )
@@ -146,10 +159,10 @@ def sync_order_financial_snapshot(sender, instance, created, **kwargs):
             cost_tl = shipment_total_cost_tl
         elif cost is not None:
             effective_cost = max(Decimal("0"), cost + Decimal(instance.ekstra_maliyet or 0) - Decimal(instance.maliyet_indirimi or 0))
-            cost_tl = amount_to_try(effective_cost, cost_currency, conversion_rate)
+            cost_tl = _convert_to_try(effective_cost, cost_currency, conversion_rate, rate_obj)
     elif cost is not None:
         effective_cost = max(Decimal("0"), cost + Decimal(instance.ekstra_maliyet or 0) - Decimal(instance.maliyet_indirimi or 0))
-        cost_tl = amount_to_try(effective_cost, cost_currency, conversion_rate)
+        cost_tl = _convert_to_try(effective_cost, cost_currency, conversion_rate, rate_obj)
 
     profit = sale_tl - cost_tl if sale_tl is not None and cost_tl is not None else None
     profit_rate = (profit / sale_tl * Decimal("100")) if profit is not None and sale_tl else None
