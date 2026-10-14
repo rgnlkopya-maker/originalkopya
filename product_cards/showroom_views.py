@@ -115,7 +115,7 @@ def _payment_data(draft):
 
 def _serialize_draft(draft):
     if not draft:
-        return {"ok": True, "draft": None, "customer_id": "", "order_taken_by": "", "order_type": "SERI", "items": [], "payments": [], "pricing_operations": [], "folio_adjustment_target": "", "discount_rate": "0", "discount_amount": "0", "vat_rate": "0", "previous_balance": "0"}
+        return {"ok": True, "draft": None, "customer_id": "", "currency": "TRY", "usd_try": "", "eur_try": "", "gbp_try": "", "order_taken_by": "", "order_type": "SERI", "items": [], "payments": [], "pricing_operations": [], "folio_adjustment_target": "", "discount_rate": "0", "discount_amount": "0", "vat_rate": "0", "previous_balance": "0"}
     groups=[]; group_map={}; row_maps={}
     for db_item in draft.items.select_related("product_card__urun").order_by("created_at", "id"):
         code=db_item.product_card.urun.kod; unit_price=str(db_item.unit_price); group_key=(db_item.product_card_id,unit_price)
@@ -125,7 +125,7 @@ def _serialize_draft(draft):
         if row_key not in row_maps[group_key]:
             row_maps[group_key][row_key]=len(group["satirlar"]); group["satirlar"].append({"renk":db_item.color,"bedenler":[],"adet":db_item.quantity,"aciklama":db_item.description})
         group["satirlar"][row_maps[group_key][row_key]]["bedenler"].append(db_item.size)
-    return {"ok":True,"draft":draft.id,"customer_id":str(draft.customer_id or ""),"order_taken_by":draft.order_taken_by or "","order_type":draft.order_type or "SERI","items":groups,"payments":_payment_data(draft),"pricing_operations":draft.pricing_operations or [],"folio_adjustment_target":str(draft.folio_adjustment_target) if draft.folio_adjustment_target is not None else "","discount_rate":str(draft.discount_rate or 0),"discount_amount":str(draft.overall_discount_amount or 0),"vat_rate":str(draft.vat_rate or 0),"previous_balance":str(draft.previous_balance or 0),"updated_at":draft.updated_at.isoformat() if draft.updated_at else None}
+    return {"ok":True,"draft":draft.id,"customer_id":str(draft.customer_id or ""),"currency":draft.currency,"usd_try":str(draft.usd_try),"eur_try":str(draft.eur_try),"gbp_try":str(draft.gbp_try),"order_taken_by":draft.order_taken_by or "","order_type":draft.order_type or "SERI","items":groups,"payments":_payment_data(draft),"pricing_operations":draft.pricing_operations or [],"folio_adjustment_target":str(draft.folio_adjustment_target) if draft.folio_adjustment_target is not None else "","discount_rate":str(draft.discount_rate or 0),"discount_amount":str(draft.overall_discount_amount or 0),"vat_rate":str(draft.vat_rate or 0),"previous_balance":str(draft.previous_balance or 0),"updated_at":draft.updated_at.isoformat() if draft.updated_at else None}
 
 
 def _draft_summary(draft):
@@ -344,9 +344,28 @@ def showroom_draft_autosave(request):
     validation_error = _validate_customer_base_price_rows(customer, raw_items)
     if validation_error:
         return JsonResponse({"ok":False,"message":validation_error},status=400)
+    currency = str(payload.get("currency") or "TRY").upper()
+    if currency not in {"TRY", "USD", "EUR", "GBP"}:
+        return JsonResponse({"ok": False, "message": "Geçersiz para birimi."}, status=400)
     with transaction.atomic():
         _lock_showroom_user(request.user)
-        draft=_active_draft(request.user) or _create_draft(request.user,customer); draft.customer=customer; draft.order_taken_by=order_taken_by; draft.order_type=order_type if order_type in dict(Order.SIPARIS_TIPLERI) else "SERI"; draft.pricing_operations=pricing_operations; draft.folio_adjustment_target=folio_adjustment_target; draft.vat_rate=vat_rate; draft.previous_balance=previous_balance; draft.save(update_fields=["customer","order_taken_by","order_type","pricing_operations","folio_adjustment_target","vat_rate","previous_balance","updated_at"]); draft.items.all().delete(); create_rows=[]
+        draft=_active_draft(request.user) or _create_draft(request.user,customer)
+        rates = {}
+        for code, field in (("USD", "usd_try"), ("EUR", "eur_try"), ("GBP", "gbp_try")):
+            raw_rate = payload.get(field)
+            if raw_rate in (None, ""):
+                rates[field] = getattr(draft, field)
+                continue
+            try:
+                rate = Decimal(str(raw_rate).replace(",", "."))
+            except (InvalidOperation, ValueError, TypeError):
+                return JsonResponse({"ok": False, "message": f"{code} kuru geçersiz."}, status=400)
+            if not rate.is_finite() or rate <= 0 or rate > Decimal("999999"):
+                return JsonResponse({"ok": False, "message": f"{code} kuru pozitif olmalıdır."}, status=400)
+            rates[field] = rate
+        draft.currency = currency
+        draft.usd_try, draft.eur_try, draft.gbp_try = rates["usd_try"], rates["eur_try"], rates["gbp_try"]
+        draft.customer= draft.order_taken_by=order_taken_by; draft.order_type=order_type if order_type in dict(Order.SIPARIS_TIPLERI) else "SERI"; draft.pricing_operations=pricing_operations; draft.folio_adjustment_target=folio_adjustment_target; draft.vat_rate=vat_rate; draft.previous_balance=previous_balance; draft.save(update_fields=["currency","usd_try","eur_try","gbp_try","customer","order_taken_by","order_type","pricing_operations","folio_adjustment_target","vat_rate","previous_balance","updated_at"]); draft.items.all().delete(); create_rows=[]
         for item in raw_items:
             code=str(item.get("urun_kodu") or "").strip(); product_card=ProductCard.objects.select_related("urun").filter(urun__kod__iexact=code).first() if code else None
             if not product_card: continue
