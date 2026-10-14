@@ -24,6 +24,12 @@ jobs:
         env:
           DEBUG: 'False'
           SECRET_KEY: 'ci-test-only-not-for-production-2026'
+      - name: Run isolated sale FX tests
+        run: python manage.py test product_cards.test_sales_fx --verbosity 2
+        env:
+          DEBUG: 'True'
+          BASE_URL: 'http://127.0.0.1:8000'
+          SECRET_KEY: 'ci-test-only-not-for-production-2026'
       - name: Run tests
         run: python manage.py test --verbosity 2
         env:
