@@ -190,13 +190,31 @@ hr {
     box-shadow: 0 2px 6px rgba(0,0,0,0.05);
 }
 
+
+/* Sipariş giriş ekranı: mevcut form ve JS davranışlarını koruyan görsel katman */
+.order-create-shell{max-width:1500px;margin:0 auto;padding:18px 14px 50px}
+.order-create-heading{display:flex;align-items:center;gap:13px;margin:0 0 18px}
+.order-create-icon{display:grid;place-items:center;width:49px;height:49px;border-radius:14px;background:#e9edff;color:#3444a2;font-size:24px}
+.order-create-heading h1{font-size:25px;font-weight:850;color:#182033;margin:0}
+.order-create-heading p{font-size:13px;color:#7c8799;margin:3px 0 0}
+.order-create-shell>.create-card{border:1px solid #e5e9f0;border-radius:18px;padding:26px 28px;box-shadow:0 6px 26px rgba(18,32,55,.055)}
+.order-create-shell .section-title{font-size:16px;font-weight:800;color:#25344b}
+.order-create-shell .form-label{font-size:12px;font-weight:750;color:#536176;margin-bottom:6px}
+.order-create-shell .renk-beden-card{border:1px solid #e2e8f1;box-shadow:none;border-radius:13px;background:#fbfcff}
+.order-create-shell .sub-card,.order-create-shell .cost-card{background:#fbfcff;border:1px solid #e1e8f1;border-radius:14px;box-shadow:none}
+.order-create-shell .manage-btn{font-size:12px;background:#f3f5ff;color:#3f4d9a;border:1px solid #dfe4fb}
+.order-create-shell .remove-row{width:30px;height:30px;padding:0;font-size:19px;line-height:1;border-radius:9px}
+.order-create-shell #add-row{background:#eef2ff!important;color:#36489e;border:1px solid #dbe3ff!important;font-size:13px}
+.order-create-shell .btn-primary{background:#263b83!important;box-shadow:0 3px 11px rgba(38,59,131,.14)}
+@media(max-width:767px){.order-create-shell{padding:12px 8px 35px}.order-create-shell>.create-card{padding:16px 12px}.order-create-heading h1{font-size:21px}.order-create-shell .section-title{flex-wrap:wrap;gap:9px}}
+
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="container-fluid px-2 mt-4">
-
-    <div class="card shadow p-4">
+<div class="order-create-shell">
+    <div class="order-create-heading"><div class="order-create-icon">▤</div><div><h1>Yeni Sipariş Oluştur</h1><p>Sipariş, ürün ve fiyat bilgilerini tek ekrandan yönetin.</p></div></div>
+    <div class="create-card">
         {% include "multi_order/_form_content.html" %}
     </div>
 
