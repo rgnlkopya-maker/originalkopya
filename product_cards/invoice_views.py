@@ -1,4 +1,5 @@
 from decimal import Decimal, InvalidOperation
+from datetime import date
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.db import IntegrityError, transaction
@@ -41,22 +42,26 @@ def invoice_detail(request, invoice_id):
 def invoice_add(request, order_id):
     if not _allowed(request.user):
         return HttpResponseForbidden("Yetkiniz yok.")
+    try:
+        planned_date = date.fromisoformat(request.POST.get("planned_date", ""))
+    except (ValueError, TypeError):
+        messages.error(request, "Geçerli bir sevkiyat tarihi seçin.")
+        return redirect("order_detail", pk=order_id)
+    if planned_date.weekday() >= 5:
+        messages.error(request, "Sevkiyat planında yalnızca hafta içi günleri bulunuyor.")
+        return redirect("order_detail", pk=order_id)
     with transaction.atomic():
         order = get_object_or_404(Order.objects.select_for_update(), pk=order_id)
         if not order.musteri_id:
             messages.error(request, "Müşteri kaydı olmayan sipariş faturaya eklenemez.")
             return redirect("order_detail", pk=order.pk)
-        if InvoiceLine.objects.filter(order=order).exists():
+        if InvoiceLine.objects.filter(order=order).exists() or ShipmentPlan.objects.filter(order=order).exists():
             messages.warning(request, "Bu sipariş zaten faturaya aktarılmış.")
             return redirect("order_detail", pk=order.pk)
         currency = order.para_birimi or "TRY"
-        invoice, _ = InvoiceDraft.objects.get_or_create(customer=order.musteri, invoice_date=timezone.localdate(), currency=currency, status="DRAFT", defaults={"created_by": request.user})
+        invoice, _ = InvoiceDraft.objects.get_or_create(customer=order.musteri, invoice_date=planned_date, currency=currency, status="DRAFT", defaults={"created_by": request.user})
         InvoiceLine.objects.create(invoice=invoice, order=order, price=order.satis_fiyati or 0, vat_rate=order.vat_rate or 0)
-        # Keep an existing planned date if one was already assigned.
-        ShipmentPlan.objects.get_or_create(
-            order=order,
-            defaults={"planned_date": order.teslim_tarihi or timezone.localdate(), "created_by": request.user},
-        )
+        ShipmentPlan.objects.create(order=order, planned_date=planned_date, created_by=request.user)
     messages.success(request, "Sipariş faturaya ve sevkiyat planına eklendi.")
     return redirect("order_detail", pk=order_id)
 
@@ -130,4 +135,5 @@ def invoice_order_status(request, order_id):
     if not _allowed(request.user):
         return HttpResponseForbidden("Yetkiniz yok.")
     line = InvoiceLine.objects.filter(order_id=order_id).select_related("invoice").first()
-    return JsonResponse({"added": bool(line), "invoice_id": line.invoice_id if line else None})
+    planned = ShipmentPlan.objects.filter(order_id=order_id).exists()
+    return JsonResponse({"added": bool(line) or planned, "invoice_id": line.invoice_id if line else None})
