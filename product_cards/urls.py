@@ -1,7 +1,14 @@
 from django.urls import path
-from . import views, status_views, finance_views, price_list_views, showroom_views, showroom_print_views, showroom_transfer_views, public_product_views, public_qr_views
+from . import views, status_views, finance_views, price_list_views, showroom_views, showroom_print_views, showroom_transfer_views, public_product_views, public_qr_views, invoice_views
 
 urlpatterns = [
+    path("faturalar/", invoice_views.invoice_list, name="invoice_list"),
+    path("faturalar/<int:invoice_id>/", invoice_views.invoice_detail, name="invoice_detail"),
+    path("faturalar/<int:invoice_id>/satir/<int:line_id>/cikar/", invoice_views.invoice_remove, name="invoice_remove"),
+    path("faturalar/<int:invoice_id>/satir/<int:line_id>/fiyat/", invoice_views.invoice_price, name="invoice_price"),
+    path("faturalar/<int:invoice_id>/tamamla/", invoice_views.invoice_finalize, name="invoice_finalize"),
+    path("faturalar/siparis/<int:order_id>/ekle/", invoice_views.invoice_add, name="invoice_add"),
+    path("faturalar/siparis/<int:order_id>/durum/", invoice_views.invoice_order_status, name="invoice_order_status"),
     path("", views.product_card_list, name="product_card_list"),
     path("kur-guncelle/", views.refresh_exchange_rate, name="refresh_exchange_rate"),
     path("fiyat-listesi/", price_list_views.price_list, name="price_list"),
