@@ -1,0 +1,29 @@
+from django.db import models
+from django.conf import settings
+from core.models import Order
+
+
+class InvoiceDraft(models.Model):
+    STATUS = [("DRAFT", "Taslak"), ("FINAL", "Faturalandırıldı")]
+    customer = models.ForeignKey("core.Musteri", on_delete=models.PROTECT, related_name="invoice_drafts")
+    invoice_date = models.DateField()
+    status = models.CharField(max_length=8, choices=STATUS, default="DRAFT")
+    currency = models.CharField(max_length=3, default="TRY")
+    official_number = models.CharField(max_length=80, blank=True, default="")
+    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-invoice_date", "-id"]
+        constraints = [
+            models.UniqueConstraint(fields=["customer", "invoice_date", "currency"], condition=models.Q(status="DRAFT"), name="one_open_invoice_per_customer_day_currency")
+        ]
+
+
+class InvoiceLine(models.Model):
+    invoice = models.ForeignKey(InvoiceDraft, on_delete=models.CASCADE, related_name="lines")
+    order = models.OneToOneField(Order, on_delete=models.PROTECT, related_name="invoice_line")
+    price = models.DecimalField(max_digits=14, decimal_places=2)
+    vat_rate = models.DecimalField(max_digits=7, decimal_places=2, default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
