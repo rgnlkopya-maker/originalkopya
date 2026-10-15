@@ -50,6 +50,7 @@ def invoice_detail(request, invoice_id):
     lines = list(invoice.lines.select_related("order").order_by("id"))
     for line in lines:
         line.current_status = status_label(latest_status_event(line.order))
+        line.total_with_vat = (line.price * (Decimal("1") + line.vat_rate / Decimal("100"))).quantize(Decimal("0.01"))
     subtotal = sum((line.price for line in lines), Decimal("0"))
     tax = sum((line.price * line.vat_rate / Decimal("100") for line in lines), Decimal("0"))
     return render(request, "product_cards/invoice_detail.html", {"invoice": invoice, "lines": lines, "subtotal": subtotal, "tax": tax, "total": subtotal + tax})
