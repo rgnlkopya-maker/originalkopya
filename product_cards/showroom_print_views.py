@@ -80,11 +80,15 @@ def showroom_print_page(request, draft_id):
                 lines.append({"renk": row.get("renk") or "", "beden": size or "", "adet": qty, "aciklama": row.get("aciklama") or "", "unit_price": unit_price, "line_total": line_total})
         print_items.append({"urun_kodu": item.get("urun_kodu") or "", "unit_price": unit_price, "item_total": item_total, "lines": lines})
 
+    collection_payments = [p for p in draft.payments.all() if p.entry_type == "COLLECTION"]
+    promise_payments = [p for p in draft.payments.all() if p.entry_type == "PROMISE"]
+
     return render(request, "product_cards/showroom_print.html", {
         "draft": draft,
         "customer_detail": customer_detail,
         "items": print_items,
-        "payments": draft.payments.all().order_by("due_date", "payment_date", "id"),
+        "collection_payments": sorted(collection_payments, key=lambda p: (p.payment_date is None, str(p.payment_date or p.due_date or ""), p.id)),
+        "promise_payments": sorted(promise_payments, key=lambda p: (p.due_date is None, str(p.due_date or p.payment_date or ""), p.id)),
         "summary": summary,
         "status_label": status_label,
         "lang": lang,
