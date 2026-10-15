@@ -41,7 +41,7 @@ def invoice_add(request, order_id):
     if not _allowed(request.user):
         return HttpResponseForbidden("Yetkiniz yok.")
     with transaction.atomic():
-        order = get_object_or_404(Order.objects.select_for_update().select_related("musteri"), pk=order_id)
+        order = get_object_or_404(Order.objects.select_for_update(), pk=order_id)
         if not order.musteri_id:
             messages.error(request, "Müşteri kaydı olmayan sipariş faturaya eklenemez.")
             return redirect("order_detail", pk=order.pk)
