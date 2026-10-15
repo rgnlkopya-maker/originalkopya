@@ -1,0 +1,123 @@
+from decimal import Decimal, InvalidOperation
+from django.contrib import messages
+from django.contrib.auth.decorators import login_required
+from django.db import IntegrityError, transaction
+from django.db.models import Prefetch
+from django.http import HttpResponseForbidden, JsonResponse
+from django.shortcuts import get_object_or_404, redirect, render
+from django.utils import timezone
+from django.views.decorators.http import require_POST
+from core.models import Order
+from .invoice_models import InvoiceDraft, InvoiceLine
+
+
+def _allowed(user):
+    return user.is_authenticated and (user.is_superuser or user.is_staff or user.username.lower() == "tahir" or getattr(getattr(user, "profile", None), "gorev", "") in ("patron", "mudur"))
+
+
+@login_required
+def invoice_list(request):
+    if not _allowed(request.user):
+        return HttpResponseForbidden("Yetkiniz yok.")
+    invoices = InvoiceDraft.objects.select_related("customer").prefetch_related("lines").order_by("-invoice_date", "-id")
+    return render(request, "product_cards/invoice_list.html", {"invoices": invoices})
+
+
+@login_required
+def invoice_detail(request, invoice_id):
+    if not _allowed(request.user):
+        return HttpResponseForbidden("Yetkiniz yok.")
+    invoice = get_object_or_404(InvoiceDraft.objects.select_related("customer"), pk=invoice_id)
+    lines = list(invoice.lines.select_related("order").order_by("id"))
+    subtotal = sum((line.price for line in lines), Decimal("0"))
+    tax = sum((line.price * line.vat_rate / Decimal("100") for line in lines), Decimal("0"))
+    return render(request, "product_cards/invoice_detail.html", {"invoice": invoice, "lines": lines, "subtotal": subtotal, "tax": tax, "total": subtotal + tax})
+
+
+@login_required
+@require_POST
+def invoice_add(request, order_id):
+    if not _allowed(request.user):
+        return HttpResponseForbidden("Yetkiniz yok.")
+    with transaction.atomic():
+        order = get_object_or_404(Order.objects.select_for_update().select_related("musteri"), pk=order_id)
+        if not order.musteri_id:
+            messages.error(request, "Müşteri kaydı olmayan sipariş faturaya eklenemez.")
+            return redirect("order_detail", pk=order.pk)
+        if InvoiceLine.objects.filter(order=order).exists():
+            messages.warning(request, "Bu sipariş zaten faturaya aktarılmış.")
+            return redirect("order_detail", pk=order.pk)
+        currency = order.para_birimi or "TRY"
+        invoice, _ = InvoiceDraft.objects.get_or_create(customer=order.musteri, invoice_date=timezone.localdate(), currency=currency, status="DRAFT", defaults={"created_by": request.user})
+        InvoiceLine.objects.create(invoice=invoice, order=order, price=order.satis_fiyati or 0, vat_rate=order.vat_rate or 0)
+    messages.success(request, "Sipariş fatura taslağına eklendi.")
+    return redirect("order_detail", pk=order_id)
+
+
+@login_required
+@require_POST
+def invoice_remove(request, invoice_id, line_id):
+    if not _allowed(request.user):
+        return HttpResponseForbidden("Yetkiniz yok.")
+    invoice = get_object_or_404(InvoiceDraft, pk=invoice_id)
+    if invoice.status != "DRAFT":
+        return HttpResponseForbidden("Tamamlanmış faturadan sipariş çıkarılamaz.")
+    line = get_object_or_404(InvoiceLine, pk=line_id, invoice=invoice)
+    line.delete()
+    messages.success(request, "Sipariş taslaktan çıkarıldı; tekrar aktarılabilir.")
+    return redirect("invoice_detail", invoice_id=invoice.pk)
+
+
+@login_required
+@require_POST
+def invoice_price(request, invoice_id, line_id):
+    if not _allowed(request.user):
+        return HttpResponseForbidden("Yetkiniz yok.")
+    with transaction.atomic():
+        invoice = get_object_or_404(InvoiceDraft.objects.select_for_update(), pk=invoice_id)
+        if invoice.status != "DRAFT":
+            return HttpResponseForbidden("Tamamlanmış faturada fiyat değiştirilemez.")
+        line = get_object_or_404(InvoiceLine.objects.select_for_update().select_related("order"), pk=line_id, invoice=invoice)
+        try:
+            price = Decimal(request.POST.get("price", "").replace(",", "."))
+            if not price.is_finite() or price < 0:
+                raise InvalidOperation
+            price = price.quantize(Decimal("0.01"))
+        except (InvalidOperation, ValueError):
+            messages.error(request, "Geçersiz fiyat.")
+            return redirect("invoice_detail", invoice_id=invoice.pk)
+        previous = line.order.satis_fiyati
+        line.price = price
+        line.save(update_fields=["price"])
+        order = line.order
+        order.satis_fiyati = price
+        order.save(update_fields=["satis_fiyati", "last_updated"])
+        from core.models import OrderEvent
+        OrderEvent.objects.create(order=order, user=request.user.username, gorev="yok", stage="satis_fiyati", value="fatura_duzeltme", aciklama=f"Fatura taslağı #{invoice.pk}: {previous} -> {price} {invoice.currency}", event_type="order_update")
+    messages.success(request, "Fiyat siparişe ve finans özetine işlendi; orijinal föy korunuyor.")
+    return redirect("invoice_detail", invoice_id=invoice.pk)
+
+
+@login_required
+@require_POST
+def invoice_finalize(request, invoice_id):
+    if not _allowed(request.user):
+        return HttpResponseForbidden("Yetkiniz yok.")
+    invoice = get_object_or_404(InvoiceDraft, pk=invoice_id, status="DRAFT")
+    number = request.POST.get("official_number", "").strip()
+    if not number or not invoice.lines.exists():
+        messages.error(request, "Fatura numarası ve en az bir ürün gerekli.")
+    else:
+        invoice.official_number = number
+        invoice.status = "FINAL"
+        invoice.save(update_fields=["official_number", "status", "updated_at"])
+        messages.success(request, "Resmi faturanın numarası kaydedildi. MoliApp resmi fatura düzenlemedi.")
+    return redirect("invoice_detail", invoice_id=invoice.pk)
+
+
+@login_required
+def invoice_order_status(request, order_id):
+    if not _allowed(request.user):
+        return HttpResponseForbidden("Yetkiniz yok.")
+    line = InvoiceLine.objects.filter(order_id=order_id).select_related("invoice").first()
+    return JsonResponse({"added": bool(line), "invoice_id": line.invoice_id if line else None})
