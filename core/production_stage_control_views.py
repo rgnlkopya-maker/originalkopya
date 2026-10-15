@@ -200,17 +200,38 @@ def production_stage_control(request):
 
         reasons = []
 
-        # Dikimle ilgili herhangi bir işlem yapıldıysa kesim zinciri tamamlanmış olmalı.
-        if _has_stage_evidence(events, "dikim_durum", "dikim_fason_durumu"):
-            reasons.extend(_missing_stage_steps(events, "kesim_durum", "Kesim"))
-
-        # Süsleme ile ilgili herhangi bir işlem yapıldıysa dikim zinciri tamamlanmış olmalı.
-        if _has_stage_evidence(events, "susleme_durum", "susleme_fason_durumu"):
-            reasons.extend(_missing_stage_steps(events, "dikim_durum", "Dikim"))
-
-        # Hazır aşamasına dokunulduysa süsleme zinciri tamamlanmış olmalı.
-        if _has_stage_evidence(events, "hazir_durum"):
-            reasons.extend(_missing_stage_steps(events, "susleme_durum", "Süsleme"))
+        # Yalnizca kullanilmis asama butonlarinin esini kontrol et.
+        # "Bitti" varsa "Basladi" her zaman beklenir.
+        # "Basladi" varsa "Bitti" ancak sonraki asamaya gecilince beklenir.
+        # Iki butona da basilmamissa o asama icin problem uretilmez.
+        later_stages = {
+            "kesim": {
+                "dikim_durum", "dikim_fason_durumu", "nakis_durumu",
+                "susleme_durum", "susleme_fason_durumu", "hazir_durum",
+                "sevkiyat_durum",
+            },
+            "dikim": {
+                "susleme_durum", "susleme_fason_durumu", "hazir_durum",
+                "sevkiyat_durum",
+            },
+            "susleme": {"hazir_durum", "sevkiyat_durum"},
+        }
+        for stage_key, (stage_name, label) in STAGES.items():
+            stage_events = [event for event in events if event.stage == stage_name]
+            started = any(event.value == "basladi" for event in stage_events)
+            finished = any(event.value == "bitti" for event in stage_events)
+            if finished and not started:
+                reasons.append(f"{label} Basladi")
+            if started and not finished:
+                first_start = next(
+                    event for event in stage_events if event.value == "basladi"
+                )
+                if any(
+                    event.stage in later_stages[stage_key]
+                    and (event.timestamp, event.id) > (first_start.timestamp, first_start.id)
+                    for event in events
+                ):
+                    reasons.append(f"{label} Bitti")
 
         # Güncel sevkiyat durumunu son sevkiyat hareketinden belirle.
         shipment_events = [event for event in events if event.stage == "sevkiyat_durum"]
@@ -219,9 +240,6 @@ def production_stage_control(request):
             if shipment_events
             else order.sevkiyat_durum == "gonderildi"
         )
-        if shipped:
-            for stage_name, label in STAGES.values():
-                reasons.extend(_missing_stage_steps(events, stage_name, label))
 
         # Aynı eksikliği birden fazla kural yakalasa bile ekranda bir kez göster.
         reasons = list(dict.fromkeys(reasons))
