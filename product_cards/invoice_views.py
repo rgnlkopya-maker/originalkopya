@@ -11,6 +11,7 @@ from django.views.decorators.http import require_POST
 from core.models import Order
 from .invoice_models import InvoiceDraft, InvoiceLine
 from planning.models import ShipmentPlan
+from core.services.order_status import latest_status_event, status_label
 
 
 def _allowed(user):
@@ -47,9 +48,30 @@ def invoice_detail(request, invoice_id):
         return HttpResponseForbidden("Yetkiniz yok.")
     invoice = get_object_or_404(InvoiceDraft.objects.select_related("customer"), pk=invoice_id)
     lines = list(invoice.lines.select_related("order").order_by("id"))
+    for line in lines:
+        line.current_status = status_label(latest_status_event(line.order))
     subtotal = sum((line.price for line in lines), Decimal("0"))
     tax = sum((line.price * line.vat_rate / Decimal("100") for line in lines), Decimal("0"))
     return render(request, "product_cards/invoice_detail.html", {"invoice": invoice, "lines": lines, "subtotal": subtotal, "tax": tax, "total": subtotal + tax})
+
+
+@login_required
+def invoice_live_status(request, invoice_id):
+    if not _allowed(request.user):
+        return HttpResponseForbidden("Yetkiniz yok.")
+    invoice = get_object_or_404(InvoiceDraft, pk=invoice_id)
+    order_ids = list(invoice.lines.values_list("order_id", flat=True))
+    from core.models import OrderEvent
+    from core.services.order_status import FINANCIAL_STAGES
+    events = (OrderEvent.objects.filter(order_id__in=order_ids)
+              .exclude(event_type="order_update")
+              .exclude(stage__in=FINANCIAL_STAGES)
+              .order_by("-timestamp", "-id"))
+    latest = {}
+    for event in events:
+        if event.order_id not in latest:
+            latest[event.order_id] = status_label(event)
+    return JsonResponse({"statuses": {str(order_id): latest.get(order_id, "-") for order_id in order_ids}})
 
 
 @login_required
