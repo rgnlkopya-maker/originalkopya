@@ -63,6 +63,10 @@ def order_multi_create(request):
         teslim_tarihi = request.POST.get("teslim_tarihi") or None
         aciklama = request.POST.get("aciklama")
         satis_fiyati = _to_decimal(request.POST.get("satis_fiyati")) or Decimal("0")
+        vat_rate = _to_decimal(request.POST.get("vat_rate", "10"))
+        if vat_rate is None or not vat_rate.is_finite() or vat_rate < 0 or vat_rate > 100:
+            messages.error(request, "KDV oranı 0 ile 100 arasında olmalıdır.")
+            return redirect("order_multi_create")
         maliyet_uygulanan = _to_decimal(request.POST.get("maliyet_uygulanan")) or Decimal("0")
         maliyet_override = _to_decimal(request.POST.get("maliyet_override"))
         ekstra_maliyet = _to_decimal(request.POST.get("ekstra_maliyet")) or Decimal("0")
@@ -119,7 +123,7 @@ def order_multi_create(request):
                         created_orders.append(Order.objects.create(
                             siparis_tipi=siparis_tipi, musteri=musteri, urun_kodu=urun_kodu, urun_tipi=urun_tipi,
                             renk=renk, beden=beden, adet=1, teslim_tarihi=teslim_tarihi or None, aciklama=aciklama,
-                            musteri_referans=musteri_ref or None, satis_fiyati=row_price, para_birimi=para_birimi,
+                            musteri_referans=musteri_ref or None, satis_fiyati=row_price, vat_rate=vat_rate, para_birimi=para_birimi,
                             customer_base_price=satis_fiyati if pricing_rule else None,
                             customer_price_adjustment=adjustment,
                             hip_measurement=hip_measurement,
