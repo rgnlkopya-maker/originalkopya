@@ -4,6 +4,7 @@ from . import views, status_views, finance_views, price_list_views, showroom_vie
 urlpatterns = [
     path("faturalar/", invoice_views.invoice_list, name="invoice_list"),
     path("faturalar/<int:invoice_id>/", invoice_views.invoice_detail, name="invoice_detail"),
+    path("faturalar/<int:invoice_id>/durumlar/", invoice_views.invoice_live_status, name="invoice_live_status"),
     path("faturalar/<int:invoice_id>/sil/", invoice_views.invoice_delete_empty, name="invoice_delete_empty"),
     path("faturalar/<int:invoice_id>/satir/<int:line_id>/cikar/", invoice_views.invoice_remove, name="invoice_remove"),
     path("faturalar/<int:invoice_id>/satir/<int:line_id>/fiyat/", invoice_views.invoice_price, name="invoice_price"),
