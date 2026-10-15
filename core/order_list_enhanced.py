@@ -175,6 +175,7 @@ def order_list(request):
     aktif_count=base_qs.filter(is_active=True).count(); pasif_count=base_qs.filter(is_active=False).count(); sevke_count=base_qs.filter(is_active=True,latest_stage="sevkiyat_durum",latest_value="gonderildi").count()
     # Grafik görünümü tablodaki Son Durum ile birebir aynı latest_stage/latest_value kaynağını kullanır.
     # Sayfalama öncesi hesaplanır; böylece grafik filtreye uyan TÜM siparişleri gösterir.
+    graph_requested = request.GET.get("graph_view") == "1" or bool(request.GET.get("graph_stage") or request.GET.get("graph_status"))
     graph_groups = [
         ("no_action", "İşlem Yok", set()),
         ("material", "Malzeme", {"malzeme_durum"}),
@@ -188,9 +189,9 @@ def order_list(request):
     graph_status = request.GET.get("graph_status", "").strip()
 
     graph = {key: {"key": key, "label": label, "count": 0, "orders": [], "details": {}} for key, label, _ in graph_groups}
-    graph_total = qs.count()
+    graph_total = qs.count() if graph_requested else 0
     graph_rows = qs.values("id","siparis_numarasi","musteri__ad","urun_kodu","renk","beden","latest_stage","latest_value","latest_parca")
-    for row in graph_rows:
+    for row in (graph_rows if graph_requested else []):
         stage = row["latest_stage"] or ""
         value = row["latest_value"] or ""
         if not stage or not value:
@@ -249,5 +250,5 @@ def order_list(request):
     selected_order_types=_multi(request,"siparis_tipi")
     quick_order_type=selected_order_types[0] if len(selected_order_types)==1 and selected_order_types[0] in {"OZEL","SERI","TEKLI","STOK","KONSINYE"} else "ALL"
     quick_flag_filter=request.GET.get("bayrak","").strip()=="1"
-    context={"orders":page_obj,"siparis_options":Order.objects.values_list("siparis_numarasi",flat=True).distinct().order_by("siparis_numarasi"),"musteri_options":Order.objects.values_list("musteri__ad",flat=True).distinct().order_by("musteri__ad"),"urun_options":Order.objects.values_list("urun_kodu",flat=True).distinct().order_by("urun_kodu"),"urun_tipi_options":URUN_TIPI_CHOICES,"renk_options":Order.objects.values_list("renk",flat=True).distinct().order_by("renk"),"beden_options":Order.objects.values_list("beden",flat=True).distinct().order_by("beden"),"musteri_referans_options":Order.objects.exclude(musteri_referans__isnull=True).exclude(musteri_referans__exact="").values_list("musteri_referans",flat=True).distinct().order_by("musteri_referans"),"status_options":sorted(set(STAGE_TRANSLATIONS.values())),"siparis_tipi_options":Order.SIPARIS_TIPLERI,"quick_order_type":quick_order_type,"quick_flag_filter":quick_flag_filter,"total_count":total_count,"filtered_count":filtered_count,"aktif_count":aktif_count,"pasif_count":pasif_count,"sevke_count":sevke_count,"is_manager":request.user.is_superuser or request.user.groups.filter(name__in=["patron","mudur"]).exists(),"graph_data":graph_data,"graph_detail_data":graph_detail_data,"graph_stage":graph_stage,"graph_stage_label":graph_stage_label,"graph_status":graph_status,"graph_total":graph_total,"request":request}
+    context={"orders":page_obj,"siparis_options":Order.objects.values_list("siparis_numarasi",flat=True).distinct().order_by("siparis_numarasi"),"musteri_options":Order.objects.values_list("musteri__ad",flat=True).distinct().order_by("musteri__ad"),"urun_options":Order.objects.values_list("urun_kodu",flat=True).distinct().order_by("urun_kodu"),"urun_tipi_options":URUN_TIPI_CHOICES,"renk_options":Order.objects.values_list("renk",flat=True).distinct().order_by("renk"),"beden_options":Order.objects.values_list("beden",flat=True).distinct().order_by("beden"),"musteri_referans_options":Order.objects.exclude(musteri_referans__isnull=True).exclude(musteri_referans__exact="").values_list("musteri_referans",flat=True).distinct().order_by("musteri_referans"),"status_options":sorted(set(STAGE_TRANSLATIONS.values())),"siparis_tipi_options":Order.SIPARIS_TIPLERI,"quick_order_type":quick_order_type,"quick_flag_filter":quick_flag_filter,"total_count":total_count,"filtered_count":filtered_count,"aktif_count":aktif_count,"pasif_count":pasif_count,"sevke_count":sevke_count,"is_manager":request.user.is_superuser or request.user.groups.filter(name__in=["patron","mudur"]).exists(),"graph_requested":graph_requested,"graph_data":graph_data,"graph_detail_data":graph_detail_data,"graph_stage":graph_stage,"graph_stage_label":graph_stage_label,"graph_status":graph_status,"graph_total":graph_total,"request":request}
     response=render(request,"core/order_list.html",context); response["Cache-Control"]="no-cache, no-store, must-revalidate"; response["Pragma"]="no-cache"; response["Expires"]="0"; return response
