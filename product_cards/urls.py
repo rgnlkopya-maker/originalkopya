@@ -3,6 +3,7 @@ from . import views, status_views, finance_views, price_list_views, showroom_vie
 
 urlpatterns = [
     path("faturalar/", invoice_views.invoice_list, name="invoice_list"),
+    path("faturalar/sevkiyat-durumlari/", invoice_views.invoice_list_shipment_status, name="invoice_list_shipment_status"),
     path("faturalar/<int:invoice_id>/", invoice_views.invoice_detail, name="invoice_detail"),
     path("faturalar/<int:invoice_id>/durumlar/", invoice_views.invoice_live_status, name="invoice_live_status"),
     path("faturalar/<int:invoice_id>/sil/", invoice_views.invoice_delete_empty, name="invoice_delete_empty"),
