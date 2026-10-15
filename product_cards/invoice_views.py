@@ -9,6 +9,7 @@ from django.utils import timezone
 from django.views.decorators.http import require_POST
 from core.models import Order
 from .invoice_models import InvoiceDraft, InvoiceLine
+from planning.models import ShipmentPlan
 
 
 def _allowed(user):
@@ -51,7 +52,12 @@ def invoice_add(request, order_id):
         currency = order.para_birimi or "TRY"
         invoice, _ = InvoiceDraft.objects.get_or_create(customer=order.musteri, invoice_date=timezone.localdate(), currency=currency, status="DRAFT", defaults={"created_by": request.user})
         InvoiceLine.objects.create(invoice=invoice, order=order, price=order.satis_fiyati or 0, vat_rate=order.vat_rate or 0)
-    messages.success(request, "Sipariş fatura taslağına eklendi.")
+        # Keep an existing planned date if one was already assigned.
+        ShipmentPlan.objects.get_or_create(
+            order=order,
+            defaults={"planned_date": order.teslim_tarihi or timezone.localdate(), "created_by": request.user},
+        )
+    messages.success(request, "Sipariş faturaya ve sevkiyat planına eklendi.")
     return redirect("order_detail", pk=order_id)
 
 
@@ -60,12 +66,15 @@ def invoice_add(request, order_id):
 def invoice_remove(request, invoice_id, line_id):
     if not _allowed(request.user):
         return HttpResponseForbidden("Yetkiniz yok.")
-    invoice = get_object_or_404(InvoiceDraft, pk=invoice_id)
-    if invoice.status != "DRAFT":
-        return HttpResponseForbidden("Tamamlanmış faturadan sipariş çıkarılamaz.")
-    line = get_object_or_404(InvoiceLine, pk=line_id, invoice=invoice)
-    line.delete()
-    messages.success(request, "Sipariş taslaktan çıkarıldı; tekrar aktarılabilir.")
+    with transaction.atomic():
+        invoice = get_object_or_404(InvoiceDraft.objects.select_for_update(), pk=invoice_id)
+        if invoice.status != "DRAFT":
+            return HttpResponseForbidden("Tamamlanmış faturadan sipariş çıkarılamaz.")
+        line = get_object_or_404(InvoiceLine, pk=line_id, invoice=invoice)
+        order_id = line.order_id
+        line.delete()
+        ShipmentPlan.objects.filter(order_id=order_id).delete()
+    messages.success(request, "Sipariş faturadan ve sevkiyat planından çıkarıldı; tekrar aktarılabilir.")
     return redirect("invoice_detail", invoice_id=invoice.pk)
 
 
