@@ -12,7 +12,8 @@ from .invoice_models import InvoiceDraft, InvoiceLine
 
 
 def _allowed(user):
-    return user.is_authenticated and (user.is_superuser or user.is_staff or user.username.lower() == "tahir" or getattr(getattr(user, "profile", None), "gorev", "") in ("patron", "mudur"))
+    from app_settings.access import has_full_access
+    return has_full_access(user)
 
 
 @login_required
