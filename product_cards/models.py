@@ -262,3 +262,7 @@ class ShowroomOrderLink(models.Model):
 
     def __str__(self):
         return f"Föy #{self.draft_id} -> {self.order_number or (self.order.siparis_numarasi if self.order else 'Silindi')}"
+
+
+# Invoice models registered with Django through the product_cards app.
+from .invoice_models import InvoiceDraft, InvoiceLine
