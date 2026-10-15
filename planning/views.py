@@ -2,6 +2,11 @@ import calendar
 from datetime import date, timedelta
 
 from django.contrib.auth.decorators import login_required
+from django.contrib import messages
+from django.db import transaction
+from django.http import HttpResponseForbidden
+from app_settings.access import has_full_access
+from product_cards.invoice_models import InvoiceLine
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
@@ -96,7 +101,19 @@ def plan_order_shipment(request, order_id):
 @login_required
 @require_POST
 def remove_shipment_plan(request, plan_id):
-    plan = get_object_or_404(ShipmentPlan, pk=plan_id); planned_date = plan.planned_date; plan.delete()
+    if not has_full_access(request.user):
+        return HttpResponseForbidden("Bu işlemi yalnızca Patron/Müdür yapabilir.")
+    with transaction.atomic():
+        plan = get_object_or_404(ShipmentPlan.objects.select_for_update(), pk=plan_id)
+        planned_date = plan.planned_date
+        line = InvoiceLine.objects.select_related("invoice").filter(order_id=plan.order_id).first()
+        if line and line.invoice.status != "DRAFT":
+            messages.error(request, "Tamamlanmış faturaya bağlı sipariş kaldırılamaz.")
+            return redirect(f"{reverse('shipment_planning_page')}?date={planned_date.isoformat()}")
+        if line:
+            line.delete()
+        plan.delete()
+    messages.success(request, "Sipariş sevkiyat planından ve fatura taslağından çıkarıldı.")
     return redirect(f"{reverse('shipment_planning_page')}?date={planned_date.isoformat()}")
 
 
