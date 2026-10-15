@@ -11,7 +11,7 @@ from django.views.decorators.http import require_POST
 from core.models import Order
 from .invoice_models import InvoiceDraft, InvoiceLine
 from planning.models import ShipmentPlan
-from core.services.order_status import latest_status_event, status_label
+from core.services.order_status import latest_status_event, status_label, FINANCIAL_STAGES
 
 
 def _allowed(user):
@@ -19,12 +19,45 @@ def _allowed(user):
     return has_full_access(user)
 
 
+def _pending_shipments_by_invoice():
+    """Batch-check latest production statuses without one query per invoice row."""
+    from core.models import OrderEvent
+    invoice_orders = list(InvoiceLine.objects.values_list("invoice_id", "order_id"))
+    if not invoice_orders:
+        return {}
+    order_ids = {order_id for _, order_id in invoice_orders}
+    # PostgreSQL DISTINCT ON returns just the latest relevant event per order.
+    latest = OrderEvent.objects.filter(order_id__in=order_ids).exclude(
+        event_type="order_update"
+    ).exclude(stage__in=FINANCIAL_STAGES).order_by(
+        "order_id", "-timestamp", "-id"
+    ).distinct("order_id").values_list("order_id", "stage", "value")
+    shipped = {order_id for order_id, stage, value in latest
+               if stage == "sevkiyat_durum" and value in ("gonderildi", "tekrar_gonderildi")}
+    pending = {}
+    for invoice_id, order_id in invoice_orders:
+        if order_id not in shipped:
+            pending[invoice_id] = True
+    return pending
+
+
 @login_required
 def invoice_list(request):
     if not _allowed(request.user):
         return HttpResponseForbidden("Yetkiniz yok.")
-    invoices = InvoiceDraft.objects.select_related("customer").prefetch_related("lines").order_by("-invoice_date", "-id")
+    invoices = list(InvoiceDraft.objects.select_related("customer").prefetch_related("lines").order_by("-invoice_date", "-id"))
+    pending = _pending_shipments_by_invoice()
+    for invoice in invoices:
+        invoice.has_pending_shipment = pending.get(invoice.id, False)
     return render(request, "product_cards/invoice_list.html", {"invoices": invoices})
+
+
+@login_required
+def invoice_list_shipment_status(request):
+    if not _allowed(request.user):
+        return HttpResponseForbidden("Yetkiniz yok.")
+    pending = _pending_shipments_by_invoice()
+    return JsonResponse({"pending_invoice_ids": list(pending)})
 
 
 @login_required
