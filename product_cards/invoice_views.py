@@ -27,6 +27,21 @@ def invoice_list(request):
 
 
 @login_required
+@require_POST
+def invoice_delete_empty(request, invoice_id):
+    if not _allowed(request.user):
+        return HttpResponseForbidden("Yetkiniz yok.")
+    with transaction.atomic():
+        invoice = get_object_or_404(InvoiceDraft.objects.select_for_update(), pk=invoice_id)
+        if invoice.status != "DRAFT" or invoice.lines.exists():
+            messages.error(request, "Yalnızca boş taslak faturalar silinebilir.")
+            return redirect("invoice_list")
+        invoice.delete()
+    messages.success(request, "Boş fatura taslağı silindi.")
+    return redirect("invoice_list")
+
+
+@login_required
 def invoice_detail(request, invoice_id):
     if not _allowed(request.user):
         return HttpResponseForbidden("Yetkiniz yok.")
