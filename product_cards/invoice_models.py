@@ -27,3 +27,13 @@ class InvoiceLine(models.Model):
     price = models.DecimalField(max_digits=14, decimal_places=2)
     vat_rate = models.DecimalField(max_digits=7, decimal_places=2, default=0)
     created_at = models.DateTimeField(auto_now_add=True)
+
+
+class BizimHesapCustomerMapping(models.Model):
+    customer = models.OneToOneField("core.Musteri", on_delete=models.CASCADE, related_name="bizimhesap_mapping")
+    external_customer_id = models.CharField(max_length=100)
+    confirmed_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        constraints = [models.UniqueConstraint(fields=["external_customer_id"], name="unique_bizimhesap_customer_id")]
