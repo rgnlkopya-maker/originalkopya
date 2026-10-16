@@ -331,6 +331,10 @@ def invoice_add(request, order_id):
     return redirect("order_detail", pk=order_id)
 
 
+def _transfer_locked(invoice):
+    return BizimHesapInvoiceTransfer.objects.filter(invoice=invoice, status__in=("SENDING", "SENT", "UNKNOWN")).exists()
+
+
 @login_required
 @require_POST
 def invoice_remove(request, invoice_id, line_id):
@@ -338,6 +342,8 @@ def invoice_remove(request, invoice_id, line_id):
         return HttpResponseForbidden("Yetkiniz yok.")
     with transaction.atomic():
         invoice = get_object_or_404(InvoiceDraft.objects.select_for_update(), pk=invoice_id)
+        if _transfer_locked(invoice):
+            return HttpResponseForbidden("Aktarım sürecindeki fatura değiştirilemez.")
         if invoice.status != "DRAFT":
             return HttpResponseForbidden("Tamamlanmış faturadan sipariş çıkarılamaz.")
         line = get_object_or_404(InvoiceLine, pk=line_id, invoice=invoice)
@@ -355,6 +361,8 @@ def invoice_price(request, invoice_id, line_id):
         return HttpResponseForbidden("Yetkiniz yok.")
     with transaction.atomic():
         invoice = get_object_or_404(InvoiceDraft.objects.select_for_update(), pk=invoice_id)
+        if _transfer_locked(invoice):
+            return HttpResponseForbidden("Aktarım sürecindeki fatura değiştirilemez.")
         if invoice.status != "DRAFT":
             return HttpResponseForbidden("Tamamlanmış faturada fiyat değiştirilemez.")
         line = get_object_or_404(InvoiceLine.objects.select_for_update().select_related("order"), pk=line_id, invoice=invoice)
@@ -384,6 +392,8 @@ def invoice_finalize(request, invoice_id):
     if not _allowed(request.user):
         return HttpResponseForbidden("Yetkiniz yok.")
     invoice = get_object_or_404(InvoiceDraft, pk=invoice_id, status="DRAFT")
+    if _transfer_locked(invoice):
+        return HttpResponseForbidden("Aktarım sürecindeki fatura tamamlanamaz.")
     number = request.POST.get("official_number", "").strip()
     if not number or not invoice.lines.exists():
         messages.error(request, "Fatura numarası ve en az bir ürün gerekli.")
