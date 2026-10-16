@@ -265,4 +265,4 @@ class ShowroomOrderLink(models.Model):
 
 
 # Invoice models registered with Django through the product_cards app.
-from .invoice_models import InvoiceDraft, InvoiceLine
+from .invoice_models import InvoiceDraft, InvoiceLine, BizimHesapCustomerMapping, BizimHesapInvoiceTransfer
