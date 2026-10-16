@@ -191,7 +191,7 @@ def invoice_bizimhesap_send(request, invoice_id):
                 old_transfer = BizimHesapInvoiceTransfer.objects.select_for_update().filter(invoice_id=9).first()
                 if (old_transfer and old_transfer.status == "UNKNOWN"
                         and not old_transfer.external_invoice_id
-                        and old_transfer.last_error == "API sonucu belirsiz; yeniden gönderim yapılmaz."):
+                        and old_transfer.last_error == "BizimHesap reddetti: Adres bilgisi gönderilmemiş"):
                     old_transfer.status = "NOT_SENT"
                     old_transfer.last_error = "Önceki deneme BizimHesap'ta bulunamadı."
                     old_transfer.save(update_fields=["status", "last_error", "updated_at"])
@@ -275,7 +275,7 @@ def invoice_bizimhesap_preview(request, invoice_id):
         payload_blockers = ["Aktarım hazırlığı sırasında teknik hata oluştu. Fatura gönderilmedi."]
     retry_ft9 = (invoice_id == 9 and transfer is not None and transfer.status == "UNKNOWN"
                  and not transfer.external_invoice_id
-                 and transfer.last_error == "API sonucu belirsiz; yeniden gönderim yapılmaz.")
+                 and transfer.last_error == "BizimHesap reddetti: Adres bilgisi gönderilmemiş")
     if transfer and transfer.status in ("SENT", "SENDING", "UNKNOWN") and not retry_ft9:
         payload_blockers.append("Bu fatura için aktarım kaydı var.")
         prepared_payload = None
