@@ -66,7 +66,7 @@ def build_invoice_payload(invoice, lines, mapping, firm_id):
         "customer": {
             "customerId": mapping.external_customer_id,
             "title": invoice.customer.ad,
-            "address": invoice.customer.adres or "",
+            "address": "",  # Musteri modelinde adres alanı yok; kayıtlı cari bilgisi esas alınır.
         },
         "details": details,
         "amounts": {
