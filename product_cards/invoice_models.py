@@ -7,6 +7,7 @@ class InvoiceDraft(models.Model):
     STATUS = [("DRAFT", "Taslak"), ("FINAL", "Faturalandırıldı")]
     customer = models.ForeignKey("core.Musteri", on_delete=models.PROTECT, related_name="invoice_drafts")
     invoice_date = models.DateField()
+    due_date = models.DateField(null=True, blank=True)
     status = models.CharField(max_length=8, choices=STATUS, default="DRAFT")
     currency = models.CharField(max_length=3, default="TRY")
     official_number = models.CharField(max_length=80, blank=True, default="")
