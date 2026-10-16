@@ -101,8 +101,8 @@ def plan_order_shipment(request, order_id):
 @login_required
 @require_POST
 def remove_shipment_plan(request, plan_id):
-    if not has_full_access(request.user):
-        return HttpResponseForbidden("Bu işlemi yalnızca Patron/Müdür yapabilir.")
+    if not has_feature_access(request.user, "planning.edit_calendar"):
+        return HttpResponseForbidden("Planlama işlem yetkiniz yok.")
     with transaction.atomic():
         plan = get_object_or_404(ShipmentPlan.objects.select_for_update(), pk=plan_id)
         planned_date = plan.planned_date
