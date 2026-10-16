@@ -9,7 +9,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.views.decorators.http import require_POST
 from core.models import Order
-from .invoice_models import InvoiceDraft, InvoiceLine
+from .invoice_models import InvoiceDraft, InvoiceLine, BizimHesapCustomerMapping
 from planning.models import ShipmentPlan
 from core.services.order_status import latest_status_event, status_label, FINANCIAL_STAGES
 
@@ -121,13 +121,42 @@ def invoice_bizimhesap_preview(request, invoice_id):
         warnings.append("Faturada ürün satırı bulunmuyor.")
     if not currency:
         warnings.append("Para birimi BizimHesap formatı için tanımlı değil.")
-    warnings.append("BizimHesap cari kodu henüz eşleştirilmedi; aktarım kapalı.")
+    mapping = BizimHesapCustomerMapping.objects.filter(customer=invoice.customer).first()
+    if mapping is None:
+        warnings.append("BizimHesap cari kodu henüz eşleştirilmedi; aktarım kapalı.")
     warnings.append("API dokümanında taslak durum parametresi doğrulanmadı; aktarım kapalı.")
     return render(request, "product_cards/invoice_bizimhesap_preview.html", {
         "invoice": invoice, "details": details, "currency": currency or invoice.currency,
         "net_total": net_total, "tax_total": tax_total, "grand_total": net_total + tax_total,
-        "warnings": warnings,
+        "warnings": warnings, "mapping": mapping,
     })
+
+
+@login_required
+@require_POST
+def invoice_bizimhesap_customer_map(request, invoice_id):
+    """Manually map an existing BizimHesap cari code. No external API writes."""
+    if not _allowed(request.user):
+        return HttpResponseForbidden("Yetkiniz yok.")
+    invoice = get_object_or_404(InvoiceDraft, pk=invoice_id)
+    customer_code = request.POST.get("external_customer_id", "").strip()
+    if not customer_code or len(customer_code) > 100 or any(ord(c) < 32 for c in customer_code):
+        messages.error(request, "Geçerli bir BizimHesap cari kodu girin.")
+        return redirect("invoice_bizimhesap_preview", invoice_id=invoice.pk)
+    existing = BizimHesapCustomerMapping.objects.filter(external_customer_id=customer_code).exclude(customer=invoice.customer).first()
+    if existing:
+        messages.error(request, "Bu cari kodu başka bir MoliApp müşterisine eşleştirilmiş.")
+        return redirect("invoice_bizimhesap_preview", invoice_id=invoice.pk)
+    try:
+        BizimHesapCustomerMapping.objects.update_or_create(
+            customer=invoice.customer,
+            defaults={"external_customer_id": customer_code, "confirmed_by": request.user},
+        )
+    except IntegrityError:
+        messages.error(request, "Cari kodu başka bir müşteri tarafından kullanılıyor.")
+        return redirect("invoice_bizimhesap_preview", invoice_id=invoice.pk)
+    messages.success(request, "Cari kodu eşleştirmesi kaydedildi. BizimHesap'a fatura gönderilmedi.")
+    return redirect("invoice_bizimhesap_preview", invoice_id=invoice.pk)
 
 
 @login_required
