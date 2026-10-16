@@ -51,7 +51,7 @@ def build_invoice_payload(invoice, lines, mapping, firm_id):
             "tax": str(tax),
             "total": str(money(price + tax)),
         })
-    if blockers:
+    if any(problem != "FirmId tanımlı değil." for problem in blockers):
         return None, list(dict.fromkeys(blockers))
     net = money(sum((Decimal(x["net"]) for x in details), Decimal("0")))
     tax = money(sum((Decimal(x["tax"]) for x in details), Decimal("0")))
@@ -77,4 +77,4 @@ def build_invoice_payload(invoice, lines, mapping, firm_id):
             "tax": str(tax),
             "total": str(money(net + tax)),
         },
-    }, []
+    }, list(dict.fromkeys(blockers))
