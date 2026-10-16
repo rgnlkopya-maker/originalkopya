@@ -1,3 +1,4 @@
+import os
 from decimal import Decimal, InvalidOperation
 from datetime import date
 from django.contrib import messages
@@ -218,7 +219,7 @@ def invoice_bizimhesap_preview(request, invoice_id):
         ("Fatura satırları", bool(details), str(len(details)) + " ürün satırı"),
         ("Para birimi", bool(currency), currency or "Desteklenmeyen para birimi"),
         ("KDV", bool(details) and all(Decimal("0") <= item["vat_rate"] <= Decimal("100") for item in details), "Oranlar kontrol edildi"),
-        ("FirmId", False, "BizimHesap şirket kimliği henüz doğrulanmadı"),
+        ("FirmId", bool(os.environ.get("BIZIMHESAP_FIRM_ID", "").strip()), "Şirket kimliği Render ortamında tanımlı" if os.environ.get("BIZIMHESAP_FIRM_ID", "").strip() else "Render ortamına BIZIMHESAP_FIRM_ID tanımlanmalı"),
         ("Vade tarihi", bool(invoice.due_date), invoice.due_date.strftime("%d.%m.%Y") if invoice.due_date else "Fatura detayından vade belirleyin"),
         ("Ürün aktarımı", True, "MoliApp ürün kodları kullanılır; BizimHesap eksik ürünleri oluşturabilir"),
         ("Taslak durumu", False, "AddInvoice için taslak parametresi belgelenmemiş"),
