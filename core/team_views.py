@@ -192,7 +192,7 @@ def employee_detail(request,user_id):
             return bool(explicit_permissions[feature_key])
         fallback = (FEATURES.get(feature_key) or {}).get("fallback")
         if fallback is None:
-            return feature_key != "orders.invoice_transfer"
+            return feature_key not in {"orders.invoice_transfer", "planning.edit_calendar"}
         return bool(getattr(access, fallback, False))
 
     access_sections = [
