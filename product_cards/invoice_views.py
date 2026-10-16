@@ -250,8 +250,8 @@ def invoice_bizimhesap_preview(request, invoice_id):
         warnings.append("Aktarım işlemi sürüyor.")
     elif transfer and transfer.status == "UNKNOWN":
         warnings.append("Aktarım sonucu doğrulanmalı; tekrar gönderim koruması aktif.")
-    if invoice.status != "DRAFT":
-        warnings.append("Bu kayıt MoliApp üzerinde tamamlanmış; yeni aktarım öncesi kontrol gerekli.")
+    if invoice.status not in ("DRAFT", "FINAL"):
+        warnings.append("Fatura durumu aktarıma uygun değil.")
     if any(item["vat_rate"] < 0 or item["vat_rate"] > 100 for item in details):
         warnings.append("Geçersiz KDV oranı tespit edildi.")
     # AddInvoice creates an invoice; the documentation does not define a draft mode.
