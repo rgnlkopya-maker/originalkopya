@@ -22,6 +22,7 @@
     <div class="bh-total">Ara Toplam: {{ net_total|floatformat:2 }} {{ currency }}<br>KDV: {{ tax_total|floatformat:2 }} {{ currency }}<br><span class="fs-5">Genel Toplam: {{ grand_total|floatformat:2 }} {{ currency }}</span></div>
   </div>
   {% if transfer %}<div class="bh-panel"><strong>BizimHesap aktarım durumu:</strong> {{ transfer.get_status_display }}{% if transfer.external_invoice_no %}<div class="bh-sub">Dış fatura no: {{ transfer.external_invoice_no }}</div>{% endif %}</div>{% endif %}
+  <div class="bh-panel"><h5>BizimHesap API Aktarım Hazırlığı</h5><p class="bh-sub">Aşağıdaki kontroller yalnızca bilgi amaçlıdır. Bu sayfa fatura göndermez.</p><div class="table-responsive"><table class="table table-sm align-middle"><thead><tr><th>Kontrol</th><th>Durum</th><th>Açıklama</th></tr></thead><tbody>{% for title, ready, note in api_checks %}<tr><td>{{ title }}</td><td>{% if ready %}<span class="text-success">Hazır</span>{% else %}<span class="text-warning">Bekliyor</span>{% endif %}</td><td>{{ note }}</td></tr>{% endfor %}</tbody></table></div></div>
   <div class="bh-warnings"><strong>Aktarım kontrolü</strong>{% for warning in warnings %}<div class="small mt-2">• {{ warning }}</div>{% endfor %}</div>
   <div class="text-end mt-3"><button class="btn btn-secondary" disabled>Aktarımı Onayla · Henüz Kapalı</button></div>
 </main>
