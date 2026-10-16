@@ -11,6 +11,8 @@ class InvoiceDraft(models.Model):
     status = models.CharField(max_length=8, choices=STATUS, default="DRAFT")
     currency = models.CharField(max_length=3, default="TRY")
     official_number = models.CharField(max_length=80, blank=True, default="")
+    bizimhesap_manual_recorded = models.BooleanField(default=False)
+    parasut_manual_recorded = models.BooleanField(default=False)
     created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
