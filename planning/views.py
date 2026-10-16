@@ -5,7 +5,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.db import transaction
 from django.http import HttpResponseForbidden
-from app_settings.access import has_full_access
+from app_settings.access import has_full_access, has_feature_access
 from product_cards.invoice_models import InvoiceLine
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
@@ -51,7 +51,7 @@ def planning_page(request):
     else: prev_year, prev_month = year, month - 1
     if month == 12: next_year, next_month = year + 1, 1
     else: next_year, next_month = year, month + 1
-    return render(request, "planning/planning.html", {"year": year, "month": month, "month_label": f"{month:02d}/{year}", "weeks": weeks, "sections": SECTIONS, "entry_map": entry_map, "prev_year": prev_year, "prev_month": prev_month, "next_year": next_year, "next_month": next_month})
+    return render(request, "planning/planning.html", {"year": year, "month": month, "month_label": f"{month:02d}/{year}", "weeks": weeks, "sections": SECTIONS, "entry_map": entry_map, "can_edit_calendar": has_feature_access(request.user, "planning.edit_calendar"), "prev_year": prev_year, "prev_month": prev_month, "next_year": next_year, "next_month": next_month})
 
 
 @login_required
@@ -120,12 +120,16 @@ def remove_shipment_plan(request, plan_id):
 @login_required
 @require_POST
 def delete_entry(request, entry_id):
+    if not has_feature_access(request.user, "planning.edit_calendar"):
+        return HttpResponseForbidden("Planlama sayfasında işlem yapma yetkiniz yok.")
     entry = get_object_or_404(PlanningEntry, pk=entry_id, section="sevkiyat"); entry.delete(); return JsonResponse({"ok": True})
 
 
 @login_required
 @require_POST
 def save_entry(request):
+    if not has_feature_access(request.user, "planning.edit_calendar"):
+        return HttpResponseForbidden("Planlama sayfasında işlem yapma yetkiniz yok.")
     try: section=request.POST["section"]; entry_date=date.fromisoformat(request.POST["date"])
     except (KeyError,ValueError): return JsonResponse({"ok":False,"error":"Geçersiz kayıt."},status=400)
     valid_sections={item[0] for item in SECTIONS}|{"sevkiyat"}
