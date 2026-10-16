@@ -8,7 +8,7 @@ from django.http import HttpResponseForbidden, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.views.decorators.http import require_POST
-from core.models import Order
+from core.models import Order, Musteri
 from .invoice_models import InvoiceDraft, InvoiceLine, BizimHesapCustomerMapping
 from planning.models import ShipmentPlan
 from core.services.order_status import latest_status_event, status_label, FINANCIAL_STAGES
@@ -50,6 +50,47 @@ def invoice_list(request):
     for invoice in invoices:
         invoice.has_pending_shipment = pending.get(invoice.id, False)
     return render(request, "product_cards/invoice_list.html", {"invoices": invoices})
+
+
+@login_required
+def invoice_customer_mapping_list(request):
+    if not _allowed(request.user):
+        return HttpResponseForbidden("Yetkiniz yok.")
+    customers = list(Musteri.objects.filter(aktif=True).order_by("ad").prefetch_related("bizimhesap_mapping"))
+    mappings = {m.customer_id: m.external_customer_id for m in BizimHesapCustomerMapping.objects.filter(customer_id__in=[c.id for c in customers])}
+    for customer in customers:
+        customer.bh_code = mappings.get(customer.id, "")
+    return render(request, "product_cards/invoice_customer_mapping.html", {
+        "customers": customers,
+        "mapped_count": len(mappings),
+        "customer_count": len(customers),
+    })
+
+
+@login_required
+@require_POST
+def invoice_customer_mapping_save(request, customer_id):
+    if not _allowed(request.user):
+        return HttpResponseForbidden("Yetkiniz yok.")
+    customer = get_object_or_404(Musteri, pk=customer_id)
+    code = request.POST.get("external_customer_id", "").strip()
+    if not code or len(code) > 100 or any(ord(ch) < 32 for ch in code):
+        messages.error(request, "Geçerli bir BizimHesap cari kodu girin.")
+        return redirect("invoice_customer_mapping_list")
+    try:
+        with transaction.atomic():
+            if BizimHesapCustomerMapping.objects.filter(external_customer_id=code).exclude(customer=customer).exists():
+                messages.error(request, "Bu cari kodu başka bir müşteriye eşleştirilmiş.")
+                return redirect("invoice_customer_mapping_list")
+            BizimHesapCustomerMapping.objects.update_or_create(
+                customer=customer,
+                defaults={"external_customer_id": code, "confirmed_by": request.user},
+            )
+    except IntegrityError:
+        messages.error(request, "Bu cari kodu zaten başka bir müşteride kullanılıyor.")
+        return redirect("invoice_customer_mapping_list")
+    messages.success(request, f"{customer.ad}: Cari eşleştirmesi kaydedildi.")
+    return redirect("invoice_customer_mapping_list")
 
 
 @login_required
