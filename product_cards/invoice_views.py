@@ -224,11 +224,28 @@ def invoice_bizimhesap_preview(request, invoice_id):
         ("Ürün aktarımı", True, "MoliApp ürün kodları kullanılır; BizimHesap eksik ürünleri oluşturabilir"),
         ("Taslak durumu", False, "AddInvoice için taslak parametresi belgelenmemiş"),
     ]
+    from .bizimhesap_payload import build_invoice_payload
+    prepared_payload, payload_blockers = build_invoice_payload(
+        invoice, lines, mapping, os.environ.get("BIZIMHESAP_FIRM_ID", "").strip()
+    )
+    if transfer and transfer.status in ("SENT", "SENDING", "UNKNOWN"):
+        payload_blockers.append("Bu fatura için aktarım kaydı var.")
+        prepared_payload = None
+    payload_summary = None
+    if prepared_payload:
+        payload_summary = {
+            "customer": prepared_payload["customer"]["title"],
+            "customer_id": prepared_payload["customer"]["customerId"],
+            "item_count": len(prepared_payload["details"]),
+            "currency": prepared_payload["amounts"]["currency"],
+            "total": prepared_payload["amounts"]["total"],
+            "due_date": invoice.due_date,
+        }
     warnings.append("BizimHesap'ta taslak ve cari bakiye davranışı henüz doğrulanmadı; gönderim kapalı.")
     return render(request, "product_cards/invoice_bizimhesap_preview.html", {
         "invoice": invoice, "details": details, "currency": currency or invoice.currency,
         "net_total": net_total, "tax_total": tax_total, "grand_total": net_total + tax_total,
-        "warnings": warnings, "mapping": mapping, "transfer": transfer, "api_checks": api_checks,
+        "warnings": warnings, "mapping": mapping, "transfer": transfer, "api_checks": api_checks, "payload_summary": payload_summary, "payload_blockers": payload_blockers,
     })
 
 
