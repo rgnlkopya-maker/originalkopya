@@ -220,7 +220,7 @@ def invoice_bizimhesap_preview(request, invoice_id):
         ("KDV", bool(details) and all(Decimal("0") <= item["vat_rate"] <= Decimal("100") for item in details), "Oranlar kontrol edildi"),
         ("FirmId", False, "BizimHesap şirket kimliği henüz doğrulanmadı"),
         ("Vade tarihi", bool(invoice.due_date), invoice.due_date.strftime("%d.%m.%Y") if invoice.due_date else "Fatura detayından vade belirleyin"),
-        ("ProductId", False, "Ürünler eşleştirilmeden API yeni ürün oluşturabilir"),
+        ("Ürün aktarımı", True, "MoliApp ürün kodları kullanılır; BizimHesap eksik ürünleri oluşturabilir"),
         ("Taslak durumu", False, "AddInvoice için taslak parametresi belgelenmemiş"),
     ]
     warnings.append("BizimHesap'ta taslak ve cari bakiye davranışı henüz doğrulanmadı; gönderim kapalı.")
