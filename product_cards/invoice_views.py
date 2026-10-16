@@ -68,6 +68,18 @@ def invoice_customer_mapping_list(request):
 
 
 @login_required
+def invoice_bizimhesap_customers(request):
+    if not _allowed(request.user):
+        return HttpResponseForbidden("Yetkiniz yok.")
+    from .bizimhesap_client import list_customers, BizimHesapError
+    try:
+        customers = list_customers()
+    except BizimHesapError as exc:
+        return JsonResponse({"ok": False, "message": str(exc)}, status=503)
+    return JsonResponse({"ok": True, "customers": customers})
+
+
+@login_required
 @require_POST
 def invoice_customer_mapping_save(request, customer_id):
     if not _allowed(request.user):
