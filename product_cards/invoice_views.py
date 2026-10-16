@@ -9,7 +9,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.views.decorators.http import require_POST
 from core.models import Order, Musteri
-from .invoice_models import InvoiceDraft, InvoiceLine, BizimHesapCustomerMapping
+from .invoice_models import InvoiceDraft, InvoiceLine, BizimHesapCustomerMapping, BizimHesapInvoiceTransfer
 from planning.models import ShipmentPlan
 from core.services.order_status import latest_status_event, status_label, FINANCIAL_STAGES
 
@@ -177,11 +177,18 @@ def invoice_bizimhesap_preview(request, invoice_id):
     mapping = BizimHesapCustomerMapping.objects.filter(customer=invoice.customer).first()
     if mapping is None:
         warnings.append("BizimHesap cari kodu henüz eşleştirilmedi; aktarım kapalı.")
-    warnings.append("API dokümanında taslak durum parametresi doğrulanmadı; aktarım kapalı.")
+    transfer = BizimHesapInvoiceTransfer.objects.filter(invoice=invoice).first()
+    if transfer and transfer.status in ("SENT", "SENDING", "UNKNOWN"):
+        warnings.append("Bu fatura için önceden aktarım işlemi var; mükerrer gönderim engellenecek.")
+    if invoice.status != "DRAFT":
+        warnings.append("Bu kayıt MoliApp üzerinde tamamlanmış; yeni aktarım öncesi kontrol gerekli.")
+    if any(item["vat_rate"] < 0 or item["vat_rate"] > 100 for item in details):
+        warnings.append("Geçersiz KDV oranı tespit edildi.")
+    warnings.append("BizimHesap'ta taslak ve cari bakiye davranışı henüz doğrulanmadı; gönderim kapalı.")
     return render(request, "product_cards/invoice_bizimhesap_preview.html", {
         "invoice": invoice, "details": details, "currency": currency or invoice.currency,
         "net_total": net_total, "tax_total": tax_total, "grand_total": net_total + tax_total,
-        "warnings": warnings, "mapping": mapping,
+        "warnings": warnings, "mapping": mapping, "transfer": transfer,
     })
 
 
