@@ -90,6 +90,47 @@ def invoice_detail(request, invoice_id):
 
 
 @login_required
+def invoice_bizimhesap_preview(request, invoice_id):
+    """Read-only preview. Never calls BizimHesap or writes to the database."""
+    if not _allowed(request.user):
+        return HttpResponseForbidden("Yetkiniz yok.")
+    invoice = get_object_or_404(InvoiceDraft.objects.select_related("customer"), pk=invoice_id)
+    lines = list(invoice.lines.select_related("order").order_by("id"))
+    currency = {"TRY": "TL", "TL": "TL", "USD": "USD", "EUR": "EUR", "GBP": "GBP", "CHF": "CHF"}.get(invoice.currency)
+    details = []
+    for line in lines:
+        net = line.price
+        tax = (net * line.vat_rate / Decimal("100")).quantize(Decimal("0.01"))
+        details.append({
+            "product": line.order.urun_kodu,
+            "order_number": line.order.siparis_numarasi,
+            "description": " / ".join(str(v) for v in (line.order.renk, line.order.beden) if v),
+            "reference": line.order.musteri_referans or "",
+            "note": line.order.aciklama or "",
+            "quantity": 1,
+            "unit_price": net,
+            "vat_rate": line.vat_rate,
+            "net": net,
+            "tax": tax,
+            "total": net + tax,
+        })
+    net_total = sum((item["net"] for item in details), Decimal("0"))
+    tax_total = sum((item["tax"] for item in details), Decimal("0"))
+    warnings = []
+    if not details:
+        warnings.append("Faturada ürün satırı bulunmuyor.")
+    if not currency:
+        warnings.append("Para birimi BizimHesap formatı için tanımlı değil.")
+    warnings.append("BizimHesap cari kodu henüz eşleştirilmedi; aktarım kapalı.")
+    warnings.append("API dokümanında taslak durum parametresi doğrulanmadı; aktarım kapalı.")
+    return render(request, "product_cards/invoice_bizimhesap_preview.html", {
+        "invoice": invoice, "details": details, "currency": currency or invoice.currency,
+        "net_total": net_total, "tax_total": tax_total, "grand_total": net_total + tax_total,
+        "warnings": warnings,
+    })
+
+
+@login_required
 def invoice_live_status(request, invoice_id):
     if not _allowed(request.user):
         return HttpResponseForbidden("Yetkiniz yok.")
