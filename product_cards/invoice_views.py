@@ -310,6 +310,9 @@ def invoice_bizimhesap_preview(request, invoice_id):
     if transfer and transfer.status in ("SENT", "SENDING", "UNKNOWN") and not retry_ft9 and transfer.status != "SENT":
         payload_blockers.append("Bu fatura için aktarım kaydı var.")
         prepared_payload = None
+    if invoice.bizimhesap_manual_recorded:
+        payload_blockers.append("Bu fatura BizimHesap için elle işlendi olarak işaretlenmiş.")
+        prepared_payload = None
     export_enabled = os.environ.get("BIZIMHESAP_INVOICE_EXPORT_ENABLED") == "true" and (not os.environ.get("BIZIMHESAP_FIRST_TEST_INVOICE_ID") or os.environ.get("BIZIMHESAP_FIRST_TEST_INVOICE_ID") == str(invoice_id))
     can_send = export_enabled and prepared_payload is not None and not payload_blockers and not (transfer and transfer.status in ("SENDING", "SENT", "UNKNOWN") and not retry_ft9)
     payload_summary = None
