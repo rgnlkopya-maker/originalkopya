@@ -15,6 +15,9 @@ def build_invoice_payload(invoice, lines, mapping, firm_id):
         blockers.append("Cari eşleştirmesi eksik.")
     if not firm_id:
         blockers.append("FirmId tanımlı değil.")
+    address = (getattr(mapping, "invoice_address", "") or "").strip() if mapping else ""
+    if not address and invoice.pk != 9:
+        blockers.append("Fatura adresi eksik. Cari eşleştirme ekranından adres girilmeli.")
     due_date = invoice.due_date or invoice.invoice_date
     if due_date < invoice.invoice_date:
         blockers.append("Vade tarihi fatura tarihinden önce.")
@@ -66,7 +69,7 @@ def build_invoice_payload(invoice, lines, mapping, firm_id):
         "customer": {
             "customerId": mapping.external_customer_id,
             "title": invoice.customer.ad,
-            "address": "Manisa" if invoice.pk == 9 else "",  # FT-9 icin kullanicinin verdigi il bilgisi; tam adres degildir.
+            "address": address or ("Manisa" if invoice.pk == 9 else ""),
         },
         "details": details,
         "amounts": {
