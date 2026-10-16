@@ -22,15 +22,8 @@ def list_customers():
         with urlopen(request, timeout=12) as response:
             data = json.load(response)
     except HTTPError as exc:
-        if exc.code in (401, 403):
-            detail = "API anahtarı reddedildi veya müşteri listesini okuma yetkisi yok."
-        elif exc.code == 404:
-            detail = "BizimHesap müşteri servisi bulunamadı (HTTP 404)."
-        elif exc.code == 429:
-            detail = "BizimHesap istek sınırına ulaşıldı (HTTP 429)."
-        else:
-            detail = f"BizimHesap sunucusu HTTP {exc.code} yanıtı verdi."
-        raise BizimHesapError(detail) from exc
+        # Only status is exposed; never log tokens, response bodies or customer data.
+        raise BizimHesapError(f"BizimHesap HTTP {exc.code} yanıtı verdi. API adresi ve erişim yetkisini kontrol edin.") from exc
     except (URLError, TimeoutError) as exc:
         raise BizimHesapError("BizimHesap servisine bağlantı kurulamadı veya zaman aşımına uğradı.") from exc
     except ValueError as exc:
