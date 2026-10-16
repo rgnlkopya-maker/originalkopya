@@ -10,6 +10,7 @@ urlpatterns = [
     path("faturalar/<int:invoice_id>/", invoice_views.invoice_detail, name="invoice_detail"),
     path("faturalar/<int:invoice_id>/vade-kaydet/", invoice_views.invoice_due_date_save, name="invoice_due_date_save"),
     path("faturalar/<int:invoice_id>/bizimhesap-onizleme/", invoice_views.invoice_bizimhesap_preview, name="invoice_bizimhesap_preview"),
+    path("faturalar/<int:invoice_id>/bizimhesap-gonder/", invoice_views.invoice_bizimhesap_send, name="invoice_bizimhesap_send"),
     path("faturalar/<int:invoice_id>/bizimhesap-cari-eslestir/", invoice_views.invoice_bizimhesap_customer_map, name="invoice_bizimhesap_customer_map"),
     path("faturalar/<int:invoice_id>/durumlar/", invoice_views.invoice_live_status, name="invoice_live_status"),
     path("faturalar/<int:invoice_id>/sil/", invoice_views.invoice_delete_empty, name="invoice_delete_empty"),
