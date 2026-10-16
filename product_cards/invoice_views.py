@@ -143,6 +143,33 @@ def invoice_detail(request, invoice_id):
 
 
 @login_required
+@require_POST
+def invoice_due_date_save(request, invoice_id):
+    if not _allowed(request.user):
+        return HttpResponseForbidden("Yetkiniz yok.")
+    with transaction.atomic():
+        invoice = get_object_or_404(InvoiceDraft.objects.select_for_update(), pk=invoice_id)
+        if invoice.status != "DRAFT":
+            return HttpResponseForbidden("Yalnızca taslak faturanın vadesi değiştirilebilir.")
+        raw = request.POST.get("due_date", "").strip()
+        try:
+            due = date.fromisoformat(raw)
+        except (ValueError, TypeError):
+            messages.error(request, "Geçerli bir vade tarihi seçin.")
+            return redirect("invoice_detail", invoice_id=invoice_id)
+        if due < invoice.invoice_date:
+            messages.error(request, "Vade tarihi fatura tarihinden önce olamaz.")
+            return redirect("invoice_detail", invoice_id=invoice_id)
+        if BizimHesapInvoiceTransfer.objects.filter(invoice=invoice, status__in=("SENT", "SENDING", "UNKNOWN")).exists():
+            messages.error(request, "Aktarım kaydı bulunan faturanın vadesi değiştirilemez.")
+            return redirect("invoice_detail", invoice_id=invoice_id)
+        invoice.due_date = due
+        invoice.save(update_fields=["due_date", "updated_at"])
+    messages.success(request, "Fatura vade tarihi kaydedildi.")
+    return redirect("invoice_detail", invoice_id=invoice_id)
+
+
+@login_required
 def invoice_bizimhesap_preview(request, invoice_id):
     """Read-only preview. Never calls BizimHesap or writes to the database."""
     if not _allowed(request.user):
@@ -192,7 +219,7 @@ def invoice_bizimhesap_preview(request, invoice_id):
         ("Para birimi", bool(currency), currency or "Desteklenmeyen para birimi"),
         ("KDV", bool(details) and all(Decimal("0") <= item["vat_rate"] <= Decimal("100") for item in details), "Oranlar kontrol edildi"),
         ("FirmId", False, "BizimHesap şirket kimliği henüz doğrulanmadı"),
-        ("Vade tarihi", False, "API için zorunlu, MoliApp'te ayrı vade tarihi bulunmuyor"),
+        ("Vade tarihi", bool(invoice.due_date), invoice.due_date.strftime("%d.%m.%Y") if invoice.due_date else "Fatura detayından vade belirleyin"),
         ("ProductId", False, "Ürünler eşleştirilmeden API yeni ürün oluşturabilir"),
         ("Taslak durumu", False, "AddInvoice için taslak parametresi belgelenmemiş"),
     ]
