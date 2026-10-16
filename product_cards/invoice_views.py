@@ -62,7 +62,6 @@ def invoice_customer_mapping_list(request):
     mappings = {m.customer_id: m for m in BizimHesapCustomerMapping.objects.filter(customer_id__in=[c.id for c in customers])}
     for customer in customers:
         customer.bh_code = mappings[customer.id].external_customer_id if customer.id in mappings else ""
-        customer.bh_address = mappings[customer.id].invoice_address if customer.id in mappings else ""
     return render(request, "product_cards/invoice_customer_mapping.html", {
         "customers": customers,
         "mapped_count": len(mappings),
@@ -89,10 +88,6 @@ def invoice_customer_mapping_save(request, customer_id):
         return HttpResponseForbidden("Yetkiniz yok.")
     customer = get_object_or_404(Musteri, pk=customer_id)
     code = request.POST.get("external_customer_id", "").strip()
-    address = request.POST.get("invoice_address", "").strip()
-    if len(address) > 255:
-        messages.error(request, "Adres 255 karakteri aşamaz.")
-        return redirect("invoice_customer_mapping_list")
     if not code or len(code) > 100 or any(ord(ch) < 32 for ch in code):
         messages.error(request, "Geçerli bir BizimHesap cari kodu girin.")
         return redirect("invoice_customer_mapping_list")
@@ -103,7 +98,7 @@ def invoice_customer_mapping_save(request, customer_id):
                 return redirect("invoice_customer_mapping_list")
             BizimHesapCustomerMapping.objects.update_or_create(
                 customer=customer,
-                defaults={"external_customer_id": code, "invoice_address": address, "confirmed_by": request.user},
+                defaults={"external_customer_id": code, "confirmed_by": request.user},
             )
     except IntegrityError:
         messages.error(request, "Bu cari kodu zaten başka bir müşteride kullanılıyor.")
@@ -318,10 +313,6 @@ def invoice_bizimhesap_customer_map(request, invoice_id):
         return HttpResponseForbidden("Yetkiniz yok.")
     invoice = get_object_or_404(InvoiceDraft, pk=invoice_id)
     customer_code = request.POST.get("external_customer_id", "").strip()
-    address = request.POST.get("invoice_address", "").strip()
-    if len(address) > 255:
-        messages.error(request, "Adres 255 karakteri aşamaz.")
-        return redirect("invoice_bizimhesap_preview", invoice_id=invoice.pk)
     if not customer_code or len(customer_code) > 100 or any(ord(c) < 32 for c in customer_code):
         messages.error(request, "Geçerli bir BizimHesap cari kodu girin.")
         return redirect("invoice_bizimhesap_preview", invoice_id=invoice.pk)
@@ -332,7 +323,7 @@ def invoice_bizimhesap_customer_map(request, invoice_id):
     try:
         BizimHesapCustomerMapping.objects.update_or_create(
             customer=invoice.customer,
-            defaults={"external_customer_id": customer_code, "invoice_address": address, "confirmed_by": request.user},
+            defaults={"external_customer_id": customer_code, "confirmed_by": request.user},
         )
     except IntegrityError:
         messages.error(request, "Cari kodu başka bir müşteri tarafından kullanılıyor.")
