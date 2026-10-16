@@ -273,11 +273,14 @@ def invoice_bizimhesap_preview(request, invoice_id):
         logging.getLogger(__name__).exception("BizimHesap invoice preview preparation failed for invoice id=%s", invoice.pk)
         prepared_payload = None
         payload_blockers = ["Aktarım hazırlığı sırasında teknik hata oluştu. Fatura gönderilmedi."]
-    if transfer and transfer.status in ("SENT", "SENDING", "UNKNOWN"):
+    retry_ft9 = (invoice_id == 9 and transfer is not None and transfer.status == "UNKNOWN"
+                 and not transfer.external_invoice_id
+                 and transfer.last_error == "API sonucu belirsiz; yeniden gönderim yapılmaz.")
+    if transfer and transfer.status in ("SENT", "SENDING", "UNKNOWN") and not retry_ft9:
         payload_blockers.append("Bu fatura için aktarım kaydı var.")
         prepared_payload = None
     export_enabled = os.environ.get("BIZIMHESAP_INVOICE_EXPORT_ENABLED") == "true" and (not os.environ.get("BIZIMHESAP_FIRST_TEST_INVOICE_ID") or os.environ.get("BIZIMHESAP_FIRST_TEST_INVOICE_ID") == str(invoice_id))
-    can_send = export_enabled and prepared_payload is not None and not payload_blockers and not (transfer and transfer.status in ("SENDING", "SENT", "UNKNOWN"))
+    can_send = export_enabled and prepared_payload is not None and not payload_blockers and not (transfer and transfer.status in ("SENDING", "SENT", "UNKNOWN") and not retry_ft9)
     payload_summary = None
     if prepared_payload:
         payload_summary = {
