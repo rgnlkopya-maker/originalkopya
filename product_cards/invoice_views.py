@@ -223,7 +223,7 @@ def invoice_bizimhesap_preview(request, invoice_id):
         ("FirmId", bool((os.environ.get("BIZIMHESAP_FIRM_ID") or os.environ.get("BIZIMHESAP_API_TOKEN") or "").strip()), "API Key (FirmID) mevcut" if (os.environ.get("BIZIMHESAP_FIRM_ID") or os.environ.get("BIZIMHESAP_API_TOKEN") or "").strip() else "BizimHesap API anahtarı tanımlanmalı"),
         ("Vade tarihi", True, (invoice.due_date or invoice.invoice_date).strftime("%d.%m.%Y") + (" (otomatik)" if not invoice.due_date else "")),
         ("Ürün aktarımı", True, "MoliApp ürün kodları kullanılır; BizimHesap eksik ürünleri oluşturabilir"),
-        ("Taslak durumu", False, "AddInvoice için taslak parametresi belgelenmemiş"),
+        ("Satış kaydı", True, "AddInvoice satış kaydı oluşturur; e-belge davranışı ilk testte doğrulanacak"),
     ]
     from .bizimhesap_payload import build_invoice_payload
     try:
