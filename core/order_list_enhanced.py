@@ -14,9 +14,9 @@ from .models import Order, OrderEvent, OrderFlag, URUN_TIPI_CHOICES
 STAGE_TRANSLATIONS = {
     ("malzeme_durum", "kesildi"): "Malzemesi Kesildi", ("malzeme_durum", "boyandi"): "Malzemesi Boyandı", ("malzeme_durum", "eksik"): "Malzemesi Eksik",
     ("kesim_durum", "siraya_alindi"): "Kesim Sırasına Alındı", ("kesim_durum", "basladi"): "Kesim Başladı", ("kesim_durum", "kismi"): "Kısmi Kesim yapıldı", ("kesim_durum", "bitti"): "Kesildi",
-    ("dikim_durum", "siraya_alindi"): "Dikim Sırasına Alındı", ("dikim_durum", "basladi"): "Dikim Başladı", ("dikim_durum", "kismi"): "Kısmi Dikim yapıldı", ("dikim_durum", "bitti"): "Dikildi",
+    ("dikim_durum", "siraya_alindi"): "Dikim Sırasına Alındı", ("dikim_durum", "sıraya_alındı"): "Dikim Sırasına Alındı", ("dikim_durum", "basladi"): "Dikim Başladı", ("dikim_durum", "kismi"): "Kısmi Dikim yapıldı", ("dikim_durum", "bitti"): "Dikildi",
     ("dikim_fason_durumu", "verildi"): "Fason Dikime Verildi", ("dikim_fason_durumu", "alindi"): "Fason Dikimden Alındı", ("nakis_durum", "verildi"): "Nakışa Verildi", ("nakis_durum", "alindi"): "Nakıştan Alındı",
-    ("susleme_durum", "siraya_alindi"): "Süsleme Sırasına Alındı", ("susleme_durum", "basladi"): "Süsleme Başladı", ("susleme_durum", "kismi"): "Kısmi Süsleme", ("susleme_durum", "bitti"): "Süslendi",
+    ("susleme_durum", "siraya_alindi"): "Süsleme Sırasına Alındı", ("susleme_durum", "sıraya_alındı"): "Süsleme Sırasına Alındı", ("susleme_durum", "basladi"): "Süsleme Başladı", ("susleme_durum", "kismi"): "Kısmi Süsleme", ("susleme_durum", "bitti"): "Süslendi",
     ("susleme_fason_durumu", "verildi"): "Fason Süslemeye Verildi", ("susleme_fason_durumu", "alindi"): "Fason Süslemeden Alındı",
     ("sevkiyat_durum", "gonderildi"): "Sevkedildi", ("sevkiyat_durum", "depoya"): "Depoya Girdi", ("sevkiyat_durum", "kargodan_geri_geldi"): "Kargodan Geri Geldi", ("sevkiyat_durum", "iade_geldi"): "İade Geldi",
     ("sevkiyat_durum", "yanlis_sevkiyat"): "Yanlış Sevkiyat", ("sevkiyat_durum", "tekrar_gonderildi"): "Tekrar Gönderildi",
