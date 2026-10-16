@@ -66,7 +66,7 @@ def build_invoice_payload(invoice, lines, mapping, firm_id):
         "customer": {
             "customerId": mapping.external_customer_id,
             "title": invoice.customer.ad,
-            "address": "",  # Musteri modelinde adres alanı yok; kayıtlı cari bilgisi esas alınır.
+            "address": "Manisa" if invoice.pk == 9 else "",  # FT-9 icin kullanicinin verdigi il bilgisi; tam adres degildir.
         },
         "details": details,
         "amounts": {
