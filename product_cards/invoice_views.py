@@ -282,7 +282,7 @@ def invoice_bizimhesap_preview(request, invoice_id):
     return render(request, "product_cards/invoice_bizimhesap_preview.html", {
         "invoice": invoice, "details": details, "currency": currency or invoice.currency,
         "net_total": net_total, "tax_total": tax_total, "grand_total": net_total + tax_total,
-        "warnings": warnings, "mapping": mapping, "transfer": transfer, "api_checks": api_checks, "payload_summary": payload_summary, "payload_blockers": payload_blockers,
+        "warnings": warnings, "mapping": mapping, "transfer": transfer, "api_checks": api_checks, "payload_summary": payload_summary, "payload_blockers": payload_blockers, "can_send": can_send,
     })
 
 
