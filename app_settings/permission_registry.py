@@ -47,6 +47,7 @@ FEATURE_GROUPS = [
     ("Planlama / Operasyon", [
         ("operations.production_stage_control", "Üretim Aşama Kontrolü", "can_view_production_stage_control"),
         ("planning.main", "Planlama", "can_manage_planning"),
+        ("planning.edit_calendar", "Planlama Sayfasında İşlem Yap", None),
         ("planning.shipment", "Sevkiyat Planlama", "can_manage_planning"),
         ("planning.actions", "Planlama İşlemleri", "can_manage_planning"),
         ("operations.fason_reports", "Fason Raporları", "can_view_reports"),
@@ -172,6 +173,7 @@ _RULES = [
 
     (re.compile(r"^/uretim-asama-kontrolu/"), "operations.production_stage_control"),
     (re.compile(r"^/planlama/sevkiyat/$"), "planning.shipment"),
+    (re.compile(r"^/planlama/(?:not/\\d+/sil/|kaydet/)$"), "planning.edit_calendar"),
     (re.compile(r"^/planlama/(?:sevkiyat/.+|not/.+|kaydet/)$"), "planning.actions"),
     (re.compile(r"^/planlama/$"), "planning.main"),
     (re.compile(r"^/reports/fasoncu/"), "operations.fason_reports"),
