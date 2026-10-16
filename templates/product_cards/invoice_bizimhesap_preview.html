@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block content %}
+<style>.bh-preview{max-width:1050px;margin:28px auto;padding:0 15px 50px}.bh-panel{background:#fff;border:1px solid #e4e9f0;border-radius:15px;padding:24px;margin-top:18px}.bh-meta{display:flex;flex-wrap:wrap;gap:20px}.bh-meta>div{min-width:210px;flex:1}.bh-sub{font-size:12px;color:#718096}.bh-preview table{font-size:13px}.bh-total{text-align:right;font-weight:700}.bh-warnings{background:#fff8ee;border:1px solid #f5dfb9;border-radius:11px;padding:15px;margin-top:16px}@media(max-width:700px){.bh-panel{padding:14px}.bh-meta{gap:12px}}</style>
+<main class="bh-preview">
+  <a href="{% url 'invoice_detail' invoice.id %}" class="btn btn-sm btn-outline-secondary">← Faturaya Dön</a>
+  <div class="bh-panel">
+    <h3 class="mb-1">BizimHesap · Aktarım Önizlemesi</h3>
+    <p class="bh-sub">Yalnızca kontrol ekranıdır. BizimHesap'a veri gönderilmez veya kayıt oluşturulmaz.</p>
+    <div class="bh-meta mt-4">
+      <div><div class="bh-sub">MOLİAPP FATURASI</div><strong>FT-{{ invoice.id }}</strong><div>{{ invoice.invoice_date|date:"d.m.Y" }}</div><div>{{ invoice.get_status_display }}</div></div>
+      <div><div class="bh-sub">MÜŞTERİ</div><strong>{{ invoice.customer.ad }}</strong><div>{{ invoice.customer.adres|default:"Adres belirtilmemiş" }}</div><div class="bh-sub mt-2">BizimHesap CustomerID: Henüz eşleştirilmedi</div></div>
+      <div><div class="bh-sub">PARA BİRİMİ</div><strong>{{ currency }}</strong></div>
+    </div>
+  </div>
+  <div class="bh-panel">
+    <h5>Aktarılacak Ürünler</h5>
+    <div class="table-responsive"><table class="table table-sm align-middle">
+      <thead><tr><th>Sipariş</th><th>Ürün / Açıklama</th><th>Miktar</th><th>Birim Fiyat</th><th>KDV</th><th>Vergi</th><th>Toplam</th></tr></thead>
+      <tbody>{% for item in details %}<tr><td>{{ item.order_number }}</td><td><strong>{{ item.product }}</strong><div class="bh-sub">{{ item.description }}{% if item.reference %} · Ref: {{ item.reference }}{% endif %}</div>{% if item.note %}<div class="bh-sub">{{ item.note }}</div>{% endif %}</td><td>{{ item.quantity }}</td><td>{{ item.unit_price|floatformat:2 }}</td><td>%{{ item.vat_rate|floatformat:0 }}</td><td>{{ item.tax|floatformat:2 }}</td><td>{{ item.total|floatformat:2 }}</td></tr>{% empty %}<tr><td colspan="7">Aktarılacak ürün yok.</td></tr>{% endfor %}</tbody>
+    </table></div>
+    <div class="bh-total">Ara Toplam: {{ net_total|floatformat:2 }} {{ currency }}<br>KDV: {{ tax_total|floatformat:2 }} {{ currency }}<br><span class="fs-5">Genel Toplam: {{ grand_total|floatformat:2 }} {{ currency }}</span></div>
+  </div>
+  <div class="bh-warnings"><strong>Aktarım kontrolü</strong>{% for warning in warnings %}<div class="small mt-2">• {{ warning }}</div>{% endfor %}</div>
+  <div class="text-end mt-3"><button class="btn btn-secondary" disabled>Aktarımı Onayla · Henüz Kapalı</button></div>
+</main>
+{% endblock %}
