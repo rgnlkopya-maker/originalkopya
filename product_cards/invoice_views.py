@@ -220,7 +220,7 @@ def invoice_bizimhesap_preview(request, invoice_id):
         ("Fatura satırları", bool(details), str(len(details)) + " ürün satırı"),
         ("Para birimi", bool(currency), currency or "Desteklenmeyen para birimi"),
         ("KDV", bool(details) and all(Decimal("0") <= item["vat_rate"] <= Decimal("100") for item in details), "Oranlar kontrol edildi"),
-        ("FirmId", bool((os.environ.get("BIZIMHESAP_FIRM_ID") or os.environ.get("BIZIMHESAP_API_TOKEN") or "").strip()), "Şirket kimliği Render ortamında tanımlı" if (os.environ.get("BIZIMHESAP_FIRM_ID") or os.environ.get("BIZIMHESAP_API_TOKEN") or "").strip() else "Render ortamına BIZIMHESAP_FIRM_ID tanımlanmalı"),
+        ("FirmId", bool((os.environ.get("BIZIMHESAP_FIRM_ID") or os.environ.get("BIZIMHESAP_API_TOKEN") or "").strip()), "API Key (FirmID) mevcut" if (os.environ.get("BIZIMHESAP_FIRM_ID") or os.environ.get("BIZIMHESAP_API_TOKEN") or "").strip() else "BizimHesap API anahtarı tanımlanmalı"),
         ("Vade tarihi", True, (invoice.due_date or invoice.invoice_date).strftime("%d.%m.%Y") + (" (otomatik)" if not invoice.due_date else "")),
         ("Ürün aktarımı", True, "MoliApp ürün kodları kullanılır; BizimHesap eksik ürünleri oluşturabilir"),
         ("Taslak durumu", False, "AddInvoice için taslak parametresi belgelenmemiş"),
