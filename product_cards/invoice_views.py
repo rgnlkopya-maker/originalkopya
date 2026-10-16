@@ -59,9 +59,10 @@ def invoice_customer_mapping_list(request):
     if not _allowed(request.user):
         return HttpResponseForbidden("Yetkiniz yok.")
     customers = list(Musteri.objects.filter(aktif=True).order_by("ad").prefetch_related("bizimhesap_mapping"))
-    mappings = {m.customer_id: m.external_customer_id for m in BizimHesapCustomerMapping.objects.filter(customer_id__in=[c.id for c in customers])}
+    mappings = {m.customer_id: m for m in BizimHesapCustomerMapping.objects.filter(customer_id__in=[c.id for c in customers])}
     for customer in customers:
-        customer.bh_code = mappings.get(customer.id, "")
+        customer.bh_code = mappings[customer.id].external_customer_id if customer.id in mappings else ""
+        customer.bh_address = mappings[customer.id].invoice_address if customer.id in mappings else ""
     return render(request, "product_cards/invoice_customer_mapping.html", {
         "customers": customers,
         "mapped_count": len(mappings),
@@ -88,6 +89,10 @@ def invoice_customer_mapping_save(request, customer_id):
         return HttpResponseForbidden("Yetkiniz yok.")
     customer = get_object_or_404(Musteri, pk=customer_id)
     code = request.POST.get("external_customer_id", "").strip()
+    address = request.POST.get("invoice_address", "").strip()
+    if len(address) > 255:
+        messages.error(request, "Adres 255 karakteri aşamaz.")
+        return redirect("invoice_customer_mapping_list")
     if not code or len(code) > 100 or any(ord(ch) < 32 for ch in code):
         messages.error(request, "Geçerli bir BizimHesap cari kodu girin.")
         return redirect("invoice_customer_mapping_list")
@@ -98,7 +103,7 @@ def invoice_customer_mapping_save(request, customer_id):
                 return redirect("invoice_customer_mapping_list")
             BizimHesapCustomerMapping.objects.update_or_create(
                 customer=customer,
-                defaults={"external_customer_id": code, "confirmed_by": request.user},
+                defaults={"external_customer_id": code, "invoice_address": address, "confirmed_by": request.user},
             )
     except IntegrityError:
         messages.error(request, "Bu cari kodu zaten başka bir müşteride kullanılıyor.")
@@ -246,8 +251,10 @@ def invoice_bizimhesap_preview(request, invoice_id):
     if mapping is None:
         warnings.append("BizimHesap cari kodu henüz eşleştirilmedi; aktarım kapalı.")
     transfer = BizimHesapInvoiceTransfer.objects.filter(invoice=invoice).first()
-    if transfer and transfer.status in ("SENT", "SENDING", "UNKNOWN"):
-        warnings.append("Bu fatura için önceden aktarım işlemi var; mükerrer gönderim engellenecek.")
+    if transfer and transfer.status == "SENDING":
+        warnings.append("Aktarım işlemi sürüyor.")
+    elif transfer and transfer.status == "UNKNOWN":
+        warnings.append("Aktarım sonucu doğrulanmalı; tekrar gönderim koruması aktif.")
     if invoice.status != "DRAFT":
         warnings.append("Bu kayıt MoliApp üzerinde tamamlanmış; yeni aktarım öncesi kontrol gerekli.")
     if any(item["vat_rate"] < 0 or item["vat_rate"] > 100 for item in details):
@@ -276,7 +283,7 @@ def invoice_bizimhesap_preview(request, invoice_id):
     retry_ft9 = (invoice_id == 9 and transfer is not None and transfer.status == "UNKNOWN"
                  and not transfer.external_invoice_id
                  and transfer.last_error == "BizimHesap reddetti: Adres bilgisi gönderilmemiş")
-    if transfer and transfer.status in ("SENT", "SENDING", "UNKNOWN") and not retry_ft9:
+    if transfer and transfer.status in ("SENT", "SENDING", "UNKNOWN") and not retry_ft9 and transfer.status != "SENT":
         payload_blockers.append("Bu fatura için aktarım kaydı var.")
         prepared_payload = None
     export_enabled = os.environ.get("BIZIMHESAP_INVOICE_EXPORT_ENABLED") == "true" and (not os.environ.get("BIZIMHESAP_FIRST_TEST_INVOICE_ID") or os.environ.get("BIZIMHESAP_FIRST_TEST_INVOICE_ID") == str(invoice_id))
@@ -311,6 +318,10 @@ def invoice_bizimhesap_customer_map(request, invoice_id):
         return HttpResponseForbidden("Yetkiniz yok.")
     invoice = get_object_or_404(InvoiceDraft, pk=invoice_id)
     customer_code = request.POST.get("external_customer_id", "").strip()
+    address = request.POST.get("invoice_address", "").strip()
+    if len(address) > 255:
+        messages.error(request, "Adres 255 karakteri aşamaz.")
+        return redirect("invoice_bizimhesap_preview", invoice_id=invoice.pk)
     if not customer_code or len(customer_code) > 100 or any(ord(c) < 32 for c in customer_code):
         messages.error(request, "Geçerli bir BizimHesap cari kodu girin.")
         return redirect("invoice_bizimhesap_preview", invoice_id=invoice.pk)
@@ -321,7 +332,7 @@ def invoice_bizimhesap_customer_map(request, invoice_id):
     try:
         BizimHesapCustomerMapping.objects.update_or_create(
             customer=invoice.customer,
-            defaults={"external_customer_id": customer_code, "confirmed_by": request.user},
+            defaults={"external_customer_id": customer_code, "invoice_address": address, "confirmed_by": request.user},
         )
     except IntegrityError:
         messages.error(request, "Cari kodu başka bir müşteri tarafından kullanılıyor.")
