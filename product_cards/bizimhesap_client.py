@@ -22,8 +22,22 @@ def list_customers():
         with urlopen(request, timeout=12) as response:
             data = json.load(response)
     except HTTPError as exc:
-        # Only status is exposed; never log tokens, response bodies or customer data.
-        raise BizimHesapError(f"BizimHesap HTTP {exc.code} yanıtı verdi. API adresi ve erişim yetkisini kontrol edin.") from exc
+        # Never expose arbitrary upstream bodies: they may contain secrets or HTML.
+        content_type = (exc.headers.get("Content-Type") or "").split(";")[0].strip().lower()
+        upstream_code = str(exc.code)
+        reason = ""
+        if content_type == "application/json":
+            try:
+                payload = json.loads(exc.read(4096).decode("utf-8"))
+                if isinstance(payload, dict):
+                    for key in ("errorCode", "error_code", "code", "statusCode"):
+                        value = payload.get(key)
+                        if isinstance(value, (int, str)) and str(value).replace("_", "").replace("-", "").isalnum() and len(str(value)) <= 40:
+                            reason = " | API hata kodu: " + str(value)
+                            break
+            except (ValueError, UnicodeDecodeError):
+                pass
+        raise BizimHesapError(f"BizimHesap HTTP {upstream_code} yanıtı verdi. Yanıt türü: {content_type or 'bilinmiyor'}{reason}.") from exc
     except (URLError, TimeoutError) as exc:
         raise BizimHesapError("BizimHesap servisine bağlantı kurulamadı veya zaman aşımına uğradı.") from exc
     except ValueError as exc:
