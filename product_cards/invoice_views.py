@@ -220,7 +220,7 @@ def invoice_bizimhesap_preview(request, invoice_id):
         ("Para birimi", bool(currency), currency or "Desteklenmeyen para birimi"),
         ("KDV", bool(details) and all(Decimal("0") <= item["vat_rate"] <= Decimal("100") for item in details), "Oranlar kontrol edildi"),
         ("FirmId", bool(os.environ.get("BIZIMHESAP_FIRM_ID", "").strip()), "Şirket kimliği Render ortamında tanımlı" if os.environ.get("BIZIMHESAP_FIRM_ID", "").strip() else "Render ortamına BIZIMHESAP_FIRM_ID tanımlanmalı"),
-        ("Vade tarihi", bool(invoice.due_date), invoice.due_date.strftime("%d.%m.%Y") if invoice.due_date else "Fatura detayından vade belirleyin"),
+        ("Vade tarihi", True, (invoice.due_date or invoice.invoice_date).strftime("%d.%m.%Y") + (" (otomatik)" if not invoice.due_date else "")),
         ("Ürün aktarımı", True, "MoliApp ürün kodları kullanılır; BizimHesap eksik ürünleri oluşturabilir"),
         ("Taslak durumu", False, "AddInvoice için taslak parametresi belgelenmemiş"),
     ]
@@ -239,7 +239,7 @@ def invoice_bizimhesap_preview(request, invoice_id):
             "item_count": len(prepared_payload["details"]),
             "currency": prepared_payload["amounts"]["currency"],
             "total": prepared_payload["amounts"]["total"],
-            "due_date": invoice.due_date,
+            "due_date": invoice.due_date or invoice.invoice_date,
         }
     warnings.append("BizimHesap'ta taslak ve cari bakiye davranışı henüz doğrulanmadı; gönderim kapalı.")
     return render(request, "product_cards/invoice_bizimhesap_preview.html", {
