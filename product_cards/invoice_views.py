@@ -172,6 +172,35 @@ def invoice_due_date_save(request, invoice_id):
 
 
 @login_required
+@require_POST
+def invoice_bizimhesap_send(request, invoice_id):
+    if not _allowed(request.user):
+        return HttpResponseForbidden("Yetkiniz yok.")
+    from .bizimhesap_export_service import prepare_transfer, deliver_prepared_invoice, TransferBlocked
+    if os.environ.get("BIZIMHESAP_INVOICE_EXPORT_ENABLED") != "true":
+        messages.error(request, "BizimHesap aktarımı kapalı.")
+        return redirect("invoice_bizimhesap_preview", invoice_id=invoice_id)
+    test_id = os.environ.get("BIZIMHESAP_FIRST_TEST_INVOICE_ID", "")
+    if test_id and test_id != str(invoice_id):
+        messages.error(request, "İlk test yalnızca belirlenen fatura için açık.")
+        return redirect("invoice_bizimhesap_preview", invoice_id=invoice_id)
+    try:
+        transfer_id, payload = prepare_transfer(invoice_id)
+        status = deliver_prepared_invoice(transfer_id, payload)
+    except TransferBlocked as exc:
+        messages.error(request, str(exc))
+    except Exception:
+        logging.getLogger(__name__).exception("BizimHesap export failed for invoice id=%s", invoice_id)
+        messages.error(request, "Aktarım kesildi; dış sistem kontrol edilmeden tekrar denenmemeli.")
+    else:
+        if status == "SENT":
+            messages.success(request, "Fatura BizimHesap'a aktarıldı.")
+        else:
+            messages.warning(request, "Aktarım sonucu belirsiz; tekrar gönderim kapalı.")
+    return redirect("invoice_bizimhesap_preview", invoice_id=invoice_id)
+
+
+@login_required
 def invoice_bizimhesap_preview(request, invoice_id):
     """Read-only preview. Never calls BizimHesap or writes to the database."""
     if not _allowed(request.user):
@@ -237,6 +266,8 @@ def invoice_bizimhesap_preview(request, invoice_id):
     if transfer and transfer.status in ("SENT", "SENDING", "UNKNOWN"):
         payload_blockers.append("Bu fatura için aktarım kaydı var.")
         prepared_payload = None
+    export_enabled = os.environ.get("BIZIMHESAP_INVOICE_EXPORT_ENABLED") == "true" and (not os.environ.get("BIZIMHESAP_FIRST_TEST_INVOICE_ID") or os.environ.get("BIZIMHESAP_FIRST_TEST_INVOICE_ID") == str(invoice_id))
+    can_send = export_enabled and prepared_payload is not None and not payload_blockers and not (transfer and transfer.status in ("SENDING", "SENT", "UNKNOWN"))
     payload_summary = None
     if prepared_payload:
         payload_summary = {
