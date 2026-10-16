@@ -15,9 +15,11 @@ def build_invoice_payload(invoice, lines, mapping, firm_id):
         blockers.append("Cari eşleştirmesi eksik.")
     if not firm_id:
         blockers.append("FirmId tanımlı değil.")
-    address = (getattr(mapping, "invoice_address", "") or "").strip() if mapping else ""
-    if not address and invoice.pk != 9:
-        blockers.append("Fatura adresi eksik. Cari eşleştirme ekranından adres girilmeli.")
+    detail = getattr(invoice.customer, "customer_detail", None)
+    address = ((getattr(detail, "fatura_adresi", "") or "").strip()
+               or (getattr(detail, "adres", "") or "").strip())
+    if not address:
+        blockers.append("Müşteri kartında fatura adresi veya adres bilgisi eksik.")
     due_date = invoice.due_date or invoice.invoice_date
     if due_date < invoice.invoice_date:
         blockers.append("Vade tarihi fatura tarihinden önce.")
@@ -69,7 +71,7 @@ def build_invoice_payload(invoice, lines, mapping, firm_id):
         "customer": {
             "customerId": mapping.external_customer_id,
             "title": invoice.customer.ad,
-            "address": address or ("Manisa" if invoice.pk == 9 else ""),
+            "address": address,
         },
         "details": details,
         "amounts": {
