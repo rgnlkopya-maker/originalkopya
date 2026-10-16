@@ -184,11 +184,23 @@ def invoice_bizimhesap_preview(request, invoice_id):
         warnings.append("Bu kayıt MoliApp üzerinde tamamlanmış; yeni aktarım öncesi kontrol gerekli.")
     if any(item["vat_rate"] < 0 or item["vat_rate"] > 100 for item in details):
         warnings.append("Geçersiz KDV oranı tespit edildi.")
+    # AddInvoice creates an invoice; the documentation does not define a draft mode.
+    # Show blockers before enabling any external write.
+    api_checks = [
+        ("Cari eşleştirmesi", bool(mapping), "Kayıtlı cari kodu" if mapping else "Cari kodu eşleştirilmeli"),
+        ("Fatura satırları", bool(details), str(len(details)) + " ürün satırı"),
+        ("Para birimi", bool(currency), currency or "Desteklenmeyen para birimi"),
+        ("KDV", bool(details) and all(Decimal("0") <= item["vat_rate"] <= Decimal("100") for item in details), "Oranlar kontrol edildi"),
+        ("FirmId", False, "BizimHesap şirket kimliği henüz doğrulanmadı"),
+        ("Vade tarihi", False, "API için zorunlu, MoliApp'te ayrı vade tarihi bulunmuyor"),
+        ("ProductId", False, "Ürünler eşleştirilmeden API yeni ürün oluşturabilir"),
+        ("Taslak durumu", False, "AddInvoice için taslak parametresi belgelenmemiş"),
+    ]
     warnings.append("BizimHesap'ta taslak ve cari bakiye davranışı henüz doğrulanmadı; gönderim kapalı.")
     return render(request, "product_cards/invoice_bizimhesap_preview.html", {
         "invoice": invoice, "details": details, "currency": currency or invoice.currency,
         "net_total": net_total, "tax_total": tax_total, "grand_total": net_total + tax_total,
-        "warnings": warnings, "mapping": mapping, "transfer": transfer,
+        "warnings": warnings, "mapping": mapping, "transfer": transfer, "api_checks": api_checks,
     })
 
 
