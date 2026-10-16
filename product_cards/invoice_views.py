@@ -278,7 +278,11 @@ def invoice_bizimhesap_preview(request, invoice_id):
             "total": prepared_payload["amounts"]["total"],
             "due_date": invoice.due_date or invoice.invoice_date,
         }
-    warnings.append("BizimHesap'ta taslak ve cari bakiye davranışı henüz doğrulanmadı; gönderim kapalı.")
+    if can_send:
+        warnings.append("İlk kontrollü test: Gönderim cari borç oluşturabilir. BizimHesap'taki sonucu ve e-belge durumunu doğrulayın.")
+    elif not export_enabled:
+        warnings.append("BizimHesap gönderimi bu fatura için kapalı.")
+
     return render(request, "product_cards/invoice_bizimhesap_preview.html", {
         "invoice": invoice, "details": details, "currency": currency or invoice.currency,
         "net_total": net_total, "tax_total": tax_total, "grand_total": net_total + tax_total,
