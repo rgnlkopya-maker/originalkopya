@@ -1,5 +1,7 @@
 """BizimHesap transfer state machine. Intentionally no outbound HTTP implementation."""
 import os
+import json
+from urllib.request import Request, urlopen
 from django.db import transaction
 from .invoice_models import InvoiceDraft, BizimHesapCustomerMapping, BizimHesapInvoiceTransfer
 from .bizimhesap_payload import build_invoice_payload
@@ -55,3 +57,21 @@ def record_response(transfer_id, response=None, failure=None):
                 transfer.last_error = ""
         transfer.save(update_fields=["status", "external_invoice_id", "last_error", "updated_at"])
         return transfer.status
+
+
+def deliver_prepared_invoice(transfer_id, payload):
+    """Execute one guarded delivery; never retry automatically."""
+    if os.environ.get("BIZIMHESAP_INVOICE_EXPORT_ENABLED") != "true":
+        raise TransferBlocked("BizimHesap fatura aktarımı kapalı.")
+    request = Request(
+        "https://uygulama.bizimhesap.com/api/b2b/addinvoice",
+        data=json.dumps(payload, ensure_ascii=False).encode("utf-8"),
+        headers={"Content-Type": "application/json", "Accept": "application/json", "User-Agent": "MoliApp/1.0"},
+        method="POST",
+    )
+    try:
+        with urlopen(request, timeout=20) as response:
+            result = json.load(response)
+    except Exception:
+        return record_response(transfer_id, failure=True)
+    return record_response(transfer_id, response=result)
