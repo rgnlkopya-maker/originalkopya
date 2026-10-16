@@ -8,10 +8,11 @@
     <p class="bh-sub">Yalnızca kontrol ekranıdır. BizimHesap'a veri gönderilmez veya kayıt oluşturulmaz.</p>
     <div class="bh-meta mt-4">
       <div><div class="bh-sub">MOLİAPP FATURASI</div><strong>FT-{{ invoice.id }}</strong><div>{{ invoice.invoice_date|date:"d.m.Y" }}</div><div>{{ invoice.get_status_display }}</div></div>
-      <div><div class="bh-sub">MÜŞTERİ</div><strong>{{ invoice.customer.ad }}</strong><div>{{ invoice.customer.adres|default:"Adres belirtilmemiş" }}</div><div class="bh-sub mt-2">BizimHesap CustomerID: Henüz eşleştirilmedi</div></div>
+      <div><div class="bh-sub">MÜŞTERİ</div><strong>{{ invoice.customer.ad }}</strong><div>{{ invoice.customer.adres|default:"Adres belirtilmemiş" }}</div><div class="bh-sub mt-2">BizimHesap CustomerID: {% if mapping %}{{ mapping.external_customer_id }}{% else %}Henüz eşleştirilmedi{% endif %}</div></div>
       <div><div class="bh-sub">PARA BİRİMİ</div><strong>{{ currency }}</strong></div>
     </div>
   </div>
+  <div class="bh-panel"><h5>Mevcut Cari ile Eşleştir</h5><p class="bh-sub">BizimHesap'taki mevcut müşterinin cari kodunu (CustomerID) girin. Bu işlem yeni müşteri veya fatura oluşturmaz. Kodu BizimHesap hesabınızdan doğrulayarak girin.</p><form method="post" action="{% url 'invoice_bizimhesap_customer_map' invoice.id %}" class="d-flex gap-2 align-items-end flex-wrap">{% csrf_token %}<div style="flex:1;min-width:210px"><label for="bh-customer-id" class="form-label">BizimHesap Cari Kodu (CustomerID)</label><input id="bh-customer-id" name="external_customer_id" maxlength="100" class="form-control" value="{% if mapping %}{{ mapping.external_customer_id }}{% endif %}" required autocomplete="off"></div><button class="btn btn-outline-primary" type="submit">Eşleştirmeyi Kaydet</button></form></div>
   <div class="bh-panel">
     <h5>Aktarılacak Ürünler</h5>
     <div class="table-responsive"><table class="table table-sm align-middle">
