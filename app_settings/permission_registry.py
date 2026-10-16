@@ -173,6 +173,7 @@ _RULES = [
 
     (re.compile(r"^/uretim-asama-kontrolu/"), "operations.production_stage_control"),
     (re.compile(r"^/planlama/sevkiyat/$"), "planning.shipment"),
+    (re.compile(r"^/planlama/sevkiyat/\\d+/kaldir/$"), "planning.edit_calendar"),
     (re.compile(r"^/planlama/(?:not/\\d+/sil/|kaydet/)$"), "planning.edit_calendar"),
     (re.compile(r"^/planlama/(?:sevkiyat/.+|not/.+|kaydet/)$"), "planning.actions"),
     (re.compile(r"^/planlama/$"), "planning.main"),
