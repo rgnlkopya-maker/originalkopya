@@ -63,7 +63,17 @@ def list_customers():
                 data = data[key]
                 break
     if not isinstance(data, list):
-        raise BizimHesapError("BizimHesap müşteri yanıt formatı beklenenden farklı.")
+        # Report only structure; never return customer records, values or credentials.
+        if isinstance(data, dict):
+            shapes = []
+            for key, value in list(data.items())[:15]:
+                if not isinstance(key, str) or not key.isidentifier() or len(key) > 35:
+                    continue
+                kind = "list" if isinstance(value, list) else "object" if isinstance(value, dict) else type(value).__name__
+                shapes.append(f"{key}={kind}")
+            shape = ", ".join(shapes) or "alan adı belirlenemedi"
+            raise BizimHesapError(f"BizimHesap yanıt yapısı: object ({shape}). Kayıt verileri gösterilmiyor.")
+        raise BizimHesapError(f"BizimHesap yanıt yapısı: {type(data).__name__}. Kayıt verileri gösterilmiyor.")
     result = []
     for item in data:
         if not isinstance(item, dict):
