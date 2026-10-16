@@ -10,3 +10,10 @@ class TransferTests(SimpleTestCase):
         self.assertEqual(parse_addinvoice_response({'error': '', 'guid': 'abc'})['guid'], 'abc')
         with self.assertRaises(TransferResponseError):
             parse_addinvoice_response({'error': '', 'guid': ''})
+
+    def test_invoice_export_disabled_by_default(self):
+        from unittest.mock import patch
+        from .bizimhesap_export_service import prepare_transfer, TransferBlocked
+        with patch.dict('os.environ', {'BIZIMHESAP_INVOICE_EXPORT_ENABLED': 'false'}):
+            with self.assertRaises(TransferBlocked):
+                prepare_transfer(9)
