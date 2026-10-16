@@ -47,11 +47,40 @@ def _pending_shipments_by_invoice():
 def invoice_list(request):
     if not _allowed(request.user):
         return HttpResponseForbidden("Yetkiniz yok.")
-    invoices = list(InvoiceDraft.objects.select_related("customer").prefetch_related("lines").order_by("-invoice_date", "-id"))
+    invoices = list(InvoiceDraft.objects.select_related("customer").prefetch_related("lines", "bizimhesap_transfer").order_by("-invoice_date", "-id"))
     pending = _pending_shipments_by_invoice()
     for invoice in invoices:
         invoice.has_pending_shipment = pending.get(invoice.id, False)
+        transfer = getattr(invoice, "bizimhesap_transfer", None)
+        invoice.bh_transfer_status = transfer.status if transfer else ""
+        invoice.bh_is_recorded = invoice.bizimhesap_manual_recorded or bool(transfer and transfer.status == "SENT")
     return render(request, "product_cards/invoice_list.html", {"invoices": invoices})
+
+
+@login_required
+@require_POST
+def invoice_platform_status_update(request, invoice_id):
+    if not _allowed(request.user):
+        return HttpResponseForbidden("Yetkiniz yok.")
+    platform = request.POST.get("platform", "")
+    recorded = request.POST.get("recorded", "")
+    if platform not in ("bizimhesap", "parasut") or recorded not in ("yes", "no"):
+        messages.error(request, "Geçersiz aktarım durumu.")
+        return redirect("invoice_list")
+    with transaction.atomic():
+        invoice = get_object_or_404(InvoiceDraft.objects.select_for_update(), pk=invoice_id)
+        if platform == "bizimhesap":
+            transfer = BizimHesapInvoiceTransfer.objects.filter(invoice=invoice).first()
+            if transfer and transfer.status in ("SENDING", "UNKNOWN", "SENT"):
+                messages.warning(request, "Bu faturanın API aktarım kaydı var; manuel durum değiştirilemez.")
+                return redirect("invoice_list")
+            invoice.bizimhesap_manual_recorded = recorded == "yes"
+            invoice.save(update_fields=["bizimhesap_manual_recorded", "updated_at"])
+        else:
+            invoice.parasut_manual_recorded = recorded == "yes"
+            invoice.save(update_fields=["parasut_manual_recorded", "updated_at"])
+    messages.success(request, "Manuel kayıt durumu güncellendi; dış sisteme fatura gönderilmedi.")
+    return redirect("invoice_list")
 
 
 @login_required
