@@ -21,6 +21,8 @@ def prepare_transfer(invoice_id):
         previous = BizimHesapInvoiceTransfer.objects.select_for_update().filter(invoice=invoice).first()
         if previous and previous.status in ("SENDING", "SENT", "UNKNOWN"):
             raise TransferBlocked("Bu fatura gönderilmiş veya sonucu henüz doğrulanmamış.")
+        if invoice.bizimhesap_manual_recorded:
+            raise TransferBlocked("Fatura BizimHesap için elle işlendi olarak işaretlenmiş. Mükerrer gönderim engellendi.")
         mapping = BizimHesapCustomerMapping.objects.filter(customer=invoice.customer).first()
         lines = list(invoice.lines.select_related("order").order_by("id"))
         firm_id = (os.environ.get("BIZIMHESAP_FIRM_ID") or os.environ.get("BIZIMHESAP_API_TOKEN") or "").strip()
