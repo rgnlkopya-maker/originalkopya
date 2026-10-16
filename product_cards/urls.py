@@ -6,6 +6,7 @@ urlpatterns = [
     path("faturalar/sevkiyat-durumlari/", invoice_views.invoice_list_shipment_status, name="invoice_list_shipment_status"),
     path("faturalar/<int:invoice_id>/", invoice_views.invoice_detail, name="invoice_detail"),
     path("faturalar/<int:invoice_id>/bizimhesap-onizleme/", invoice_views.invoice_bizimhesap_preview, name="invoice_bizimhesap_preview"),
+    path("faturalar/<int:invoice_id>/bizimhesap-cari-eslestir/", invoice_views.invoice_bizimhesap_customer_map, name="invoice_bizimhesap_customer_map"),
     path("faturalar/<int:invoice_id>/durumlar/", invoice_views.invoice_live_status, name="invoice_live_status"),
     path("faturalar/<int:invoice_id>/sil/", invoice_views.invoice_delete_empty, name="invoice_delete_empty"),
     path("faturalar/<int:invoice_id>/satir/<int:line_id>/cikar/", invoice_views.invoice_remove, name="invoice_remove"),
