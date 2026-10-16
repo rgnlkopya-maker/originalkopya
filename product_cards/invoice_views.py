@@ -250,26 +250,6 @@ def invoice_bizimhesap_preview(request, invoice_id):
 
 
 @login_required
-def invoice_bizimhesap_verify_customer(request, invoice_id):
-    """Compare mapped CustomerID with live BizimHesap list. GET only; no writes."""
-    if not _allowed(request.user):
-        return HttpResponseForbidden("Yetkiniz yok.")
-    invoice = get_object_or_404(InvoiceDraft.objects.select_related("customer"), pk=invoice_id)
-    mapping = BizimHesapCustomerMapping.objects.filter(customer=invoice.customer).first()
-    if not mapping:
-        return JsonResponse({"ok": False, "message": "Cari eşleştirmesi yok."}, status=400)
-    from .bizimhesap_client import list_customers, BizimHesapError
-    try:
-        customers = list_customers()
-    except BizimHesapError as exc:
-        return JsonResponse({"ok": False, "message": str(exc)}, status=503)
-    matching = [x for x in customers if x["id"] == mapping.external_customer_id]
-    if len(matching) != 1:
-        return JsonResponse({"ok": False, "message": "Eşleştirilmiş cari kodu BizimHesap listesinde bulunamadı."})
-    return JsonResponse({"ok": True, "message": "Cari kodu BizimHesap listesinde bulundu.", "title": matching[0]["title"]})
-
-
-@login_required
 @require_POST
 def invoice_bizimhesap_customer_map(request, invoice_id):
     """Manually map an existing BizimHesap cari code. No external API writes."""
