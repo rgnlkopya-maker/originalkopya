@@ -21,6 +21,7 @@
     </table></div>
     <div class="bh-total">Ara Toplam: {{ net_total|floatformat:2 }} {{ currency }}<br>KDV: {{ tax_total|floatformat:2 }} {{ currency }}<br><span class="fs-5">Genel Toplam: {{ grand_total|floatformat:2 }} {{ currency }}</span></div>
   </div>
+  {% if transfer %}<div class="bh-panel"><strong>BizimHesap aktarım durumu:</strong> {{ transfer.get_status_display }}{% if transfer.external_invoice_no %}<div class="bh-sub">Dış fatura no: {{ transfer.external_invoice_no }}</div>{% endif %}</div>{% endif %}
   <div class="bh-warnings"><strong>Aktarım kontrolü</strong>{% for warning in warnings %}<div class="small mt-2">• {{ warning }}</div>{% endfor %}</div>
   <div class="text-end mt-3"><button class="btn btn-secondary" disabled>Aktarımı Onayla · Henüz Kapalı</button></div>
 </main>
