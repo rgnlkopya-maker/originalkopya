@@ -37,3 +37,17 @@ class BizimHesapCustomerMapping(models.Model):
 
     class Meta:
         constraints = [models.UniqueConstraint(fields=["external_customer_id"], name="unique_bizimhesap_customer_id")]
+
+
+class BizimHesapInvoiceTransfer(models.Model):
+    """One external transfer record per local invoice; no automatic API writes."""
+    invoice = models.OneToOneField(InvoiceDraft, on_delete=models.PROTECT, related_name="bizimhesap_transfer")
+    status = models.CharField(max_length=16, default="NOT_SENT", choices=[
+        ("NOT_SENT", "Gönderilmedi"), ("SENDING", "Gönderiliyor"),
+        ("SENT", "Aktarıldı"), ("UNKNOWN", "Kontrol gerekli"),
+    ])
+    external_invoice_id = models.CharField(max_length=100, blank=True, default="")
+    external_invoice_no = models.CharField(max_length=100, blank=True, default="")
+    payload_fingerprint = models.CharField(max_length=64, blank=True, default="")
+    last_error = models.CharField(max_length=255, blank=True, default="")
+    updated_at = models.DateTimeField(auto_now=True)
