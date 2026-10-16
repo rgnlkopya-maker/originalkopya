@@ -10,5 +10,37 @@
   <div class="table-responsive"><table class="map-list"><thead><tr><th>MoliApp Müşterisi</th><th>Durum</th><th>BizimHesap Cari Kodu</th></tr></thead><tbody>{% for customer in customers %}<tr data-customer-name="{{ customer.ad|lower }}"><td><strong>{{ customer.ad }}</strong></td><td><span class="map-status {% if customer.bh_code %}mapped{% endif %}">{% if customer.bh_code %}Eşleşti{% else %}Eşleşmedi{% endif %}</span></td><td><form method="post" action="{% url 'invoice_customer_mapping_save' customer.id %}">{% csrf_token %}<input type="text" name="external_customer_id" class="form-control form-control-sm" value="{{ customer.bh_code }}" maxlength="100" required autocomplete="off" placeholder="CustomerID" aria-label="{{ customer.ad }} cari kodu"><button type="button" class="btn btn-sm btn-outline-secondary bhChoose" disabled>Listeden Seç</button><button type="submit" class="btn btn-sm btn-outline-primary">Kaydet</button></form></td></tr>{% empty %}<tr><td colspan="3">Aktif müşteri bulunamadı.</td></tr>{% endfor %}</tbody></table></div>
  </div>
 </main>
+<div class="modal fade" id="bhPickerModal" tabindex="-1" aria-labelledby="bhPickerTitle" aria-hidden="true"><div class="modal-dialog modal-dialog-centered modal-lg"><div class="modal-content"><div class="modal-header"><div><h5 class="modal-title" id="bhPickerTitle">BizimHesap Carisi Seç</h5><div class="map-sub" id="bhPickerFor"></div></div><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Kapat"></button></div><div class="modal-body"><input type="search" class="form-control mb-3" id="bhPickerSearch" placeholder="BizimHesap müşteri adı veya cari kodu ara..." autocomplete="off" aria-label="BizimHesap carisi ara"><div class="map-sub mb-2" id="bhPickerCount"></div><div id="bhPickerResults" class="list-group" style="max-height:380px;overflow-y:auto"></div></div><div class="modal-footer"><button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Vazgeç</button></div></div></div></div>
 <script>(function(){const input=document.getElementById('customerFilter');input?.addEventListener('input',()=>{const q=input.value.toLocaleLowerCase('tr-TR').trim();document.querySelectorAll('[data-customer-name]').forEach(row=>{row.hidden=!row.dataset.customerName.toLocaleLowerCase('tr-TR').includes(q)})})})();</script>
-<script>(function(){const load=document.getElementById('bhLoadCustomers'),status=document.getElementById('bhApiStatus');let customers=[];load.addEventListener('click',async()=>{load.disabled=true;status.textContent='Müşteri listesi okunuyor…';try{const res=await fetch("{% url 'invoice_bizimhesap_customers' %}",{credentials:'same-origin'});const data=await res.json();if(!res.ok||!data.ok)throw Error(data.message||'Liste alınamadı');customers=data.customers;document.querySelectorAll('.bhChoose').forEach(b=>b.disabled=!customers.length);status.textContent=customers.length+' cari listelendi. Bir müşteri satırında Listeden Seç butonunu kullanın.';}catch(e){status.textContent=e.message;}finally{load.disabled=false;}});document.querySelectorAll('.bhChoose').forEach(b=>b.addEventListener('click',()=>{const row=b.closest('tr');const current=row.querySelector('strong')?.textContent||'';const selection=prompt('BizimHesap müşterisini adı veya cari koduyla arayın:',current);if(selection===null)return;const search=selection.toLocaleLowerCase('tr-TR').trim();const candidates=customers.filter(c=>c.title.toLocaleLowerCase('tr-TR').includes(search)||c.id.toLocaleLowerCase('tr-TR').includes(search));if(candidates.length===1){row.querySelector('input[name="external_customer_id"]').value=candidates[0].id;status.textContent=candidates[0].title+' seçildi. Kaydet butonuna basarak onaylayın.';}else{status.textContent=candidates.length?'Birden fazla eşleşme bulundu. Daha belirgin bir ad veya cari kodu yazın.':'Eşleşen cari bulunamadı.';}}));})();</script>{% endblock %}
+<script>(function(){
+const load=document.getElementById('bhLoadCustomers'),status=document.getElementById('bhApiStatus');
+const modalEl=document.getElementById('bhPickerModal'),search=document.getElementById('bhPickerSearch'),results=document.getElementById('bhPickerResults'),count=document.getElementById('bhPickerCount');
+const modal=new bootstrap.Modal(modalEl);let customers=[],activeRow=null;
+const normalize=s=>(s||'').toLocaleLowerCase('tr-TR').trim();
+function showResults(){
+ const q=normalize(search.value);
+ const matches=customers.filter(c=>normalize(c.title).includes(q)||normalize(c.id).includes(q));
+ results.replaceChildren();count.textContent=matches.length+' cari bulundu';
+ matches.slice(0,100).forEach(c=>{
+  const button=document.createElement('button');button.type='button';button.className='list-group-item list-group-item-action d-flex justify-content-between align-items-center gap-3';
+  const name=document.createElement('span');name.textContent=c.title;
+  const code=document.createElement('small');code.className='text-muted';code.textContent=c.id;
+  button.append(name,code);
+  button.addEventListener('click',()=>{if(!activeRow)return;activeRow.querySelector('input[name="external_customer_id"]').value=c.id;status.textContent=c.title+' seçildi. Eşleştirmeyi kaydetmek için Kaydet butonuna basın.';modal.hide();});results.append(button);
+ });
+ if(matches.length>100){const hint=document.createElement('div');hint.className='map-sub p-2';hint.textContent='İlk 100 sonuç gösteriliyor. Aramayı daraltın.';results.append(hint);}
+ if(!matches.length){const hint=document.createElement('div');hint.className='map-sub p-2';hint.textContent='Eşleşen cari bulunamadı.';results.append(hint);}
+}
+load.addEventListener('click',async()=>{load.disabled=true;status.textContent='Müşteri listesi okunuyor…';try{
+ const res=await fetch("{% url 'invoice_bizimhesap_customers' %}",{credentials:'same-origin'});
+ const data=await res.json();if(!res.ok||!data.ok)throw Error(data.message||'Liste alınamadı');
+ customers=data.customers;document.querySelectorAll('.bhChoose').forEach(b=>b.disabled=!customers.length);
+ status.textContent=customers.length+' cari listelendi. Listeden Seç ile carileri görüntüleyebilirsiniz.';
+ }catch(e){status.textContent=e.message;}finally{load.disabled=false;}});
+document.querySelectorAll('.bhChoose').forEach(b=>b.addEventListener('click',()=>{
+ activeRow=b.closest('tr');document.getElementById('bhPickerFor').textContent='MoliApp müşterisi: '+(activeRow.querySelector('strong')?.textContent||'');
+ search.value='';showResults();modal.show();
+}));
+search.addEventListener('input',showResults);
+modalEl.addEventListener('shown.bs.modal',()=>search.focus());
+})();</script>{% endblock %}
