@@ -33,6 +33,7 @@ class InvoiceLine(models.Model):
 class BizimHesapCustomerMapping(models.Model):
     customer = models.OneToOneField("core.Musteri", on_delete=models.CASCADE, related_name="bizimhesap_mapping")
     external_customer_id = models.CharField(max_length=100)
+    invoice_address = models.CharField(max_length=255, blank=True, default="")
     confirmed_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
     updated_at = models.DateTimeField(auto_now=True)
 
