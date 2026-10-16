@@ -13,6 +13,7 @@
     </div>
   </div>
   <div class="bh-panel"><h5>Mevcut Cari ile Eşleştir</h5><p class="bh-sub">BizimHesap'taki mevcut müşterinin cari kodunu (CustomerID) girin. Bu işlem yeni müşteri veya fatura oluşturmaz. Kodu BizimHesap hesabınızdan doğrulayarak girin.</p><form method="post" action="{% url 'invoice_bizimhesap_customer_map' invoice.id %}" class="d-flex gap-2 align-items-end flex-wrap">{% csrf_token %}<div style="flex:1;min-width:210px"><label for="bh-customer-id" class="form-label">BizimHesap Cari Kodu (CustomerID)</label><input id="bh-customer-id" name="external_customer_id" maxlength="100" class="form-control" value="{% if mapping %}{{ mapping.external_customer_id }}{% endif %}" required autocomplete="off"></div><button class="btn btn-outline-primary" type="submit">Eşleştirmeyi Kaydet</button></form></div>
+  {% if mapping %}<div class="bh-panel"><h5>BizimHesap Cari Doğrulama</h5><p class="bh-sub">Kayıtlı cari kodunu BizimHesap'taki güncel müşteri listesinde kontrol eder. Fatura veya cari oluşturmaz.</p><button type="button" class="btn btn-sm btn-outline-primary" id="bhVerify">Cari Kodunu Doğrula</button><div class="small mt-2" id="bhVerifyResult" role="status" aria-live="polite"></div></div>{% endif %}
   <div class="bh-panel">
     <h5>Aktarılacak Ürünler</h5>
     <div class="table-responsive"><table class="table table-sm align-middle">
@@ -27,4 +28,5 @@
   <div class="bh-warnings"><strong>Aktarım kontrolü</strong>{% for warning in warnings %}<div class="small mt-2">• {{ warning }}</div>{% endfor %}</div>
   <div class="text-end mt-3"><button class="btn btn-secondary" disabled>Aktarımı Onayla · Henüz Kapalı</button></div>
 </main>
+{% if mapping %}<script>(function(){const button=document.getElementById('bhVerify'),result=document.getElementById('bhVerifyResult');button?.addEventListener('click',async()=>{button.disabled=true;result.textContent='Cari kontrol ediliyor…';try{const response=await fetch("{% url 'invoice_bizimhesap_verify_customer' invoice.id %}",{credentials:'same-origin',cache:'no-store'});const data=await response.json();result.textContent=data.ok?'BizimHesap carisi: '+data.title+' — Lütfen MoliApp müşteri adıyla karşılaştırın.':(data.message||'Cari doğrulanamadı.');result.className='small mt-2 '+(data.ok?'text-success':'text-danger');}catch(e){result.textContent='Cari doğrulanamadı. Bağlantıyı tekrar deneyin.';}finally{button.disabled=false;}})})();</script>{% endif %}
 {% endblock %}
