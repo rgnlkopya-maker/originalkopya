@@ -58,22 +58,28 @@ def list_customers():
     if isinstance(data, dict):
         if data.get("error"):
             raise BizimHesapError("BizimHesap müşteri listesi hata döndürdü.")
-        for key in ("customers", "Customers", "data", "Data", "result", "Result"):
-            if isinstance(data.get(key), list):
-                data = data[key]
+        result_code = data.get("resultCode")
+        if result_code not in (None, 0, "0", 1, "1"):
+            raise BizimHesapError(f"BizimHesap resultCode={result_code!s} döndürdü.")
+        for _depth in range(3):
+            if isinstance(data, list):
                 break
+            if not isinstance(data, dict):
+                break
+            nested = next((data[key] for key in ("customers", "Customers", "data", "Data", "result", "Result", "items", "Items", "list", "List") if isinstance(data.get(key), (dict, list))), None)
+            if nested is None:
+                break
+            data = nested
     if not isinstance(data, list):
-        # Report only structure; never return customer records, values or credentials.
+        # Structure only, never customer records or raw error text.
         if isinstance(data, dict):
             shapes = []
             for key, value in list(data.items())[:15]:
-                if not isinstance(key, str) or not key.isidentifier() or len(key) > 35:
-                    continue
-                kind = "list" if isinstance(value, list) else "object" if isinstance(value, dict) else type(value).__name__
-                shapes.append(f"{key}={kind}")
-            shape = ", ".join(shapes) or "alan adı belirlenemedi"
-            raise BizimHesapError(f"BizimHesap yanıt yapısı: object ({shape}). Kayıt verileri gösterilmiyor.")
-        raise BizimHesapError(f"BizimHesap yanıt yapısı: {type(data).__name__}. Kayıt verileri gösterilmiyor.")
+                if isinstance(key, str) and key.isidentifier() and len(key) <= 35:
+                    kind = "list" if isinstance(value, list) else "object" if isinstance(value, dict) else type(value).__name__
+                    shapes.append(f"{key}={kind}")
+            raise BizimHesapError("BizimHesap iç yanıt yapısı: " + (", ".join(shapes) or "alan belirlenemedi"))
+        raise BizimHesapError(f"BizimHesap iç yanıt türü: {type(data).__name__}")
     result = []
     for item in data:
         if not isinstance(item, dict):
