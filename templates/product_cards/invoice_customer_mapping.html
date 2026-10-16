@@ -11,6 +11,8 @@
  </div>
 </main>
 <div class="modal fade" id="bhPickerModal" tabindex="-1" aria-labelledby="bhPickerTitle" aria-hidden="true"><div class="modal-dialog modal-dialog-centered modal-lg"><div class="modal-content"><div class="modal-header"><div><h5 class="modal-title" id="bhPickerTitle">BizimHesap Carisi Seç</h5><div class="map-sub" id="bhPickerFor"></div></div><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Kapat"></button></div><div class="modal-body"><input type="search" class="form-control mb-3" id="bhPickerSearch" placeholder="BizimHesap müşteri adı veya cari kodu ara..." autocomplete="off" aria-label="BizimHesap carisi ara"><div class="map-sub mb-2" id="bhPickerCount"></div><div id="bhPickerResults" class="list-group" style="max-height:380px;overflow-y:auto"></div></div><div class="modal-footer"><button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Vazgeç</button></div></div></div></div>
+{% endblock %}
+{% block extra_js %}
 <script>(function(){const input=document.getElementById('customerFilter');input?.addEventListener('input',()=>{const q=input.value.toLocaleLowerCase('tr-TR').trim();document.querySelectorAll('[data-customer-name]').forEach(row=>{row.hidden=!row.dataset.customerName.toLocaleLowerCase('tr-TR').includes(q)})})})();</script>
 <script>(function(){
 const load=document.getElementById('bhLoadCustomers'),status=document.getElementById('bhApiStatus');
