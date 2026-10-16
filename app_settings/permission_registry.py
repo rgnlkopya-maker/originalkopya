@@ -5,6 +5,7 @@ FEATURE_GROUPS = [
     ("Siparişler", [
         ("orders.view_list", "Sipariş Listesi", "can_view_orders"),
         ("orders.view_detail", "Sipariş Detayı", "can_view_orders"),
+        ("orders.invoice_transfer", "Siparişi Faturaya Aktar", None),
         ("orders.create", "Sipariş Oluştur", "can_create_orders"),
         ("orders.multi_create", "Toplu Sipariş Oluştur", "can_create_orders"),
         ("orders.edit", "Sipariş Düzenle", "can_edit_orders"),
@@ -191,6 +192,7 @@ _RULES = [
     (re.compile(r"^/stok/[^/]+/(?:malzeme-hareket|urun-hareket)/"), "stock.movements"),
     (re.compile(r"^/stok/"), "stock.inventory"),
 
+    (re.compile(r"^/urun-kartlari/faturalar/siparis/\\d+/ekle/$"), "orders.invoice_transfer"),
     (re.compile(r"^/urun-kartlari/kur-guncelle/$"), "products.exchange_rate"),
     (re.compile(r"^/urun-kartlari/fiyat-listesi/(?:kaydet|durum)/$"), "products.price_list_manage"),
     (re.compile(r"^/urun-kartlari/fiyat-listesi/excel/$"), "critical.export_prices"),
