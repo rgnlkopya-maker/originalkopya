@@ -1,0 +1,81 @@
+"""Build BizimHesap AddInvoice JSON locally. This module performs no HTTP writes."""
+from decimal import Decimal, ROUND_HALF_UP
+
+CURRENCIES = {"TRY": "TL", "TL": "TL", "USD": "USD", "EUR": "EUR", "GBP": "GBP", "CHF": "CHF"}
+
+
+def money(value):
+    return Decimal(value).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+
+
+def build_invoice_payload(invoice, lines, mapping, firm_id):
+    """Return (payload, blockers); never create remote customers, invoices or collections."""
+    blockers = []
+    if not mapping:
+        blockers.append("Cari eşleştirmesi eksik.")
+    if not firm_id:
+        blockers.append("FirmId tanımlı değil.")
+    if not invoice.due_date:
+        blockers.append("Ödeme vadesi belirtilmedi.")
+    if invoice.due_date and invoice.due_date < invoice.invoice_date:
+        blockers.append("Vade tarihi fatura tarihinden önce.")
+    currency = CURRENCIES.get(invoice.currency)
+    if not currency:
+        blockers.append("Para birimi desteklenmiyor.")
+    if not lines:
+        blockers.append("Fatura satırı yok.")
+    if invoice.status != "DRAFT":
+        blockers.append("Yalnızca taslak MoliApp faturaları hazırlanabilir.")
+    details = []
+    for line in lines:
+        price = money(line.price)
+        rate = Decimal(line.vat_rate)
+        if not price.is_finite() or price < 0 or not rate.is_finite() or rate < 0 or rate > 100:
+            blockers.append("Geçersiz fiyat veya KDV.")
+            continue
+        order = line.order
+        product_name = str(order.urun_kodu or "").strip()
+        if not product_name:
+            blockers.append("Ürün kodu eksik.")
+            continue
+        tax = money(price * rate / Decimal("100"))
+        details.append({
+            "productId": str(order.urun_kodu),
+            "productName": product_name,
+            "note": " / ".join(str(v) for v in (order.renk, order.beden) if v),
+            "taxRate": str(rate),
+            "quantity": 1,
+            "unitPrice": str(price),
+            "grossPrice": str(price),
+            "discount": "0.00",
+            "net": str(price),
+            "tax": str(tax),
+            "total": str(money(price + tax)),
+        })
+    if blockers:
+        return None, list(dict.fromkeys(blockers))
+    net = money(sum((Decimal(x["net"]) for x in details), Decimal("0")))
+    tax = money(sum((Decimal(x["tax"]) for x in details), Decimal("0")))
+    return {
+        "firmId": firm_id,
+        "invoiceType": 3,
+        "note": "MoliApp fatura taslağı FT-" + str(invoice.pk),
+        "dates": {
+            "invoiceDate": invoice.invoice_date.isoformat(),
+            "dueDate": invoice.due_date.isoformat(),
+        },
+        "customer": {
+            "customerId": mapping.external_customer_id,
+            "title": invoice.customer.ad,
+            "address": invoice.customer.adres or "",
+        },
+        "details": details,
+        "amounts": {
+            "currency": currency,
+            "gross": str(net),
+            "discount": "0.00",
+            "net": str(net),
+            "tax": str(tax),
+            "total": str(money(net + tax)),
+        },
+    }, []
