@@ -15,9 +15,8 @@ def build_invoice_payload(invoice, lines, mapping, firm_id):
         blockers.append("Cari eşleştirmesi eksik.")
     if not firm_id:
         blockers.append("FirmId tanımlı değil.")
-    if not invoice.due_date:
-        blockers.append("Ödeme vadesi belirtilmedi.")
-    if invoice.due_date and invoice.due_date < invoice.invoice_date:
+    due_date = invoice.due_date or invoice.invoice_date
+    if due_date < invoice.invoice_date:
         blockers.append("Vade tarihi fatura tarihinden önce.")
     currency = CURRENCIES.get(invoice.currency)
     if not currency:
@@ -62,7 +61,7 @@ def build_invoice_payload(invoice, lines, mapping, firm_id):
         "note": "MoliApp fatura taslağı FT-" + str(invoice.pk),
         "dates": {
             "invoiceDate": invoice.invoice_date.isoformat(),
-            "dueDate": invoice.due_date.isoformat(),
+            "dueDate": due_date.isoformat(),
         },
         "customer": {
             "customerId": mapping.external_customer_id,
