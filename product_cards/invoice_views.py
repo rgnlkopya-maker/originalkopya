@@ -1,4 +1,5 @@
 import os
+import logging
 from decimal import Decimal, InvalidOperation
 from datetime import date
 from django.contrib import messages
@@ -225,9 +226,14 @@ def invoice_bizimhesap_preview(request, invoice_id):
         ("Taslak durumu", False, "AddInvoice için taslak parametresi belgelenmemiş"),
     ]
     from .bizimhesap_payload import build_invoice_payload
-    prepared_payload, payload_blockers = build_invoice_payload(
-        invoice, lines, mapping, os.environ.get("BIZIMHESAP_FIRM_ID", "").strip()
-    )
+    try:
+        prepared_payload, payload_blockers = build_invoice_payload(
+            invoice, lines, mapping, os.environ.get("BIZIMHESAP_FIRM_ID", "").strip()
+        )
+    except Exception as exc:
+        logging.getLogger(__name__).exception("BizimHesap invoice preview preparation failed for invoice id=%s", invoice.pk)
+        prepared_payload = None
+        payload_blockers = ["Aktarım hazırlığı sırasında teknik hata oluştu. Fatura gönderilmedi."]
     if transfer and transfer.status in ("SENT", "SENDING", "UNKNOWN"):
         payload_blockers.append("Bu fatura için aktarım kaydı var.")
         prepared_payload = None
