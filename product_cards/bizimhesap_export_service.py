@@ -63,6 +63,10 @@ def deliver_prepared_invoice(transfer_id, payload):
     """Execute one guarded delivery; never retry automatically."""
     if os.environ.get("BIZIMHESAP_INVOICE_EXPORT_ENABLED") != "true":
         raise TransferBlocked("BizimHesap fatura aktarımı kapalı.")
+    with transaction.atomic():
+        transfer = BizimHesapInvoiceTransfer.objects.select_for_update().get(pk=transfer_id)
+        if transfer.status != "SENDING" or transfer.payload_fingerprint != payload_digest(payload):
+            raise TransferBlocked("Aktarım durumu veya fatura içeriği değişti.")
     request = Request(
         "https://uygulama.bizimhesap.com/api/b2b/addinvoice",
         data=json.dumps(payload, ensure_ascii=False).encode("utf-8"),
