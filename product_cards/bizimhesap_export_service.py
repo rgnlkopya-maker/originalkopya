@@ -50,7 +50,12 @@ def record_response(transfer_id, response=None, failure=None):
                 result = parse_addinvoice_response(response)
             except TransferResponseError:
                 transfer.status = "UNKNOWN"
-                transfer.last_error = "API sonucu belirsiz; yeniden gönderim yapılmaz."
+                if isinstance(response, dict) and isinstance(response.get("error"), str) and response["error"].strip():
+                    # Log only a bounded, printable error message; never the response payload or API key.
+                    reason = "".join(ch for ch in response["error"] if ch.isprintable())[:180]
+                    transfer.last_error = "BizimHesap reddetti: " + reason
+                else:
+                    transfer.last_error = "API sonucu belirsiz; yeniden gönderim yapılmaz."
             else:
                 transfer.status = "SENT"
                 transfer.external_invoice_id = result["guid"]
