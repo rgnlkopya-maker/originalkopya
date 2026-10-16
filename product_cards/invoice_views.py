@@ -185,6 +185,16 @@ def invoice_bizimhesap_send(request, invoice_id):
         messages.error(request, "İlk test yalnızca belirlenen fatura için açık.")
         return redirect("invoice_bizimhesap_preview", invoice_id=invoice_id)
     try:
+        # FT-9: allow a single retry after manual verification of no external record.
+        if invoice_id == 9:
+            with transaction.atomic():
+                old_transfer = BizimHesapInvoiceTransfer.objects.select_for_update().filter(invoice_id=9).first()
+                if (old_transfer and old_transfer.status == "UNKNOWN"
+                        and not old_transfer.external_invoice_id
+                        and old_transfer.last_error == "API sonucu belirsiz; yeniden gönderim yapılmaz."):
+                    old_transfer.status = "NOT_SENT"
+                    old_transfer.last_error = "Önceki deneme BizimHesap'ta bulunamadı."
+                    old_transfer.save(update_fields=["status", "last_error", "updated_at"])
         transfer_id, payload = prepare_transfer(invoice_id)
         status = deliver_prepared_invoice(transfer_id, payload)
     except TransferBlocked as exc:
