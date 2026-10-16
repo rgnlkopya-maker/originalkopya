@@ -234,7 +234,8 @@ def invoice_live_status(request, invoice_id):
 @login_required
 @require_POST
 def invoice_add(request, order_id):
-    if not _allowed(request.user):
+    from app_settings.access import has_feature_access
+    if not has_feature_access(request.user, "orders.invoice_transfer"):
         return HttpResponseForbidden("Yetkiniz yok.")
     try:
         planned_date = date.fromisoformat(request.POST.get("planned_date", ""))
