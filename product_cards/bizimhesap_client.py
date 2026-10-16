@@ -15,7 +15,7 @@ def list_customers():
         raise BizimHesapError("BizimHesap API anahtarı Render ortam değişkenine henüz tanımlanmadı.")
     request = Request(
         "https://uygulama.bizimhesap.com/api/b2b/customers",
-        headers={"token": token, "Accept": "application/json"},
+        headers={"token": token, "Accept": "application/json", "User-Agent": "MoliApp/1.0 (BizimHesap API Integration)"},
         method="GET",
     )
     try:
