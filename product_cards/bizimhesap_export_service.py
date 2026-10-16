@@ -1,0 +1,57 @@
+"""BizimHesap transfer state machine. Intentionally no outbound HTTP implementation."""
+import os
+from django.db import transaction
+from .invoice_models import InvoiceDraft, BizimHesapCustomerMapping, BizimHesapInvoiceTransfer
+from .bizimhesap_payload import build_invoice_payload
+from .bizimhesap_transfer import payload_digest, parse_addinvoice_response, TransferResponseError
+
+
+class TransferBlocked(Exception):
+    pass
+
+
+def prepare_transfer(invoice_id):
+    """Check and freeze a unique transfer intent. Never sends anything remotely."""
+    if os.environ.get("BIZIMHESAP_INVOICE_EXPORT_ENABLED") != "true":
+        raise TransferBlocked("Gerçek BizimHesap aktarımı henüz etkinleştirilmedi.")
+    with transaction.atomic():
+        invoice = InvoiceDraft.objects.select_for_update().select_related("customer").get(pk=invoice_id)
+        previous = BizimHesapInvoiceTransfer.objects.select_for_update().filter(invoice=invoice).first()
+        if previous and previous.status in ("SENDING", "SENT", "UNKNOWN"):
+            raise TransferBlocked("Bu fatura gönderilmiş veya sonucu henüz doğrulanmamış.")
+        mapping = BizimHesapCustomerMapping.objects.filter(customer=invoice.customer).first()
+        lines = list(invoice.lines.select_related("order").order_by("id"))
+        firm_id = (os.environ.get("BIZIMHESAP_FIRM_ID") or os.environ.get("BIZIMHESAP_API_TOKEN") or "").strip()
+        payload, problems = build_invoice_payload(invoice, lines, mapping, firm_id)
+        if problems or payload is None:
+            raise TransferBlocked("; ".join(problems) or "Fatura verisi hazırlanamadı.")
+        fingerprint = payload_digest(payload)
+        record, _ = BizimHesapInvoiceTransfer.objects.update_or_create(
+            invoice=invoice, defaults={
+                "status": "SENDING", "payload_fingerprint": fingerprint,
+                "external_invoice_id": "", "external_invoice_no": "", "last_error": "",
+            })
+        return record.pk, payload
+
+
+def record_response(transfer_id, response=None, failure=None):
+    """Conservatively record result. Ambiguous outcomes require manual reconciliation."""
+    with transaction.atomic():
+        transfer = BizimHesapInvoiceTransfer.objects.select_for_update().get(pk=transfer_id)
+        if transfer.status != "SENDING":
+            raise TransferBlocked("Aktarım durumu değişti, sonuç tekrar işlenemez.")
+        if failure is not None:
+            transfer.status = "UNKNOWN"
+            transfer.last_error = "İşlemin dış sistemde tamamlanıp tamamlanmadığı kontrol edilmeli."
+        else:
+            try:
+                result = parse_addinvoice_response(response)
+            except TransferResponseError:
+                transfer.status = "UNKNOWN"
+                transfer.last_error = "API sonucu belirsiz; yeniden gönderim yapılmaz."
+            else:
+                transfer.status = "SENT"
+                transfer.external_invoice_id = result["guid"]
+                transfer.last_error = ""
+        transfer.save(update_fields=["status", "external_invoice_id", "last_error", "updated_at"])
+        return transfer.status
