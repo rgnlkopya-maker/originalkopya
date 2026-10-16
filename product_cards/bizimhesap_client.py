@@ -22,10 +22,14 @@ def list_customers():
         with urlopen(request, timeout=12) as response:
             data = json.load(response)
     except HTTPError as exc:
-        # Never expose arbitrary upstream bodies: they may contain secrets or HTML.
+        # Safe, allowlisted diagnostics only; never return the token or raw body.
         content_type = (exc.headers.get("Content-Type") or "").split(";")[0].strip().lower()
-        upstream_code = str(exc.code)
-        reason = ""
+        ray = (exc.headers.get("CF-Ray") or "").strip()
+        if not (3 <= len(ray) <= 80 and all(c.isalnum() or c in "-_" for c in ray)):
+            ray = ""
+        server = (exc.headers.get("Server") or "").strip().lower()
+        provider = "Cloudflare" if server == "cloudflare" or ray else "belirsiz"
+        code = ""
         if content_type == "application/json":
             try:
                 payload = json.loads(exc.read(4096).decode("utf-8"))
@@ -33,11 +37,20 @@ def list_customers():
                     for key in ("errorCode", "error_code", "code", "statusCode"):
                         value = payload.get(key)
                         if isinstance(value, (int, str)) and str(value).replace("_", "").replace("-", "").isalnum() and len(str(value)) <= 40:
-                            reason = " | API hata kodu: " + str(value)
+                            code = str(value)
                             break
             except (ValueError, UnicodeDecodeError):
                 pass
-        raise BizimHesapError(f"BizimHesap HTTP {upstream_code} yanıtı verdi. Yanıt türü: {content_type or 'bilinmiyor'}{reason}.") from exc
+        info = [
+            f"BizimHesap HTTP {exc.code}",
+            f"yanıt türü: {content_type or 'bilinmiyor'}",
+            f"koruma sağlayıcısı: {provider}",
+        ]
+        if code:
+            info.append(f"hata kodu: {code}")
+        if ray:
+            info.append(f"CF-Ray: {ray}")
+        raise BizimHesapError(" | ".join(info)) from exc
     except (URLError, TimeoutError) as exc:
         raise BizimHesapError("BizimHesap servisine bağlantı kurulamadı veya zaman aşımına uğradı.") from exc
     except ValueError as exc:
