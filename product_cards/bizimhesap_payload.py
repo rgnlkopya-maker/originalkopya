@@ -63,6 +63,7 @@ def build_invoice_payload(invoice, lines, mapping, firm_id):
     return {
         "firmId": firm_id,
         "invoiceType": 3,
+        **({"invoiceNo": invoice.official_number.strip()} if (invoice.official_number or "").strip() else {}),
         "note": "MoliApp fatura taslağı FT-" + str(invoice.pk),
         "dates": {
             "invoiceDate": invoice.invoice_date.isoformat(),
