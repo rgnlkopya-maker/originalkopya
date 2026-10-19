@@ -598,13 +598,15 @@ def invoice_parasut_oauth_connect(request):
             verify_company_access(company_id, tokens["access_token"])
             stage = "SAVE"
             save_tokens(company_id, tokens)
-        except (ParasutOAuthError, ParasutCredentialError):
-            safe_reasons = {
-                "TOKEN": "OAuth kodu veya API kimlik bilgileri doğrulanamadı.",
-                "COMPANY": "OAuth tokenı alındı fakat Company ID için API erişimi doğrulanamadı.",
-                "SAVE": "Paraşüt tokenı alındı fakat şifreli veritabanı kaydı yapılamadı.",
-            }
-            messages.error(request, "Paraşüt bağlantısı başarısız: " + safe_reasons[stage])
+        except (ParasutOAuthError, ParasutCredentialError) as exc:
+            if stage == "TOKEN" and isinstance(exc, ParasutOAuthError):
+                messages.error(request, "Paraşüt OAuth hatası: " + str(exc))
+            else:
+                safe_reasons = {
+                    "COMPANY": "OAuth tokenı alındı fakat Company ID için API erişimi doğrulanamadı.",
+                    "SAVE": "Paraşüt tokenı alındı fakat şifreli veritabanı kaydı yapılamadı.",
+                }
+                messages.error(request, "Paraşüt bağlantısı başarısız: " + safe_reasons.get(stage, "Yetkilendirme başarısız."))
         else:
             messages.success(request, "Paraşüt OAuth tokenları şifreli olarak kaydedildi. Fatura gönderilmedi.")
     return redirect("invoice_parasut_oauth_setup")
