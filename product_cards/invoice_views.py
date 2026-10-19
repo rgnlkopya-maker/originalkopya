@@ -11,7 +11,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.views.decorators.http import require_POST
 from core.models import Order, Musteri
-from .invoice_models import InvoiceDraft, InvoiceLine, BizimHesapCustomerMapping, BizimHesapInvoiceTransfer
+from .invoice_models import InvoiceDraft, InvoiceLine, BizimHesapCustomerMapping, BizimHesapInvoiceTransfer, ParasutInvoiceTransfer
 from planning.models import ShipmentPlan
 from core.services.order_status import latest_status_event, status_label, FINANCIAL_STAGES
 
@@ -47,13 +47,15 @@ def _pending_shipments_by_invoice():
 def invoice_list(request):
     if not _allowed(request.user):
         return HttpResponseForbidden("Yetkiniz yok.")
-    invoices = list(InvoiceDraft.objects.select_related("customer").prefetch_related("lines", "bizimhesap_transfer").order_by("-invoice_date", "-id"))
+    invoices = list(InvoiceDraft.objects.select_related("customer").prefetch_related("lines", "bizimhesap_transfer", "parasut_transfer").order_by("-invoice_date", "-id"))
     pending = _pending_shipments_by_invoice()
     for invoice in invoices:
         invoice.has_pending_shipment = pending.get(invoice.id, False)
         transfer = getattr(invoice, "bizimhesap_transfer", None)
         invoice.bh_transfer_status = transfer.status if transfer else ""
         invoice.bh_is_recorded = invoice.bizimhesap_manual_recorded or bool(transfer and transfer.status == "SENT")
+        parasut_transfer = getattr(invoice, "parasut_transfer", None)
+        invoice.parasut_transfer_status = parasut_transfer.status if parasut_transfer else ""
     return render(request, "product_cards/invoice_list.html", {"invoices": invoices})
 
 
@@ -77,6 +79,10 @@ def invoice_platform_status_update(request, invoice_id):
             invoice.bizimhesap_manual_recorded = recorded == "yes"
             invoice.save(update_fields=["bizimhesap_manual_recorded", "updated_at"])
         else:
+            parasut_transfer = ParasutInvoiceTransfer.objects.filter(invoice=invoice).first()
+            if parasut_transfer and parasut_transfer.status in ("SENDING", "SENT", "UNKNOWN"):
+                messages.warning(request, "Paraşüt API aktarım kaydı var; manuel durum değiştirilemez.")
+                return redirect("invoice_list")
             invoice.parasut_manual_recorded = recorded == "yes"
             invoice.save(update_fields=["parasut_manual_recorded", "updated_at"])
     messages.success(request, "Manuel kayıt durumu güncellendi; dış sisteme fatura gönderilmedi.")
