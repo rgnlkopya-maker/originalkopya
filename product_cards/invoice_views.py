@@ -603,7 +603,7 @@ def invoice_parasut_oauth_connect(request):
                 messages.error(request, "Paraşüt OAuth hatası: " + str(exc))
             else:
                 safe_reasons = {
-                    "COMPANY": "OAuth tokenı alındı fakat Company ID için API erişimi doğrulanamadı.",
+                    "COMPANY": "OAuth tokenı alındı; firma doğrulaması başarısız: " + str(exc),
                     "SAVE": "Paraşüt tokenı alındı fakat şifreli veritabanı kaydı yapılamadı.",
                 }
                 messages.error(request, "Paraşüt bağlantısı başarısız: " + safe_reasons.get(stage, "Yetkilendirme başarısız."))
