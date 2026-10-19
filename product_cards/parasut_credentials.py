@@ -55,3 +55,39 @@ def get_tokens(company_id):
         }
     except (InvalidToken, ValueError):
         raise ParasutCredentialError("Paraşüt tokenları çözülemedi; anahtar değişmiş olabilir.") from None
+
+
+
+def valid_access_token(company_id):
+    """Return stored access token, refreshing the encrypted pair under a DB row lock."""
+    from datetime import timedelta
+    from django.utils import timezone
+    from .parasut_oauth import refresh_tokens
+    cipher = _cipher()
+    with transaction.atomic():
+        try:
+            row = ParasutOAuthCredential.objects.select_for_update().get(company_id=str(company_id))
+        except ParasutOAuthCredential.DoesNotExist:
+            raise ParasutCredentialError("Paraşüt hesabı henüz yetkilendirilmedi.") from None
+        try:
+            access = cipher.decrypt(row.access_token_encrypted.encode()).decode()
+        except (InvalidToken, ValueError):
+            raise ParasutCredentialError("Paraşüt erişim tokenı çözülemedi.") from None
+        if row.expires_at > timezone.now() + timedelta(minutes=5):
+            return access
+        try:
+            old_refresh = cipher.decrypt(row.refresh_token_encrypted.encode()).decode()
+        except (InvalidToken, ValueError):
+            raise ParasutCredentialError("Paraşüt yenileme tokenı çözülemedi.") from None
+        result = refresh_tokens(old_refresh)
+        new_access = result["access_token"]
+        new_refresh = result["refresh_token"]
+        try:
+            lifetime = max(1, min(int(result.get("expires_in", 7200)), 86400))
+        except (ValueError, TypeError):
+            raise ParasutCredentialError("Paraşüt token süresi geçersiz.") from None
+        row.access_token_encrypted = cipher.encrypt(new_access.encode()).decode()
+        row.refresh_token_encrypted = cipher.encrypt(new_refresh.encode()).decode()
+        row.expires_at = timezone.now() + timedelta(seconds=lifetime)
+        row.save(update_fields=["access_token_encrypted", "refresh_token_encrypted", "expires_at", "updated_at"])
+        return new_access
