@@ -81,3 +81,12 @@ class ParasutProductMapping(models.Model):
     product_code = models.CharField(max_length=150, unique=True)
     external_product_id = models.CharField(max_length=100, unique=True)
     updated_at = models.DateTimeField(auto_now=True)
+
+
+class ParasutOAuthCredential(models.Model):
+    """Encrypted OAuth token pair; single connected Paraşüt company."""
+    company_id = models.CharField(max_length=30, unique=True)
+    access_token_encrypted = models.TextField()
+    refresh_token_encrypted = models.TextField()
+    expires_at = models.DateTimeField()
+    updated_at = models.DateTimeField(auto_now=True)
