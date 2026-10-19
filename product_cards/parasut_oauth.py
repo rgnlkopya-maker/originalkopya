@@ -41,8 +41,19 @@ def _exchange(form):
     try:
         with urlopen(request, timeout=15) as response:
             tokens = json.load(response)
-    except (HTTPError, URLError, TimeoutError, ValueError):
-        raise ParasutOAuthError("Paraşüt OAuth işlemi başarısız. Yetkileri kontrol edin.") from None
+    except HTTPError as exc:
+        # Only the HTTP status and allowlisted OAuth error code are exposed, never body or secrets.
+        category = "unknown"
+        try:
+            data = json.loads(exc.read(2048).decode("utf-8"))
+            value = data.get("error") if isinstance(data, dict) else None
+            if value in ("invalid_grant", "invalid_client", "invalid_request", "unauthorized_client", "unsupported_grant_type"):
+                category = value
+        except (ValueError, UnicodeDecodeError):
+            pass
+        raise ParasutOAuthError(f"Token endpoint HTTP {exc.code}; OAuth hata türü: {category}.") from None
+    except (URLError, TimeoutError, ValueError):
+        raise ParasutOAuthError("Paraşüt OAuth servisine erişilemedi veya geçersiz yanıt alındı.") from None
     if not isinstance(tokens, dict) or not tokens.get("access_token") or not tokens.get("refresh_token"):
         raise ParasutOAuthError("Paraşüt geçerli OAuth token çifti döndürmedi.")
     return tokens
