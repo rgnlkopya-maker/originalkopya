@@ -69,3 +69,15 @@ class ParasutInvoiceTransfer(models.Model):
     payload_fingerprint = models.CharField(max_length=64, blank=True, default="")
     last_error = models.CharField(max_length=255, blank=True, default="")
     updated_at = models.DateTimeField(auto_now=True)
+
+
+class ParasutCustomerMapping(models.Model):
+    customer = models.OneToOneField("core.Musteri", on_delete=models.CASCADE, related_name="parasut_mapping")
+    external_contact_id = models.CharField(max_length=100, unique=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+
+class ParasutProductMapping(models.Model):
+    product_code = models.CharField(max_length=150, unique=True)
+    external_product_id = models.CharField(max_length=100, unique=True)
+    updated_at = models.DateTimeField(auto_now=True)
