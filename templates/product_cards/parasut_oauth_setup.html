@@ -2,6 +2,13 @@
 {% block content %}
 <main class="container py-4" style="max-width:750px">
 <h2>Paraşüt Hesap Bağlantısı</h2>
+{% if messages %}
+<section aria-label="Paraşüt işlem sonucu">
+{% for message in messages %}
+<div class="alert {% if message.tags == 'success' %}alert-success{% else %}alert-danger{% endif %}" role="alert">{{ message }}</div>
+{% endfor %}
+</section>
+{% endif %}
 <p class="text-muted">Bu işlem yalnızca Paraşüt hesabını yetkilendirir. Fatura, e-Fatura veya e-Arşiv oluşturmaz.</p>
 <div class="card mb-3"><div class="card-body">
 <h5>Bağlantı hazırlık kontrolü</h5>
