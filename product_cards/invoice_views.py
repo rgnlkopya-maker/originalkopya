@@ -500,3 +500,24 @@ def invoice_order_status(request, order_id):
     line = InvoiceLine.objects.filter(order_id=order_id).select_related("invoice").first()
     planned = ShipmentPlan.objects.filter(order_id=order_id).exists()
     return JsonResponse({"added": bool(line) or planned, "invoice_id": line.invoice_id if line else None})
+
+
+@login_required
+def invoice_parasut_preview(request, invoice_id):
+    """Read-only Paraşüt transfer preview; never creates an external invoice."""
+    if not _allowed(request.user):
+        return HttpResponseForbidden("Yetkiniz yok.")
+    from .parasut_payload import build_parasut_sales_invoice
+    invoice = get_object_or_404(InvoiceDraft.objects.select_related("customer"), pk=invoice_id)
+    payload, problems = build_parasut_sales_invoice(invoice)
+    transfer = ParasutInvoiceTransfer.objects.filter(invoice=invoice).first()
+    if transfer and transfer.status in ("SENT", "SENDING", "UNKNOWN"):
+        problems.append("Önceki aktarım mevcut veya sonucu belirsiz; yeniden gönderilmemeli.")
+    if invoice.status != "DRAFT":
+        problems.append("MoliApp faturası taslak durumunda değil.")
+    return render(request, "product_cards/invoice_parasut_preview.html", {
+        "invoice": invoice, "problems": problems,
+        "prepared": payload is not None,
+        "transfer": transfer,
+        "line_count": invoice.lines.count(),
+    })
