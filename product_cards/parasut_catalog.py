@@ -17,9 +17,13 @@ def _fetch(resource, page=1):
     if resource not in ("contacts", "products"):
         raise ParasutCatalogError("İzin verilmeyen kaynak.")
     company = os.environ.get("PARASUT_COMPANY_ID", "").strip()
-    token = os.environ.get("PARASUT_ACCESS_TOKEN", "").strip()
-    if not company.isdecimal() or not token:
-        raise ParasutCatalogError("Paraşüt bağlantısı henüz yetkilendirilmedi.")
+    if not company.isdecimal():
+        raise ParasutCatalogError("Paraşüt firma ID eksik.")
+    from .parasut_credentials import valid_access_token, ParasutCredentialError
+    try:
+        token = valid_access_token(company)
+    except ParasutCredentialError:
+        raise ParasutCatalogError("Paraşüt OAuth bağlantısı henüz hazır değil.") from None
     if not isinstance(page, int) or not (1 <= page <= 100):
         raise ParasutCatalogError("Geçersiz sayfa numarası.")
     query = urlencode({"page[number]": page, "page[size]": 25})
