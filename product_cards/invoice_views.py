@@ -599,6 +599,14 @@ def invoice_parasut_oauth_connect(request):
             stage = "SAVE"
             save_tokens(company_id, tokens)
         except (ParasutOAuthError, ParasutCredentialError) as exc:
+            # Only a fixed, non-sensitive reason category enters server logs.
+            reason = "credential_error"
+            if stage == "TOKEN" and isinstance(exc, ParasutOAuthError):
+                detail = str(exc)
+                reason = next((key for key in ("invalid_grant", "invalid_client", "invalid_request", "unauthorized_client", "unsupported_grant_type") if key in detail), "token_exchange_error")
+            elif stage == "COMPANY":
+                reason = next((key for key in ("401", "403", "404") if key in str(exc)), "company_request_error")
+            logging.getLogger(__name__).warning("parasut_oauth_failure stage=%s reason=%s", stage, reason)
             if stage == "TOKEN" and isinstance(exc, ParasutOAuthError):
                 messages.error(request, "Paraşüt OAuth hatası: " + str(exc))
             else:
@@ -608,5 +616,6 @@ def invoice_parasut_oauth_connect(request):
                 }
                 messages.error(request, "Paraşüt bağlantısı başarısız: " + safe_reasons.get(stage, "Yetkilendirme başarısız."))
         else:
+            logging.getLogger(__name__).info("parasut_oauth_success stage=SAVE")
             messages.success(request, "Paraşüt OAuth tokenları şifreli olarak kaydedildi. Fatura gönderilmedi.")
     return redirect("invoice_parasut_oauth_setup")
