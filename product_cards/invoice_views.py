@@ -553,3 +553,39 @@ def invoice_parasut_catalog(request):
         message = str(exc) if isinstance(exc, ParasutCatalogError) else "Geçersiz sayfa."
         return JsonResponse({"ok": False, "message": message}, status=400)
     return JsonResponse({"ok": True, **data})
+
+
+@login_required
+def invoice_parasut_oauth_setup(request):
+    """Manual OOB OAuth authorization; no data sent to Paraşüt from this GET."""
+    if not _allowed(request.user):
+        return HttpResponseForbidden("Yetkiniz yok.")
+    from .parasut_oauth import authorization_url, ParasutOAuthError
+    try:
+        auth_url = authorization_url()
+    except ParasutOAuthError:
+        auth_url = ""
+    return render(request, "product_cards/parasut_oauth_setup.html", {"auth_url": auth_url})
+
+
+@login_required
+@require_POST
+def invoice_parasut_oauth_connect(request):
+    """Exchange a manually supplied authorization code and encrypt both tokens."""
+    if not _allowed(request.user):
+        return HttpResponseForbidden("Yetkiniz yok.")
+    from .parasut_oauth import exchange_authorization_code, ParasutOAuthError
+    from .parasut_credentials import save_tokens, ParasutCredentialError
+    company_id = os.environ.get("PARASUT_COMPANY_ID", "").strip()
+    code = request.POST.get("authorization_code", "").strip()
+    if not company_id.isdecimal():
+        messages.error(request, "Önce Render'da PARASUT_COMPANY_ID tanımlanmalı.")
+    else:
+        try:
+            tokens = exchange_authorization_code(code)
+            save_tokens(company_id, tokens)
+        except (ParasutOAuthError, ParasutCredentialError):
+            messages.error(request, "Paraşüt yetkilendirme başarısız. Ayarları ve kodu kontrol edin.")
+        else:
+            messages.success(request, "Paraşüt OAuth tokenları şifreli olarak kaydedildi. Fatura gönderilmedi.")
+    return redirect("invoice_parasut_oauth_setup")
