@@ -1,7 +1,8 @@
 from django.urls import path
-from . import views, status_views, finance_views, price_list_views, showroom_views, showroom_print_views, showroom_transfer_views, public_product_views, public_qr_views, invoice_views
+from . import views, status_views, finance_views, price_list_views, showroom_views, showroom_print_views, showroom_transfer_views, public_product_views, public_qr_views, invoice_views, smart_pattern_views
 
 urlpatterns = [
+    path("akilli-kalip/siparis/<int:order_id>/", smart_pattern_views.smart_pattern_order, name="smart_pattern_order"),
     path("faturalar/", invoice_views.invoice_list, name="invoice_list"),
     path("faturalar/<int:invoice_id>/platform-durum/", invoice_views.invoice_platform_status_update, name="invoice_platform_status_update"),
     path("faturalar/cari-eslestirme/", invoice_views.invoice_customer_mapping_list, name="invoice_customer_mapping_list"),
