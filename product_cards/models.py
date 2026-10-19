@@ -266,3 +266,6 @@ class ShowroomOrderLink(models.Model):
 
 # Invoice models registered with Django through the product_cards app.
 from .invoice_models import InvoiceDraft, InvoiceLine, BizimHesapCustomerMapping, BizimHesapInvoiceTransfer, ParasutInvoiceTransfer, ParasutCustomerMapping, ParasutProductMapping, ParasutOAuthCredential
+
+# Smart pattern master model registered with Django.
+from .smart_pattern_models import SmartPatternMaster
