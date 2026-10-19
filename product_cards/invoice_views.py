@@ -535,3 +535,21 @@ def invoice_parasut_connection_status(request):
     except ParasutConnectionError as exc:
         return JsonResponse({"ok": False, "message": str(exc)}, status=503)
     return JsonResponse({"ok": True, "message": "Paraşüt okuma bağlantısı doğrulandı; fatura gönderilmedi."})
+
+
+@login_required
+def invoice_parasut_catalog(request):
+    """Existing Paraşüt contacts/products, read-only, authorized staff only."""
+    if not _allowed(request.user):
+        return HttpResponseForbidden("Yetkiniz yok.")
+    from .parasut_catalog import list_contacts, list_products, ParasutCatalogError
+    resource = request.GET.get("resource", "")
+    if resource not in ("contacts", "products"):
+        return JsonResponse({"ok": False, "message": "Geçersiz kaynak."}, status=400)
+    try:
+        page = int(request.GET.get("page", "1"))
+        data = (list_contacts if resource == "contacts" else list_products)(page)
+    except (ValueError, ParasutCatalogError) as exc:
+        message = str(exc) if isinstance(exc, ParasutCatalogError) else "Geçersiz sayfa."
+        return JsonResponse({"ok": False, "message": message}, status=400)
+    return JsonResponse({"ok": True, **data})
