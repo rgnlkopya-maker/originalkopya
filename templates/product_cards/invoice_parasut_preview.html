@@ -18,6 +18,21 @@
   {% elif prepared %}
     <div class="alert alert-info">Fatura verileri ön kontrollerden geçti. Gerçek API gönderimi henüz devre dışıdır.</div>
   {% endif %}
+  <div class="mb-3"><button type="button" class="btn btn-outline-primary" id="parasut-check">Paraşüt bağlantısını kontrol et</button><p id="parasut-check-result" class="small mt-2" role="status" aria-live="polite"></p></div>
   <button class="btn btn-secondary" disabled>Paraşüt'e Gönder (henüz kapalı)</button>
+<script>
+(function(){
+const button=document.getElementById("parasut-check"),result=document.getElementById("parasut-check-result");
+button.addEventListener("click",async function(){
+  button.disabled=true;result.textContent="Bağlantı kontrol ediliyor...";
+  try{
+    const r=await fetch("{% url 'invoice_parasut_connection_status' %}",{credentials:"same-origin",cache:"no-store"});
+    const data=await r.json();
+    result.textContent=data.message||"Bağlantı doğrulanamadı.";
+  }catch(e){result.textContent="Bağlantı kontrolü başarısız.";}
+  finally{button.disabled=false;}
+});
+})();
+</script>
 </main>
 {% endblock %}
