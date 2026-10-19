@@ -10,9 +10,14 @@ class ParasutConnectionError(Exception):
 
 def check_connection():
     company = os.getenv("PARASUT_COMPANY_ID", "").strip()
-    token = os.getenv("PARASUT_ACCESS_TOKEN", "").strip()
-    if not company.isdecimal() or not token:
+    token = ""
+    if not company.isdecimal():
         raise ParasutConnectionError("Paraşüt firma ID veya erişim tokenı tanımlanmamış.")
+    from .parasut_credentials import valid_access_token, ParasutCredentialError
+    try:
+        token = valid_access_token(company)
+    except ParasutCredentialError as exc:
+        raise ParasutConnectionError(str(exc)) from None
     request = Request(
         "https://api.parasut.com/v4/" + company + "/sales_invoices?page%5Bsize%5D=1",
         headers={"Authorization": "Bearer " + token, "Accept": "application/json"},
