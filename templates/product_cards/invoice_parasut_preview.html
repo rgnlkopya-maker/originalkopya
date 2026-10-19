@@ -2,6 +2,7 @@
 {% block content %}
 <main class="container py-4" style="max-width:850px">
   <a href="{% url 'invoice_detail' invoice.id %}" class="btn btn-sm btn-outline-secondary mb-3">← Faturaya dön</a>
+  <a class="btn btn-sm btn-outline-primary mb-2" href="{% url 'invoice_parasut_oauth_setup' %}">Paraşüt hesap bağlantısı</a>
   <h2>Paraşüt Aktarım Önizlemesi – FT-{{ invoice.id }}</h2>
   <p class="text-muted">Bu ekran yalnızca kontrol amaçlıdır. Paraşüt'e herhangi bir kayıt gönderilmez ve e-Fatura/e-Arşiv oluşturulmaz.</p>
   <div class="card mb-3"><div class="card-body">
