@@ -54,3 +54,18 @@ class BizimHesapInvoiceTransfer(models.Model):
     payload_fingerprint = models.CharField(max_length=64, blank=True, default="")
     last_error = models.CharField(max_length=255, blank=True, default="")
     updated_at = models.DateTimeField(auto_now=True)
+
+
+class ParasutInvoiceTransfer(models.Model):
+    """One Paraşüt sales-invoice record per MoliApp invoice (not an e-document)."""
+    invoice = models.OneToOneField(InvoiceDraft, on_delete=models.PROTECT, related_name="parasut_transfer")
+    status = models.CharField(max_length=16, default="NOT_SENT", choices=[
+        ("NOT_SENT", "Gönderilmedi"), ("SENDING", "Gönderiliyor"),
+        ("SENT", "Paraşüt'e kaydedildi"), ("UNKNOWN", "Kontrol gerekli"),
+    ])
+    external_invoice_id = models.CharField(max_length=100, blank=True, default="")
+    external_invoice_no = models.CharField(max_length=100, blank=True, default="")
+    official_number_synced_at = models.DateTimeField(null=True, blank=True)
+    payload_fingerprint = models.CharField(max_length=64, blank=True, default="")
+    last_error = models.CharField(max_length=255, blank=True, default="")
+    updated_at = models.DateTimeField(auto_now=True)
