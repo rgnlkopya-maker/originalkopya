@@ -42,6 +42,7 @@
   <ul class="dropdown-menu">
     {% if user|can:'can_view_orders' %}<li><a href="{% url 'order_list' %}" class="dropdown-item {% if request.resolver_match.url_name == 'order_list' %}active{% endif %}"><i class="bi bi-file-text"></i>Siparişler</a></li>{% endif %}
     {% if user|can_feature:'operations.production_stage_control' %}<li><a href="{% url 'production_stage_control' %}" class="dropdown-item {% if request.resolver_match.url_name == 'production_stage_control' %}active{% endif %}"><i class="bi bi-diagram-3"></i>Üretim Aşama Kontrolü</a></li>{% endif %}
+    {% if user|is_management %}<li><a href="{% url 'smart_pattern_home' %}" class="dropdown-item {% if request.resolver_match.url_name == 'smart_pattern_home' or request.resolver_match.url_name == 'smart_pattern_order' %}active{% endif %}"><i class="bi bi-rulers"></i>Akıllı Kalıp</a></li>{% endif %}
     {% if user|can:'can_manage_planning' %}<li><a href="{% url 'shipment_planning_page' %}" class="dropdown-item {% if request.resolver_match.url_name == 'planning_page' or request.resolver_match.url_name == 'shipment_planning_page' %}active{% endif %}"><i class="bi bi-calendar3"></i>Planlama</a></li>{% endif %}
   </ul>
 </div>
