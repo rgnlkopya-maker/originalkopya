@@ -197,7 +197,7 @@ def invoice_due_date_save(request, invoice_id):
         if due < invoice.invoice_date:
             messages.error(request, "Vade tarihi fatura tarihinden önce olamaz.")
             return redirect("invoice_detail", invoice_id=invoice_id)
-        if BizimHesapInvoiceTransfer.objects.filter(invoice=invoice, status__in=("SENT", "SENDING", "UNKNOWN")).exists():
+        if _transfer_locked(invoice):
             messages.error(request, "Aktarım kaydı bulunan faturanın vadesi değiştirilemez.")
             return redirect("invoice_detail", invoice_id=invoice_id)
         invoice.due_date = due
@@ -420,7 +420,8 @@ def invoice_add(request, order_id):
 
 
 def _transfer_locked(invoice):
-    return BizimHesapInvoiceTransfer.objects.filter(invoice=invoice, status__in=("SENDING", "SENT", "UNKNOWN")).exists()
+    return (BizimHesapInvoiceTransfer.objects.filter(invoice=invoice, status__in=("SENDING", "SENT", "UNKNOWN")).exists() or
+            ParasutInvoiceTransfer.objects.filter(invoice=invoice, status__in=("SENDING", "SENT", "UNKNOWN")).exists())
 
 
 @login_required
