@@ -20,7 +20,4 @@ def smart_pattern_order(request, order_id):
 def smart_pattern_home(request):
     if not has_full_access(request.user):
         return HttpResponseForbidden("Akıllı Kalıp ekranı için yönetici yetkisi gerekli.")
-    special_orders = (Order.objects.filter(siparis_tipi="OZEL")
-                      .select_related("musteri").order_by("-id")[:100])
-    return render(request, "product_cards/smart_pattern_home.html",
-                  {"special_orders": special_orders})
+    return render(request, "product_cards/smart_pattern_home.html")
