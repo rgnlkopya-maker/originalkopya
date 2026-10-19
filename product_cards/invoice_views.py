@@ -565,7 +565,16 @@ def invoice_parasut_oauth_setup(request):
         auth_url = authorization_url()
     except ParasutOAuthError:
         auth_url = ""
-    return render(request, "product_cards/parasut_oauth_setup.html", {"auth_url": auth_url})
+    from .invoice_models import ParasutOAuthCredential
+    company_id = os.environ.get("PARASUT_COMPANY_ID", "").strip()
+    settings_state = {
+        "client_id": bool(os.environ.get("PARASUT_CLIENT_ID", "").strip()),
+        "client_secret": bool(os.environ.get("PARASUT_CLIENT_SECRET", "").strip()),
+        "company_id": company_id.isdecimal(),
+        "encryption_key": bool(os.environ.get("PARASUT_TOKEN_ENCRYPTION_KEY", "").strip()),
+        "connected": bool(company_id.isdecimal() and ParasutOAuthCredential.objects.filter(company_id=company_id).exists()),
+    }
+    return render(request, "product_cards/parasut_oauth_setup.html", {"auth_url": auth_url if all(settings_state[k] for k in ("client_id", "client_secret", "company_id", "encryption_key")) else "", "settings_state": settings_state})
 
 
 @login_required
