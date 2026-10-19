@@ -477,22 +477,41 @@ def invoice_price(request, invoice_id, line_id):
 
 @login_required
 @require_POST
+def invoice_open_account(request, invoice_id):
+    if not _allowed(request.user):
+        return HttpResponseForbidden("Yetkiniz yok.")
+    with transaction.atomic():
+        invoice = get_object_or_404(InvoiceDraft.objects.select_for_update(), pk=invoice_id, status="DRAFT")
+        if _transfer_locked(invoice):
+            return HttpResponseForbidden("Aktarım sürecindeki kayıt açık hesaba alınamaz.")
+        if not invoice.lines.exists():
+            messages.error(request, "Açık hesaba almak için en az bir ürün gerekli.")
+        else:
+            invoice.status = "OPEN"
+            invoice.official_number = ""
+            invoice.save(update_fields=["status", "official_number", "updated_at"])
+            messages.success(request, "Kayıt açık hesap olarak işaretlendi. Resmî fatura oluşturulmadı.")
+    return redirect("invoice_detail", invoice_id=invoice_id)
+
+
+@login_required
+@require_POST
 def invoice_finalize(request, invoice_id):
     if not _allowed(request.user):
         return HttpResponseForbidden("Yetkiniz yok.")
-    invoice = get_object_or_404(InvoiceDraft, pk=invoice_id, status="DRAFT")
-    if _transfer_locked(invoice):
-        return HttpResponseForbidden("Aktarım sürecindeki fatura tamamlanamaz.")
-    number = request.POST.get("official_number", "").strip()
-    if not number or not invoice.lines.exists():
-        messages.error(request, "Fatura numarası ve en az bir ürün gerekli.")
-    else:
-        invoice.official_number = number
-        invoice.status = "FINAL"
-        invoice.save(update_fields=["official_number", "status", "updated_at"])
-        messages.success(request, "Resmi faturanın numarası kaydedildi. MoliApp resmi fatura düzenlemedi.")
-    return redirect("invoice_detail", invoice_id=invoice.pk)
-
+    with transaction.atomic():
+        invoice = get_object_or_404(InvoiceDraft.objects.select_for_update(), pk=invoice_id, status__in=("DRAFT", "OPEN"))
+        if _transfer_locked(invoice):
+            return HttpResponseForbidden("Aktarım sürecindeki fatura tamamlanamaz.")
+        number = request.POST.get("official_number", "").strip()
+        if not number or len(number) > 80 or not invoice.lines.exists():
+            messages.error(request, "Geçerli fatura numarası (en fazla 80 karakter) ve en az bir ürün gerekli.")
+        else:
+            invoice.official_number = number
+            invoice.status = "FINAL"
+            invoice.save(update_fields=["official_number", "status", "updated_at"])
+            messages.success(request, "Resmî fatura numarası kaydedildi. MoliApp resmî fatura düzenlemedi.")
+    return redirect("invoice_detail", invoice_id=invoice_id)
 
 @login_required
 def invoice_order_status(request, order_id):
