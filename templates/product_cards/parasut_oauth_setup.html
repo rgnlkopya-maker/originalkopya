@@ -3,6 +3,15 @@
 <main class="container py-4" style="max-width:750px">
 <h2>Paraşüt Hesap Bağlantısı</h2>
 <p class="text-muted">Bu işlem yalnızca Paraşüt hesabını yetkilendirir. Fatura, e-Fatura veya e-Arşiv oluşturmaz.</p>
+<div class="card mb-3"><div class="card-body">
+<h5>Bağlantı hazırlık kontrolü</h5>
+<ul class="mb-0">
+<li>Client ID: {% if settings_state.client_id %}Tanımlı{% else %}Eksik{% endif %}</li>
+<li>Client Secret: {% if settings_state.client_secret %}Tanımlı{% else %}Eksik{% endif %}</li>
+<li>Company ID: {% if settings_state.company_id %}Tanımlı{% else %}Eksik{% endif %}</li>
+<li>Şifreleme anahtarı: {% if settings_state.encryption_key %}Tanımlı{% else %}Eksik{% endif %}</li>
+<li>OAuth bağlantısı: {% if settings_state.connected %}Kayıt mevcut{% else %}Henüz yetkilendirilmedi{% endif %}</li>
+</ul></div></div>
 {% if auth_url %}
 <p><a href="{{ auth_url }}" target="_blank" rel="noopener noreferrer" class="btn btn-outline-primary">Paraşüt yetkilendirme sayfasını aç</a></p>
 <p>Paraşüt'te izin verildikten sonra gösterilen yetkilendirme kodunu aşağıya girin. Kod yalnızca token almak için kullanılır.</p>
@@ -12,7 +21,7 @@
 <button class="btn btn-primary" type="submit">Paraşüt hesabını bağla</button>
 </form>
 {% else %}
-<div class="alert alert-warning">Render ortamında PARASUT_CLIENT_ID tanımlı değil.</div>
+<div class="alert alert-warning">OAuth için gerekli Render ayarlarından en az biri eksik. Önce eksik ayarları tamamlayın.</div>
 {% endif %}
 <p class="small text-muted mt-3">Client Secret veya token bilgilerini bu ekrana yazmayın. Bunlar yalnızca güvenli sunucu ayarlarında tutulur.</p>
 </main>
