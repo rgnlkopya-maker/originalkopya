@@ -16,8 +16,18 @@ def verify_company_access(company_id, access_token):
     try:
         with urlopen(request, timeout=12) as response:
             result = json.load(response)
-    except (HTTPError, URLError, TimeoutError, ValueError):
-        raise ParasutCredentialError("Paraşüt firma erişimi doğrulanamadı.") from None
+    except HTTPError as exc:
+        if exc.code == 401:
+            reason = "401: OAuth token kabul edilmedi."
+        elif exc.code == 403:
+            reason = "403: Bu firma için API erişim yetkisi yok."
+        elif exc.code == 404:
+            reason = "404: Company ID bulunamadı veya bu hesap için erişilemiyor."
+        else:
+            reason = f"HTTP {exc.code}: Firma erişimi doğrulanamadı."
+        raise ParasutCredentialError(reason) from None
+    except (URLError, TimeoutError, ValueError):
+        raise ParasutCredentialError("Firma kontrolünde ağ veya yanıt hatası.") from None
     if not isinstance(result, dict) or not isinstance(result.get("data"), list):
         raise ParasutCredentialError("Paraşüt beklenmeyen erişim yanıtı döndürdü.")
     return True
