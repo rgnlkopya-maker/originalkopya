@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block content %}
+<style>
+.sp-home{max-width:1200px;margin:auto;padding:25px 16px 50px;color:#17253d}
+.sp-home-header{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:20px;flex-wrap:wrap}
+.sp-home-header h2{font-weight:800;margin:0}.sp-home-sub{color:#64748b;margin:6px 0 0}
+.sp-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:13px;margin-bottom:22px}
+.sp-tile{border:1px solid #e2e8f0;border-radius:16px;background:#fff;padding:20px}
+.sp-tile h5{font-size:15px;font-weight:800}.sp-tile p{font-size:13px;color:#64748b;margin:0}.sp-card{background:#fff;border:1px solid #e2e8f0;border-radius:16px;overflow:hidden}
+.sp-card-head{display:flex;gap:12px;align-items:center;justify-content:space-between;padding:17px 20px;border-bottom:1px solid #e2e8f0;flex-wrap:wrap}
+.sp-table{width:100%;font-size:13px}.sp-table th{font-size:11px;color:#64748b;background:#f8fafc;padding:12px}.sp-table td{padding:12px;border-top:1px solid #edf2f7}
+.sp-table a{font-weight:700;text-decoration:none}@media(max-width:760px){.sp-grid{grid-template-columns:1fr}.sp-table{font-size:12px}.sp-table th,.sp-table td{padding:8px}}
+</style>
+<main class="sp-home">
+<div class="sp-home-header"><div><h2>📐 Akıllı Kalıp</h2><p class="sp-home-sub">Ana kalıp yönetimi ve özel ölçü çalışmalarının merkezi</p></div><span class="badge bg-warning text-dark">Geliştirme aşaması</span></div>
+<div class="sp-grid">
+<section class="sp-tile"><h5>01 · Ana Kalıplar</h5><p>Ürünlerin 38 beden CAD dosyaları için kütüphane. Dosya yükleme henüz aktif değil.</p></section>
+<section class="sp-tile"><h5>02 · Özel Ölçü Kalıpları</h5><p>Aşağıdan özel siparişi seçerek ölçü karşılaştırma sayfasına ulaşabilirsin.</p></section>
+<section class="sp-tile"><h5>03 · Kalıp Geçmişi</h5><p>Versiyon ve kalıpçı onay kayıtları daha sonra eklenecek.</p></section>
+</div>
+<section class="sp-card">
+<div class="sp-card-head"><div><strong>Özel Sipariş Seç</strong><div class="sp-home-sub">Son 100 özel sipariş</div></div><input id="sp-search" class="form-control" type="search" placeholder="Sipariş, ürün veya müşteri ara" style="max-width:330px" aria-label="Sipariş ara"></div>
+<div class="table-responsive"><table class="sp-table"><thead><tr><th>Sipariş</th><th>Ürün Kodu</th><th>Müşteri</th><th>İşlem</th></tr></thead><tbody>
+{% for order in special_orders %}
+<tr class="sp-order"><td>{{ order.siparis_numarasi|default:order.id }}</td><td>{{ order.urun_kodu|default:"—" }}</td><td>{{ order.musteri|default:"—" }}</td><td><a href="{% url 'smart_pattern_order' order.id %}" class="btn btn-outline-primary btn-sm">Ölçüleri Aç →</a></td></tr>
+{% empty %}<tr><td colspan="4" class="text-center text-muted">Özel sipariş bulunamadı.</td></tr>{% endfor %}
+</tbody></table></div>
+<p id="sp-empty" class="text-muted p-3" hidden>Aramaya uygun sipariş bulunamadı.</p>
+</section>
+<p class="sp-home-sub mt-3">Bu ekran henüz kalıp üretmez ve kesime uygun çıktı vermez. Gerçek DXF dosyalarıyla doğrulama sonrasında kullanılacaktır.</p>
+</main>
+<script>(function(){const q=document.getElementById('sp-search'),rows=[...document.querySelectorAll('.sp-order')],none=document.getElementById('sp-empty');q.addEventListener('input',()=>{let term=q.value.trim().toLocaleLowerCase('tr-TR'),shown=0;rows.forEach(r=>{let ok=r.innerText.toLocaleLowerCase('tr-TR').includes(term);r.hidden=!ok;if(ok)shown++});none.hidden=!!shown||!rows.length})})();</script>
+{% endblock %}
