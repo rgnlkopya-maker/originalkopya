@@ -592,6 +592,8 @@ def invoice_parasut_oauth_connect(request):
     else:
         try:
             tokens = exchange_authorization_code(code)
+            from .parasut_verify import verify_company_access
+            verify_company_access(company_id, tokens["access_token"])
             save_tokens(company_id, tokens)
         except (ParasutOAuthError, ParasutCredentialError):
             messages.error(request, "Paraşüt yetkilendirme başarısız. Ayarları ve kodu kontrol edin.")
