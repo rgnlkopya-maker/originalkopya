@@ -521,3 +521,16 @@ def invoice_parasut_preview(request, invoice_id):
         "transfer": transfer,
         "line_count": invoice.lines.count(),
     })
+
+
+@login_required
+def invoice_parasut_connection_status(request):
+    """Read-only API probe; credentials and raw responses are never displayed."""
+    if not _allowed(request.user):
+        return HttpResponseForbidden("Yetkiniz yok.")
+    from .parasut_connection import check_connection, ParasutConnectionError
+    try:
+        check_connection()
+    except ParasutConnectionError as exc:
+        return JsonResponse({"ok": False, "message": str(exc)}, status=503)
+    return JsonResponse({"ok": True, "message": "Paraşüt okuma bağlantısı doğrulandı; fatura gönderilmedi."})
