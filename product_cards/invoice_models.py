@@ -4,7 +4,7 @@ from core.models import Order
 
 
 class InvoiceDraft(models.Model):
-    STATUS = [("DRAFT", "Taslak"), ("FINAL", "Faturalandırıldı")]
+    STATUS = [("DRAFT", "Taslak"), ("FINAL", "Faturalandırıldı"), ("OPEN", "Açık Hesap")]
     customer = models.ForeignKey("core.Musteri", on_delete=models.PROTECT, related_name="invoice_drafts")
     invoice_date = models.DateField()
     due_date = models.DateField(null=True, blank=True)
