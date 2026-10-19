@@ -3,6 +3,7 @@ from . import views, status_views, finance_views, price_list_views, showroom_vie
 
 urlpatterns = [
     path("akilli-kalip/", smart_pattern_views.smart_pattern_home, name="smart_pattern_home"),
+    path("akilli-kalip/ana-kalip/kaydet/", smart_pattern_views.smart_pattern_master_save, name="smart_pattern_master_save"),
     path("akilli-kalip/siparis/<int:order_id>/", smart_pattern_views.smart_pattern_order, name="smart_pattern_order"),
     path("faturalar/", invoice_views.invoice_list, name="invoice_list"),
     path("faturalar/<int:invoice_id>/platform-durum/", invoice_views.invoice_platform_status_update, name="invoice_platform_status_update"),
