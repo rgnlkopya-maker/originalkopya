@@ -92,9 +92,25 @@ if(front){
  }
 }
 function choose(i){seamSelect(i);document.getElementById('piece-picker').value=String(i);paths.forEach((p,j)=>p.style.strokeWidth=j===i?'4':'1.4');selected.textContent='Seçili çizim: #'+(i+1);document.querySelector('[data-label="'+i+'"]').focus({preventScroll:true});}
-paths.forEach((p,i)=>p.addEventListener('click',e=>{choose(i);selectNearPoint(e,i);}));
+paths.forEach((p,i)=>p.addEventListener('pointerdown',e=>beginDrag(e,i)));
 document.getElementById('piece-picker').addEventListener('change',e=>choose(Number(e.target.value)));
-const hits=paths.map((p,i)=>{const h=p.cloneNode(false);h.removeAttribute('id');h.removeAttribute('data-index');h.setAttribute('stroke','transparent');h.setAttribute('stroke-width','18');h.setAttribute('fill','none');h.style.cursor='pointer';h.addEventListener('click',e=>{if(activeIndex!==i)choose(i);selectNearPoint(e,i);});p.parentNode.insertBefore(h,p);return h;});
+let dragging=null;
+function beginDrag(e,i){
+ if(seamEdges.length>=2)return;
+ e.preventDefault();
+ if(activeIndex!==i)choose(i);
+ dragging={index:i,pointer:e.pointerId};
+ selectNearPoint(e,i);
+ root.setPointerCapture(e.pointerId);
+}
+root.addEventListener('pointerup',e=>{
+ if(!dragging||dragging.pointer!==e.pointerId)return;
+ const i=dragging.index;dragging=null;
+ selectNearPoint(e,i);
+ if(root.hasPointerCapture(e.pointerId))root.releasePointerCapture(e.pointerId);
+});
+root.addEventListener('pointercancel',()=>{dragging=null;seamPicked=[];});
+const hits=paths.map((p,i)=>{const h=p.cloneNode(false);h.removeAttribute('id');h.removeAttribute('data-index');h.setAttribute('stroke','transparent');h.setAttribute('stroke-width','18');h.setAttribute('fill','none');h.style.cursor='pointer';h.addEventListener('pointerdown',e=>beginDrag(e,i));p.parentNode.insertBefore(h,p);return h;});
 document.getElementById('seam-adjust').addEventListener('click',()=>{
  if(seamEdges.length!==2){seamInfo.textContent='Önce iki kenarı seçin.';return;}
  if(document.getElementById('cad-unit').dataset.unit!=='4'){seamInfo.textContent='DXF mm birimi doğrulanmadığı için işlem durduruldu.';return;}
@@ -133,4 +149,4 @@ document.getElementById('export-labels').addEventListener('click',()=>{
     seam_data = [{"mm": p["points"], "screen": [[round((x-minx)*scale+20,2),round((maxy-y)*scale+20,2)] for x,y in p["points"]]} for p in result["paths"]]
     data_tag = '<script id="seam-data" type="application/json">' + json.dumps(seam_data).replace('<','\\u003c') + '</script>'
     data_tag += '<input type="hidden" id="seam-scale" value="' + str(scale) + '">'
-    return data_tag + '<div class="part-layout"><div class="preview">' + labeled_preview(result) + '</div><div class="part-sidebar"><h3>Parça eşleştirme</h3><p id="selected-piece">Çizgiye dokunarak seçin</p>' + "".join(rows) + '<label>Parçayı seç <select id="piece-picker">' + ''.join('<option value="' + str(i) + '">#' + str(i+1) + ' · ' + html_escape(p['layer']) + '</option>' for i,p in enumerate(result['paths'])) + '</select></label><div style="border-top:1px solid #ddd;padding-top:12px"><h3>Dikiş kenarı karşılaştırma</h3><p>Parçayı seçin. Çizimde birleşecek kenarın başlangıcına ve bitişine tıklayın. Sistem en yakın noktayı bulur. İkinci parçada tekrarlayın.</p><p id="seam-info">İlk konturu seçin.</p><button type="button" id="seam-reset">Sıfırla</button><button type="button" id="seam-adjust">İkinci kenarı uyumla</button><p>Kontur düzeltmesi yaklaşık geometrik işlemdir; üretim kalıbı değildir.</p></div><div id="front-edit" hidden><strong>Ön orta genişlik denemesi</strong><p>Gri: orijinal; mavi: değişen çizim. Üretim kalıbı değildir.</p><input id="front-change" type="range" min="-20" max="20" value="0" step="1"><output id="front-change-value">0 mm</output></div><button type="button" id="export-labels">Eşleştirmeyi indir (JSON)</button></div></div>' + script
+    return data_tag + '<div class="part-layout"><div class="preview">' + labeled_preview(result) + '</div><div class="part-sidebar"><h3>Parça eşleştirme</h3><p id="selected-piece">Çizgiye dokunarak seçin</p>' + "".join(rows) + '<label>Parçayı seç <select id="piece-picker">' + ''.join('<option value="' + str(i) + '">#' + str(i+1) + ' · ' + html_escape(p['layer']) + '</option>' for i,p in enumerate(result['paths'])) + '</select></label><div style="border-top:1px solid #ddd;padding-top:12px"><h3>Dikiş kenarı karşılaştırma</h3><p>Parçayı seçin, çizginin başında fareye basılı tutun ve kenarın sonuna sürükleyip bırakın. İkinci parçada tekrarlayın.</p><p id="seam-info">İlk konturu seçin.</p><button type="button" id="seam-reset">Sıfırla</button><button type="button" id="seam-adjust">İkinci kenarı uyumla</button><p>Kontur düzeltmesi yaklaşık geometrik işlemdir; üretim kalıbı değildir.</p></div><div id="front-edit" hidden><strong>Ön orta genişlik denemesi</strong><p>Gri: orijinal; mavi: değişen çizim. Üretim kalıbı değildir.</p><input id="front-change" type="range" min="-20" max="20" value="0" step="1"><output id="front-change-value">0 mm</output></div><button type="button" id="export-labels">Eşleştirmeyi indir (JSON)</button></div></div>' + script
