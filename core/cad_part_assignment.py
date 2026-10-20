@@ -97,6 +97,34 @@ function curvatureComparison(first,second){
  const score=other=>aa.reduce((sum,v,i)=>sum+Math.abs(v-other[i]),0)/aa.length*180/Math.PI;
  return Math.min(score(bb),score(reversed));
 }
+function overlayEdges(first,second,panel){
+ const a=sampledEdge(first,61),b=sampledEdge(second,61);
+ if(a.length!==61||b.length!==61)return;
+ function align(points,reverse){
+  const p=reverse?[...points].reverse():points;
+  const start=p[0],end=p[p.length-1],angle=Math.atan2(end[1]-start[1],end[0]-start[0]);
+  const co=Math.cos(angle),si=Math.sin(angle);
+  return p.map(v=>{const x=v[0]-start[0],y=v[1]-start[1];return [x*co+y*si,-x*si+y*co];});
+ }
+ const aa=align(a,false),fwd=align(b,false),rev=align(b,true);
+ const error=bb=>aa.reduce((s,p,i)=>s+Math.abs(p[1]-bb[i][1]),0);
+ const bb=error(fwd)<=error(rev)?fwd:rev;
+ const all=[...aa,...bb],minx=Math.min(...all.map(p=>p[0])),maxx=Math.max(...all.map(p=>p[0]));
+ const miny=Math.min(...all.map(p=>p[1])),maxy=Math.max(...all.map(p=>p[1]));
+ const scale=Math.min(440/Math.max(1,maxx-minx),140/Math.max(1,maxy-miny));
+ const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');
+ svg.setAttribute('viewBox','0 0 480 180');svg.setAttribute('width','100%');
+ svg.setAttribute('role','img');svg.setAttribute('aria-label','Seçilen iki dikiş eğrisinin üst üste görünümü');
+ for(const [pts,color] of [[aa,'#2563eb'],[bb,'#e11d48']]){
+  const line=document.createElementNS('http://www.w3.org/2000/svg','polyline');
+  line.setAttribute('points',pts.map(p=>[(p[0]-minx)*scale+20,(maxy-p[1])*scale+20].join(',')).join(' '));
+  line.setAttribute('fill','none');line.setAttribute('stroke',color);line.setAttribute('stroke-width','3');
+  line.setAttribute('stroke-linejoin','round');svg.appendChild(line);
+ }
+ const title=document.createElement('p');title.textContent='Eğriler üst üste — Mavi: ilk kenar, Kırmızı: ikinci kenar';
+ panel.append(title,svg);
+ const note=document.createElement('small');note.textContent='Kenarlar başlangıç doğrultusuna göre hizalanır; uzunluklar değiştirilmez. Bu görsel bir ön kontroldür.';panel.appendChild(note);
+}
 function renderSeamComparison(){
  const panel=document.getElementById('seam-comparison');
  if(!panel)return;
@@ -112,6 +140,7 @@ function renderSeamComparison(){
  line('Mutlak fark:',Math.abs(diff).toFixed(1)+' mm');
  line('İlk kenara göre fark:',pct.toFixed(2)+'%');
  line('Sonuç:',Math.abs(diff)<0.05?'Uzunluklar ölçüm hassasiyetinde eşit.':diff>0?names[1]+' kenarı '+Math.abs(diff).toFixed(1)+' mm daha uzun.':names[1]+' kenarı '+Math.abs(diff).toFixed(1)+' mm daha kısa.');
+ overlayEdges(first,second,panel);
  const curvature=curvatureComparison(first,second);
  if(curvature!==null){
   line('Eğri karşılaştırması:',curvature.toFixed(1)+'° ortalama yön değişimi farkı (yaklaşık).');
