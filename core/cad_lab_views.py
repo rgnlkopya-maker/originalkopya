@@ -2,12 +2,12 @@
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponse
 from django.utils.html import escape
+from app_settings.access import has_full_access
 
 @login_required
 def cad_lab(request):
     user = request.user
-    role = str(getattr(user, "role", "") or getattr(user, "rol", "")).lower()
-    if not (user.is_superuser or user.is_staff or role in ("patron", "mudur", "müdür")):
+    if not has_full_access(user):
         return HttpResponse("Bu test ekranina erisim yetkiniz yok.", status=403)
     def measure(key, default):
         try:
