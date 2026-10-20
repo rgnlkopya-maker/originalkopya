@@ -36,7 +36,10 @@ def logout_view(request):
     logout(request)
     return redirect('/login/')
 
+from core.cad_lab_views import cad_lab
+
 urlpatterns = [
+    path("kalip-cad/", cad_lab, name="cad_lab"),
     path("patron/", patron_dashboard, name="patron_dashboard"),
     path("patron/personel-ozeti/", patron_staff_summary, name="patron_staff_summary"),
     path("orders/<int:order_id>/bayrak/ekle/", create_order_flag, name="create_order_flag"),
