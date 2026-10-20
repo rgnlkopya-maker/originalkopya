@@ -25,7 +25,7 @@
 </style>
 <main class="pattern-workspace">
 <div class="pw-header"><div><h2>Akıllı Kalıp</h2><p class="pw-sub">Ürün kalıbını aç · Ölçüleri değiştir · Yeni çizgileri kontrol et</p></div><span class="badge bg-warning text-dark">CAD altyapısı hazırlanıyor</span></div>
-<div class="pw-lock mb-3"><strong>Üretim güvenliği:</strong> Henüz ana CAD kalıpları yüklenmedi. Bu ekranda gösterilen parça yerleri çizim değildir; gerçek kalıp düzenleme, 1:1 yazdırma ve kesim çıktısı kapalıdır. Girilen ölçüler kaydedilmez.</div>
+<section class="pw-card"><div class="d-flex justify-content-between align-items-center gap-3 flex-wrap"><div><h5 class="mb-1">CAD Kalıp Dosyası</h5><p class="pw-note mb-0">DXF yükle, çizgileri görüntüle ve kalıp parçalarını tanımla. Deneysel; kesim çıktısı üretmez.</p></div><a class="btn btn-primary" href="{% url 'cad_lab' %}">CAD Laboratuvarını Aç</a></div></section>\n<div class="pw-lock mb-3"><strong>Üretim güvenliği:</strong> Henüz ana CAD kalıpları yüklenmedi. Bu ekranda gösterilen parça yerleri çizim değildir; gerçek kalıp düzenleme, 1:1 yazdırma ve kesim çıktısı kapalıdır. Girilen ölçüler kaydedilmez.</div>
 <section class="pw-card"><h5>01 · Ana Kalıp Kütüphanesi</h5>
 <p class="pw-note">Kayıtlı ürün kodu seçin; referans kalıp bilgisi veritabanına kaydedilir. Henüz CAD dosyası yüklenmez.</p>
 <form action="{% url 'smart_pattern_master_save' %}" method="post" id="pw-master-form">{% csrf_token %}
