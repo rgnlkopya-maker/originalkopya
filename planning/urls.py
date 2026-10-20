@@ -1,7 +1,10 @@
 from django.urls import path
-from . import views
+from . import views, serial_cutting
 
 urlpatterns = [
+    path('seri-kesim/', serial_cutting.serial_cutting_page, name='serial_cutting_page'),
+    path('seri-kesim/ekle/', serial_cutting.serial_cutting_add, name='serial_cutting_add'),
+    path('seri-kesim/<int:plan_id>/sil/', serial_cutting.serial_cutting_remove, name='serial_cutting_remove'),
     path("", views.planning_page, name="planning_page"),
     path("sevkiyat/", views.shipment_planning_page, name="shipment_planning_page"),
     path("sevkiyat/siparis/<int:order_id>/planla/", views.plan_order_shipment, name="plan_order_shipment"),
