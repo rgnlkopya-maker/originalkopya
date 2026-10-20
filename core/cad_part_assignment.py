@@ -35,6 +35,23 @@ const paths=[...root.querySelectorAll('path[data-index]')];
 const selected=document.getElementById('selected-piece');
 const labels=document.querySelectorAll('select[data-label]');
 const colors={'on_orta':'#0d9488','on_kup':'#a855f7','on_yan':'#2563eb','arka_orta':'#dc2626','arka_yan':'#e8793e','astar':'#16a34a','etek':'#b45309','diger':'#64748b'};
+const front=paths.find(p=>p.dataset.layer==='ON_ORTA');
+if(front){
+ const original=front.getAttribute('d');
+ const matches=[...original.matchAll(/(-?\\d+(?:\\.\\d+)?),(-?\\d+(?:\\.\\d+)?)/g)];
+ const coords=matches.map(m=>[Number(m[1]),Number(m[2])]);
+ if(coords.length){
+  const minx=Math.min(...coords.map(p=>p[0])),maxx=Math.max(...coords.map(p=>p[0]));
+  const ghost=front.cloneNode(false);ghost.removeAttribute('id');ghost.removeAttribute('data-index');ghost.setAttribute('stroke','#94a3b8');ghost.setAttribute('stroke-dasharray','5 4');ghost.style.pointerEvents='none';front.parentNode.insertBefore(ghost,front);
+  const panel=document.getElementById('front-edit');panel.hidden=false;
+  const slider=document.getElementById('front-change'),out=document.getElementById('front-change-value');
+  slider.addEventListener('input',()=>{
+   const mm=Number(slider.value);out.textContent=(mm>0?'+':'')+mm+' mm';
+   const scale=1+mm*3/Math.max(1,maxx-minx);
+   front.setAttribute('d',coords.map((p,i)=>(i?'L ':'M ')+(minx+(p[0]-minx)*scale).toFixed(2)+','+p[1].toFixed(2)).join(' '));
+  });
+ }
+}
 function choose(i){paths.forEach((p,j)=>p.style.strokeWidth=j===i?'4':'1.4');selected.textContent='Seçili çizim: #'+(i+1);document.querySelector('[data-label="'+i+'"]').focus({preventScroll:true});}
 paths.forEach((p,i)=>p.addEventListener('click',()=>choose(i)));
 labels.forEach(s=>s.addEventListener('change',()=>{paths[Number(s.dataset.label)].style.stroke=colors[s.value]||'#2563a6';}));
@@ -45,4 +62,4 @@ document.getElementById('export-labels').addEventListener('click',()=>{
 });
 })();
 </script>"""
-    return '<div class="part-layout"><div class="preview">' + labeled_preview(result) + '</div><div class="part-sidebar"><h3>Parça eşleştirme</h3><p id="selected-piece">Çizgiye dokunarak seçin</p>' + "".join(rows) + '<button type="button" id="export-labels">Eşleştirmeyi indir (JSON)</button></div></div>' + script
+    return '<div class="part-layout"><div class="preview">' + labeled_preview(result) + '</div><div class="part-sidebar"><h3>Parça eşleştirme</h3><p id="selected-piece">Çizgiye dokunarak seçin</p>' + "".join(rows) + '<div id="front-edit" hidden><strong>Ön orta genişlik denemesi</strong><p>Gri: orijinal; mavi: değişen çizim. Üretim kalıbı değildir.</p><input id="front-change" type="range" min="-20" max="20" value="0" step="1"><output id="front-change-value">0 mm</output></div><button type="button" id="export-labels">Eşleştirmeyi indir (JSON)</button></div></div>' + script
