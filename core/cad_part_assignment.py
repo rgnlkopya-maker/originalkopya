@@ -41,8 +41,8 @@ let seamPicked=[],seamEdges=[];let activeIndex=-1;
 function seamLength(points,a,b){let n=0;for(let k=a;k<b;k++)n+=Math.hypot(points[k+1][0]-points[k][0],points[k+1][1]-points[k][1]);return n;}
 function seamSelect(i){
  activeIndex=i;
- root.querySelectorAll('.seam-marker,.seam-highlight').forEach(n=>n.remove());
- seamInfo.textContent='Parça seçildi. Birleşecek kenarın başlangıcına ve bitişine tıklayın.';
+ root.querySelectorAll('.seam-preview').forEach(n=>n.remove());
+ seamInfo.textContent='Parça seçildi. Kenar üzerinde basılı tutup sürükleyin.';
 }
 function showHighlight(i,a,b){
  const pts=seamShapes[i].screen.slice(a,b+1);
@@ -68,6 +68,23 @@ function dragPreview(i,a,b){
  line.setAttribute('fill','none');line.setAttribute('stroke','#f59e0b');line.setAttribute('stroke-width','5');
  line.setAttribute('class','seam-preview');line.style.pointerEvents='none';root.appendChild(line);
 }
+function renderSeamComparison(){
+ const panel=document.getElementById('seam-comparison');
+ if(!panel)return;
+ if(!seamEdges.length){panel.hidden=true;panel.replaceChildren();return;}
+ panel.hidden=false;panel.replaceChildren();
+ const names=seamEdges.map(v=>seamShapes[v.index].name||('Parça '+(v.index+1)));
+ const line=(label,value)=>{const p=document.createElement('p');const strong=document.createElement('strong');strong.textContent=label+' ';p.append(strong,document.createTextNode(value));panel.appendChild(p);};
+ line('1. kenar — '+names[0]+':',seamEdges[0].mm.toFixed(1)+' mm');
+ if(seamEdges.length===1){line('Durum:','İkinci kenarı seçin.');return;}
+ const first=seamEdges[0],second=seamEdges[1],diff=second.mm-first.mm;
+ const pct=Math.abs(diff)/first.mm*100;
+ line('2. kenar — '+names[1]+':',second.mm.toFixed(1)+' mm');
+ line('Mutlak fark:',Math.abs(diff).toFixed(1)+' mm');
+ line('İlk kenara göre fark:',pct.toFixed(2)+'%');
+ line('Sonuç:',Math.abs(diff)<0.05?'Uzunluklar ölçüm hassasiyetinde eşit.':diff>0?names[1]+' kenarı '+Math.abs(diff).toFixed(1)+' mm daha uzun.':names[1]+' kenarı '+Math.abs(diff).toFixed(1)+' mm daha kısa.');
+ const note=document.createElement('small');note.textContent='Yalnızca seçilen DXF kontur uzunlukları karşılaştırılır. Dikiş payı, çıtlar ve eğri uyumu doğrulanmamıştır.';panel.appendChild(note);
+}
 function finishDrag(i,a,b){
  root.querySelectorAll('.seam-preview').forEach(n=>n.remove());
  if(a===b||a<0||b<0){seamInfo.textContent='Çizgi boyunca sürükleyerek bir kenar seçin.';return;}
@@ -75,10 +92,11 @@ function finishDrag(i,a,b){
  if(mm<=0)return;
  seamEdges.push({index:i,a:lo,b:hi,mm});
  showHighlight(i,lo,hi);
+ renderSeamComparison();
  seamInfo.textContent=seamEdges.length===1?'İlk kenar '+mm.toFixed(1)+' mm. İkinci parçaya geçin.':'İki kenar '+seamEdges[0].mm.toFixed(1)+' / '+mm.toFixed(1)+' mm. Fark: '+Math.abs(seamEdges[0].mm-mm).toFixed(1)+' mm.';
 }
 document.getElementById('seam-reset').addEventListener('click',()=>{
- seamEdges=[];seamPicked=[];root.querySelectorAll('.seam-marker,.seam-highlight,.seam-preview').forEach(n=>n.remove());seamInfo.textContent='İlk parçayı seçin.';
+ seamEdges=[];seamPicked=[];renderSeamComparison();root.querySelectorAll('.seam-marker,.seam-highlight,.seam-preview').forEach(n=>n.remove());seamInfo.textContent='İlk parçayı seçin.';
 });
 const colors={'on_orta':'#0d9488','on_kup':'#a855f7','on_yan':'#2563eb','arka_orta':'#dc2626','arka_yan':'#e8793e','astar':'#16a34a','etek':'#b45309','diger':'#64748b'};
 const front=paths.find(p=>p.dataset.layer==='ON_ORTA');
@@ -160,7 +178,7 @@ document.getElementById('export-labels').addEventListener('click',()=>{
     minx, maxx = min(x for x,y in points), max(x for x,y in points)
     miny, maxy = min(y for x,y in points), max(y for x,y in points)
     scale = min(920/max(maxx-minx,1),620/max(maxy-miny,1))
-    seam_data = [{"mm": p["points"], "screen": [[round((x-minx)*scale+20,2),round((maxy-y)*scale+20,2)] for x,y in p["points"]]} for p in result["paths"]]
+    seam_data = [{"name": p["layer"], "mm": p["points"], "screen": [[round((x-minx)*scale+20,2),round((maxy-y)*scale+20,2)] for x,y in p["points"]]} for p in result["paths"]]
     data_tag = '<script id="seam-data" type="application/json">' + json.dumps(seam_data).replace('<','\\u003c') + '</script>'
     data_tag += '<input type="hidden" id="seam-scale" value="' + str(scale) + '">'
-    return data_tag + '<div class="part-layout"><div class="preview">' + labeled_preview(result) + '</div><div class="part-sidebar"><h3>Parça eşleştirme</h3><p id="selected-piece">Çizgiye dokunarak seçin</p>' + "".join(rows) + '<label>Parçayı seç <select id="piece-picker">' + ''.join('<option value="' + str(i) + '">#' + str(i+1) + ' · ' + html_escape(p['layer']) + '</option>' for i,p in enumerate(result['paths'])) + '</select></label><div style="border-top:1px solid #ddd;padding-top:12px"><h3>Dikiş kenarı karşılaştırma</h3><p>Parçayı seçin, çizginin başında fareye basılı tutun ve kenarın sonuna sürükleyip bırakın. İkinci parçada tekrarlayın.</p><p id="seam-info">İlk konturu seçin.</p><button type="button" id="seam-reset">Sıfırla</button><button type="button" id="seam-adjust">İkinci kenarı uyumla</button><p>Kontur düzeltmesi yaklaşık geometrik işlemdir; üretim kalıbı değildir.</p></div><div id="front-edit" hidden><strong>Ön orta genişlik denemesi</strong><p>Gri: orijinal; mavi: değişen çizim. Üretim kalıbı değildir.</p><input id="front-change" type="range" min="-20" max="20" value="0" step="1"><output id="front-change-value">0 mm</output></div><button type="button" id="export-labels">Eşleştirmeyi indir (JSON)</button></div></div>' + script
+    return data_tag + '<div class="part-layout"><div class="preview">' + labeled_preview(result) + '</div><div class="part-sidebar"><h3>Parça eşleştirme</h3><p id="selected-piece">Çizgiye dokunarak seçin</p>' + "".join(rows) + '<label>Parçayı seç <select id="piece-picker">' + ''.join('<option value="' + str(i) + '">#' + str(i+1) + ' · ' + html_escape(p['layer']) + '</option>' for i,p in enumerate(result['paths'])) + '</select></label><div style="border-top:1px solid #ddd;padding-top:12px"><h3>Dikiş kenarı karşılaştırma</h3><p>Parçayı seçin, çizginin başında fareye basılı tutun ve kenarın sonuna sürükleyip bırakın. İkinci parçada tekrarlayın.</p><p id="seam-info">İlk konturu seçin.</p><div id="seam-comparison" hidden style="border:1px solid #cbd5e1;border-radius:10px;padding:12px;margin:10px 0;background:#f8fafc"></div><button type="button" id="seam-reset">Sıfırla</button><button type="button" id="seam-adjust">İkinci kenarı uyumla</button><p>Kontur düzeltmesi yaklaşık geometrik işlemdir; üretim kalıbı değildir.</p></div><div id="front-edit" hidden><strong>Ön orta genişlik denemesi</strong><p>Gri: orijinal; mavi: değişen çizim. Üretim kalıbı değildir.</p><input id="front-change" type="range" min="-20" max="20" value="0" step="1"><output id="front-change-value">0 mm</output></div><button type="button" id="export-labels">Eşleştirmeyi indir (JSON)</button></div></div>' + script
