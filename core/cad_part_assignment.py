@@ -34,6 +34,35 @@ const root=document.getElementById('cad-drawing');
 const paths=[...root.querySelectorAll('path[data-index]')];
 const selected=document.getElementById('selected-piece');
 const labels=document.querySelectorAll('select[data-label]');
+
+const seamShapes=JSON.parse(document.getElementById('seam-data').textContent);
+const seamInfo=document.getElementById('seam-info');
+let seamPicked=[],seamEdges=[];
+function seamLength(points,a,b){let n=0;for(let k=a;k<b;k++)n+=Math.hypot(points[k+1][0]-points[k][0],points[k+1][1]-points[k][1]);return n;}
+function seamSelect(i){
+ if(seamEdges.length===2)return;
+ root.querySelectorAll('circle.seam-marker').forEach(n=>n.remove());
+ const pts=seamShapes[i].screen;
+ pts.forEach((p,j)=>{
+  const el=document.createElementNS('http://www.w3.org/2000/svg','circle');
+  el.setAttribute('cx',p[0]);el.setAttribute('cy',p[1]);el.setAttribute('r','4');
+  el.setAttribute('fill','#e11d48');el.setAttribute('class','seam-marker');
+  el.style.cursor='pointer';
+  el.addEventListener('click',e=>{
+   e.stopPropagation();
+   if(seamPicked.length===0)seamPicked=[j];
+   else if(j!==seamPicked[0]){
+    const a=Math.min(j,seamPicked[0]),b=Math.max(j,seamPicked[0]);
+    const mm=seamLength(seamShapes[i].mm,a,b);
+    seamEdges.push(mm);seamPicked=[];
+    root.querySelectorAll('circle.seam-marker').forEach(n=>n.remove());
+    seamInfo.textContent=seamEdges.length===1?'İlk kenar: '+mm.toFixed(1)+' mm. İkinci konturu seçin.':'Kenarlar: '+seamEdges.map(v=>v.toFixed(1)).join(' / ')+' mm; fark: '+Math.abs(seamEdges[0]-seamEdges[1]).toFixed(1)+' mm.';
+   }
+  });root.appendChild(el);
+ });
+ seamInfo.textContent='Kontur #'+(i+1)+': kenarın iki uç noktasını seçin.';
+}
+document.getElementById('seam-reset').addEventListener('click',()=>{seamEdges=[];seamPicked=[];root.querySelectorAll('circle.seam-marker').forEach(n=>n.remove());seamInfo.textContent='İlk konturu seçin.';});
 const colors={'on_orta':'#0d9488','on_kup':'#a855f7','on_yan':'#2563eb','arka_orta':'#dc2626','arka_yan':'#e8793e','astar':'#16a34a','etek':'#b45309','diger':'#64748b'};
 const front=paths.find(p=>p.dataset.layer==='ON_ORTA');
 if(front){
@@ -52,7 +81,7 @@ if(front){
   });
  }
 }
-function choose(i){paths.forEach((p,j)=>p.style.strokeWidth=j===i?'4':'1.4');selected.textContent='Seçili çizim: #'+(i+1);document.querySelector('[data-label="'+i+'"]').focus({preventScroll:true});}
+function choose(i){seamSelect(i);paths.forEach((p,j)=>p.style.strokeWidth=j===i?'4':'1.4');selected.textContent='Seçili çizim: #'+(i+1);document.querySelector('[data-label="'+i+'"]').focus({preventScroll:true});}
 paths.forEach((p,i)=>p.addEventListener('click',()=>choose(i)));
 labels.forEach(s=>s.addEventListener('change',()=>{paths[Number(s.dataset.label)].style.stroke=colors[s.value]||'#2563a6';}));
 document.getElementById('export-labels').addEventListener('click',()=>{
@@ -62,4 +91,10 @@ document.getElementById('export-labels').addEventListener('click',()=>{
 });
 })();
 </script>"""
-    return '<div class="part-layout"><div class="preview">' + labeled_preview(result) + '</div><div class="part-sidebar"><h3>Parça eşleştirme</h3><p id="selected-piece">Çizgiye dokunarak seçin</p>' + "".join(rows) + '<div id="front-edit" hidden><strong>Ön orta genişlik denemesi</strong><p>Gri: orijinal; mavi: değişen çizim. Üretim kalıbı değildir.</p><input id="front-change" type="range" min="-20" max="20" value="0" step="1"><output id="front-change-value">0 mm</output></div><button type="button" id="export-labels">Eşleştirmeyi indir (JSON)</button></div></div>' + script
+    points = [v for shape in result["paths"] for v in shape["points"]]
+    minx, maxx = min(x for x,y in points), max(x for x,y in points)
+    miny, maxy = min(y for x,y in points), max(y for x,y in points)
+    scale = min(920/max(maxx-minx,1),620/max(maxy-miny,1))
+    seam_data = [{"mm": p["points"], "screen": [[round((x-minx)*scale+20,2),round((maxy-y)*scale+20,2)] for x,y in p["points"]]} for p in result["paths"]]
+    data_tag = '<script id="seam-data" type="application/json">' + json.dumps(seam_data).replace('<','\\u003c') + '</script>'
+    return data_tag + '<div class="part-layout"><div class="preview">' + labeled_preview(result) + '</div><div class="part-sidebar"><h3>Parça eşleştirme</h3><p id="selected-piece">Çizgiye dokunarak seçin</p>' + "".join(rows) + '<div style="border-top:1px solid #ddd;padding-top:12px"><h3>Dikiş kenarı karşılaştırma</h3><p>Konturu seçin, ardından kenarın iki uç noktasına dokunun. İkinci parçada tekrarlayın. DXF mm biriminde olmalıdır.</p><p id="seam-info">İlk konturu seçin.</p><button type="button" id="seam-reset">Sıfırla</button></div><div id="front-edit" hidden><strong>Ön orta genişlik denemesi</strong><p>Gri: orijinal; mavi: değişen çizim. Üretim kalıbı değildir.</p><input id="front-change" type="range" min="-20" max="20" value="0" step="1"><output id="front-change-value">0 mm</output></div><button type="button" id="export-labels">Eşleştirmeyi indir (JSON)</button></div></div>' + script
