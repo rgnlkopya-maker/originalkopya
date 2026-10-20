@@ -68,6 +68,35 @@ function dragPreview(i,a,b){
  line.setAttribute('fill','none');line.setAttribute('stroke','#f59e0b');line.setAttribute('stroke-width','5');
  line.setAttribute('class','seam-preview');line.style.pointerEvents='none';root.appendChild(line);
 }
+function sampledEdge(edge,count=25){
+ const source=seamShapes[edge.index].mm.slice(edge.a,edge.b+1);
+ const distances=[0];
+ for(let i=1;i<source.length;i++)distances.push(distances[i-1]+Math.hypot(source[i][0]-source[i-1][0],source[i][1]-source[i-1][1]));
+ const total=distances[distances.length-1];
+ if(total<=0)return [];
+ return Array.from({length:count},(_,k)=>{
+  const at=total*k/(count-1);let j=1;
+  while(j<distances.length-1&&distances[j]<at)j++;
+  const span=distances[j]-distances[j-1],t=span?(at-distances[j-1])/span:0;
+  return [source[j-1][0]+(source[j][0]-source[j-1][0])*t,source[j-1][1]+(source[j][1]-source[j-1][1])*t];
+ });
+}
+function curvatureComparison(first,second){
+ const a=sampledEdge(first),b=sampledEdge(second);
+ if(a.length!==25||b.length!==25)return null;
+ function turnProfile(pts){
+  const angles=[];
+  for(let i=1;i<pts.length-1;i++){
+   const u=[pts[i][0]-pts[i-1][0],pts[i][1]-pts[i-1][1]];
+   const v=[pts[i+1][0]-pts[i][0],pts[i+1][1]-pts[i][1]];
+   angles.push(Math.atan2(u[0]*v[1]-u[1]*v[0],u[0]*v[0]+u[1]*v[1]));
+  }
+  return angles;
+ }
+ const aa=turnProfile(a),bb=turnProfile(b),reversed=turnProfile([...b].reverse());
+ const score=other=>aa.reduce((sum,v,i)=>sum+Math.abs(v-other[i]),0)/aa.length*180/Math.PI;
+ return Math.min(score(bb),score(reversed));
+}
 function renderSeamComparison(){
  const panel=document.getElementById('seam-comparison');
  if(!panel)return;
@@ -83,7 +112,12 @@ function renderSeamComparison(){
  line('Mutlak fark:',Math.abs(diff).toFixed(1)+' mm');
  line('İlk kenara göre fark:',pct.toFixed(2)+'%');
  line('Sonuç:',Math.abs(diff)<0.05?'Uzunluklar ölçüm hassasiyetinde eşit.':diff>0?names[1]+' kenarı '+Math.abs(diff).toFixed(1)+' mm daha uzun.':names[1]+' kenarı '+Math.abs(diff).toFixed(1)+' mm daha kısa.');
- const note=document.createElement('small');note.textContent='Yalnızca seçilen DXF kontur uzunlukları karşılaştırılır. Dikiş payı, çıtlar ve eğri uyumu doğrulanmamıştır.';panel.appendChild(note);
+ const curvature=curvatureComparison(first,second);
+ if(curvature!==null){
+  line('Eğri karşılaştırması:',curvature.toFixed(1)+'° ortalama yön değişimi farkı (yaklaşık).');
+  line('Yorum:',curvature<3?'Eğrilerin dönüş dağılımı benzer.':curvature<8?'Eğrilerin dönüş dağılımında farklılık var.':'Eğrilerin dönüş dağılımı belirgin farklı; kalıpçı kontrolü gerekli.');
+ }
+ const note=document.createElement('small');note.textContent='Eğri karşılaştırması örneklenmiş yön değişimi analizidir; dikiş uyumu garantisi değildir. Dikiş payı, çıtlar ve kalıp doğruluğu kontrol edilmemiştir.';panel.appendChild(note);
 }
 function finishDrag(i,a,b){
  root.querySelectorAll('.seam-preview').forEach(n=>n.remove());
