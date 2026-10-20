@@ -1,58 +1,43 @@
-"""Isolated CAD experiment: illustrative geometry only, no production patterns."""
+"""Isolated CAD laboratory: read-only DXF preview."""
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponse
+from django.middleware.csrf import get_token
 from django.utils.html import escape
+from django.views.decorators.http import require_http_methods
 from app_settings.access import has_full_access
+from core.cad_dxf_reader import MAX_BYTES, parse_pattern_dxf, preview_svg
 
 @login_required
+@require_http_methods(["GET", "POST"])
 def cad_lab(request):
-    user = request.user
-    if not has_full_access(user):
-        return HttpResponse("Bu test ekranina erisim yetkiniz yok.", status=403)
-    def measure(key, default):
-        try:
-            value = float(request.GET.get(key, default))
-            return value if 50 <= value <= 160 else default
-        except (TypeError, ValueError):
-            return default
-    bust, waist = measure("gogus", 100), measure("bel", 82)
-    # Half-body allocation: 50% front, 50% back; within front 40% center / 60% cup.
-    front_bust = (bust - 90) * 5
-    front_waist = (waist - 70) * 5
-    cb, cw = front_bust * .4, front_waist * .4
-    pb, pw = front_bust * .6, front_waist * .6
-    html = """<!doctype html><html lang="tr"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-    <title>Moli CAD Laboratuvar</title><style>body{font:16px system-ui;background:#f4f6fa;color:#152237;margin:0;padding:16px}
-    main{max-width:1050px;margin:auto}header,.panel{background:white;padding:18px;border-radius:14px;margin-bottom:14px}
-    .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px}
-    input{width:100px;padding:10px;border:1px solid #bbb;border-radius:8px;font-size:17px}
-    button{padding:11px 18px;border:0;border-radius:8px;background:#1646a0;color:white}
-    svg{width:100%;height:auto;background:#fbfcff;border:1px solid #e2e6ed;border-radius:8px}
-    .warn{color:#994b00;background:#fff5dd;padding:12px;border-radius:8px}</style>
-    <main><header><h2>Moli CAD Laboratuvarı</h2><p class="warn">DENEYSEL: Çizimler temsili. Üretim, kesim ve gerçek DXF kalıbı olarak kullanılamaz.</p>
-    <form method="get"><label>Göğüs (cm) <input name="gogus" type="number" min="50" max="160" step=".5" value="__BUST__"></label>
-    <label>Bel (cm) <input name="bel" type="number" min="50" max="160" step=".5" value="__WAIST__"></label>
-    <button type="submit">Hesapla</button></form></header>
-    <div class="grid"><section class="panel"><h3>38 beden — 90 / 70</h3>
-    <svg viewBox="0 0 300 390" aria-label="Temsili baz kalip"><path d="M48 65 Q32 95 40 160 L50 320 L136 320 Q155 265 142 205 Q125 150 138 80 Q95 42 48 65Z" fill="#dbeafe" stroke="#2463a6" stroke-width="2"/>
-    <path d="M160 80 Q203 42 247 65 Q265 100 252 165 L248 320 L162 320 Q146 267 155 208 Q173 155 160 80Z" fill="#f0dcfa" stroke="#7c3aa6" stroke-width="2"/>
-    <path d="M138 80 Q125 150 142 205 Q155 265 136 320" fill="none" stroke="#e34d4d" stroke-width="4"/>
-    <path d="M160 80 Q173 155 155 208 Q146 267 162 320" fill="none" stroke="#e34d4d" stroke-width="4"/></svg>
-    <p>Ön orta (mavi) · Ön kup (mor)</p></section>
-    <section class="panel"><h3>Özel ölçü — __BUST__ / __WAIST__</h3>
-    <svg viewBox="0 0 300 390" aria-label="Temsili hedef kalip"><g transform="translate(-8,0)">
-    <path d="M48 65 Q32 95 40 160 L__CENTER_BOTTOM__ 320 L__CENTER_SEAM_BOTTOM__ 320 Q__CENTER_CURVE__ 265 142 205 Q125 150 138 80 Q95 42 48 65Z" fill="#dbeafe" stroke="#2463a6" stroke-width="2"/>
-    <path d="M160 80 Q203 42 __CUP_TOP__ 65 Q__CUP_OUT__ 100 __CUP_OUT__ 165 L__CUP_BOTTOM__ 320 L162 320 Q146 267 155 208 Q173 155 160 80Z" fill="#f0dcfa" stroke="#7c3aa6" stroke-width="2"/>
-    <path d="M138 80 Q125 150 142 205 Q__CENTER_CURVE__ 265 __CENTER_SEAM_BOTTOM__ 320" fill="none" stroke="#e34d4d" stroke-width="4"/>
-    <path d="M160 80 Q173 155 155 208 Q146 267 162 320" fill="none" stroke="#e34d4d" stroke-width="4"/></g></svg>
-    <p>Ön orta: göğüs +__CB__ mm / bel +__CW__ mm<br>Ön kup: göğüs +__PB__ mm / bel +__PW__ mm</p></section></div>
-    <section class="panel"><h3>Teknik durum</h3><p>Ön/arka payı %50/%50; ön orta/ön kup payı %40/%60 varsayılmıştır.</p>
-    <p class="warn">Dikiş hatları, çıtlar, pensler ve gerçek kalıp ölçüleri tanımlı değil. Dikiş uyumu onaylanmadı. Görseldeki dönüşüm yalnızca şematik genişleme gösterimidir.</p></section></main></html>"""
-    replacements = {
-      "__BUST__": bust, "__WAIST__": waist, "__CB__": cb, "__CW__": cw, "__PB__": pb, "__PW__": pw,
-      "__CENTER_BOTTOM__": 50-cw*.25, "__CENTER_SEAM_BOTTOM__": 136+cw*.25, "__CENTER_CURVE__": 155+cb*.25,
-      "__CUP_TOP__": 247+pb*.20, "__CUP_OUT__": 265+pb*.20, "__CUP_BOTTOM__": 248+pw*.20
-    }
-    for key, value in replacements.items():
-        html = html.replace(key, escape(f"{value:.1f}" if isinstance(value, float) else str(value)))
-    return HttpResponse(html)
+    if not has_full_access(request.user):
+        return HttpResponse("Bu bölüme erişim yetkiniz yok.", status=403)
+    error, drawing, summary = "", "", ""
+    if request.method == "POST":
+        upload = request.FILES.get("pattern")
+        if not upload:
+            error = "Bir DXF dosyası seçin."
+        elif not upload.name.lower().endswith(".dxf"):
+            error = "Yalnızca .dxf dosyası yükleyin."
+        elif upload.size > MAX_BYTES:
+            error = "Dosya 3 MB sınırını aşıyor."
+        else:
+            try:
+                result = parse_pattern_dxf(upload.read(MAX_BYTES + 1))
+                drawing = preview_svg(result)
+                units = "mm" if result["units"] == 4 else "tanımsız; mm doğrulanmadı"
+                summary = f'{len(result["paths"])} çizim öğesi · {result["points"]} nokta · {len(result["layers"])} katman · birim: {units}'
+            except ValueError as exc:
+                error = str(exc)
+    csrf = escape(get_token(request))
+    html = """<!doctype html><html lang="tr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Moli CAD Laboratuvarı</title>
+<style>body{font:16px system-ui;background:#f3f6fb;color:#172238;margin:0;padding:16px}main{max-width:1100px;margin:auto}section{background:white;border-radius:14px;padding:20px;margin:12px 0;box-shadow:0 1px 5px #0001}h1{font-size:25px;margin:0 0 8px}p{line-height:1.5}.warn{background:#fff2d6;padding:12px;border-radius:8px}.error{background:#ffe4e4;padding:12px;border-radius:8px}button{background:#174a9d;color:white;border:0;border-radius:8px;padding:12px 16px;font-size:16px}input{max-width:100%;margin:10px 0}.preview{overflow:auto;border:1px solid #dde4f0;border-radius:8px;padding:10px}.preview svg{width:100%;min-width:300px;height:auto;max-height:72vh}</style></head><body><main>
+<section><h1>Moli CAD Laboratuvarı</h1><p class="warn"><strong>Deneysel:</strong> DXF çizimini görüntüler. Otomatik serileme, dikiş doğrulaması ve kesime hazır kalıp üretimi henüz yok.</p>
+<form method="post" enctype="multipart/form-data"><input type="hidden" name="csrfmiddlewaretoken" value="__CSRF__"><label for="pattern">CAD kalıp dosyası (.dxf)</label><br><input id="pattern" type="file" name="pattern" accept=".dxf" required><br><button type="submit">Kalıbı oku ve göster</button></form></section>
+__RESULT__</main></body></html>"""
+    result_html = ""
+    if error:
+        result_html = '<section><p class="error">' + escape(error) + '</p></section>'
+    elif drawing:
+        result_html = '<section><h2>DXF önizleme</h2><p>' + escape(summary) + '</p><div class="preview">' + drawing + '</div><p>Parça isimleri ve dikiş kenarları henüz otomatik sınıflandırılmıyor. Yüklenen dosya veritabanına kaydedilmez.</p></section>'
+    return HttpResponse(html.replace("__CSRF__", csrf).replace("__RESULT__", result_html))
