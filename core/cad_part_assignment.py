@@ -39,7 +39,6 @@ const seamShapes=JSON.parse(document.getElementById('seam-data').textContent);
 const seamInfo=document.getElementById('seam-info');
 let seamPicked=[],seamEdges=[];let activeIndex=-1;
 function seamLength(points,a,b){let n=0;for(let k=a;k<b;k++)n+=Math.hypot(points[k+1][0]-points[k][0],points[k+1][1]-points[k][1]);return n;}
-function seamLength(points,a,b){let n=0;for(let k=a;k<b;k++)n+=Math.hypot(points[k+1][0]-points[k][0],points[k+1][1]-points[k][1]);return n;}
 function seamSelect(i){
  activeIndex=i;
  root.querySelectorAll('.seam-marker,.seam-highlight').forEach(n=>n.remove());
@@ -52,26 +51,34 @@ function showHighlight(i,a,b){
  line.setAttribute('fill','none');line.setAttribute('stroke','#16a34a');line.setAttribute('stroke-width','5');line.setAttribute('class','seam-highlight');
  line.style.pointerEvents='none';root.appendChild(line);
 }
-function selectNearPoint(event,i){
- if(seamEdges.length>=2)return;
- if(activeIndex!==i){activeIndex=i;seamPicked=[];}
- const rect=root.getBoundingClientRect(),box=root.viewBox.baseVal;
- const x=(event.clientX-rect.left)*box.width/rect.width+box.x;
- const y=(event.clientY-rect.top)*box.height/rect.height+box.y;
- const pts=seamShapes[i].screen;
- let best=0,dist=Infinity;
- pts.forEach((p,j)=>{const d=Math.hypot(p[0]-x,p[1]-y);if(d<dist){dist=d;best=j;}});
- if(!seamPicked.length){seamPicked=[best];seamInfo.textContent='Başlangıç seçildi. Şimdi bitişe tıklayın.';return;}
- if(best===seamPicked[0]){seamInfo.textContent='Bitiş için başka bir konuma tıklayın.';return;}
- const a=Math.min(best,seamPicked[0]),b=Math.max(best,seamPicked[0]);
- const mm=seamLength(seamShapes[i].mm,a,b);
- if(mm<=0){seamInfo.textContent='Geçersiz kenar.';return;}
- seamEdges.push({index:i,a,b,mm});seamPicked=[];
- showHighlight(i,a,b);
- seamInfo.textContent=seamEdges.length===1?'İlk kenar '+mm.toFixed(1)+' mm. İkinci parçayı seçin.':'İki kenar '+seamEdges[0].mm.toFixed(1)+' / '+mm.toFixed(1)+' mm. Fark: '+Math.abs(seamEdges[0].mm-mm).toFixed(1)+' mm.';
+function closestPoint(e,i){
+ const matrix=root.getScreenCTM();if(!matrix)return -1;
+ const p=root.createSVGPoint();p.x=e.clientX;p.y=e.clientY;
+ const local=p.matrixTransform(matrix.inverse());
+ let best=-1,dist=Infinity;
+ seamShapes[i].screen.forEach((v,j)=>{const d=Math.hypot(v[0]-local.x,v[1]-local.y);if(d<dist){dist=d;best=j;}});
+ return best;
+}
+function dragPreview(i,a,b){
+ root.querySelectorAll('.seam-preview').forEach(n=>n.remove());
+ if(a===b||a<0||b<0)return;
+ const pts=seamShapes[i].screen.slice(Math.min(a,b),Math.max(a,b)+1);
+ const line=document.createElementNS('http://www.w3.org/2000/svg','polyline');
+ line.setAttribute('points',pts.map(p=>p.join(',')).join(' '));
+ line.setAttribute('fill','none');line.setAttribute('stroke','#f59e0b');line.setAttribute('stroke-width','5');
+ line.setAttribute('class','seam-preview');line.style.pointerEvents='none';root.appendChild(line);
+}
+function finishDrag(i,a,b){
+ root.querySelectorAll('.seam-preview').forEach(n=>n.remove());
+ if(a===b||a<0||b<0){seamInfo.textContent='Çizgi boyunca sürükleyerek bir kenar seçin.';return;}
+ const lo=Math.min(a,b),hi=Math.max(a,b),mm=seamLength(seamShapes[i].mm,lo,hi);
+ if(mm<=0)return;
+ seamEdges.push({index:i,a:lo,b:hi,mm});
+ showHighlight(i,lo,hi);
+ seamInfo.textContent=seamEdges.length===1?'İlk kenar '+mm.toFixed(1)+' mm. İkinci parçaya geçin.':'İki kenar '+seamEdges[0].mm.toFixed(1)+' / '+mm.toFixed(1)+' mm. Fark: '+Math.abs(seamEdges[0].mm-mm).toFixed(1)+' mm.';
 }
 document.getElementById('seam-reset').addEventListener('click',()=>{
- seamEdges=[];seamPicked=[];root.querySelectorAll('.seam-marker,.seam-highlight').forEach(n=>n.remove());seamInfo.textContent='İlk parçayı seçin.';
+ seamEdges=[];seamPicked=[];root.querySelectorAll('.seam-marker,.seam-highlight,.seam-preview').forEach(n=>n.remove());seamInfo.textContent='İlk parçayı seçin.';
 });
 const colors={'on_orta':'#0d9488','on_kup':'#a855f7','on_yan':'#2563eb','arka_orta':'#dc2626','arka_yan':'#e8793e','astar':'#16a34a','etek':'#b45309','diger':'#64748b'};
 const front=paths.find(p=>p.dataset.layer==='ON_ORTA');
@@ -96,20 +103,27 @@ paths.forEach((p,i)=>p.addEventListener('pointerdown',e=>beginDrag(e,i)));
 document.getElementById('piece-picker').addEventListener('change',e=>choose(Number(e.target.value)));
 let dragging=null;
 function beginDrag(e,i){
- if(seamEdges.length>=2)return;
+ if(seamEdges.length>=2||e.button!==0)return;
  e.preventDefault();
  if(activeIndex!==i)choose(i);
- dragging={index:i,pointer:e.pointerId};
- selectNearPoint(e,i);
+ const start=closestPoint(e,i);if(start<0)return;
+ dragging={index:i,start,end:start,pointer:e.pointerId};
  root.setPointerCapture(e.pointerId);
+ seamInfo.textContent='Sürüklediğiniz kenar turuncu renkle gösteriliyor.';
 }
+root.addEventListener('pointermove',e=>{
+ if(!dragging||dragging.pointer!==e.pointerId)return;
+ dragging.end=closestPoint(e,dragging.index);
+ dragPreview(dragging.index,dragging.start,dragging.end);
+});
 root.addEventListener('pointerup',e=>{
  if(!dragging||dragging.pointer!==e.pointerId)return;
- const i=dragging.index;dragging=null;
- selectNearPoint(e,i);
+ const d=dragging;dragging=null;
+ const end=closestPoint(e,d.index);
  if(root.hasPointerCapture(e.pointerId))root.releasePointerCapture(e.pointerId);
+ finishDrag(d.index,d.start,end);
 });
-root.addEventListener('pointercancel',()=>{dragging=null;seamPicked=[];});
+root.addEventListener('pointercancel',()=>{dragging=null;root.querySelectorAll('.seam-preview').forEach(n=>n.remove());});
 const hits=paths.map((p,i)=>{const h=p.cloneNode(false);h.removeAttribute('id');h.removeAttribute('data-index');h.setAttribute('stroke','transparent');h.setAttribute('stroke-width','18');h.setAttribute('fill','none');h.style.cursor='pointer';h.addEventListener('pointerdown',e=>beginDrag(e,i));p.parentNode.insertBefore(h,p);return h;});
 document.getElementById('seam-adjust').addEventListener('click',()=>{
  if(seamEdges.length!==2){seamInfo.textContent='Önce iki kenarı seçin.';return;}
