@@ -75,6 +75,7 @@ def serial_cutting_add(request):
     if day.weekday() > 4 or quantity < 1:
         return HttpResponseForbidden("Yalnızca hafta içi ve pozitif adet girilebilir.")
     with transaction.atomic():
+        order = Order.objects.select_for_update().get(pk=order.pk)
         existing = SerialCutPlan.objects.select_for_update().filter(order=order)
         allocated = sum(item.quantity for item in existing)
         if quantity + allocated > (order.adet or 0):
