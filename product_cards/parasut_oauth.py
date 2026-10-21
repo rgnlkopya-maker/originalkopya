@@ -47,16 +47,30 @@ def _exchange(form):
         with urlopen(request, timeout=15) as response:
             tokens = json.load(response)
     except HTTPError as exc:
-        # Only the HTTP status and allowlisted OAuth error code are exposed, never body or secrets.
+        # Never log or expose the response body: it may contain credentials.
+        # Expose only an allowlisted OAuth error code and transport diagnostics.
+        raw = exc.read(4096)
+        content_type = (exc.headers.get("Content-Type") or "").split(";")[0].strip().lower()
         category = "unknown"
-        try:
-            data = json.loads(exc.read(2048).decode("utf-8"))
-            value = data.get("error") if isinstance(data, dict) else None
-            if value in ("invalid_grant", "invalid_client", "invalid_request", "unauthorized_client", "unsupported_grant_type"):
-                category = value
-        except (ValueError, UnicodeDecodeError):
-            pass
-        raise ParasutOAuthError(f"Token endpoint HTTP {exc.code}; OAuth hata türü: {category}.") from None
+        response_kind = "json" if content_type in ("application/json", "application/problem+json") else (
+            "html" if content_type == "text/html" else "other"
+        )
+        if response_kind == "json":
+            try:
+                data = json.loads(raw.decode("utf-8"))
+                value = data.get("error") if isinstance(data, dict) else None
+                if value in ("invalid_grant", "invalid_client", "invalid_request",
+                             "unauthorized_client", "unsupported_grant_type", "access_denied"):
+                    category = value
+            except (ValueError, UnicodeDecodeError):
+                response_kind = "invalid_json"
+        # Header values may carry credentials or user data; report presence only.
+        diagnostic_headers = ("cf-ray", "x-request-id", "x-correlation-id", "retry-after")
+        present = ",".join(name for name in diagnostic_headers if exc.headers.get(name)) or "none"
+        raise ParasutOAuthError(
+            f"Token endpoint HTTP {exc.code}; OAuth hata türü: {category}; "
+            f"yanıt türü: {response_kind}; tanı başlıkları: {present}."
+        ) from None
     except (URLError, TimeoutError, ValueError):
         raise ParasutOAuthError("Paraşüt OAuth servisine erişilemedi veya geçersiz yanıt alındı.") from None
     if not isinstance(tokens, dict) or not tokens.get("access_token") or not tokens.get("refresh_token"):
