@@ -296,9 +296,7 @@ def _extract_text(result):
     return "\n".join(texts).strip() or "Asistan şu anda cevap üretemedi."
 
 
-def ask_gemini(user, message, history, provider="gemini"):
-    if provider not in ("gemini", "openai"):
-        raise ValueError("Geçersiz asistan sağlayıcısı.")
+def ask_openai(user, message, history):
     from app_settings.access import has_access, has_full_access
     from .assistant_queries import order_analysis
     if not has_access(user, "can_view_assistant"):
@@ -335,61 +333,31 @@ KULLANICI: {user.get_full_name() or user.username}
 {moli_context}
 """.strip()
 
-    contents = []
-    for item in (history or [])[-MAX_HISTORY_ITEMS:]:
-        role = "model" if item.get("role") == "assistant" else "user"
-        text = (item.get("content") or "").strip()
-        if text:
-            contents.append({"role": role, "parts": [{"text": text}]})
-    contents.append({"role": "user", "parts": [{"text": message}]})
-
-    if provider == "openai":
-        api_key = os.getenv("OPENAI_API_KEY", "").strip()
-        if not api_key:
-            raise RuntimeError("OPENAI_API_KEY Render ortamında bulunamadı.")
-        openai_messages = [{"role": "system", "content": system_text}]
-        for entry in (history or [])[-MAX_HISTORY_ITEMS:]:
-            role = "assistant" if entry.get("role") == "assistant" else "user"
-            content = (entry.get("content") or "").strip()
-            if content:
-                openai_messages.append({"role": role, "content": content})
-        openai_messages.append({"role": "user", "content": message})
-        response = requests.post(
-            "https://api.openai.com/v1/chat/completions",
-            headers={"Authorization": "Bearer " + api_key, "Content-Type": "application/json"},
-            json={"model": os.getenv("OPENAI_ASSISTANT_MODEL", "gpt-4.1-mini"),
-                  "messages": openai_messages, "max_tokens": 1600, "temperature": 0.3},
-            timeout=45,
-        )
-        if response.status_code >= 400:
-            # Never echo provider errors that might contain secret account details.
-            error_codes = {401: "API anahtarı geçersiz.", 403: "API erişimi reddedildi.",
-                           429: "API kullanım limiti veya kota sorunu.", 500: "OpenAI geçici sunucu hatası.",
-                           503: "OpenAI servisi geçici olarak kullanılamıyor."}
-            raise RuntimeError(error_codes.get(response.status_code, "OpenAI bağlantı hatası (HTTP %s)." % response.status_code))
-        result = response.json()
-        choices = result.get("choices") or []
-        answer = ((choices[0].get("message") or {}).get("content") if choices else None)
-        return answer.strip() if isinstance(answer, str) and answer.strip() else "OpenAI yanıt üretemedi."
-
-    api_key = os.getenv("GEMINI_API_KEY")
+    api_key = os.getenv("OPENAI_API_KEY", "").strip()
     if not api_key:
-        raise RuntimeError("GEMINI_API_KEY tanımlı değil.")
-    model = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}"
-
-    payload = {
-        "systemInstruction": {"parts": [{"text": system_text}]},
-        "contents": contents,
-        "generationConfig": {"temperature": 0.35, "maxOutputTokens": 1600},
-    }
-
-    response = requests.post(url, json=payload, timeout=45)
+        raise RuntimeError("OPENAI_API_KEY Render ortamında bulunamadı.")
+    openai_messages = [{"role": "system", "content": system_text}]
+    for entry in (history or [])[-MAX_HISTORY_ITEMS:]:
+        role = "assistant" if entry.get("role") == "assistant" else "user"
+        content = (entry.get("content") or "").strip()
+        if content:
+            openai_messages.append({"role": role, "content": content})
+    openai_messages.append({"role": "user", "content": message})
+    response = requests.post(
+        "https://api.openai.com/v1/chat/completions",
+        headers={"Authorization": "Bearer " + api_key, "Content-Type": "application/json"},
+        json={"model": os.getenv("OPENAI_ASSISTANT_MODEL", "gpt-4.1-mini"),
+              "messages": openai_messages, "max_tokens": 1600, "temperature": 0.3},
+        timeout=45,
+    )
+    if response.status_code >= 400:
+        # Never echo provider errors that might contain secret account details.
+        error_codes = {401: "API anahtarı geçersiz.", 403: "API erişimi reddedildi.",
+                       429: "API kullanım limiti veya kota sorunu.", 500: "OpenAI geçici sunucu hatası.",
+                       503: "OpenAI servisi geçici olarak kullanılamıyor."}
+        raise RuntimeError(error_codes.get(response.status_code, "OpenAI bağlantı hatası (HTTP %s)." % response.status_code))
     result = response.json()
-    if response.status_code >= 400 or result.get("error"):
-        response = requests.post(url, json=payload, timeout=45)
-        result = response.json()
-    if response.status_code >= 400 or result.get("error"):
-        detail = (result.get("error") or {}).get("message") or f"HTTP {response.status_code}"
-        raise RuntimeError(detail)
-    return _extract_text(result)
+    choices = result.get("choices") or []
+    answer = ((choices[0].get("message") or {}).get("content") if choices else None)
+    return answer.strip() if isinstance(answer, str) and answer.strip() else "OpenAI yanıt üretemedi."
+
