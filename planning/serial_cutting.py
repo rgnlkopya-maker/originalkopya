@@ -1,7 +1,7 @@
 from collections import defaultdict
 from io import BytesIO
 from openpyxl import Workbook
-from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
+from openpyxl.styles import Alignment, Border, Font, Side
 from openpyxl.utils import get_column_letter
 from datetime import date, timedelta
 
@@ -116,9 +116,9 @@ def serial_cutting_weekly_excel(request):
         sizes = sorted({size for _, size in matrix}, key=lambda s: (not s.isdigit(), int(s) if s.isdigit() else s.casefold()))
         last_col = len(sizes) + 2
         sheet.merge_cells(start_row=1, start_column=1, end_row=1, end_column=last_col)
-        sheet.cell(1, 1, "ÜRÜN KODU: " + product)
+        sheet.cell(1, 1, product)
         sheet.merge_cells(start_row=2, start_column=1, end_row=2, end_column=last_col)
-        sheet.cell(2, 1, "HAFTALIK SERİ KESİM PLANI  |  " + monday.strftime("%d.%m.%Y") + " - " + friday.strftime("%d.%m.%Y"))
+        sheet.cell(2, 1, monday.strftime("%d.%m.%Y") + " - " + friday.strftime("%d.%m.%Y"))
         headers = ["RENK / BEDEN"] + sizes + ["TOPLAM"]
         for col, label in enumerate(headers, 1):
             sheet.cell(4, col, label)
@@ -134,26 +134,22 @@ def serial_cutting_weekly_excel(request):
             sheet.cell(total_row, col_idx, sum(matrix.get((color, size), 0) for color in colors))
         sheet.cell(total_row, last_col, sum(matrix.values()))
 
-        dark = PatternFill("solid", fgColor="243653")
-        pale = PatternFill("solid", fgColor="EAF0FA")
-        thin = Side(style="thin", color="CBD5E1")
+        thin = Side(style="thin", color="333333")
         for row in sheet.iter_rows(min_row=1, max_row=total_row, max_col=last_col):
             for cell in row:
                 cell.alignment = Alignment(horizontal="center" if cell.column > 1 else "left", vertical="center")
+                cell.font = Font(name="Calibri", size=11, color="000000",
+                                 bold=cell.row in (1, 4, total_row))
                 if cell.row >= 4:
                     cell.border = Border(left=thin, right=thin, top=thin, bottom=thin)
-                if cell.row in (1, 4, total_row):
-                    cell.fill = dark
-                    cell.font = Font(bold=True, color="FFFFFF", size=14 if cell.row == 1 else 11)
-                elif cell.row == 2:
-                    cell.font = Font(bold=True, color="475569", size=11)
-                elif cell.row % 2 == 1:
-                    cell.fill = pale
-        sheet.column_dimensions["A"].width = 25
+        sheet.cell(1, 1).font = Font(name="Calibri", size=16, bold=True, color="000000")
+        sheet.cell(2, 1).font = Font(name="Calibri", size=10, color="555555")
+        sheet.column_dimensions["A"].width = 23
         for col in range(2, last_col + 1):
-            sheet.column_dimensions[get_column_letter(col)].width = 13
-        sheet.row_dimensions[1].height = 29
-        sheet.row_dimensions[4].height = 24
+            sheet.column_dimensions[get_column_letter(col)].width = 12
+        sheet.row_dimensions[1].height = 27
+        sheet.row_dimensions[4].height = 23
+        sheet.sheet_view.showGridLines = False
         sheet.freeze_panes = "B5"
         sheet.sheet_properties.pageSetUpPr.fitToPage = True
         sheet.page_setup.orientation = "landscape"
