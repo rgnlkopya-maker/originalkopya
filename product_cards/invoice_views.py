@@ -11,7 +11,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.views.decorators.http import require_POST
 from core.models import Order, Musteri
-from .invoice_models import InvoiceDraft, InvoiceLine, BizimHesapCustomerMapping, BizimHesapInvoiceTransfer, ParasutInvoiceTransfer
+from .invoice_models import InvoiceDraft, InvoiceLine, InvoiceStatusHistory, BizimHesapCustomerMapping, BizimHesapInvoiceTransfer, ParasutInvoiceTransfer
 from planning.models import ShipmentPlan
 from core.services.order_status import latest_status_event, status_label, FINANCIAL_STAGES
 
@@ -491,6 +491,40 @@ def invoice_open_account(request, invoice_id):
             invoice.official_number = ""
             invoice.save(update_fields=["status", "official_number", "updated_at"])
             messages.success(request, "Kayıt açık hesap olarak işaretlendi. Resmî fatura oluşturulmadı.")
+    return redirect("invoice_detail", invoice_id=invoice_id)
+
+
+@login_required
+@require_POST
+def invoice_unfinalize(request, invoice_id):
+    """Undo accidental MoliApp finalization without modifying an external invoice."""
+    if not _allowed(request.user):
+        return HttpResponseForbidden("Yetkiniz yok.")
+    with transaction.atomic():
+        invoice = get_object_or_404(InvoiceDraft.objects.select_for_update(), pk=invoice_id)
+        if invoice.status != "FINAL":
+            messages.error(request, "Yalnızca faturalandırılmış kayıt geri alınabilir.")
+        elif _transfer_locked(invoice) or invoice.bizimhesap_manual_recorded or invoice.parasut_manual_recorded:
+            messages.error(request, "Dış muhasebe sistemine aktarılmış veya işlenmiş kayıt geri alınamaz.")
+        elif request.POST.get("confirm") != "yes":
+            messages.error(request, "Geri alma onayı gerekli.")
+        elif InvoiceDraft.objects.filter(customer=invoice.customer, invoice_date=invoice.invoice_date,
+                                         currency=invoice.currency, status="DRAFT").exclude(pk=invoice.pk).exists():
+            messages.error(request, "Aynı müşteri, tarih ve para birimi için zaten taslak mevcut.")
+        else:
+            previous_number = invoice.official_number
+            invoice.status = "DRAFT"
+            invoice.official_number = ""
+            try:
+                with transaction.atomic():
+                    invoice.save(update_fields=["status", "official_number", "updated_at"])
+                    InvoiceStatusHistory.objects.create(
+                        invoice=invoice, changed_by=request.user, previous_status="FINAL",
+                        new_status="DRAFT", previous_official_number=previous_number)
+            except IntegrityError:
+                messages.error(request, "Mevcut taslakla çakıştığı için işlem yapılamadı.")
+            else:
+                messages.success(request, "Faturalandırma geri alındı; kayıt taslak olarak açıldı.")
     return redirect("invoice_detail", invoice_id=invoice_id)
 
 
