@@ -5,11 +5,23 @@
 @media(max-width:1050px){.cut-grid{display:grid!important;grid-template-columns:minmax(0,1fr)!important;overflow:visible!important}.cut-day{min-width:0!important;width:100%}.cut-wrap{max-width:none;width:100%;margin:10px auto;padding:0 8px}.cut-header h1{font-size:22px}.cut-nav{gap:6px}.cut-nav .btn{font-size:12px;padding:7px 5px}}
 .cut-picker{max-height:310px;overflow-y:auto;border:1px solid #dce3eb;border-radius:9px;padding:5px}.cut-option{display:flex;gap:9px;align-items:flex-start;padding:9px 6px;border-bottom:1px solid #edf0f4;cursor:pointer;overflow-wrap:anywhere}.cut-option:last-child{border:0}.cut-option input{width:17px;flex:0 0 17px;margin-top:3px}.cut-option strong{display:block;font-size:13px}.cut-option small{display:block;color:#475569;font-size:12px}.cut-search{width:100%;border:1px solid #cbd5e1;border-radius:8px;padding:9px;margin:8px 0}.cut-selected{font-size:12px;font-weight:700;color:#155e75}
 .cut-items{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px 8px;margin:10px 0}.cut-column{min-width:0;display:flex;flex-direction:column;gap:4px}.cut-compact{display:flex;align-items:center;justify-content:space-between;gap:4px;width:100%;padding:6px 5px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:5px;color:#172033;text-align:left;font-size:11px;line-height:1.25;cursor:pointer}.cut-compact:hover{background:#eaf2ff}.cut-compact-label{min-width:0;overflow-wrap:anywhere}.cut-compact-count{flex:none;font-weight:800;color:#155e75}.cut-detail-dialog{border:0;border-radius:12px;padding:16px;max-width:min(440px,94vw);width:100%;box-shadow:0 16px 55px #0003}.cut-detail-dialog::backdrop{background:#0f172a88}.cut-detail-dialog h4{font-size:17px;margin-bottom:10px}.cut-dialog-close{float:right;border:0;background:transparent;font-size:22px}.cut-dialog-order{display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #e2e8f0;padding:7px 0;gap:10px}.cut-dialog-order small{overflow-wrap:anywhere}@media(max-width:1050px){.cut-items{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.cut-week-nav{display:flex;align-items:center;justify-content:space-between;gap:18px;background:#fff;border:1px solid #e2e8f0;border-radius:18px;padding:14px 20px;min-width:340px}.cut-week-arrow{display:flex;align-items:center;justify-content:center;width:48px;height:48px;border:1px solid #dbe3ed;border-radius:14px;text-decoration:none;color:#334155;font-size:22px;flex-shrink:0}.cut-week-arrow:hover{background:#f1f5f9}.cut-week-center{text-align:center;min-width:0}.cut-week-center strong{display:block;font-size:17px;color:#0f172a}.cut-week-center small{display:block;color:#64748b;font-size:14px;white-space:nowrap}.cut-excel{white-space:nowrap}@media(max-width:767px){.cut-week-nav{min-width:0;width:100%;padding:10px;gap:8px}.cut-week-arrow{width:42px;height:42px}.cut-week-center strong{font-size:15px}.cut-week-center small{font-size:12px}.cut-excel{width:100%}}
 </style>
 {% endblock %}
 {% block content %}
 <div class="cut-wrap">
-<div class="cut-header"><div><h1>Seri Kesim Planlama</h1><strong>Haftalık toplam: {{ week_total }} adet</strong></div><nav class="cut-nav"><a class="btn btn-success" href="{% url 'serial_cutting_weekly_excel' %}?date={{ columns.0.date|date:'Y-m-d' }}">Haftalık Excel İndir</a><a class="btn btn-outline-secondary" href="?date={{ prev_date }}">← Önceki hafta</a><a class="btn btn-outline-secondary" href="{% url 'serial_cutting_page' %}">Bu hafta</a><a class="btn btn-outline-secondary" href="?date={{ next_date }}">Sonraki hafta →</a></nav></div>
+<div class="cut-header">
+  <div><h1>Seri Kesim Planlama</h1><strong>Haftalık toplam: {{ week_total }} adet</strong></div>
+  <a class="btn btn-success cut-excel" href="{% url 'serial_cutting_weekly_excel' %}?date={{ week_start|date:'Y-m-d' }}">Haftalık Excel İndir</a>
+  <nav class="cut-week-nav" aria-label="Hafta seçimi">
+    <a class="cut-week-arrow" href="?date={{ prev_date }}" aria-label="Önceki hafta">←</a>
+    <div class="cut-week-center">
+      <strong>{{ week_start|date:"F Y" }}</strong>
+      <small>{{ week_start|date:"d.m.Y" }} – {{ week_end|date:"d.m.Y" }}</small>
+    </div>
+    <a class="cut-week-arrow" href="?date={{ next_date }}" aria-label="Sonraki hafta">→</a>
+  </nav>
+</div>
 <div class="cut-grid">
 {% for col in columns %}
 <section class="cut-day">
