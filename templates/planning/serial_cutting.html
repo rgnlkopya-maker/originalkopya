@@ -3,6 +3,7 @@
 <style>
 .cut-wrap{max-width:1600px;margin:24px auto;padding:0 16px}.cut-header{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:20px}.cut-nav{display:flex;gap:12px;align-items:center}.cut-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px}.cut-day{border:1px solid #e2e8f0;border-radius:12px;background:#fff;min-width:0;padding:12px}.cut-day h3{font-size:16px;font-weight:800}.cut-row{display:block;border:1px solid #e2e8f0;border-radius:8px;padding:9px;margin:9px 0;text-decoration:none;color:#172033;background:#f8fafc}.cut-row:hover{background:#eaf2ff}.cut-meta{font-size:12px;color:#64748b}.cut-total{font-weight:800;color:#155e75}.cut-summary{font-size:12px;border-top:1px solid #e2e8f0;padding-top:9px}.cut-plan{display:flex;align-items:center;justify-content:space-between;gap:4px}.cut-remove{border:0;background:transparent;color:#b91c1c}.cut-add{width:100%;margin-top:12px}.cut-form{display:none;margin-top:10px}.cut-form.open{display:block}.cut-form select,.cut-form input{width:100%;margin:4px 0;padding:6px;border:1px solid #cbd5e1;border-radius:6px}@media(max-width:1050px){.cut-grid{grid-template-columns:repeat(2,minmax(0,1fr));overflow:visible}.cut-day{min-width:0}}@media(max-width:767px){.cut-wrap{max-width:none;width:100%;margin:12px 0;padding:0 8px}.cut-header{display:block;margin-bottom:12px}.cut-header h1{font-size:23px;margin-bottom:5px}.cut-nav{display:grid;grid-template-columns:1fr 1fr 1fr;gap:5px;margin-top:12px}.cut-nav .btn{font-size:12px;line-height:1.2;padding:9px 3px;white-space:normal}.cut-grid{display:grid;grid-template-columns:minmax(0,1fr);gap:10px;overflow:visible}.cut-day{width:100%;min-width:0;padding:12px}.cut-row{overflow-wrap:anywhere}.cut-plan{min-width:0}.cut-plan small{overflow-wrap:anywhere}.cut-summary{margin-top:12px}}
 @media(max-width:1050px){.cut-grid{display:grid!important;grid-template-columns:minmax(0,1fr)!important;overflow:visible!important}.cut-day{min-width:0!important;width:100%}.cut-wrap{max-width:none;width:100%;margin:10px auto;padding:0 8px}.cut-header h1{font-size:22px}.cut-nav{gap:6px}.cut-nav .btn{font-size:12px;padding:7px 5px}}
+.cut-picker{max-height:310px;overflow-y:auto;border:1px solid #dce3eb;border-radius:9px;padding:5px}.cut-option{display:flex;gap:9px;align-items:flex-start;padding:9px 6px;border-bottom:1px solid #edf0f4;cursor:pointer;overflow-wrap:anywhere}.cut-option:last-child{border:0}.cut-option input{width:17px;flex:0 0 17px;margin-top:3px}.cut-option strong{display:block;font-size:13px}.cut-option small{display:block;color:#475569;font-size:12px}.cut-search{width:100%;border:1px solid #cbd5e1;border-radius:8px;padding:9px;margin:8px 0}.cut-selected{font-size:12px;font-weight:700;color:#155e75}
 </style>
 {% endblock %}
 {% block content %}
@@ -24,11 +25,21 @@
 <button type="button" class="btn btn-sm btn-outline-primary cut-add" onclick="this.nextElementSibling.classList.toggle('open')">+ Sipariş ekle</button>
 <form class="cut-form" method="post" action="{% url 'serial_cutting_add' %}">{% csrf_token %}
 <input type="hidden" name="planned_date" value="{{ col.date|date:'Y-m-d' }}">
-<select name="order_id" required><option value="">Sipariş seç</option>{% for order in orders %}<option value="{{ order.id }}">#{{ order.siparis_numarasi }} · {{ order.urun_kodu }} · {{ order.renk }} · {{ order.beden }} · {{ order.adet }} adet</option>{% endfor %}</select>
-<input type="number" name="quantity" min="1" required placeholder="Kesilecek adet">
-<button class="btn btn-primary btn-sm w-100" type="submit">Plana kaydet</button></form>
+<input class="cut-search" type="search" placeholder="Firma, ürün, renk, beden, açıklama ara..." oninput="cutFilter(this)">
+<div class="cut-picker">
+{% for order in orders %}
+<label class="cut-option" data-search="{{ order.musteri.ad|default:''|lower }} {{ order.urun_kodu|default:''|lower }} {{ order.renk|default:''|lower }} {{ order.beden|default:''|lower }} {{ order.aciklama|default:''|lower }}">
+<input type="checkbox" name="order_ids" value="{{ order.id }}" onchange="cutCount(this)">
+<span><strong>{{ order.musteri.ad|default:"Firma belirtilmemiş" }} · {{ order.urun_kodu|default:"—" }}</strong><small>{{ order.renk|default:"—" }} · {{ order.beden|default:"—" }} beden</small><small>{{ order.aciklama|default:"Açıklama yok"|truncatechars:110 }}</small></span>
+</label>
+{% empty %}<p class="cut-meta">Planlanabilecek sipariş bulunamadı.</p>{% endfor %}
+</div>
+<div class="cut-selected" aria-live="polite">0 sipariş seçildi</div>
+<button class="btn btn-primary btn-sm w-100" type="submit">Seçilenleri plana ekle</button></form>
 {% endif %}
 </section>
 {% endfor %}
 </div></div>
 {% endblock %}
+
+{% block extra_js %}<script>function cutFilter(input){const q=input.value.toLocaleLowerCase('tr').trim();input.closest('form').querySelectorAll('.cut-option').forEach(el=>{el.hidden=!el.dataset.search.includes(q);el.style.display=el.hidden?'none':'flex'})}function cutCount(input){const form=input.closest('form');const count=form.querySelectorAll('input[name="order_ids"]:checked').length;form.querySelector('.cut-selected').textContent=count+' sipariş seçildi'}</script>{% endblock %}
