@@ -361,3 +361,28 @@ KULLANICI: {user.get_full_name() or user.username}
     answer = ((choices[0].get("message") or {}).get("content") if choices else None)
     return answer.strip() if isinstance(answer, str) and answer.strip() else "OpenAI yanıt üretemedi."
 
+
+def ask_general(user, message, history):
+    """General chat: no ORM access, no business context, no business tools."""
+    key = os.getenv("OPENAI_API_KEY", "").strip()
+    if not key:
+        raise RuntimeError("OPENAI_API_KEY tanımlı değil.")
+    messages = [{"role": "system", "content": "Sen nazik, yetkin bir Türkçe genel sohbet asistanısın. MoliApp verilerine erişimin yoktur. Şirket içi kayıtları gördüğünü iddia etme."}]
+    for item in (history or [])[-12:]:
+        if item.get("role") in ("user", "assistant") and item.get("content"):
+            messages.append({"role": item["role"], "content": str(item["content"])[:6000]})
+    messages.append({"role": "user", "content": message})
+    response = requests.post(
+        "https://api.openai.com/v1/chat/completions",
+        headers={"Authorization": "Bearer " + key},
+        json={"model": os.getenv("OPENAI_ASSISTANT_MODEL", "gpt-4.1-mini"),
+              "messages": messages, "max_tokens": 1600, "temperature": 0.5},
+        timeout=45,
+    )
+    if response.status_code >= 400:
+        if response.status_code == 429:
+            raise RuntimeError("OpenAI API kota veya kullanım sınırına ulaşıldı.")
+        raise RuntimeError("OpenAI API yanıt vermedi (HTTP %s)." % response.status_code)
+    choices = response.json().get("choices") or []
+    answer = (choices[0].get("message") or {}).get("content") if choices else None
+    return answer.strip() if isinstance(answer, str) and answer.strip() else "Yanıt üretilemedi."
