@@ -90,3 +90,12 @@ class ParasutOAuthCredential(models.Model):
     refresh_token_encrypted = models.TextField()
     expires_at = models.DateTimeField()
     updated_at = models.DateTimeField(auto_now=True)
+
+
+class InvoiceStatusHistory(models.Model):
+    invoice = models.ForeignKey(InvoiceDraft, on_delete=models.PROTECT, related_name='status_history')
+    changed_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
+    previous_status = models.CharField(max_length=8)
+    new_status = models.CharField(max_length=8)
+    previous_official_number = models.CharField(max_length=80, blank=True, default='')
+    changed_at = models.DateTimeField(auto_now_add=True)
