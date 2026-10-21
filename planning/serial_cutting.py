@@ -1,10 +1,14 @@
 from collections import defaultdict
+from io import BytesIO
+from openpyxl import Workbook
+from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
+from openpyxl.utils import get_column_letter
 from datetime import date, timedelta
 
 from django.contrib.auth.decorators import login_required
 from django.db import transaction
 from django.db.models import OuterRef, Subquery
-from django.http import HttpResponseForbidden, JsonResponse
+from django.http import HttpResponse, HttpResponseForbidden, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.views.decorators.http import require_POST
@@ -69,6 +73,103 @@ def serial_cutting_page(request):
         "prev_date": (monday-timedelta(days=7)).isoformat(),
         "next_date": (monday+timedelta(days=7)).isoformat(),
     })
+
+
+@login_required
+def serial_cutting_weekly_excel(request):
+    """One printable color-by-size matrix per product for the selected workweek."""
+    raw = request.GET.get("date")
+    try:
+        selected = date.fromisoformat(raw) if raw else date.today()
+    except ValueError:
+        selected = date.today()
+    monday = selected - timedelta(days=selected.weekday())
+    friday = monday + timedelta(days=4)
+    plans = SerialCutPlan.objects.filter(
+        planned_date__range=(monday, friday)
+    ).select_related("order")
+    grouped = defaultdict(lambda: defaultdict(int))
+    for plan in plans:
+        if not order_scope_allows(request.user, plan.order):
+            continue
+        product = (plan.order.urun_kodu or "Kod belirtilmemiş").strip()
+        color = (plan.order.renk or "Renk belirtilmemiş").strip()
+        size = str(plan.order.beden or "Beden belirtilmemiş").strip()
+        grouped[product][(color, size)] += plan.quantity
+
+    workbook = Workbook()
+    workbook.remove(workbook.active)
+    used_titles = set()
+    for product in sorted(grouped, key=str.casefold):
+        # Excel sheet titles must be unique, <=31 chars and exclude special characters.
+        title_base = "".join("_" if ch in "[]:*?/\\\\ " else ch for ch in product).strip("_")[:31] or "Urun"
+        title = title_base
+        suffix = 2
+        while title.casefold() in used_titles:
+            ending = "_" + str(suffix)
+            title = title_base[:31-len(ending)] + ending
+            suffix += 1
+        used_titles.add(title.casefold())
+        sheet = workbook.create_sheet(title)
+        matrix = grouped[product]
+        colors = sorted({color for color, _ in matrix}, key=str.casefold)
+        sizes = sorted({size for _, size in matrix}, key=lambda s: (not s.isdigit(), int(s) if s.isdigit() else s.casefold()))
+        last_col = len(sizes) + 2
+        sheet.merge_cells(start_row=1, start_column=1, end_row=1, end_column=last_col)
+        sheet.cell(1, 1, "ÜRÜN KODU: " + product)
+        sheet.merge_cells(start_row=2, start_column=1, end_row=2, end_column=last_col)
+        sheet.cell(2, 1, "HAFTALIK SERİ KESİM PLANI  |  " + monday.strftime("%d.%m.%Y") + " - " + friday.strftime("%d.%m.%Y"))
+        headers = ["RENK / BEDEN"] + sizes + ["TOPLAM"]
+        for col, label in enumerate(headers, 1):
+            sheet.cell(4, col, label)
+        for row_idx, color in enumerate(colors, 5):
+            sheet.cell(row_idx, 1, color)
+            for col_idx, size in enumerate(sizes, 2):
+                count = matrix.get((color, size), 0)
+                sheet.cell(row_idx, col_idx, count if count else None)
+            sheet.cell(row_idx, last_col, sum(matrix.get((color, size), 0) for size in sizes))
+        total_row = 5 + len(colors)
+        sheet.cell(total_row, 1, "TOPLAM")
+        for col_idx, size in enumerate(sizes, 2):
+            sheet.cell(total_row, col_idx, sum(matrix.get((color, size), 0) for color in colors))
+        sheet.cell(total_row, last_col, sum(matrix.values()))
+
+        dark = PatternFill("solid", fgColor="243653")
+        pale = PatternFill("solid", fgColor="EAF0FA")
+        thin = Side(style="thin", color="CBD5E1")
+        for row in sheet.iter_rows(min_row=1, max_row=total_row, max_col=last_col):
+            for cell in row:
+                cell.alignment = Alignment(horizontal="center" if cell.column > 1 else "left", vertical="center")
+                if cell.row >= 4:
+                    cell.border = Border(left=thin, right=thin, top=thin, bottom=thin)
+                if cell.row in (1, 4, total_row):
+                    cell.fill = dark
+                    cell.font = Font(bold=True, color="FFFFFF", size=14 if cell.row == 1 else 11)
+                elif cell.row == 2:
+                    cell.font = Font(bold=True, color="475569", size=11)
+                elif cell.row % 2 == 1:
+                    cell.fill = pale
+        sheet.column_dimensions["A"].width = 25
+        for col in range(2, last_col + 1):
+            sheet.column_dimensions[get_column_letter(col)].width = 13
+        sheet.row_dimensions[1].height = 29
+        sheet.row_dimensions[4].height = 24
+        sheet.freeze_panes = "B5"
+        sheet.sheet_properties.pageSetUpPr.fitToPage = True
+        sheet.page_setup.orientation = "landscape"
+        sheet.page_setup.paperSize = sheet.PAPERSIZE_A4
+        sheet.page_setup.fitToWidth = 1
+        sheet.page_setup.fitToHeight = 1
+        sheet.print_options.horizontalCentered = True
+        sheet.print_area = f"A1:{get_column_letter(last_col)}{total_row}"
+    if not workbook.sheetnames:
+        sheet = workbook.create_sheet("Bos Plan")
+        sheet["A1"] = "Bu hafta için kesim planı bulunamadı."
+    output = BytesIO()
+    workbook.save(output)
+    response = HttpResponse(output.getvalue(), content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+    response["Content-Disposition"] = f'attachment; filename="seri-kesim-{monday.isoformat()}.xlsx"'
+    return response
 
 
 @login_required
