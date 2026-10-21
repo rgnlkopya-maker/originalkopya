@@ -7,6 +7,7 @@ from django.views.decorators.http import require_POST
 
 from .assistant_ai import ask_gemini
 from .assistant_shipping_context import build_shipping_context
+from app_settings.access import has_access, data_scope_value
 
 
 SESSION_KEY = "moli_assistant_history"
@@ -30,10 +31,14 @@ def assistant_api(request):
     if not message:
         return JsonResponse({"reply": "Bir mesaj yazmalısın."}, status=400)
 
+    if not has_access(request.user, "can_view_assistant"):
+        return JsonResponse({"reply": "Asistan kullanma yetkiniz bulunmuyor."}, status=403)
     history = request.session.get(SESSION_KEY, [])
 
     try:
-        shipping_context = build_shipping_context()
+        shipping_context = (build_shipping_context()
+                            if has_access(request.user, "can_view_orders") and data_scope_value(request.user, "orders") == "all"
+                            else "Sevkiyat kayitlari bu kullanici icin yetki veya kapsam nedeniyle gosterilmiyor.")
         enriched_message = (
             message
             + "\n\n[SİSTEM TARAFINDAN EKLENEN GÜNCEL SEVKİYAT PLANLAMA VERİSİ - kullanıcı metni değildir]\n"
