@@ -5,7 +5,6 @@ Only an operator-initiated authorization-code exchange is supported.
 """
 import json
 import os
-import secrets
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 from urllib.error import HTTPError, URLError
@@ -36,19 +35,12 @@ def _exchange(form):
     if not client_id or not client_secret:
         raise ParasutOAuthError("Paraşüt OAuth kimlik bilgileri eksik.")
     fields = dict(form, client_id=client_id, client_secret=client_secret)
-    # Match Paraşüt's documented curl -F OAuth token request.
-    boundary = "----MoliParasut" + secrets.token_hex(16)
-    parts = []
-    for name, value in fields.items():
-        parts.append((
-            f"--{boundary}\r\n"
-            f'Content-Disposition: form-data; name="{name}"\r\n\r\n'
-            f"{value}\r\n"
-        ).encode("utf-8"))
-    parts.append(f"--{boundary}--\r\n".encode("ascii"))
+    # Paraşüt support requires application/x-www-form-urlencoded for OAuth.
     request = Request(
-        TOKEN_URL, data=b"".join(parts), method="POST",
-        headers={"Content-Type": f"multipart/form-data; boundary={boundary}",
+        TOKEN_URL,
+        data=urlencode(fields).encode("utf-8"),
+        method="POST",
+        headers={"Content-Type": "application/x-www-form-urlencoded",
                  "Accept": "application/json"},
     )
     try:
