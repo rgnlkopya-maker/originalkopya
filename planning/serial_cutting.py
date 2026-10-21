@@ -70,6 +70,8 @@ def serial_cutting_page(request):
     return render(request, "planning/serial_cutting.html", {
         "columns": columns, "week_total": week_total, "orders": orders,
         "can_edit": _can_edit(request.user),
+        "week_start": monday,
+        "week_end": weekdays[-1],
         "prev_date": (monday-timedelta(days=7)).isoformat(),
         "next_date": (monday+timedelta(days=7)).isoformat(),
     })
