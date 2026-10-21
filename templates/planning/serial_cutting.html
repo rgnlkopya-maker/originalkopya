@@ -36,7 +36,6 @@
 <a class="btn btn-sm btn-outline-primary mt-3" href="{% url 'order_list' %}?{% for oid in row.order_ids %}cut_order_id={{ oid }}&{% endfor %}active=all">Siparişleri görüntüle</a>
 </dialog>
 {% endfor %}
-<div class="cut-summary"><strong>Ürün toplamları</strong>{% for product,total in col.products %}<div>{{ product|default:"—" }}: {{ total }} adet</div>{% empty %}<div>—</div>{% endfor %}</div>
 {% if can_edit %}
 <button type="button" class="btn btn-sm btn-outline-primary cut-add" onclick="this.nextElementSibling.classList.toggle('open')">+ Sipariş ekle</button>
 <form class="cut-form" method="post" action="{% url 'serial_cutting_add' %}">{% csrf_token %}
