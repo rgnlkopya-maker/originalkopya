@@ -74,7 +74,9 @@ class MoliAccessMiddleware:
             if forgotten_record and request.path not in self.STAFF_PRE_ATTENDANCE_PATHS:
                 return redirect(reverse("attendance_scan"))
 
-            if (not system.staff_access_enabled or staff_break_active()) and request.path not in self.STAFF_PRE_ATTENDANCE_PATHS:
+            # Tahir is exempt only from scheduled break windows; other access checks remain active.
+            break_restricted = staff_break_active() and request.user.username.casefold() != "tahir"
+            if (not system.staff_access_enabled or break_restricted) and request.path not in self.STAFF_PRE_ATTENDANCE_PATHS:
                 return redirect(reverse("attendance_scan"))
 
             active_record = AttendanceRecord.objects.filter(
