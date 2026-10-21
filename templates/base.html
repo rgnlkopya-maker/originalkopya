@@ -3,7 +3,7 @@
 <html lang="tr">
 <head>
   <meta charset="UTF-8">
-  {% if request.resolver_match.url_name == 'messages_home' or request.resolver_match.url_name == 'messages_thread' or request.resolver_match.url_name == 'serial_cutting_page' %}
+  {% if request.resolver_match.url_name == 'messages_home' or request.resolver_match.url_name == 'messages_thread' %}
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   {% endif %}
   <link rel="manifest" href="{% static 'manifest.json' %}?v=20260915">
