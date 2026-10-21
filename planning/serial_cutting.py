@@ -3,13 +3,14 @@ from datetime import date, timedelta
 
 from django.contrib.auth.decorators import login_required
 from django.db import transaction
-from django.http import HttpResponseForbidden
+from django.http import HttpResponseForbidden, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.views.decorators.http import require_POST
 
 from app_settings.access import has_feature_access, order_scope_allows
-from core.models import Order
+from core.models import Order, OrderEvent
+from core.order_list_enhanced import STAGE_TRANSLATIONS, _normalize, _transfer_status
 from .models import SerialCutPlan
 
 
@@ -101,3 +102,46 @@ def serial_cutting_remove(request, plan_id):
     day = plan.planned_date
     plan.delete()
     return redirect(f"{reverse('serial_cutting_page')}?date={day.isoformat()}")
+
+
+@login_required
+def serial_cutting_statuses(request):
+    """Fetch current order-list statuses only when a cutting detail dialog opens."""
+    raw_ids = request.GET.getlist("order_id")
+    if not raw_ids or len(raw_ids) > 150:
+        return JsonResponse({"error": "Geçersiz sipariş seçimi."}, status=400)
+    try:
+        ids = list(dict.fromkeys(int(value) for value in raw_ids))
+    except (ValueError, TypeError):
+        return JsonResponse({"error": "Geçersiz sipariş seçimi."}, status=400)
+    plans = SerialCutPlan.objects.filter(order_id__in=ids).select_related("order")
+    visible_ids = {plan.order_id for plan in plans if order_scope_allows(request.user, plan.order)}
+    if len(visible_ids) != len(ids):
+        return JsonResponse({"error": "Siparişlere erişim yok."}, status=403)
+    events = (OrderEvent.objects.filter(order_id__in=visible_ids)
+              .exclude(event_type="order_update")
+              .exclude(stage__in=["satis_fiyati", "ekstra_maliyet", "maliyet_indirimi", "maliyet_override", "maliyet_uygulanan"])
+              .order_by("order_id", "-timestamp", "-id"))
+    latest = {}
+    for event in events:
+        if event.order_id not in latest:
+            latest[event.order_id] = event
+    statuses = {}
+    for order_id in visible_ids:
+        event = latest.get(order_id)
+        if not event or not event.stage or not event.value:
+            statuses[str(order_id)] = "-"
+            continue
+        transfer = _transfer_status(event.stage, event.value, event.parca)
+        key = (_normalize(event.stage), _normalize(event.value))
+        if transfer:
+            status = transfer
+        elif key in STAGE_TRANSLATIONS:
+            status = STAGE_TRANSLATIONS[key]
+        else:
+            stage = event.stage.replace("_durum", "").replace("_fason_durumu", " Fason").replace("_", " ").title()
+            status = f"{stage} → {event.value.replace('_', ' ').title()}"
+        statuses[str(order_id)] = status
+    response = JsonResponse({"statuses": statuses})
+    response["Cache-Control"] = "no-store"
+    return response
