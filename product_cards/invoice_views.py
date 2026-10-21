@@ -176,7 +176,7 @@ def invoice_detail(request, invoice_id):
         line.total_with_vat = (line.price * (Decimal("1") + line.vat_rate / Decimal("100"))).quantize(Decimal("0.01"))
     subtotal = sum((line.price for line in lines), Decimal("0"))
     tax = sum((line.price * line.vat_rate / Decimal("100") for line in lines), Decimal("0"))
-    return render(request, "product_cards/invoice_detail.html", {"invoice": invoice, "lines": lines, "subtotal": subtotal, "tax": tax, "total": subtotal + tax})
+    return render(request, "product_cards/invoice_detail.html", {"invoice": invoice, "lines": lines, "subtotal": subtotal, "tax": tax, "total": subtotal + tax, "status_history": invoice.status_history.select_related("changed_by").order_by("-changed_at")[:10]})
 
 
 @login_required
