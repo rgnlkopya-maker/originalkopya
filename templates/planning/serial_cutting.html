@@ -17,7 +17,7 @@
 <div class="cut-items">
 {% for row in col.rows %}
 {% if forloop.counter0|divisibleby:3 %}<div class="cut-column">{% endif %}
-<button type="button" class="cut-compact" onclick="document.getElementById('cut-detail-{{ forloop.parentloop.counter }}-{{ forloop.counter }}').showModal()" aria-label="{{ row.product }} {{ row.color }} {{ row.size }} detaylarını göster">
+<button type="button" class="cut-compact" onclick="cutOpenDetail('cut-detail-{{ forloop.parentloop.counter }}-{{ forloop.counter }}')" aria-label="{{ row.product }} {{ row.color }} {{ row.size }} detaylarını göster">
 <span class="cut-compact-label">{{ row.product|default:"—" }} · {{ row.color|default:"—" }} · {{ row.size|default:"—" }}</span><span class="cut-compact-count">{{ row.quantity }}</span>
 </button>
 {% if forloop.counter|divisibleby:3 or forloop.last %}</div>{% endif %}
@@ -29,7 +29,7 @@
 <h4>{{ row.product|default:"—" }} · {{ row.color|default:"—" }} · {{ row.size|default:"—" }}</h4>
 <p>{{ row.quantity }} adet / sipariş</p>
 {% for plan in row.plans %}
-<div class="cut-dialog-order"><small>{{ plan.order.musteri.ad|default:"Firma belirtilmemiş" }} · {{ plan.order.aciklama|default:"Açıklama yok"|truncatechars:70 }}</small>
+<div class="cut-dialog-order"><small>{{ plan.order.musteri.ad|default:"Firma belirtilmemiş" }} · {{ plan.order.aciklama|default:"Açıklama yok"|truncatechars:70 }} · <strong>Son Durum:</strong> <span data-cut-order-id="{{ plan.order_id }}">Yükleniyor...</span></small>
 {% if can_edit %}<form method="post" action="{% url 'serial_cutting_remove' plan.id %}">{% csrf_token %}<button class="cut-remove" type="submit" onclick="return confirm('Bu kesim planını kaldırmak istiyor musunuz?')">Sil</button></form>{% endif %}
 </div>
 {% endfor %}
@@ -59,6 +59,28 @@
 
 {% block extra_js %}
 <script>
+async function cutOpenDetail(id) {
+  var dialog = document.getElementById(id);
+  if (!dialog) return;
+  dialog.showModal();
+  var fields = dialog.querySelectorAll('[data-cut-order-id]');
+  var params = new URLSearchParams();
+  fields.forEach(function(field) {
+    field.textContent = 'Yükleniyor...';
+    params.append('order_id', field.getAttribute('data-cut-order-id'));
+  });
+  if (!fields.length) return;
+  try {
+    var response = await fetch("{% url 'serial_cutting_statuses' %}?" + params.toString(), {cache:'no-store'});
+    if (!response.ok) throw new Error('Status request failed');
+    var data = await response.json();
+    fields.forEach(function(field) {
+      field.textContent = data.statuses[field.getAttribute('data-cut-order-id')] || '-';
+    });
+  } catch (error) {
+    fields.forEach(function(field) { field.textContent = 'Durum alınamadı'; });
+  }
+}
 function cutNormalize(value) {
   return String(value || '').toLocaleLowerCase('tr-TR')
     .replace(/ı/g, 'i').replace(/ğ/g, 'g').replace(/ü/g, 'u')
