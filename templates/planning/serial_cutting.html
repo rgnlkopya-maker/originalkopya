@@ -42,4 +42,29 @@
 </div></div>
 {% endblock %}
 
-{% block extra_js %}<script>function cutFilter(input){const normalize=s=>s.toLocaleLowerCase('tr').normalize('NFD').replace(/[\\u0300-\\u036f]/g,'').replace(/ı/g,'i').replace(/[^\\p{L}\\p{N}]+/gu,' ').trim();const words=normalize(input.value).split(/\\s+/).filter(Boolean);input.closest('form').querySelectorAll('.cut-option').forEach(el=>{const haystack=normalize(el.dataset.search||'');el.hidden=!words.every(word=>haystack.includes(word));el.style.display=el.hidden?'none':'flex'})}function cutCount(input){const form=input.closest('form');const count=form.querySelectorAll('input[name="order_ids"]:checked').length;form.querySelector('.cut-selected').textContent=count+' sipariş seçildi'}</script>{% endblock %}
+{% block extra_js %}
+<script>
+function cutNormalize(value) {
+  return String(value || '').toLocaleLowerCase('tr-TR')
+    .replace(/ı/g, 'i').replace(/ğ/g, 'g').replace(/ü/g, 'u')
+    .replace(/ş/g, 's').replace(/ö/g, 'o').replace(/ç/g, 'c');
+}
+function cutFilter(input) {
+  var form = input.closest('form');
+  if (!form) return;
+  var words = cutNormalize(input.value).trim().split(/\s+/).filter(Boolean);
+  var items = form.querySelectorAll('.cut-option');
+  for (var i = 0; i < items.length; i++) {
+    var item = items[i];
+    var text = cutNormalize(item.getAttribute('data-search') || item.textContent);
+    var match = words.every(function(word) { return text.indexOf(word) !== -1; });
+    item.style.display = match ? 'flex' : 'none';
+  }
+}
+function cutCount(input) {
+  var form = input.closest('form');
+  form.querySelector('.cut-selected').textContent =
+    form.querySelectorAll('input[name="order_ids"]:checked').length + ' sipariş seçildi';
+}
+</script>
+{% endblock %}
