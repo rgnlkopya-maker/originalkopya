@@ -4,6 +4,7 @@ Never generate SQL from model output; all queries use Django ORM.
 """
 import re
 from django.db.models import Count, Sum, Q
+from django.db.models.functions import ExtractYear
 from app_settings.access import has_access, data_scope_value
 from core.models import Order
 
@@ -17,6 +18,8 @@ def order_analysis(user, question):
     if data_scope_value(user, "orders") == "active_only":
         qs = qs.filter(is_active=True)
     words = re.findall(r"(?<!\w)[A-Za-z0-9_-]*\d{3,8}[A-Za-z0-9_-]*(?!\w)", question or "")
+    years = sorted({int(w) for w in words if w.isdecimal() and 2000 <= int(w) <= 2100})
+    words = [w for w in words if not (w.isdecimal() and 2000 <= int(w) <= 2100)]
     if words:
         terms = words[:4]
         condition = Q()
@@ -26,6 +29,9 @@ def order_analysis(user, question):
         filter_label = ", ".join(terms)
     else:
         filter_label = "tüm siparişler (izin verilen kapsam)"
+    if years:
+        qs = qs.filter(siparis_tarihi__year__in=years)
+        filter_label += "; yillar=" + ", ".join(map(str, years))
     count = qs.count()
     total = qs.aggregate(adet=Sum("adet"))["adet"] or 0
     lines = [
@@ -38,6 +44,13 @@ def order_analysis(user, question):
                .order_by("-adet", "-kayit", "musteri__ad")[:MAX_GROUPS])
     for group in grouped:
         lines.append(f"- {group['musteri__ad'] or 'Musterisiz'}: {group['adet'] or 0} adet; {group['kayit']} kayit")
+    if count:
+        lines.append("Siparis yilina gore tum eslesen kayitlar:")
+        annual = (qs.annotate(yil=ExtractYear("siparis_tarihi"))
+                  .values("yil").annotate(adet=Sum("adet"), kayit=Count("id"))
+                  .order_by("-yil")[:15])
+        for item in annual:
+            lines.append(f"- {item['yil'] or 'Tarihsiz'}: {item['adet'] or 0} adet; {item['kayit']} kayit")
     if count and has_access(user, "can_view_costs"):
         lines.append("Para birimine gore satis fiyati toplami (birim fiyat x adet):")
         from django.db.models import F, DecimalField, ExpressionWrapper
