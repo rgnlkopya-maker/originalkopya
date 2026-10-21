@@ -4,6 +4,7 @@
 .cut-wrap{max-width:1600px;margin:24px auto;padding:0 16px}.cut-header{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:20px}.cut-nav{display:flex;gap:12px;align-items:center}.cut-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px}.cut-day{border:1px solid #e2e8f0;border-radius:12px;background:#fff;min-width:0;padding:12px}.cut-day h3{font-size:16px;font-weight:800}.cut-row{display:block;border:1px solid #e2e8f0;border-radius:8px;padding:9px;margin:9px 0;text-decoration:none;color:#172033;background:#f8fafc}.cut-row:hover{background:#eaf2ff}.cut-meta{font-size:12px;color:#64748b}.cut-total{font-weight:800;color:#155e75}.cut-summary{font-size:12px;border-top:1px solid #e2e8f0;padding-top:9px}.cut-plan{display:flex;align-items:center;justify-content:space-between;gap:4px}.cut-remove{border:0;background:transparent;color:#b91c1c}.cut-add{width:100%;margin-top:12px}.cut-form{display:none;margin-top:10px}.cut-form.open{display:block}.cut-form select,.cut-form input{width:100%;margin:4px 0;padding:6px;border:1px solid #cbd5e1;border-radius:6px}@media(max-width:1050px){.cut-grid{grid-template-columns:repeat(2,minmax(0,1fr));overflow:visible}.cut-day{min-width:0}}@media(max-width:767px){.cut-wrap{max-width:none;width:100%;margin:12px 0;padding:0 8px}.cut-header{display:block;margin-bottom:12px}.cut-header h1{font-size:23px;margin-bottom:5px}.cut-nav{display:grid;grid-template-columns:1fr 1fr 1fr;gap:5px;margin-top:12px}.cut-nav .btn{font-size:12px;line-height:1.2;padding:9px 3px;white-space:normal}.cut-grid{display:grid;grid-template-columns:minmax(0,1fr);gap:10px;overflow:visible}.cut-day{width:100%;min-width:0;padding:12px}.cut-row{overflow-wrap:anywhere}.cut-plan{min-width:0}.cut-plan small{overflow-wrap:anywhere}.cut-summary{margin-top:12px}}
 @media(max-width:1050px){.cut-grid{display:grid!important;grid-template-columns:minmax(0,1fr)!important;overflow:visible!important}.cut-day{min-width:0!important;width:100%}.cut-wrap{max-width:none;width:100%;margin:10px auto;padding:0 8px}.cut-header h1{font-size:22px}.cut-nav{gap:6px}.cut-nav .btn{font-size:12px;padding:7px 5px}}
 .cut-picker{max-height:310px;overflow-y:auto;border:1px solid #dce3eb;border-radius:9px;padding:5px}.cut-option{display:flex;gap:9px;align-items:flex-start;padding:9px 6px;border-bottom:1px solid #edf0f4;cursor:pointer;overflow-wrap:anywhere}.cut-option:last-child{border:0}.cut-option input{width:17px;flex:0 0 17px;margin-top:3px}.cut-option strong{display:block;font-size:13px}.cut-option small{display:block;color:#475569;font-size:12px}.cut-search{width:100%;border:1px solid #cbd5e1;border-radius:8px;padding:9px;margin:8px 0}.cut-selected{font-size:12px;font-weight:700;color:#155e75}
+.cut-items{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px 8px;margin:10px 0}.cut-column{min-width:0;display:flex;flex-direction:column;gap:4px}.cut-compact{display:flex;align-items:center;justify-content:space-between;gap:4px;width:100%;padding:6px 5px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:5px;color:#172033;text-align:left;font-size:11px;line-height:1.25;cursor:pointer}.cut-compact:hover{background:#eaf2ff}.cut-compact-label{min-width:0;overflow-wrap:anywhere}.cut-compact-count{flex:none;font-weight:800;color:#155e75}.cut-detail-dialog{border:0;border-radius:12px;padding:16px;max-width:min(440px,94vw);width:100%;box-shadow:0 16px 55px #0003}.cut-detail-dialog::backdrop{background:#0f172a88}.cut-detail-dialog h4{font-size:17px;margin-bottom:10px}.cut-dialog-close{float:right;border:0;background:transparent;font-size:22px}.cut-dialog-order{display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #e2e8f0;padding:7px 0;gap:10px}.cut-dialog-order small{overflow-wrap:anywhere}@media(max-width:1050px){.cut-items{grid-template-columns:repeat(2,minmax(0,1fr))}}
 </style>
 {% endblock %}
 {% block content %}
@@ -13,13 +14,28 @@
 {% for col in columns %}
 <section class="cut-day">
 <h3>{{ col.date|date:"l d.m.Y" }}</h3><div class="cut-total">{{ col.total }} adet</div>
+<div class="cut-items">
 {% for row in col.rows %}
-<a class="cut-row" href="{% url 'order_list' %}?{% for oid in row.order_ids %}cut_order_id={{ oid }}&{% endfor %}active=all">
-<strong>{{ row.product|default:"—" }}</strong><div>{{ row.color|default:"—" }} · {{ row.size|default:"—" }} beden</div><strong>{{ row.quantity }} adet ↗</strong></a>
-{% if can_edit %}{% for plan in row.plans %}
-<div class="cut-plan"><small>#{{ plan.order.siparis_numarasi }} · {{ plan.quantity }} adet</small><form method="post" action="{% url 'serial_cutting_remove' plan.id %}">{% csrf_token %}<button class="cut-remove" title="Plandan çıkar" onclick="return confirm('Bu kesim planını kaldırmak istiyor musunuz?')">×</button></form></div>
-{% endfor %}{% endif %}
+{% if forloop.counter0|divisibleby:3 %}<div class="cut-column">{% endif %}
+<button type="button" class="cut-compact" onclick="document.getElementById('cut-detail-{{ forloop.parentloop.counter }}-{{ forloop.counter }}').showModal()" aria-label="{{ row.product }} {{ row.color }} {{ row.size }} detaylarını göster">
+<span class="cut-compact-label">{{ row.product|default:"—" }} · {{ row.color|default:"—" }} · {{ row.size|default:"—" }}</span><span class="cut-compact-count">{{ row.quantity }}</span>
+</button>
+{% if forloop.counter|divisibleby:3 or forloop.last %}</div>{% endif %}
 {% empty %}<p class="cut-meta">Henüz plan yok.</p>{% endfor %}
+</div>
+{% for row in col.rows %}
+<dialog class="cut-detail-dialog" id="cut-detail-{{ forloop.parentloop.counter }}-{{ forloop.counter }}">
+<button type="button" class="cut-dialog-close" onclick="this.closest('dialog').close()" aria-label="Kapat">×</button>
+<h4>{{ row.product|default:"—" }} · {{ row.color|default:"—" }} · {{ row.size|default:"—" }}</h4>
+<p>{{ row.quantity }} adet / sipariş</p>
+{% for plan in row.plans %}
+<div class="cut-dialog-order"><small>{{ plan.order.musteri.ad|default:"Firma belirtilmemiş" }} · {{ plan.order.aciklama|default:"Açıklama yok"|truncatechars:70 }}</small>
+{% if can_edit %}<form method="post" action="{% url 'serial_cutting_remove' plan.id %}">{% csrf_token %}<button class="cut-remove" type="submit" onclick="return confirm('Bu kesim planını kaldırmak istiyor musunuz?')">Sil</button></form>{% endif %}
+</div>
+{% endfor %}
+<a class="btn btn-sm btn-outline-primary mt-3" href="{% url 'order_list' %}?{% for oid in row.order_ids %}cut_order_id={{ oid }}&{% endfor %}active=all">Siparişleri görüntüle</a>
+</dialog>
+{% endfor %}
 <div class="cut-summary"><strong>Ürün toplamları</strong>{% for product,total in col.products %}<div>{{ product|default:"—" }}: {{ total }} adet</div>{% empty %}<div>—</div>{% endfor %}</div>
 {% if can_edit %}
 <button type="button" class="btn btn-sm btn-outline-primary cut-add" onclick="this.nextElementSibling.classList.toggle('open')">+ Sipariş ekle</button>
