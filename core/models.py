@@ -819,3 +819,15 @@ class ProductionStageControlExclusion(models.Model):
 
     def __str__(self):
         return f"{self.order.siparis_numarasi} · {self.get_control_type_display()}"
+
+
+class AssistantConversation(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="moli_assistant_conversations")
+    title = models.CharField(max_length=120, default="Yeni konuşma")
+    mode = models.CharField(max_length=16, choices=[("moli", "Moli Verileri"), ("general", "Genel Sohbet")], default="moli")
+    messages = models.JSONField(default=list, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-updated_at", "-id"]
