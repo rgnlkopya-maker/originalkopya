@@ -13,7 +13,7 @@
         <div class="ai-title"><span class="ai-icon"><i class="bi bi-robot"></i></span><span>Moli Asistan</span></div>
         <div class="ai-sub">Sohbet eder, Moli verilerini okur ve yorumlar; hiçbir veriyi değiştirmez.</div>
       </div>
-      <button type="button" id="clearChat" class="clear-btn"><i class="bi bi-trash3"></i> Sohbeti Temizle</button>
+      <label style="display:inline-flex;align-items:center;gap:7px;margin-right:12px;font-size:13px">Model <select id="assistantProvider" aria-label="Yapay zeka modeli" style="border:1px solid #cbd5e1;border-radius:8px;padding:7px"><option value="gemini">Gemini (mevcut)</option><option value="openai">ChatGPT (test)</option></select></label><button type="button" id="clearChat" class="clear-btn"><i class="bi bi-trash3"></i> Sohbeti Temizle</button>
     </div>
 
     <div class="quick-row">
@@ -51,6 +51,7 @@
   const input=document.getElementById('messageInput');
   const send=document.getElementById('sendButton');
   const clear=document.getElementById('clearChat');
+  const provider=document.getElementById('assistantProvider');
 
   function getCookie(name){
     const value=`; ${document.cookie}`;
@@ -70,7 +71,7 @@
     add(message,'user');input.value='';send.disabled=true;
     const waiting=add('Düşünüyorum…','ai',true);
     try{
-      const res=await fetch('{% url "ai_assistant_api" %}',{method:'POST',headers:{'Content-Type':'application/json','X-CSRFToken':csrf},credentials:'same-origin',body:JSON.stringify({message})});
+      const res=await fetch('{% url "ai_assistant_api" %}',{method:'POST',headers:{'Content-Type':'application/json','X-CSRFToken':csrf},credentials:'same-origin',body:JSON.stringify({message,provider:provider.value})});
       const raw=await res.text();
       let data={};
       try{data=JSON.parse(raw);}catch(_){throw new Error(`HTTP ${res.status}`);}
