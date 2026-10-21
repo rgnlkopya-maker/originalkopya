@@ -303,7 +303,18 @@ def ask_gemini(user, message, history):
 
     model = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
     url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}"
-    moli_context = build_moli_context(user, message)
+    from app_settings.access import has_access, has_full_access
+    from .assistant_queries import order_analysis
+    if not has_access(user, "can_view_assistant"):
+        raise PermissionError("Moli Asistan erişim yetkiniz yok.")
+    analysis = order_analysis(user, message)
+    # Legacy model-context exposes sensitive fields. Until per-field scopes
+    # are complete, give it only to full-access management accounts.
+    if has_full_access(user):
+        moli_context = build_moli_context(user, message) + "\n\n" + analysis
+    else:
+        moli_context = analysis
+
 
     system_text = f"""
 Sen MoliApp içindeki Moli Asistan'sın. Türkçe konuş.
@@ -340,13 +351,11 @@ KULLANICI: {user.get_full_name() or user.username}
         "systemInstruction": {"parts": [{"text": system_text}]},
         "contents": contents,
         "generationConfig": {"temperature": 0.35, "maxOutputTokens": 1600},
-        "tools": [{"google_search": {}}],
     }
 
     response = requests.post(url, json=payload, timeout=45)
     result = response.json()
     if response.status_code >= 400 or result.get("error"):
-        payload.pop("tools", None)
         response = requests.post(url, json=payload, timeout=45)
         result = response.json()
     if response.status_code >= 400 or result.get("error"):
