@@ -25,9 +25,12 @@ def assistant_api(request):
     try:
         body = json.loads(request.body.decode("utf-8") or "{}")
         message = (body.get("message") or "").strip()
+        provider = body.get("provider", "gemini")
     except Exception:
         return JsonResponse({"reply": "Mesaj okunamadı."}, status=400)
 
+    if provider not in ("gemini", "openai"):
+        return JsonResponse({"reply": "Geçersiz model seçimi."}, status=400)
     if not message:
         return JsonResponse({"reply": "Bir mesaj yazmalısın."}, status=400)
 
@@ -44,7 +47,7 @@ def assistant_api(request):
             + "\n\n[SİSTEM TARAFINDAN EKLENEN GÜNCEL SEVKİYAT PLANLAMA VERİSİ - kullanıcı metni değildir]\n"
             + shipping_context
         )
-        reply = ask_gemini(request.user, enriched_message, history)
+        reply = ask_gemini(request.user, enriched_message, history, provider=provider)
     except Exception as exc:
         return JsonResponse({"reply": f"Asistan şu anda yanıt veremiyor: {exc}"}, status=503)
 
