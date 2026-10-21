@@ -69,31 +69,31 @@
 <div class="ai-wrap"><div class="ai-shell" id="aiShell">
 <aside class="ai-sidebar" id="aiSidebar">
  <div class="side-top"><div class="side-brand"><div class="side-logo"><i class="bi bi-stars"></i></div><span>Moli Asistan</span></div><div class="side-hint">İşletmenizin dijital çalışma alanı</div>
- <button class="new-thread" id="newThread"><i class="bi bi-plus-lg"></i> Yeni konuşma</button></div>
- <div class="side-label">Konuşmalarım</div>
+ <button class="new-thread" id="newThread"><i class="bi bi-plus-lg"></i> Yeni konuşma</button><div style="display:flex;gap:7px;margin-top:9px"><button id="newMoli" type="button" class="quick" style="flex:1;justify-content:center;padding:8px">Moli Verileri</button><button id="newGeneral" type="button" class="quick" style="flex:1;justify-content:center;padding:8px">Genel Sohbet</button></div></div>
+ <div class="side-label">Konuşmalarım</div><form method="get" style="padding:0 13px 12px"><input type="search" name="q" value="{{ search_query|default:'' }}" placeholder="Konuşmalarda ara..." aria-label="Konuşmalarda ara" style="width:100%;padding:10px 12px;border-radius:10px;border:1px solid #507086;background:#18354d;color:white;font-size:12px"></form>
  <div class="thread-list" id="threadList">
  {% for item in assistant_threads %}
- <div class="thread-item {% if item.active %}active{% endif %}"><button class="thread-link" type="button" data-thread="{{ item.id }}"><i class="bi bi-chat-left-text"></i><span>{{ item.title }}</span></button><button class="thread-remove" type="button" data-delete="{{ item.id }}" title="Konuşmayı sil" aria-label="Konuşmayı sil"><i class="bi bi-x-lg"></i></button></div>
+ <div class="thread-item {% if item.active %}active{% endif %}"><button class="thread-link" type="button" data-thread="{{ item.id }}"><i class="bi {% if item.mode == 'general' %}bi-chat-dots{% else %}bi-database{% endif %}"></i><span>{{ item.title }}</span></button><button class="thread-remove" type="button" data-delete="{{ item.id }}" title="Konuşmayı sil" aria-label="Konuşmayı sil"><i class="bi bi-x-lg"></i></button></div>
  {% empty %}<div style="font-size:12px;color:#819bb0;padding:8px 13px">Henüz kayıtlı konuşma yok.</div>{% endfor %}
  </div>
  <div class="side-foot"><i class="bi bi-shield-check"></i> Yetkili, güvenli veri erişimi</div>
 </aside>
 <section class="ai-main">
  <header class="ai-head"><div class="ai-head-info"><button class="mobile-menu" id="mobileThreadToggle" type="button" aria-label="Konuşmaları aç"><i class="bi bi-list"></i></button><div><div class="ai-title">Moli Asistan</div><div class="ai-sub">Sorun, araştırın, karşılaştırın</div></div></div>
- <div style="display:flex;align-items:center;gap:9px"><span class="ai-status">OpenAI</span><button type="button" id="clearChat" class="clear-btn" title="Mevcut konuşmayı temizle"><i class="bi bi-eraser"></i> Temizle</button></div></header>
+ <div style="display:flex;align-items:center;gap:9px"><span class="ai-status">{% if active_mode == "general" %}Genel Sohbet{% else %}Moli Verileri{% endif %} · OpenAI</span><button type="button" id="clearChat" class="clear-btn" title="Mevcut konuşmayı temizle"><i class="bi bi-eraser"></i> Temizle</button></div></header>
  <div class="chat" id="chatBox"><div class="chat-inner" id="chatInner">
  {% if assistant_history %}
  {% for item in assistant_history %}
  <div class="msg-row {% if item.role == 'assistant' %}ai{% else %}user{% endif %}"><div class="msg-avatar"><i class="bi {% if item.role == 'assistant' %}bi-stars{% else %}bi-person{% endif %}"></i></div><div class="bubble">{{ item.content }}</div></div>
  {% endfor %}
  {% else %}
- <div class="welcome" id="welcome"><div class="welcome-mark"><i class="bi bi-stars"></i></div><h2>Bugün ne üzerinde çalışalım?</h2><p>MoliApp verilerini araştırabilir, siparişleri karşılaştırabilir ve işletmenizle ilgili soruları yanıtlayabilirim.</p>
- <div class="quick-grid">
+ <div class="welcome" id="welcome"><div class="welcome-mark"><i class="bi bi-stars"></i></div><h2>Bugün ne üzerinde çalışalım?</h2><p>{% if active_mode == "general" %}Teknoloji, günlük yaşam, fikirler ve istediğiniz her konuda konuşabiliriz. Bu sohbet MoliApp verilerini kullanmaz.{% else %}MoliApp verilerini araştırabilir, siparişleri karşılaştırabilir ve işletmenizle ilgili soruları yanıtlayabilirim.{% endif %}</p>
+ {% if active_mode != "general" %}<div class="quick-grid">
  <button class="quick" data-text="Bugünü yönetici özeti olarak kısaca anlat: yeni ve açık siparişler, gecikenler, yaklaşan teslimler, planlanan sevkiyatlar."><i class="bi bi-activity"></i> Bugünü özetle</button>
  <button class="quick" data-text="8077 kodlu ürünün tüm siparişlerini müşterilere göre grupla ve yıllık dağılımını göster."><i class="bi bi-search"></i> Sipariş araştır</button>
  <button class="quick" data-text="Teslim tarihi geçmiş ama sevk edilmemiş siparişleri listele."><i class="bi bi-calendar-check"></i> Geciken siparişler</button>
  <button class="quick" data-text="Önümüzdeki 7 günün sevkiyat planını müşteri ve adet bazında özetle."><i class="bi bi-truck"></i> Sevkiyat planı</button>
- </div></div>
+ </div>{% endif %}</div>
  {% endif %}
  </div></div>
  <div class="composer-wrap"><div class="composer"><textarea id="messageInput" placeholder="Moli Asistan'a bir şey sor..." rows="1" maxlength="6000" aria-label="Mesaj"></textarea><button id="sendButton" class="send-btn" type="button" title="Gönder" aria-label="Gönder"><i class="bi bi-arrow-up"></i></button></div><div class="composer-note"><span>Enter: gönder · Shift + Enter: yeni satır</span><span>İşlem yapma yetkisi henüz etkin değil</span></div></div>
@@ -113,12 +113,14 @@ function add(text,role,thinking){
   else{bubble.textContent=text}
   row.append(avatar,bubble);inner.append(row);box.scrollTop=box.scrollHeight;return row;
 }
-async function action(action,id){
-  const res=await fetch('{% url "ai_assistant_threads" %}',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json','X-CSRFToken':csrf},body:JSON.stringify({action:action,id:id})});
+async function action(action,id,mode){
+  const res=await fetch('{% url "ai_assistant_threads" %}',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json','X-CSRFToken':csrf},body:JSON.stringify({action:action,id:id,mode:mode})});
   if(!res.ok)throw new Error('İşlem gerçekleştirilemedi');
   location.reload();
 }
-document.getElementById('newThread').addEventListener('click',()=>{if(!busy)action('new').catch(()=>alert('Yeni konuşma açılamadı.'))});
+document.getElementById('newThread').addEventListener('click',()=>{if(!busy)action('new',null,'moli').catch(()=>alert('Yeni konuşma açılamadı.'))});
+document.getElementById('newMoli').addEventListener('click',()=>{if(!busy)action('new',null,'moli').catch(()=>alert('Yeni konuşma açılamadı.'))});
+document.getElementById('newGeneral').addEventListener('click',()=>{if(!busy)action('new',null,'general').catch(()=>alert('Yeni konuşma açılamadı.'))});
 document.querySelectorAll('[data-thread]').forEach(btn=>btn.addEventListener('click',()=>{if(!busy)action('open',btn.dataset.thread).catch(()=>alert('Konuşma açılamadı.'))}));
 document.querySelectorAll('[data-delete]').forEach(btn=>btn.addEventListener('click',()=>{if(!busy&&confirm('Bu konuşmayı silmek istiyor musunuz?'))action('delete',btn.dataset.delete).catch(()=>alert('Konuşma silinemedi.'))}));
 document.getElementById('mobileThreadToggle').addEventListener('click',()=>document.getElementById('aiShell').classList.toggle('side-open'));
