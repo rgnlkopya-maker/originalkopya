@@ -2876,11 +2876,14 @@ def order_excel_export(request):
     from openpyxl.styles import Alignment, Font, PatternFill
     from openpyxl.utils import get_column_letter
 
-    from .services.order_status import STATUS_LABELS
+    from .order_list_enhanced import STAGE_TRANSLATIONS as STATUS_LABELS
+    from app_settings.access import data_scope_value
+    from .models import OrderFlag
 
     financial_stages = [
         "satis_fiyati",
         "ekstra_maliyet",
+        "maliyet_indirimi",
         "maliyet_override",
         "maliyet_uygulanan",
     ]
@@ -2893,10 +2896,14 @@ def order_excel_export(request):
     orders = Order.objects.select_related("musteri").annotate(
         latest_stage=Subquery(latest_event.values("stage")),
         latest_value=Subquery(latest_event.values("value")),
+        latest_parca=Subquery(latest_event.values("parca")),
         last_status_date=Subquery(
             latest_event.values("timestamp"), output_field=DateTimeField()
         ),
     )
+
+    if data_scope_value(request.user, "orders") == "active_only":
+        orders = orders.filter(is_active=True)
 
     selected_ids = [value for value in request.GET.getlist("ids") if value.isdigit()]
     if selected_ids:
@@ -2915,6 +2922,7 @@ def order_excel_export(request):
             "siparis_numarasi__in": request.GET.getlist("siparis_no"),
             "musteri__ad__in": request.GET.getlist("musteri"),
             "urun_kodu__in": request.GET.getlist("urun_kodu"),
+            "urun_tipi__in": request.GET.getlist("urun_tipi"),
             "renk__in": request.GET.getlist("renk"),
             "beden__in": request.GET.getlist("beden"),
             "siparis_tipi__in": request.GET.getlist("siparis_tipi"),
@@ -2923,6 +2931,25 @@ def order_excel_export(request):
         for field, values in list_filters.items():
             if values:
                 orders = orders.filter(**{field: values})
+
+        search = request.GET.get("q", "").strip()
+        if search:
+            search_fields = ("siparis_numarasi", "musteri__ad", "urun_kodu", "urun_tipi", "siparis_tipi", "musteri_referans", "renk", "beden", "aciklama", "latest_value")
+            for term in search.split():
+                query = Q()
+                for field in search_fields:
+                    query |= Q(**{field + "__icontains": term})
+                if term.isdigit():
+                    query |= Q(adet=int(term))
+                orders = orders.filter(query)
+
+        cut_ids = request.GET.getlist("cut_order_id")
+        if cut_ids:
+            try:
+                cut_ids = [int(value) for value in cut_ids if int(value) > 0]
+            except (TypeError, ValueError):
+                cut_ids = []
+            orders = orders.filter(id__in=cut_ids) if cut_ids else orders.none()
 
         status_values = request.GET.getlist("status")
         if status_values:
@@ -2938,6 +2965,49 @@ def order_excel_export(request):
             orders = orders.filter(teslim_tarihi__gte=start)
         if end:
             orders = orders.filter(teslim_tarihi__lte=end)
+
+    if not selected_ids:
+        date_filters = (
+            ("siparis_tarihi_baslangic", "siparis_tarihi__gte"),
+            ("siparis_tarihi_bitis", "siparis_tarihi__lte"),
+            ("son_durum_tarihi_baslangic", "last_status_date__date__gte"),
+            ("son_durum_tarihi_bitis", "last_status_date__date__lte"),
+        )
+        for param, field in date_filters:
+            value = request.GET.get(param, "").strip()
+            if value:
+                orders = orders.filter(**{field: value})
+        delivery = request.GET.get("teslim", "").strip()
+        today = timezone.localdate()
+        if delivery == "geciken":
+            orders = orders.filter(is_active=True, teslim_tarihi__lt=today).exclude(siparis_tipi="MALZEME").exclude(sevkiyat_durum="gonderildi")
+        elif delivery == "bugun":
+            orders = orders.filter(is_active=True, teslim_tarihi=today).exclude(siparis_tipi="MALZEME").exclude(sevkiyat_durum="gonderildi")
+        elif delivery == "3gun":
+            orders = orders.filter(is_active=True, teslim_tarihi__gt=today, teslim_tarihi__lte=today + timedelta(days=3)).exclude(siparis_tipi="MALZEME").exclude(sevkiyat_durum="gonderildi")
+        elif delivery == "1hafta":
+            orders = orders.filter(is_active=True, teslim_tarihi__gt=today + timedelta(days=3), teslim_tarihi__lte=today + timedelta(days=7)).exclude(siparis_tipi="MALZEME").exclude(sevkiyat_durum="gonderildi")
+        label_filter = request.GET.get("etiket", "").strip()
+        if label_filter == "printed":
+            orders = orders.filter(cikti_alindi=True)
+        elif label_filter == "unprinted":
+            orders = orders.filter(cikti_alindi=False)
+        quality = request.GET.get("kalite", "").strip()
+        if quality == "acik":
+            orders = orders.filter(quality_issues__durum="ACIK").distinct()
+        elif quality == "var":
+            orders = orders.filter(quality_issues__isnull=False).distinct()
+        elif quality == "yok":
+            orders = orders.filter(quality_issues__isnull=True)
+        if request.GET.get("bayrak") == "1":
+            flagged = OrderFlag.objects.filter(Q(created_by=request.user) | Q(notify_users=request.user), is_active=True).values_list("order_id", flat=True)
+            orders = orders.filter(id__in=flagged).distinct()
+        stage = request.GET.get("uretim_stage", "").strip()
+        value = request.GET.get("uretim_value", "").strip()
+        day = request.GET.get("uretim_tarih", "").strip()
+        if stage and value and day:
+            event_ids = OrderEvent.objects.filter(event_type="stage", stage=stage, value=value, timestamp__date=day).values_list("order_id", flat=True)
+            orders = orders.filter(id__in=event_ids).exclude(siparis_tipi="MALZEME")
 
     workbook = Workbook()
     sheet = workbook.active
