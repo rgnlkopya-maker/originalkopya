@@ -52,16 +52,27 @@ def _exchange(form):
         raw = exc.read(4096)
         content_type = (exc.headers.get("Content-Type") or "").split(";")[0].strip().lower()
         category = "unknown"
+        response_shape = "unknown"
         response_kind = "json" if content_type in ("application/json", "application/problem+json") else (
             "html" if content_type == "text/html" else "other"
         )
         if response_kind == "json":
             try:
                 data = json.loads(raw.decode("utf-8"))
-                value = data.get("error") if isinstance(data, dict) else None
-                if value in ("invalid_grant", "invalid_client", "invalid_request",
-                             "unauthorized_client", "unsupported_grant_type", "access_denied"):
-                    category = value
+                if isinstance(data, dict):
+                    # Report keys, not their potentially sensitive values.
+                    allowed_keys = ("error", "error_description", "message", "errors", "detail", "status", "code")
+                    response_shape = ",".join(k for k in allowed_keys if k in data) or "other_keys"
+                    value = data.get("error")
+                    if value in ("invalid_grant", "invalid_client", "invalid_request",
+                                 "unauthorized_client", "unsupported_grant_type", "access_denied"):
+                        category = value
+                    elif isinstance(data.get("errors"), list):
+                        category = "errors_array"
+                    elif any(k in data for k in ("message", "detail", "error_description")):
+                        category = "message_without_oauth_code"
+                elif isinstance(data, list):
+                    response_shape = "array"
             except (ValueError, UnicodeDecodeError):
                 response_kind = "invalid_json"
         # Header values may carry credentials or user data; report presence only.
@@ -69,7 +80,7 @@ def _exchange(form):
         present = ",".join(name for name in diagnostic_headers if exc.headers.get(name)) or "none"
         raise ParasutOAuthError(
             f"Token endpoint HTTP {exc.code}; OAuth hata türü: {category}; "
-            f"yanıt türü: {response_kind}; tanı başlıkları: {present}."
+            f"yanıt türü: {response_kind}; JSON alanları: {response_shape}; tanı başlıkları: {present}."
         ) from None
     except (URLError, TimeoutError, ValueError):
         raise ParasutOAuthError("Paraşüt OAuth servisine erişilemedi veya geçersiz yanıt alındı.") from None
