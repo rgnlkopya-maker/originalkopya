@@ -5,6 +5,7 @@ Only an operator-initiated authorization-code exchange is supported.
 """
 import json
 import os
+import re
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 from urllib.error import HTTPError, URLError
@@ -52,6 +53,7 @@ def _exchange(form):
         raw = exc.read(4096)
         content_type = (exc.headers.get("Content-Type") or "").split(";")[0].strip().lower()
         category = "unknown"
+        safe_detail = ""
         response_shape = "unknown"
         response_kind = "json" if content_type in ("application/json", "application/problem+json") else (
             "html" if content_type == "text/html" else "other"
@@ -63,6 +65,18 @@ def _exchange(form):
                     # Report keys, not their potentially sensitive values.
                     allowed_keys = ("error", "error_description", "message", "errors", "detail", "status", "code")
                     response_shape = ",".join(k for k in allowed_keys if k in data) or "other_keys"
+                    detail = data.get("detail")
+                    if isinstance(detail, str):
+                        cleaned = detail
+                        for secret in (client_id, client_secret, form.get("code", ""), form.get("refresh_token", "")):
+                            if secret and len(secret) >= 5:
+                                cleaned = cleaned.replace(secret, "[GIZLI]")
+                        if (len(cleaned) <= 350
+                                and not re.search(r"(?i)(bearer\s+\S+|(?:access|refresh)[_-]?token\s*[:=]|client[_-]?secret\s*[:=]|eyJ[A-Za-z0-9_-]{15,}|[A-Za-z0-9_-]{45,})", cleaned)
+                                and not any(ch in cleaned for ch in ("<", ">", "\r", "\n"))):
+                            safe_detail = cleaned
+                        else:
+                            safe_detail = "[Hassas veya uzun yanit gizlendi]"
                     value = data.get("error")
                     if value in ("invalid_grant", "invalid_client", "invalid_request",
                                  "unauthorized_client", "unsupported_grant_type", "access_denied"):
@@ -80,7 +94,8 @@ def _exchange(form):
         present = ",".join(name for name in diagnostic_headers if exc.headers.get(name)) or "none"
         raise ParasutOAuthError(
             f"Token endpoint HTTP {exc.code}; OAuth hata türü: {category}; "
-            f"yanıt türü: {response_kind}; JSON alanları: {response_shape}; tanı başlıkları: {present}."
+            f"yanıt türü: {response_kind}; JSON alanları: {response_shape}; "
+            f"Paraşüt açıklaması: {safe_detail or 'yok'}; tanı başlıkları: {present}."
         ) from None
     except (URLError, TimeoutError, ValueError):
         raise ParasutOAuthError("Paraşüt OAuth servisine erişilemedi veya geçersiz yanıt alındı.") from None
