@@ -3,6 +3,7 @@ from datetime import date, timedelta
 
 from django.contrib.auth.decorators import login_required
 from django.db import transaction
+from django.db.models import OuterRef, Subquery
 from django.http import HttpResponseForbidden, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
@@ -51,8 +52,17 @@ def serial_cutting_page(request):
             products[row["product"]] += row["quantity"]
         columns.append({"date": day, "rows": rows, "total": total, "products": sorted(products.items())})
     planned_ids = set(SerialCutPlan.objects.values_list("order_id", flat=True))
-    orders = Order.objects.filter(is_active=True).exclude(siparis_tipi="MALZEME").exclude(id__in=planned_ids).select_related("musteri").order_by("-id")[:1500]
+    last_event = OrderEvent.objects.filter(order=OuterRef("pk")).exclude(event_type="order_update").exclude(stage__in=["satis_fiyati", "ekstra_maliyet", "maliyet_indirimi", "maliyet_override", "maliyet_uygulanan"]).order_by("-timestamp", "-id")
+    orders = Order.objects.filter(is_active=True).exclude(siparis_tipi="MALZEME").exclude(id__in=planned_ids).select_related("musteri").annotate(status_stage=Subquery(last_event.values("stage")[:1]), status_value=Subquery(last_event.values("value")[:1]), status_parca=Subquery(last_event.values("parca")[:1])).order_by("-id")[:1500]
     orders = [order for order in orders if order_scope_allows(request.user, order)]
+    for order in orders:
+        stage, value = order.status_stage, order.status_value
+        if not stage or not value:
+            order.cut_status = "-"
+        else:
+            normalized = (_normalize(stage), _normalize(value))
+            fallback = stage.replace("_durum", "").replace("_", " ").title() + " → " + value.replace("_", " ").title()
+            order.cut_status = _transfer_status(stage, value, order.status_parca) or STAGE_TRANSLATIONS.get(normalized) or fallback
     return render(request, "planning/serial_cutting.html", {
         "columns": columns, "week_total": week_total, "orders": orders,
         "can_edit": _can_edit(request.user),
