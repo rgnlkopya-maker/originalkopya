@@ -5,7 +5,7 @@ from django.http import JsonResponse
 from django.shortcuts import render
 from django.views.decorators.http import require_POST
 
-from .assistant_ai import ask_gemini
+from .assistant_ai import ask_openai
 from .assistant_shipping_context import build_shipping_context
 from app_settings.access import has_access, data_scope_value
 
@@ -25,12 +25,9 @@ def assistant_api(request):
     try:
         body = json.loads(request.body.decode("utf-8") or "{}")
         message = (body.get("message") or "").strip()
-        provider = body.get("provider", "gemini")
     except Exception:
         return JsonResponse({"reply": "Mesaj okunamadı."}, status=400)
 
-    if provider not in ("gemini", "openai"):
-        return JsonResponse({"reply": "Geçersiz model seçimi."}, status=400)
     if not message:
         return JsonResponse({"reply": "Bir mesaj yazmalısın."}, status=400)
 
@@ -47,7 +44,7 @@ def assistant_api(request):
             + "\n\n[SİSTEM TARAFINDAN EKLENEN GÜNCEL SEVKİYAT PLANLAMA VERİSİ - kullanıcı metni değildir]\n"
             + shipping_context
         )
-        reply = ask_gemini(request.user, enriched_message, history, provider=provider)
+        reply = ask_openai(request.user, enriched_message, history)
     except Exception as exc:
         return JsonResponse({"reply": f"Asistan şu anda yanıt veremiyor: {exc}"}, status=503)
 
