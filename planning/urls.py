@@ -3,6 +3,7 @@ from . import views, serial_cutting
 
 urlpatterns = [
     path('seri-kesim/', serial_cutting.serial_cutting_page, name='serial_cutting_page'),
+    path('seri-kesim/son-durumlar/', serial_cutting.serial_cutting_statuses, name='serial_cutting_statuses'),
     path('seri-kesim/ekle/', serial_cutting.serial_cutting_add, name='serial_cutting_add'),
     path('seri-kesim/<int:plan_id>/sil/', serial_cutting.serial_cutting_remove, name='serial_cutting_remove'),
     path("", views.planning_page, name="planning_page"),
