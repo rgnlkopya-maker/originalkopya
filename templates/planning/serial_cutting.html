@@ -7,13 +7,18 @@
 .cut-items{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px 8px;margin:10px 0}.cut-column{min-width:0;display:flex;flex-direction:column;gap:4px}.cut-compact{display:flex;align-items:center;justify-content:space-between;gap:4px;width:100%;padding:6px 5px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:5px;color:#172033;text-align:left;font-size:11px;line-height:1.25;cursor:pointer}.cut-compact:hover{background:#eaf2ff}.cut-compact-label{min-width:0;overflow-wrap:anywhere}.cut-compact-count{flex:none;font-weight:800;color:#155e75}.cut-detail-dialog{border:0;border-radius:12px;padding:16px;max-width:min(440px,94vw);width:100%;box-shadow:0 16px 55px #0003}.cut-detail-dialog::backdrop{background:#0f172a88}.cut-detail-dialog h4{font-size:17px;margin-bottom:10px}.cut-dialog-close{float:right;border:0;background:transparent;font-size:22px}.cut-dialog-order{display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #e2e8f0;padding:7px 0;gap:10px}.cut-dialog-order small{overflow-wrap:anywhere}@media(max-width:1050px){.cut-items{grid-template-columns:repeat(2,minmax(0,1fr))}}
 .cut-week-nav{display:flex;align-items:center;justify-content:space-between;gap:18px;background:#fff;border:1px solid #e2e8f0;border-radius:18px;padding:14px 20px;min-width:340px}.cut-week-arrow{display:flex;align-items:center;justify-content:center;width:48px;height:48px;border:1px solid #dbe3ed;border-radius:14px;text-decoration:none;color:#334155;font-size:22px;flex-shrink:0}.cut-week-arrow:hover{background:#f1f5f9}.cut-week-center{text-align:center;min-width:0}.cut-week-center strong{display:block;font-size:17px;color:#0f172a}.cut-week-center small{display:block;color:#64748b;font-size:14px;white-space:nowrap}.cut-excel{white-space:nowrap}@media(max-width:767px){.cut-week-nav{min-width:0;width:100%;padding:10px;gap:8px}.cut-week-arrow{width:42px;height:42px}.cut-week-center strong{font-size:15px}.cut-week-center small{font-size:12px}.cut-excel{width:100%}}
 .cut-excel{display:inline-flex;align-items:center;justify-content:center;gap:9px;min-height:45px;padding:10px 16px;border:1px solid #dbe2ef;border-radius:13px;background:#fff;color:#25395e;font-size:14px;font-weight:600;text-decoration:none;box-shadow:0 4px 12px rgba(30,41,59,.05);transition:background .15s,border-color .15s,box-shadow .15s}.cut-excel:hover{background:#f4f6ff;border-color:#c6d2ef;color:#1d3260;box-shadow:0 5px 14px rgba(30,41,59,.09)}.cut-excel i{font-size:18px;line-height:1}@media(max-width:767px){.cut-excel{width:auto;max-width:100%}}
+.cut-heading-actions{display:flex;align-items:center;gap:14px;flex-wrap:wrap}.cut-heading-actions strong{white-space:nowrap}.cut-heading-actions .cut-excel{min-height:36px;padding:7px 12px;font-size:13px;border-radius:10px}.cut-heading-actions .cut-excel i{font-size:16px}@media(max-width:767px){.cut-heading-actions{gap:10px;margin-bottom:12px}}
 </style>
 {% endblock %}
 {% block content %}
 <div class="cut-wrap">
 <div class="cut-header">
-  <div><h1>Seri Kesim Planlama</h1><strong>Haftalık toplam: {{ week_total }} adet</strong></div>
-  <a class="cut-excel" href="{% url 'serial_cutting_weekly_excel' %}?date={{ week_start|date:'Y-m-d' }}" title="Seçili haftanın Excel dosyasını indir"><i class="bi bi-file-earmark-spreadsheet" aria-hidden="true"></i><span>Excel\'e Aktar</span></a>
+  <div class="cut-heading"><h1>Seri Kesim Planlama</h1>
+    <div class="cut-heading-actions">
+      <strong>Haftalık toplam: {{ week_total }} adet</strong>
+      <a class="cut-excel" href="{% url 'serial_cutting_weekly_excel' %}?date={{ week_start|date:'Y-m-d' }}" title="Seçili haftanın Excel dosyasını indir"><i class="bi bi-file-earmark-spreadsheet" aria-hidden="true"></i><span>Excel'e Aktar</span></a>
+    </div>
+  </div>
   <nav class="cut-week-nav" aria-label="Hafta seçimi">
     <a class="cut-week-arrow" href="?date={{ prev_date }}" aria-label="Önceki hafta">←</a>
     <div class="cut-week-center">
