@@ -40,12 +40,12 @@
 <button type="button" class="btn btn-sm btn-outline-primary cut-add" onclick="this.nextElementSibling.classList.toggle('open')">+ Sipariş ekle</button>
 <form class="cut-form" method="post" action="{% url 'serial_cutting_add' %}">{% csrf_token %}
 <input type="hidden" name="planned_date" value="{{ col.date|date:'Y-m-d' }}">
-<input class="cut-search" type="search" placeholder="Firma, ürün, renk, beden, açıklama ara..." oninput="cutFilter(this)">
+<input class="cut-search" type="search" placeholder="Firma, ürün, renk, beden, açıklama, son durum ara..." oninput="cutFilter(this)">
 <div class="cut-picker">
 {% for order in orders %}
-<label class="cut-option" data-search="{{ order.musteri.ad|default:''|lower }} {{ order.urun_kodu|default:''|lower }} {{ order.renk|default:''|lower }} {{ order.beden|default:''|lower }} {{ order.aciklama|default:''|lower }}">
+<label class="cut-option" data-search="{{ order.musteri.ad|default:''|lower }} {{ order.urun_kodu|default:''|lower }} {{ order.renk|default:''|lower }} {{ order.beden|default:''|lower }} {{ order.aciklama|default:''|lower }} {{ order.cut_status|lower }}">
 <input type="checkbox" name="order_ids" value="{{ order.id }}" onchange="cutCount(this)">
-<span><strong>{{ order.musteri.ad|default:"Firma belirtilmemiş" }} · {{ order.urun_kodu|default:"—" }}</strong><small>{{ order.renk|default:"—" }} · {{ order.beden|default:"—" }} beden</small><small>{{ order.aciklama|default:"Açıklama yok"|truncatechars:110 }}</small></span>
+<span><strong>{{ order.musteri.ad|default:"Firma belirtilmemiş" }} · {{ order.urun_kodu|default:"—" }}</strong><small>{{ order.renk|default:"—" }} · {{ order.beden|default:"—" }} beden</small><small>{{ order.aciklama|default:"Açıklama yok"|truncatechars:110 }}</small><small><strong>Son Durum:</strong> {{ order.cut_status }}</small></span>
 </label>
 {% empty %}<p class="cut-meta">Planlanabilecek sipariş bulunamadı.</p>{% endfor %}
 </div>
