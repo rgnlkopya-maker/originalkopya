@@ -160,7 +160,24 @@ def invoice_delete_empty(request, invoice_id):
         if invoice.status != "DRAFT" or invoice.lines.exists():
             messages.error(request, "Yalnızca boş taslak faturalar silinebilir.")
             return redirect("invoice_list")
+        if (_transfer_locked(invoice) or invoice.bizimhesap_manual_recorded or
+                invoice.parasut_manual_recorded):
+            messages.error(request, "Muhasebe sistemine aktarılmış veya işlenmiş fatura silinemez.")
+            return redirect("invoice_list")
+        # Protect even NOT_SENT transfer rows if they hold evidence of an external record.
+        if (BizimHesapInvoiceTransfer.objects.filter(invoice=invoice).exclude(
+                external_invoice_id="").exists() or
+                ParasutInvoiceTransfer.objects.filter(invoice=invoice).exclude(
+                external_invoice_id="").exists()):
+            messages.error(request, "Dış sistem belge bağlantısı bulunan fatura silinemez.")
+            return redirect("invoice_list")
+        # Empty, untransferred local drafts may have a reversal audit row
+        # (InvoiceStatusHistory.invoice uses PROTECT). Clear only these local rows.
+        invoice.status_history.all().delete()
+        BizimHesapInvoiceTransfer.objects.filter(invoice=invoice, status="NOT_SENT").delete()
+        ParasutInvoiceTransfer.objects.filter(invoice=invoice, status="NOT_SENT").delete()
         invoice.delete()
+    logging.getLogger(__name__).info("empty_invoice_deleted invoice_id=%s user_id=%s", invoice_id, request.user.pk)
     messages.success(request, "Boş fatura taslağı silindi.")
     return redirect("invoice_list")
 
