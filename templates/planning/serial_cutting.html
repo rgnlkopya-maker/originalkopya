@@ -9,7 +9,7 @@
 {% endblock %}
 {% block content %}
 <div class="cut-wrap">
-<div class="cut-header"><div><h1>Seri Kesim Planlama</h1><strong>Haftalık toplam: {{ week_total }} adet</strong></div><nav class="cut-nav"><a class="btn btn-outline-secondary" href="?date={{ prev_date }}">← Önceki hafta</a><a class="btn btn-outline-secondary" href="{% url 'serial_cutting_page' %}">Bu hafta</a><a class="btn btn-outline-secondary" href="?date={{ next_date }}">Sonraki hafta →</a></nav></div>
+<div class="cut-header"><div><h1>Seri Kesim Planlama</h1><strong>Haftalık toplam: {{ week_total }} adet</strong></div><nav class="cut-nav"><a class="btn btn-success" href="{% url 'serial_cutting_weekly_excel' %}?date={{ columns.0.date|date:'Y-m-d' }}">Haftalık Excel İndir</a><a class="btn btn-outline-secondary" href="?date={{ prev_date }}">← Önceki hafta</a><a class="btn btn-outline-secondary" href="{% url 'serial_cutting_page' %}">Bu hafta</a><a class="btn btn-outline-secondary" href="?date={{ next_date }}">Sonraki hafta →</a></nav></div>
 <div class="cut-grid">
 {% for col in columns %}
 <section class="cut-day">
