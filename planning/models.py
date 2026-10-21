@@ -48,3 +48,15 @@ class ShipmentPlan(models.Model):
 
     def __str__(self):
         return f"{self.order.siparis_numarasi} - {self.planned_date}"
+
+
+class SerialCutPlan(models.Model):
+    order = models.ForeignKey("core.Order", on_delete=models.CASCADE, related_name="serial_cut_plans")
+    planned_date = models.DateField(db_index=True)
+    quantity = models.PositiveIntegerField()
+    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["planned_date", "id"]
+        constraints = [models.UniqueConstraint(fields=["order", "planned_date"], name="unique_serial_cut_order_day")]

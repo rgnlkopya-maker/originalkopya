@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block extra_css %}
+<style>
+.cut-wrap{max-width:1600px;margin:24px auto;padding:0 16px}.cut-header{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:20px}.cut-nav{display:flex;gap:12px;align-items:center}.cut-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px}.cut-day{border:1px solid #e2e8f0;border-radius:12px;background:#fff;min-width:0;padding:12px}.cut-day h3{font-size:16px;font-weight:800}.cut-row{display:block;border:1px solid #e2e8f0;border-radius:8px;padding:9px;margin:9px 0;text-decoration:none;color:#172033;background:#f8fafc}.cut-row:hover{background:#eaf2ff}.cut-meta{font-size:12px;color:#64748b}.cut-total{font-weight:800;color:#155e75}.cut-summary{font-size:12px;border-top:1px solid #e2e8f0;padding-top:9px}.cut-plan{display:flex;align-items:center;justify-content:space-between;gap:4px}.cut-remove{border:0;background:transparent;color:#b91c1c}.cut-add{width:100%;margin-top:12px}.cut-form{display:none;margin-top:10px}.cut-form.open{display:block}.cut-form select,.cut-form input{width:100%;margin:4px 0;padding:6px;border:1px solid #cbd5e1;border-radius:6px}@media(max-width:1050px){.cut-grid{overflow-x:auto;display:flex}.cut-day{min-width:245px;flex:1}}
+</style>
+{% endblock %}
+{% block content %}
+<div class="cut-wrap">
+<div class="cut-header"><div><h1>Seri Kesim Planlama</h1><strong>Haftalık toplam: {{ week_total }} adet</strong></div><nav class="cut-nav"><a class="btn btn-outline-secondary" href="?date={{ prev_date }}">← Önceki hafta</a><a class="btn btn-outline-secondary" href="{% url 'serial_cutting_page' %}">Bu hafta</a><a class="btn btn-outline-secondary" href="?date={{ next_date }}">Sonraki hafta →</a></nav></div>
+<div class="cut-grid">
+{% for col in columns %}
+<section class="cut-day">
+<h3>{{ col.date|date:"l d.m.Y" }}</h3><div class="cut-total">{{ col.total }} adet</div>
+{% for row in col.rows %}
+<a class="cut-row" href="{% url 'order_list' %}?{% for oid in row.order_ids %}cut_order_id={{ oid }}&{% endfor %}active=all">
+<strong>{{ row.product|default:"—" }}</strong><div>{{ row.color|default:"—" }} · {{ row.size|default:"—" }} beden</div><strong>{{ row.quantity }} adet ↗</strong></a>
+{% if can_edit %}{% for plan in row.plans %}
+<div class="cut-plan"><small>#{{ plan.order.siparis_numarasi }} · {{ plan.quantity }} adet</small><form method="post" action="{% url 'serial_cutting_remove' plan.id %}">{% csrf_token %}<button class="cut-remove" title="Plandan çıkar" onclick="return confirm('Bu kesim planını kaldırmak istiyor musunuz?')">×</button></form></div>
+{% endfor %}{% endif %}
+{% empty %}<p class="cut-meta">Henüz plan yok.</p>{% endfor %}
+<div class="cut-summary"><strong>Ürün toplamları</strong>{% for product,total in col.products %}<div>{{ product|default:"—" }}: {{ total }} adet</div>{% empty %}<div>—</div>{% endfor %}</div>
+{% if can_edit %}
+<button type="button" class="btn btn-sm btn-outline-primary cut-add" onclick="this.nextElementSibling.classList.toggle('open')">+ Sipariş ekle</button>
+<form class="cut-form" method="post" action="{% url 'serial_cutting_add' %}">{% csrf_token %}
+<input type="hidden" name="planned_date" value="{{ col.date|date:'Y-m-d' }}">
+<select name="order_id" required><option value="">Sipariş seç</option>{% for order in orders %}<option value="{{ order.id }}">#{{ order.siparis_numarasi }} · {{ order.urun_kodu }} · {{ order.renk }} · {{ order.beden }} · {{ order.adet }} adet</option>{% endfor %}</select>
+<input type="number" name="quantity" min="1" required placeholder="Kesilecek adet">
+<button class="btn btn-primary btn-sm w-100" type="submit">Plana kaydet</button></form>
+{% endif %}
+</section>
+{% endfor %}
+</div></div>
+{% endblock %}

@@ -44,6 +44,7 @@
     {% if user|can_feature:'operations.production_stage_control' %}<li><a href="{% url 'production_stage_control' %}" class="dropdown-item {% if request.resolver_match.url_name == 'production_stage_control' %}active{% endif %}"><i class="bi bi-diagram-3"></i>Üretim Aşama Kontrolü</a></li>{% endif %}
     {% if user|is_management %}<li><a href="{% url 'smart_pattern_home' %}" class="dropdown-item {% if request.resolver_match.url_name == 'smart_pattern_home' or request.resolver_match.url_name == 'smart_pattern_order' %}active{% endif %}"><i class="bi bi-rulers"></i>Akıllı Kalıp</a></li>{% endif %}
     {% if user|can:'can_manage_planning' %}<li><a href="{% url 'shipment_planning_page' %}" class="dropdown-item {% if request.resolver_match.url_name == 'planning_page' or request.resolver_match.url_name == 'shipment_planning_page' %}active{% endif %}"><i class="bi bi-calendar3"></i>Planlama</a></li>{% endif %}
+    {% if user|can:'can_manage_planning' %}<li><a href="{% url 'serial_cutting_page' %}" class="dropdown-item"><i class="bi bi-scissors"></i>Seri Kesim Planı</a></li>{% endif %}
   </ul>
 </div>
 

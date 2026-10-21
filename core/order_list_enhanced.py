@@ -63,6 +63,13 @@ def order_list(request):
     if scope_orders == "active_only":
         base_qs = base_qs.filter(is_active=True)
     qs=base_qs
+    cut_ids = request.GET.getlist('cut_order_id')
+    if cut_ids:
+        try:
+            ids = [int(value) for value in cut_ids if int(value) > 0]
+        except (TypeError, ValueError):
+            ids = []
+        qs = qs.filter(id__in=ids) if ids else qs.none()
     active_values=_multi(request,"active") or ["1"]
     if "all" not in active_values and not ("1" in active_values and "0" in active_values):
         if "1" in active_values: qs=qs.filter(is_active=True)
