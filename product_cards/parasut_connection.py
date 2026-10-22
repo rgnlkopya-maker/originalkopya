@@ -20,7 +20,8 @@ def check_connection():
         raise ParasutConnectionError(str(exc)) from None
     request = Request(
         "https://api.parasut.com/v4/" + company + "/sales_invoices?page%5Bsize%5D=1",
-        headers={"Authorization": "Bearer " + token, "Accept": "application/json"},
+        headers={"Authorization": "Bearer " + token, "Accept": "application/json",
+                 "User-Agent": "MoliApp/1.0 (+https://originalkopya.onrender.com)"},
         method="GET",
     )
     try:
