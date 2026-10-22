@@ -10,7 +10,7 @@ from django.urls import reverse
 from django.utils import timezone
 from django.views.decorators.http import require_POST
 from app_settings.access import has_full_access
-from .models import SalaryProfile, SalaryPeriod, SalaryTransaction, SalaryRate
+from .models import SalaryProfile, SalaryPeriod, SalaryTransaction, SalaryRate, SalaryPaymentPlan
 
 ZERO = Decimal("0.00")
 MAX_AMOUNT = Decimal("99999999999.99")
@@ -98,6 +98,11 @@ def salary_dashboard(request):
     period_start, period_end = _bounds(year, month)
     profiles = {p.user_id: p for p in SalaryProfile.objects.filter(user__in=employees)}
     periods = {p.user_id: p for p in SalaryPeriod.objects.filter(year=year, month=month, user__in=employees).prefetch_related("transactions")}
+    plans = list(SalaryPaymentPlan.objects.filter(year=year, month=month, user__in=employees))
+    plans_by_user = {}
+    for plan in plans:
+        plans_by_user.setdefault(plan.user_id, []).append(plan)
+    total_planned = sum((p.amount for p in plans if not p.completed), ZERO)
     rows = []
     total_earned = total_paid = ZERO
     for user in employees:
@@ -109,12 +114,15 @@ def salary_dashboard(request):
         earned = base + adjustment - deduction
         paid = period.total_paid if period else ZERO
         rows.append({"user": user, "profile": profile, "period": period, "base": base, "earned": earned,
-                     "adjustment": adjustment, "deduction": deduction, "paid": paid, "remaining": earned - paid})
+                     "adjustment": adjustment, "deduction": deduction, "paid": paid, "remaining": earned - paid,
+                     "plans": plans_by_user.get(user.pk, []),
+                     "planned": sum((p.amount for p in plans_by_user.get(user.pk, []) if not p.completed), ZERO)})
         total_earned += earned
         total_paid += paid
     return render(request, "attendance_v2/salaries.html", {
         "rows": rows, "year": year, "month": month, "period_start": period_start, "period_end": period_end,
-        "total_earned": total_earned, "total_paid": total_paid, "total_remaining": total_earned-total_paid
+        "total_earned": total_earned, "total_paid": total_paid, "total_remaining": total_earned-total_paid,
+        "total_planned": total_planned
     })
 
 
@@ -261,3 +269,47 @@ def salary_action(request):
     except ValueError as e:
         messages.error(request, str(e))
     return redirect(back)
+
+
+@login_required
+@user_passes_test(has_full_access)
+@require_POST
+def salary_plan_action(request):
+    year, month = _period(request)
+    target = _back(year, month)
+    employee = get_object_or_404(User, pk=request.POST.get("user_id"), is_active=True, is_superuser=False)
+    if employee not in _salary_employees():
+        messages.error(request, "Personel maaş listesinde bulunmuyor.")
+        return redirect(target)
+    action = request.POST.get("action")
+    try:
+        with transaction.atomic():
+            if action == "create":
+                amount = _amount(request.POST.get("amount"), positive=True)
+                planned_on = date.fromisoformat(request.POST.get("planned_on") or "")
+                kind = request.POST.get("kind")
+                if kind not in ("advance", "payment"):
+                    raise ValueError("Planlanan ödeme türü geçersiz.")
+                SalaryPaymentPlan.objects.create(
+                    user=employee, year=year, month=month, planned_on=planned_on,
+                    amount=amount, kind=kind, note=(request.POST.get("note") or "")[:300],
+                    created_by=request.user,
+                )
+                messages.success(request, "Ödeme planı kaydedildi; maaş bakiyesi değişmedi.")
+            elif action in ("complete", "delete"):
+                plan = get_object_or_404(
+                    SalaryPaymentPlan.objects.select_for_update(),
+                    pk=request.POST.get("plan_id"), user=employee, year=year, month=month,
+                )
+                if action == "complete":
+                    plan.completed = True
+                    plan.save(update_fields=["completed"])
+                    messages.success(request, "Plan tamamlandı olarak işaretlendi. Gerçek ödeme ayrıca kaydedilmelidir.")
+                else:
+                    plan.delete()
+                    messages.success(request, "Ödeme planı kaldırıldı.")
+            else:
+                raise ValueError("Geçersiz plan işlemi.")
+    except (ValueError, TypeError) as exc:
+        messages.error(request, str(exc))
+    return redirect(target)
