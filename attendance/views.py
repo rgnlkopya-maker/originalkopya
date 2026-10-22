@@ -601,13 +601,14 @@ def dashboard(request):
 @user_passes_test(is_patron)
 @require_POST
 def edit_record(request):
-    username = (request.POST.get("approval_username") or "").strip()
     password = request.POST.get("approval_password") or ""
-    if not username or not password:
-        return JsonResponse({"ok": False, "message": "Patron veya müdür kullanıcı adı ve şifresi gerekli."}, status=403)
-    approver = authenticate(request, username=username, password=password)
-    if not (approver and approver.is_active and (approver.is_superuser or approver.groups.filter(name__iexact="patron").exists() or approver.groups.filter(name__iexact="mudur").exists())):
-        return JsonResponse({"ok": False, "message": "Patron veya müdür kimlik doğrulaması başarısız."}, status=403)
+    user = request.user
+    allowed = user.is_active and (user.is_superuser or user.groups.filter(name__iexact="patron").exists() or user.groups.filter(name__iexact="mudur").exists())
+    if not allowed:
+        return JsonResponse({"ok": False, "message": "Yalnızca patron veya müdür hesabı bu işlemi onaylayabilir."}, status=403)
+    if not password or not user.check_password(password):
+        return JsonResponse({"ok": False, "message": "Açık olan yönetici hesabının şifresi yanlış veya eksik."}, status=403)
+    approver = user
     workplace = WorkplaceSettings.get_solo(); target_user = get_object_or_404(User, pk=request.POST.get("user_id"))
     try: work_date = date.fromisoformat(request.POST.get("work_date", ""))
     except ValueError: return JsonResponse({"ok": False, "message": "Geçersiz tarih."}, status=400)
