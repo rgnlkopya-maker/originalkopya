@@ -170,17 +170,17 @@ def _recalculate(record, workplace):
     work_start = _local_dt(record.work_date, workplace.work_start)
     work_end = _local_dt(record.work_date, workplace.work_end)
     overtime_start = work_end
-    # Grace periods only affect penalties, never the actual punch timestamps.
+    # Grace periods affect late arrival and overtime only; timestamps are unchanged.
     if record.check_in and record.check_in > work_start:
         late_seconds = (record.check_in - work_start).total_seconds()
         if late_seconds > 3 * 60:
             record.late_minutes = max(0, math.ceil(late_seconds / 60))
     if record.check_out and record.check_out < work_end:
-        early_seconds = (work_end - record.check_out).total_seconds()
-        if early_seconds > 5 * 60:
-            record.early_leave_minutes = max(0, math.ceil(early_seconds / 60))
+        record.early_leave_minutes = max(0, math.ceil((work_end - record.check_out).total_seconds() / 60))
     if record.check_out and record.check_out > overtime_start:
-        record.overtime_minutes = max(0, math.ceil((record.check_out - overtime_start).total_seconds() / 60))
+        overtime_seconds = (record.check_out - overtime_start).total_seconds()
+        if overtime_seconds > 5 * 60:
+            record.overtime_minutes = max(0, math.ceil(overtime_seconds / 60))
 
 
 def _upload_report_image(uploaded_file, user_id, work_date):
