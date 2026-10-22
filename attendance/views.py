@@ -14,6 +14,10 @@ from django.conf import settings
 from django.core import signing
 from django.contrib import messages
 from django.contrib.auth import authenticate, login
+from django.contrib.admin.models import LogEntry, CHANGE
+from django.contrib.contenttypes.models import ContentType
+from django.db import transaction
+import json
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib.auth.models import User
 from django.http import HttpResponse, JsonResponse
@@ -597,6 +601,13 @@ def dashboard(request):
 @user_passes_test(is_patron)
 @require_POST
 def edit_record(request):
+    username = (request.POST.get("approval_username") or "").strip()
+    password = request.POST.get("approval_password") or ""
+    if not username or not password:
+        return JsonResponse({"ok": False, "message": "Patron veya müdür kullanıcı adı ve şifresi gerekli."}, status=403)
+    approver = authenticate(request, username=username, password=password)
+    if not (approver and approver.is_active and (approver.is_superuser or approver.groups.filter(name__iexact="patron").exists() or approver.groups.filter(name__iexact="mudur").exists())):
+        return JsonResponse({"ok": False, "message": "Patron veya müdür kimlik doğrulaması başarısız."}, status=403)
     workplace = WorkplaceSettings.get_solo(); target_user = get_object_or_404(User, pk=request.POST.get("user_id"))
     try: work_date = date.fromisoformat(request.POST.get("work_date", ""))
     except ValueError: return JsonResponse({"ok": False, "message": "Geçersiz tarih."}, status=400)
@@ -605,6 +616,7 @@ def edit_record(request):
     check_in_text = (request.POST.get("check_in") or "").strip(); check_out_text = (request.POST.get("check_out") or "").strip(); note = (request.POST.get("note") or "").strip(); uploaded_report = request.FILES.get("report_image")
     record = AttendanceRecord.objects.filter(user=target_user, work_date=work_date).first()
     if not check_in_text and not check_out_text and status == "worked" and not note and not uploaded_report and not record: return JsonResponse({"ok": True, "message": "Değişiklik yok."})
+    old_values = {"status": record.status if record else None, "check_in": record.check_in.isoformat() if record and record.check_in else None, "check_out": record.check_out.isoformat() if record and record.check_out else None, "note": record.note if record else None}
     record, _ = AttendanceRecord.objects.get_or_create(user=target_user, work_date=work_date); record.status = status; record.note = note
     if status in {"worked", "leave"}:
         try:
@@ -622,7 +634,26 @@ def edit_record(request):
         # Çıkış hâlâ boşsa kayıt çözülmüş sayılmaz.
         record.checkout_forgotten_resolved_at = None
         record.checkout_forgotten_resolved_by = None
-    _recalculate(record, workplace); record.save(); return JsonResponse({"ok": True, "message": "Puantaj kaydı güncellendi."})
+    _recalculate(record, workplace)
+    with transaction.atomic():
+        record.save()
+        LogEntry.objects.create(
+            user_id=approver.pk,
+            content_type=ContentType.objects.get_for_model(AttendanceRecord),
+            object_id=str(record.pk),
+            object_repr=f"{target_user.username} - {work_date}",
+            action_flag=CHANGE,
+            change_message=json.dumps({
+                "source": "manual_attendance_edit",
+                "approved_by": approver.username,
+                "session_user": request.user.username,
+                "employee": target_user.username,
+                "date": str(work_date),
+                "old": old_values,
+                "new": {"status": record.status, "check_in": record.check_in.isoformat() if record.check_in else None, "check_out": record.check_out.isoformat() if record.check_out else None, "note": record.note}
+            }, ensure_ascii=False),
+        )
+    return JsonResponse({"ok": True, "message": "Puantaj kaydı güncellendi."})
 
 
 @login_required
