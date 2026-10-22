@@ -2,7 +2,7 @@ from urllib.parse import urlsplit
 
 from django.conf import settings
 from django.contrib.auth import authenticate
-from django.http import HttpResponseRedirect
+from django.http import HttpResponseForbidden, HttpResponseRedirect
 from django.shortcuts import render
 from django.urls import reverse
 from django.utils.http import url_has_allowed_host_and_scheme
@@ -58,7 +58,7 @@ class SalaryPasswordGateMiddleware:
         from app_settings.access import has_full_access
 
         if not has_full_access(request.user):
-            return HttpResponseRedirect(reverse("salary_home"))
+            return HttpResponseForbidden("Maaş Yönetimi erişim yetkiniz bulunmuyor.")
 
         error = ""
         if request.method == "POST":
