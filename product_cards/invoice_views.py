@@ -657,8 +657,10 @@ def invoice_parasut_preview(request, invoice_id):
     export_enabled = (os.environ.get("PARASUT_INVOICE_EXPORT_ENABLED") == "true"
                       and (not os.environ.get("PARASUT_FIRST_TEST_INVOICE_ID")
                            or os.environ.get("PARASUT_FIRST_TEST_INVOICE_ID") == str(invoice_id)))
-    if transfer and transfer.status in ("SENT", "SENDING", "UNKNOWN"):
-        problems.append("Önceki aktarım mevcut veya sonucu belirsiz; yeniden gönderilmemeli.")
+    if transfer and transfer.status == "SENDING":
+        problems.append("Paraşüt aktarımı devam ediyor; yeniden gönderim kapalı.")
+    elif transfer and transfer.status == "UNKNOWN":
+        problems.append("Paraşüt aktarım sonucu belirsiz; dış kayıt kontrol edilmeli.")
     if invoice.status != "DRAFT":
         problems.append("MoliApp faturası taslak durumunda değil.")
     return render(request, "product_cards/invoice_parasut_preview.html", {
