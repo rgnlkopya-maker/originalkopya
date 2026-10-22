@@ -219,3 +219,20 @@ class SalaryRate(models.Model):
         constraints = [
             models.UniqueConstraint(fields=["user", "start_date"], name="unique_salary_rate_start")
         ]
+
+
+class SalaryPaymentPlan(models.Model):
+    """Future cash planning only; never affects earned or paid balances."""
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="salary_payment_plans")
+    year = models.PositiveSmallIntegerField()
+    month = models.PositiveSmallIntegerField()
+    planned_on = models.DateField()
+    amount = models.DecimalField(max_digits=13, decimal_places=2)
+    kind = models.CharField(max_length=12, choices=[("advance", "Avans"), ("payment", "Maaş Ödemesi")], default="advance")
+    note = models.CharField(max_length=300, blank=True, default="")
+    completed = models.BooleanField(default=False)
+    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="created_salary_payment_plans")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["planned_on", "id"]
