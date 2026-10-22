@@ -4,6 +4,8 @@ from . import views, salary_views
 urlpatterns = [
     path("maaslar/", salary_views.salary_dashboard, name="salary_dashboard"),
     path("maaslar/islem/", salary_views.salary_action, name="salary_action"),
+    path("maaslar/tanimlar/", salary_views.salary_definitions, name="salary_definitions"),
+    path("maaslar/tanimlar/kaydet/", salary_views.salary_rate_action, name="salary_rate_action"),
     path("", views.scan, name="attendance_scan"),
     path("qr-giris/", views.attendance_qr_gate, name="attendance_qr_gate"),
     path("qr-giris/dogrula/", views.attendance_qr_gate_verify, name="attendance_qr_gate_verify"),
