@@ -580,7 +580,9 @@ def invoice_parasut_preview(request, invoice_id):
         return HttpResponseForbidden("Yetkiniz yok.")
     from .parasut_payload import build_parasut_sales_invoice
     invoice = get_object_or_404(InvoiceDraft.objects.select_related("customer"), pk=invoice_id)
-    payload, problems = build_parasut_sales_invoice(invoice)
+    product_codes = list(invoice.lines.select_related("order").values_list("order__urun_kodu", flat=True))
+    preview_ids = {str(code).strip(): "PREVIEW" for code in product_codes if str(code or "").strip()}
+    payload, problems = build_parasut_sales_invoice(invoice, preview_ids)
     transfer = ParasutInvoiceTransfer.objects.filter(invoice=invoice).first()
     from .invoice_models import ParasutCustomerMapping
     mapping = ParasutCustomerMapping.objects.filter(customer=invoice.customer).first()
