@@ -503,6 +503,33 @@ def invoice_remove(request, invoice_id, line_id):
 
 @login_required
 @require_POST
+def invoice_vat_update(request, invoice_id, line_id):
+    if not _allowed(request.user):
+        return HttpResponseForbidden("Yetkiniz yok.")
+    try:
+        rate = Decimal(request.POST.get("vat_rate", "").replace(",", "."))
+        if not rate.is_finite() or rate < 0 or rate > 100:
+            raise InvalidOperation
+        rate = rate.quantize(Decimal("0.01"))
+    except (InvalidOperation, ValueError):
+        messages.error(request, "KDV oranı 0 ile 100 arasında olmalıdır.")
+        return redirect("invoice_detail", invoice_id=invoice_id)
+    with transaction.atomic():
+        invoice = get_object_or_404(InvoiceDraft.objects.select_for_update(), pk=invoice_id)
+        if invoice.status != "DRAFT" or _transfer_locked(invoice):
+            return HttpResponseForbidden("Aktarılmış veya tamamlanmış faturanın KDV'si değiştirilemez.")
+        line = get_object_or_404(InvoiceLine.objects.select_for_update().select_related("order"), pk=line_id, invoice=invoice)
+        line.vat_rate = rate
+        line.save(update_fields=["vat_rate"])
+        order = line.order
+        order.vat_rate = rate
+        order.save(update_fields=["vat_rate", "last_updated"])
+    messages.success(request, "KDV güncellendi; sipariş ve MoliApp fatura satırı eşitlendi. Dış sistemlerdeki kayıtlar değişmedi.")
+    return redirect("invoice_detail", invoice_id=invoice_id)
+
+
+@login_required
+@require_POST
 def invoice_price(request, invoice_id, line_id):
     if not _allowed(request.user):
         return HttpResponseForbidden("Yetkiniz yok.")
