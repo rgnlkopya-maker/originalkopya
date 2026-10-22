@@ -17,7 +17,7 @@
 <div class="salary-rates">
 <a class="salary-back" href="{% url 'salary_home' %}"><i class="bi bi-arrow-left"></i> Maaş Yönetimi</a>
 <h1>Maaş Tanımları</h1>
-<p class="lead-note">Her personelin net aylık maaşını geçerli olduğu dönem için tanımlayın. Dönem başlangıcı ayın 6'sı, bitişi sonraki ayın 5'idir.</p>
+<p class="lead-note">Her personelin net aylık maaşını geçerli olduğu dönem için tanımlayın. Ekim dönemi 6 Ekim–5 Kasım arasındadır; Ekim–Kasım dönemi 6 Ekim–5 Aralık arasındadır.</p>
 {% if messages %}{% for message in messages %}<div class="alert alert-{% if message.tags == 'error' %}danger{% else %}success{% endif %}">{{ message }}</div>{% endfor %}{% endif %}
 <div class="panel"><div style="overflow-x:auto"><table><thead><tr><th>Personel</th><th>Maaş dönemi (Ay/Yıl – Ay/Yıl)</th><th>Net aylık maaş</th><th>İşlem</th></tr></thead><tbody>
 {% for row in rows %}
@@ -36,7 +36,7 @@
 <label>Bitiş (Ay/Yıl)<input type="month" name="end_month"><small class="lead-note">Boş = devam ediyor</small></label>
 <label>Net aylık maaş (TL)<input name="amount" type="number" step="0.01" min="0" required></label>
 <div style="grid-column:1/-1"><button type="submit" class="btn btn-primary">Maaş Tanımını Kaydet</button></div></form>
-<div class="lead-note mt-2">Örnek: 10/2026 – 11/2026, 06.10.2026–05.11.2026 dönemini kapsar. Dönemler çakışamaz; mevcut ödeme kayıtları değişmez.</div>
+<div class="lead-note mt-2">Örnek: Ekim 2026 – Kasım 2026, 06.10.2026–05.12.2026 dönemini kapsar. Dönemler çakışamaz; mevcut ödeme kayıtları değişmez.</div>
 <h6 class="fw-bold mt-4">Maaş Geçmişi</h6>
 <table><thead><tr><th>Başlangıç</th><th>Bitiş</th><th>Net Maaş</th><th>Kaydeden</th></tr></thead><tbody>{% for rate in row.rates %}<tr><td>{{ rate.start_date|date:"d.m.Y" }}</td><td>{% if rate.end_date %}{{ rate.end_date|date:"d.m.Y" }}{% else %}Devam ediyor{% endif %}</td><td>{{ rate.monthly_net|floatformat:2 }} ₺</td><td>{{ rate.created_by.username }}</td></tr>{% empty %}<tr><td colspan="4">Henüz maaş kaydı bulunmuyor.</td></tr>{% endfor %}</tbody></table>
 </div><div class="modal-footer"><button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Kapat</button></div></div></div></div>
