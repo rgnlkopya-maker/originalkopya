@@ -202,3 +202,19 @@ class SalaryTransaction(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     voided_at = models.DateTimeField(null=True, blank=True)
     voided_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, null=True, blank=True, related_name="salary_payments_voided")
+
+
+class SalaryRate(models.Model):
+    """Effective-dated net salary; historical periods remain independent snapshots."""
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="salary_rates")
+    monthly_net = models.DecimalField(max_digits=13, decimal_places=2)
+    start_date = models.DateField()
+    end_date = models.DateField(null=True, blank=True)
+    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="created_salary_rates")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-start_date", "-id"]
+        constraints = [
+            models.UniqueConstraint(fields=["user", "start_date"], name="unique_salary_rate_start")
+        ]
