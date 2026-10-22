@@ -80,7 +80,9 @@ def _team_employees():
     additional = User.objects.filter(pk__in=[15, 19], is_active=True, is_superuser=False).filter(
         Q(hr_profile__employment_end_date__isnull=True) | Q(hr_profile__isnull=True)
     )
-    employees = (employees | additional).distinct()
+    employee_ids = set(employees.values_list("pk", flat=True))
+    employee_ids.update(additional.values_list("pk", flat=True))
+    employees = User.objects.filter(pk__in=employee_ids)
     return sorted(employees, key=lambda user: (user.get_full_name().strip() or user.username).casefold())
 
 
