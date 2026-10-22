@@ -71,6 +71,19 @@ def _get_period(user, year, month):
     return period
 
 
+def _team_employees():
+    # Same active / not-departed source as Ekipler; hidden salary members remain recoverable.
+    employees = User.objects.filter(is_active=True, is_superuser=False).filter(
+        Q(hr_profile__employment_end_date__isnull=True) | Q(hr_profile__isnull=True)
+    ).exclude(groups__name__iexact="patron").exclude(groups__name__iexact="mudur").distinct()
+    return sorted(employees, key=lambda user: (user.get_full_name().strip() or user.username).casefold())
+
+
+def _salary_employees():
+    return [user for user in _team_employees()
+            if not hasattr(user, "salary_profile") or user.salary_profile.visible_in_salary]
+
+
 @login_required
 @user_passes_test(has_full_access)
 def salary_home(request):
@@ -81,9 +94,7 @@ def salary_home(request):
 @user_passes_test(has_full_access)
 def salary_dashboard(request):
     year, month = _period(request)
-    employees = User.objects.filter(is_active=True, is_superuser=False).exclude(
-        groups__name__iexact="patron"
-    ).exclude(groups__name__iexact="mudur").distinct().order_by("first_name", "last_name", "username")
+    employees = _salary_employees()
     period_start, period_end = _bounds(year, month)
     profiles = {p.user_id: p for p in SalaryProfile.objects.filter(user__in=employees)}
     periods = {p.user_id: p for p in SalaryPeriod.objects.filter(year=year, month=month, user__in=employees).prefetch_related("transactions")}
@@ -111,15 +122,34 @@ def salary_dashboard(request):
 @login_required
 @user_passes_test(has_full_access)
 def salary_definitions(request):
-    employees = User.objects.filter(is_active=True, is_superuser=False).exclude(
-        groups__name__iexact="patron"
-    ).exclude(groups__name__iexact="mudur").distinct().order_by("first_name", "last_name", "username")
+    employees = _salary_employees()
     rates = SalaryRate.objects.filter(user__in=employees).order_by("-start_date", "-id")
     indexed = {}
     for rate in rates:
         indexed.setdefault(rate.user_id, []).append(rate)
     rows = [{"user": employee, "rates": indexed.get(employee.pk, [])} for employee in employees]
-    return render(request, "attendance_v2/salary_definitions.html", {"rows": rows})
+    excluded = [user for user in _team_employees() if user not in employees]
+    return render(request, "attendance_v2/salary_definitions.html", {"rows": rows, "excluded": excluded})
+
+
+@login_required
+@user_passes_test(has_full_access)
+@require_POST
+def salary_membership_action(request):
+    action = request.POST.get("action")
+    if action not in ("hide", "restore"):
+        messages.error(request, "Geçersiz personel işlemi.")
+        return redirect("salary_definitions")
+    person = get_object_or_404(User, pk=request.POST.get("user_id"), is_active=True, is_superuser=False)
+    if person not in _team_employees():
+        messages.error(request, "Bu kişi aktif Ekipler listesinde bulunmuyor.")
+        return redirect("salary_definitions")
+    profile, _ = SalaryProfile.objects.get_or_create(user=person)
+    profile.visible_in_salary = action == "restore"
+    profile.save(update_fields=["visible_in_salary", "updated_at"])
+    messages.success(request, "Personel maaş listesine eklendi." if action == "restore"
+                     else "Personel her iki maaş listesinden çıkarıldı; geçmiş kayıtları korundu.")
+    return redirect("salary_definitions")
 
 
 @login_required
