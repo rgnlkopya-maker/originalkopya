@@ -263,7 +263,12 @@ def salary_action(request):
                 tx.voided_at = timezone.now()
                 tx.voided_by = request.user
                 tx.save(update_fields=["voided_at", "voided_by"])
-                messages.success(request, "Ödeme iptal olarak işaretlendi; geçmişi korundu.")
+                linked_plan = SalaryPaymentPlan.objects.select_for_update().filter(payment=tx).first()
+                if linked_plan:
+                    linked_plan.completed = False
+                    linked_plan.payment = None
+                    linked_plan.save(update_fields=["completed", "payment"])
+                messages.success(request, "Ödeme iptal edildi; varsa ilgili plan yeniden beklemeye alındı.")
             else:
                 raise ValueError("Bilinmeyen işlem.")
     except ValueError as e:
@@ -296,16 +301,37 @@ def salary_plan_action(request):
                     created_by=request.user,
                 )
                 messages.success(request, "Ödeme planı kaydedildi; maaş bakiyesi değişmedi.")
-            elif action in ("complete", "delete"):
+            elif action in ("pay", "delete"):
                 plan = get_object_or_404(
                     SalaryPaymentPlan.objects.select_for_update(),
                     pk=request.POST.get("plan_id"), user=employee, year=year, month=month,
                 )
-                if action == "complete":
+                if action == "pay":
+                    if plan.completed or plan.payment_id:
+                        raise ValueError("Bu plan için ödeme zaten kaydedilmiş.")
+                    method = request.POST.get("method")
+                    if method not in dict(SalaryTransaction.METHOD_CHOICES):
+                        raise ValueError("Ödeme yöntemi geçersiz.")
+                    try:
+                        paid_on = date.fromisoformat(request.POST.get("paid_on") or "")
+                    except ValueError:
+                        raise ValueError("Ödeme tarihi geçersiz.")
+                    period = _get_period(employee, year, month)
+                    period = SalaryPeriod.objects.select_for_update().get(pk=period.pk)
+                    if period.locked:
+                        raise ValueError("Kesinleştirilmiş döneme ödeme kaydedilemez.")
+                    payment = SalaryTransaction.objects.create(
+                        period=period, amount=plan.amount, paid_on=paid_on,
+                        method=method, kind=plan.kind, note=plan.note,
+                        recorded_by=request.user,
+                    )
+                    plan.payment = payment
                     plan.completed = True
-                    plan.save(update_fields=["completed"])
-                    messages.success(request, "Plan tamamlandı olarak işaretlendi. Gerçek ödeme ayrıca kaydedilmelidir.")
+                    plan.save(update_fields=["completed", "payment"])
+                    messages.success(request, "Ödeme kaydedildi; plan tamamlandı ve kalan maaş güncellendi.")
                 else:
+                    if plan.completed or plan.payment_id:
+                        raise ValueError("Ödenmiş plan silinemez. Önce Ödeme Geçmişi'nden ödemeyi iptal edin.")
                     plan.delete()
                     messages.success(request, "Ödeme planı kaldırıldı.")
             else:
