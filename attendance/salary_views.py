@@ -28,22 +28,22 @@ def _amount(raw, positive=False):
 
 def _period(request):
     today = timezone.localdate()
-    # Periods run from the 6th of the preceding month to the 5th of the named month.
-    reference = today if today.day <= 5 else (date(today.year + 1, 1, 5) if today.month == 12 else date(today.year, today.month + 1, 5))
+    # A named month starts on its 6th and ends on the 5th of the following month.
+    reference = today if today.day >= 6 else (date(today.year - 1, 12, 6) if today.month == 1 else date(today.year, today.month - 1, 6))
     try:
         year = int(request.GET.get("year") or request.POST.get("year") or reference.year)
         month = int(request.GET.get("month") or request.POST.get("month") or reference.month)
         if not (2020 <= year <= 2100 and 1 <= month <= 12):
             raise ValueError
     except (TypeError, ValueError):
-        year, month = today.year, today.month
+        year, month = reference.year, reference.month
     return year, month
 
 
 def _bounds(year, month):
-    finish = date(year, month, 5)
-    prior = date(year - 1, 12, 6) if month == 1 else date(year, month - 1, 6)
-    return prior, finish
+    start = date(year, month, 6)
+    finish = date(year + 1, 1, 5) if month == 12 else date(year, month + 1, 5)
+    return start, finish
 
 
 def _salary_for(user, year, month, fallback):
