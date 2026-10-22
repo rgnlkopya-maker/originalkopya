@@ -4,7 +4,7 @@
   <a href="{% url 'invoice_detail' invoice.id %}" class="btn btn-sm btn-outline-secondary mb-3">← Faturaya dön</a>
   <a class="btn btn-sm btn-outline-primary mb-2" href="{% url 'invoice_parasut_oauth_setup' %}">Paraşüt hesap bağlantısı</a>
   <h2>Paraşüt Aktarım Önizlemesi – FT-{{ invoice.id }}</h2>
-  <p class="text-muted">Bu ekran yalnızca kontrol amaçlıdır. Paraşüt'e herhangi bir kayıt gönderilmez ve e-Fatura/e-Arşiv oluşturulmaz.</p>
+  <p class="text-muted">Bu ekranda bilgileri kontrol edebilirsiniz. Onaylanan aktarım Paraşüt'te satış kaydı ve gerekiyorsa ürün kartı oluşturur; e-Fatura/e-Arşiv göndermez.</p>
   <div class="card mb-3"><div class="card-body">
     <div><strong>Müşteri:</strong> {{ invoice.customer.ad }}</div>
     <div><strong>Tarih:</strong> {{ invoice.invoice_date|date:"d.m.Y" }}</div>
@@ -17,7 +17,7 @@
       <ul class="mb-0">{% for problem in problems %}<li>{{ problem }}</li>{% endfor %}</ul>
     </div>
   {% elif prepared %}
-    <div class="alert alert-info">Fatura verileri ön kontrollerden geçti. Gerçek API gönderimi henüz devre dışıdır.</div>
+    <div class="alert alert-info">Fatura verileri ön kontrollerden geçti. Aktarım ancak ayrıca etkinleştirilmişse gerçekleştirilebilir.</div>
   {% endif %}
   <div class="mb-3"><button type="button" class="btn btn-outline-primary" id="parasut-check">Paraşüt bağlantısını kontrol et</button><p id="parasut-check-result" class="small mt-2" role="status" aria-live="polite"></p></div>
 <div class="card mb-3"><div class="card-body">
