@@ -37,13 +37,21 @@ def build_parasut_sales_invoice(invoice, product_ids=None):
         if not price.is_finite() or price < 0 or not rate.is_finite() or rate < 0 or rate > 100:
             problems.append("Geçersiz ürün fiyatı veya KDV.")
             continue
+        order = line.order
+        parts = [code]
+        if order.renk:
+            parts.append("Renk: " + str(order.renk))
+        if order.beden:
+            parts.append("Beden: " + str(order.beden))
+        if order.siparis_tipi:
+            parts.append("Sipariş tipi: " + order.get_siparis_tipi_display())
         items.append({
             "type": "sales_invoice_details",
             "attributes": {
                 "quantity": 1,
                 "unit_price": str(price),
                 "vat_rate": str(rate),
-                "description": code,
+                "description": " / ".join(parts),
             },
             "relationships": {"product": {"data": {"id": product_id, "type": "products"}}},
         })
