@@ -29,7 +29,8 @@ def _fetch(resource, page=1):
     query = urlencode({"page[number]": page, "page[size]": 25})
     request = Request(
         f"https://api.parasut.com/v4/{company}/{resource}?{query}",
-        headers={"Authorization": f"Bearer {token}", "Accept": "application/json"},
+        headers={"Authorization": f"Bearer {token}", "Accept": "application/json",
+                 "User-Agent": "MoliApp/1.0 (+https://originalkopya.onrender.com)"},
         method="GET",
     )
     try:
