@@ -229,6 +229,7 @@ class SalaryPaymentPlan(models.Model):
     planned_on = models.DateField()
     amount = models.DecimalField(max_digits=13, decimal_places=2)
     kind = models.CharField(max_length=12, choices=[("advance", "Avans"), ("payment", "Maaş Ödemesi")], default="advance")
+    method = models.CharField(max_length=12, choices=[("cash", "Elden"), ("bank", "Bankadan")], default="cash")
     note = models.CharField(max_length=300, blank=True, default="")
     completed = models.BooleanField(default=False)
     payment = models.OneToOneField("SalaryTransaction", on_delete=models.PROTECT, null=True, blank=True, related_name="payment_plan")
