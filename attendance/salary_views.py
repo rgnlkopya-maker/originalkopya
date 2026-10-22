@@ -1,16 +1,16 @@
-from datetime import date
+from datetime import date, timedelta
 from decimal import Decimal, InvalidOperation
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib.auth.models import User
 from django.db import transaction
-from django.db.models import Prefetch
+from django.db.models import Q
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
 from django.views.decorators.http import require_POST
 from app_settings.access import has_full_access
-from .models import SalaryProfile, SalaryPeriod, SalaryTransaction
+from .models import SalaryProfile, SalaryPeriod, SalaryTransaction, SalaryRate
 
 ZERO = Decimal("0.00")
 MAX_AMOUNT = Decimal("99999999999.99")
@@ -28,14 +28,30 @@ def _amount(raw, positive=False):
 
 def _period(request):
     today = timezone.localdate()
+    # Periods run from the 6th of the preceding month to the 5th of the named month.
+    reference = today if today.day <= 5 else (date(today.year + 1, 1, 5) if today.month == 12 else date(today.year, today.month + 1, 5))
     try:
-        year = int(request.GET.get("year") or request.POST.get("year") or today.year)
-        month = int(request.GET.get("month") or request.POST.get("month") or today.month)
+        year = int(request.GET.get("year") or request.POST.get("year") or reference.year)
+        month = int(request.GET.get("month") or request.POST.get("month") or reference.month)
         if not (2020 <= year <= 2100 and 1 <= month <= 12):
             raise ValueError
     except (TypeError, ValueError):
         year, month = today.year, today.month
     return year, month
+
+
+def _bounds(year, month):
+    finish = date(year, month, 5)
+    prior = date(year - 1, 12, 6) if month == 1 else date(year, month - 1, 6)
+    return prior, finish
+
+
+def _salary_for(user, year, month, fallback):
+    _, finish = _bounds(year, month)
+    rate = SalaryRate.objects.filter(user=user, start_date__lte=finish).filter(
+        Q(end_date__isnull=True) | Q(end_date__gte=finish)
+    ).order_by("-start_date").first()
+    return rate.monthly_net if rate else fallback
 
 
 def _back(year, month):
@@ -45,7 +61,7 @@ def _back(year, month):
 def _get_period(user, year, month):
     profile, _ = SalaryProfile.objects.get_or_create(user=user)
     period, _ = SalaryPeriod.objects.get_or_create(
-        user=user, year=year, month=month, defaults={"base_net": profile.monthly_net}
+        user=user, year=year, month=month, defaults={"base_net": _salary_for(user, year, month, profile.monthly_net)}
     )
     return period
 
@@ -57,6 +73,7 @@ def salary_dashboard(request):
     employees = User.objects.filter(is_active=True, is_superuser=False).exclude(
         groups__name__iexact="patron"
     ).exclude(groups__name__iexact="mudur").distinct().order_by("first_name", "last_name", "username")
+    period_start, period_end = _bounds(year, month)
     profiles = {p.user_id: p for p in SalaryProfile.objects.filter(user__in=employees)}
     periods = {p.user_id: p for p in SalaryPeriod.objects.filter(year=year, month=month, user__in=employees).prefetch_related("transactions")}
     rows = []
@@ -64,7 +81,7 @@ def salary_dashboard(request):
     for user in employees:
         profile = profiles.get(user.id)
         period = periods.get(user.id)
-        base = period.base_net if period else (profile.monthly_net if profile else ZERO)
+        base = period.base_net if period else _salary_for(user, year, month, profile.monthly_net if profile else ZERO)
         adjustment = period.adjustment if period else ZERO
         deduction = period.deduction if period else ZERO
         earned = base + adjustment - deduction
@@ -74,9 +91,66 @@ def salary_dashboard(request):
         total_earned += earned
         total_paid += paid
     return render(request, "attendance_v2/salaries.html", {
-        "rows": rows, "year": year, "month": month,
+        "rows": rows, "year": year, "month": month, "period_start": period_start, "period_end": period_end,
         "total_earned": total_earned, "total_paid": total_paid, "total_remaining": total_earned-total_paid
     })
+
+
+
+@login_required
+@user_passes_test(has_full_access)
+def salary_definitions(request):
+    year, month = _period(request)
+    period_start, period_end = _bounds(year, month)
+    employees = User.objects.filter(is_active=True, is_superuser=False).exclude(
+        groups__name__iexact="patron").exclude(groups__name__iexact="mudur").distinct().order_by("first_name", "last_name", "username")
+    rates = SalaryRate.objects.filter(user__in=employees).order_by("-start_date")
+    indexed = {}
+    for rate in rates:
+        indexed.setdefault(rate.user_id, []).append(rate)
+    profiles = {p.user_id: p for p in SalaryProfile.objects.filter(user__in=employees)}
+    rows = []
+    for employee in employees:
+        profile = profiles.get(employee.pk)
+        rows.append({
+            "user": employee, "rates": indexed.get(employee.pk, []),
+            "effective": _salary_for(employee, year, month, profile.monthly_net if profile else ZERO)
+        })
+    return render(request, "attendance_v2/salary_definitions.html", {
+        "rows": rows, "year": year, "month": month,
+        "period_start": period_start, "period_end": period_end,
+    })
+
+
+@login_required
+@user_passes_test(has_full_access)
+@require_POST
+def salary_rate_action(request):
+    year, month = _period(request)
+    target = f"{reverse('salary_definitions')}?year={year}&month={month}"
+    employee = get_object_or_404(User, pk=request.POST.get("user_id"), is_active=True, is_superuser=False)
+    if employee.groups.filter(name__in=["patron", "mudur"]).exists():
+        messages.error(request, "Bu hesap personel listesinde bulunmuyor.")
+        return redirect(target)
+    try:
+        amount = _amount(request.POST.get("amount"))
+        start = date.fromisoformat(request.POST.get("start_date") or "")
+        end_raw = request.POST.get("end_date") or ""
+        end = date.fromisoformat(end_raw) if end_raw else None
+        if end and end < start:
+            raise ValueError("Bitiş tarihi başlangıçtan önce olamaz.")
+        with transaction.atomic():
+            overlapping = SalaryRate.objects.select_for_update().filter(user=employee).filter(
+                Q(end_date__isnull=True) | Q(end_date__gte=start)
+            ).filter(Q(start_date__lte=end) if end else Q())
+            if overlapping.exists():
+                raise ValueError("Bu tarihlerde tanımlı maaş var. Önce dönem çakışmasını giderin.")
+            SalaryRate.objects.create(user=employee, monthly_net=amount, start_date=start, end_date=end, created_by=request.user)
+            SalaryProfile.objects.update_or_create(user=employee, defaults={"monthly_net": amount})
+        messages.success(request, "Maaş ve geçerlilik dönemi kaydedildi. Eski dönem hesapları korunur.")
+    except (ValueError, TypeError) as exc:
+        messages.error(request, str(exc))
+    return redirect(target)
 
 
 @login_required
