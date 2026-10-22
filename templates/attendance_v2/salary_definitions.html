@@ -19,7 +19,6 @@
 </style>{% endblock %}
 {% block content %}
 <div class="salary-rates">
-<a class="salary-back" href="{% url 'salary_home' %}"><i class="bi bi-arrow-left"></i> Maaş Yönetimi</a>
 <h1>Maaş Tanımları</h1>
 <nav class="salary-nav-cards" aria-label="Maaş yönetimi"><a class="salary-nav-card" href="{% url 'salary_dashboard' %}"><span class="salary-nav-icon"><i class="bi bi-wallet2"></i></span><span class="salary-nav-copy"><strong>Maaş Ödeme</strong><small>Ödemeler, avanslar ve kalan bakiye</small></span><i class="bi bi-arrow-right salary-nav-arrow"></i></a><a class="salary-nav-card is-active" aria-current="page" href="{% url 'salary_definitions' %}"><span class="salary-nav-icon"><i class="bi bi-person-lines-fill"></i></span><span class="salary-nav-copy"><strong>Maaş Tanımları</strong><small>Ücret dönemleri ve geçmiş kayıtlar</small></span><i class="bi bi-arrow-right salary-nav-arrow"></i></a></nav>
 <p class="lead-note">Her personelin net aylık maaşını geçerli olduğu dönem için tanımlayın. Ekim dönemi 6 Ekim–5 Kasım arasındadır; Ekim–Kasım dönemi 6 Ekim–5 Aralık arasındadır.</p>
