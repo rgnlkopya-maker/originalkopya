@@ -159,6 +159,7 @@ class AttendanceRecord(models.Model):
 class SalaryProfile(models.Model):
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="salary_profile")
     monthly_net = models.DecimalField(max_digits=13, decimal_places=2, default=0)
+    visible_in_salary = models.BooleanField(default=True)
     updated_at = models.DateTimeField(auto_now=True)
 
 
