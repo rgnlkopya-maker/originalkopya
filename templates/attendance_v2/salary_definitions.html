@@ -15,6 +15,7 @@
 .salary-nav-cards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin-top:22px}.salary-nav-card{display:flex;align-items:center;gap:15px;padding:24px;background:#fff;border:1px solid #e4eaf2;border-radius:18px;color:#24344b;text-decoration:none;box-shadow:0 6px 22px #1022440d;transition:.2s}.salary-nav-card:hover{border-color:#91b5ee;transform:translateY(-2px);color:#194b83}.salary-nav-icon{display:grid;place-items:center;width:49px;height:49px;background:#edf4ff;color:#3266b1;border-radius:13px;font-size:23px}.salary-nav-copy{display:grid;gap:5px}.salary-nav-copy strong{font-size:17px}.salary-nav-copy small{font-size:12px;color:#6c7b92}.salary-nav-arrow{margin-left:auto;color:#6688b2}@media(max-width:650px){.salary-nav-cards{grid-template-columns:1fr}}
 .salary-nav-card.is-active{border-color:#93b5ee;background:#f5f9ff}
 .salary-readd{display:flex;justify-content:flex-end;margin:12px 0 18px}.salary-readd details{max-width:100%;font-size:12px;color:#75839a}.salary-readd summary{list-style:none;cursor:pointer;padding:7px 3px;color:#71819a;font-weight:600}.salary-readd summary::-webkit-details-marker{display:none}.salary-readd summary:hover{color:#3567a4}.salary-readd summary .bi{margin-right:5px}.salary-readd-chevron{font-size:10px;margin-left:5px}.salary-readd details[open] .salary-readd-chevron{display:inline-block;transform:rotate(180deg)}.salary-readd-form{display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin-top:9px;padding:12px;border:1px solid #e8edf4;background:#fff;border-radius:12px}.salary-readd-form select{min-width:200px;max-width:270px}
+.salary-rate-preview{padding:11px 13px;background:#f7f9fc;border:1px solid #e5ebf3;border-radius:10px;color:#344865;font-size:13px;line-height:1.5}
 </style>{% endblock %}
 {% block content %}
 <div class="salary-rates">
@@ -42,9 +43,47 @@
 <label>Bitiş (Ay/Yıl)<input type="month" name="end_month"><small class="lead-note">Boş = devam ediyor</small></label>
 <label>Net aylık maaş (TL)<input name="amount" type="number" step="0.01" min="0" required></label>
 <div style="grid-column:1/-1"><button type="submit" class="btn btn-primary">Maaş Tanımını Kaydet</button></div></form>
-<div class="lead-note mt-2">Örnek: Ekim 2026 – Kasım 2026, 06.10.2026–05.12.2026 dönemini kapsar. Dönemler çakışamaz; mevcut ödeme kayıtları değişmez.</div>
+<div class="salary-rate-preview mt-3" data-person-name="{{ row.user.get_full_name|default:row.user.username }}" aria-live="polite">Başlangıç dönemi ve net maaşı seçtiğinizde kayıt özeti burada görünecek.</div><div class="lead-note mt-2">Dönemler çakışamaz; mevcut ödeme kayıtları değişmez.</div>
 <h6 class="fw-bold mt-4">Maaş Geçmişi</h6>
 <table><thead><tr><th>Başlangıç</th><th>Bitiş</th><th>Net Maaş</th><th>Kaydeden</th></tr></thead><tbody>{% for rate in row.rates %}<tr><td>{{ rate.start_date|date:"d.m.Y" }}</td><td>{% if rate.end_date %}{{ rate.end_date|date:"d.m.Y" }}{% else %}Devam ediyor{% endif %}</td><td>{{ rate.monthly_net|floatformat:2 }} ₺</td><td>{{ rate.created_by.username }}</td></tr>{% empty %}<tr><td colspan="4">Henüz maaş kaydı bulunmuyor.</td></tr>{% endfor %}</tbody></table>
 </div><div class="modal-footer"><button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Kapat</button></div></div></div></div>
 {% endfor %}
+<script>
+(function () {
+  const months = ["Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran", "Temmuz", "Ağustos", "Eylül", "Ekim", "Kasım", "Aralık"];
+  function dateForPeriod(raw, isEnd) {
+    if (!/^\\d{4}-\\d{2}$/.test(raw || "")) return null;
+    const [year, month] = raw.split("-").map(Number);
+    if (month < 1 || month > 12) return null;
+    if (!isEnd) return {year, month, day: 6};
+    return month === 12 ? {year: year + 1, month: 1, day: 5} : {year, month: month + 1, day: 5};
+  }
+  function formatDate(d) { return d.day + " " + months[d.month - 1].toLocaleLowerCase("tr-TR") + " " + d.year; }
+  function update(form) {
+    const box = form.parentElement.querySelector(".salary-rate-preview");
+    if (!box) return;
+    const start = dateForPeriod(form.elements.start_month.value, false);
+    const end = dateForPeriod(form.elements.end_month.value, true);
+    const amountRaw = form.elements.amount.value;
+    const amount = Number(amountRaw);
+    if (!start || amountRaw === "" || !Number.isFinite(amount) || amount < 0) {
+      box.textContent = "Başlangıç dönemi ve net maaşı seçtiğinizde kayıt özeti burada görünecek.";
+      return;
+    }
+    const person = box.dataset.personName || "Personel";
+    const money = new Intl.NumberFormat("tr-TR", {minimumFractionDigits: 2, maximumFractionDigits: 2}).format(amount) + " TL";
+    if (end && (end.year < start.year || (end.year === start.year && end.month < start.month))) {
+      box.textContent = "Bitiş dönemi başlangıç döneminden önce olamaz.";
+      return;
+    }
+    const dates = end ? formatDate(start) + " ile " + formatDate(end) + " tarihleri arasında" : formatDate(start) + " tarihinden itibaren, bitiş tarihi belirtilmeden";
+    box.textContent = person + " için " + dates + " aylık net maaş " + money + " olarak kaydedilecektir.";
+  }
+  document.querySelectorAll(".salary-rates .rate-form").forEach(function(form) {
+    form.addEventListener("input", function() { update(form); });
+    form.addEventListener("change", function() { update(form); });
+    update(form);
+  });
+})();
+</script>
 </div>{% endblock %}
