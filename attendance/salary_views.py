@@ -141,7 +141,8 @@ def salary_rate_action(request):
             start = first.replace(day=6)
             if end_month:
                 last = date.fromisoformat(end_month + "-01")
-                end = last.replace(day=5)
+                next_month = date(last.year + 1, 1, 5) if last.month == 12 else date(last.year, last.month + 1, 5)
+                end = next_month
             else:
                 end = None
         else:
