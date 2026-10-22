@@ -5,7 +5,8 @@ from .invoice_models import ParasutCustomerMapping, ParasutProductMapping
 CURRENCY = {"TRY": "TRL", "TL": "TRL", "USD": "USD", "EUR": "EUR", "GBP": "GBP"}
 
 
-def build_parasut_sales_invoice(invoice):
+def build_parasut_sales_invoice(invoice, product_ids=None):
+    product_ids = product_ids or {}
     problems = []
     if invoice.parasut_manual_recorded:
         problems.append("Paraşüt'te elle işlendi olarak işaretlenmiş.")
@@ -26,9 +27,10 @@ def build_parasut_sales_invoice(invoice):
     items = []
     for line in lines:
         code = str(line.order.urun_kodu or "").strip()
-        product = ParasutProductMapping.objects.filter(product_code=code).first()
-        if not product:
-            problems.append("Paraşüt ürün eşleşmesi eksik: " + code[:70])
+        product = ParasutProductMapping.objects.filter(product_code=code).first() if code not in product_ids else None
+        product_id = product_ids.get(code) or (product.external_product_id if product else None)
+        if not product_id:
+            problems.append("Paraşüt ürünü henüz hazırlanmadı: " + code[:70])
             continue
         price = Decimal(line.price)
         rate = Decimal(line.vat_rate)
@@ -43,7 +45,7 @@ def build_parasut_sales_invoice(invoice):
                 "vat_rate": str(rate),
                 "description": code,
             },
-            "relationships": {"product": {"data": {"id": product.external_product_id, "type": "products"}}},
+            "relationships": {"product": {"data": {"id": product_id, "type": "products"}}},
         })
     if problems:
         return None, list(dict.fromkeys(problems))
