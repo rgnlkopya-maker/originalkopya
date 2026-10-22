@@ -231,6 +231,7 @@ class SalaryPaymentPlan(models.Model):
     kind = models.CharField(max_length=12, choices=[("advance", "Avans"), ("payment", "Maaş Ödemesi")], default="advance")
     note = models.CharField(max_length=300, blank=True, default="")
     completed = models.BooleanField(default=False)
+    payment = models.OneToOneField("SalaryTransaction", on_delete=models.PROTECT, null=True, blank=True, related_name="payment_plan")
     created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="created_salary_payment_plans")
     created_at = models.DateTimeField(auto_now_add=True)
 
