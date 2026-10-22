@@ -42,7 +42,8 @@ def _exchange(form):
         data=urlencode(fields).encode("utf-8"),
         method="POST",
         headers={"Content-Type": "application/x-www-form-urlencoded",
-                 "Accept": "application/json"},
+                 "Accept": "application/json",
+                 "User-Agent": "MoliApp/1.0 (+https://originalkopya.onrender.com)"},
     )
     try:
         with urlopen(request, timeout=15) as response:
