@@ -1,52 +1,44 @@
 {% extends "base.html" %}
-{% load l10n %}
-{% block extra_css %}
-<style>
+{% block extra_css %}<style>
 .salary-rates{max-width:1240px;margin:18px auto;padding:0 12px 50px;color:#1d2b45}
 .salary-rates h1{font-size:26px;font-weight:800}
 .salary-rates .lead-note{font-size:13px;color:#65748b}
-.salary-rates .salary-tabs{display:flex;gap:8px;margin:15px 0 18px}
+.salary-back{display:inline-flex;gap:7px;align-items:center;margin-bottom:13px;text-decoration:none;color:#446a9e;font-weight:700;font-size:13px}
 .salary-rates .panel{background:#fff;border:1px solid #e4e9f2;border-radius:17px;box-shadow:0 6px 22px rgba(16,34,68,.05);overflow:hidden}
-.salary-rates .rate-table{width:100%;border-collapse:collapse;table-layout:fixed}
-.salary-rates .rate-table th{background:#f7f9fc;padding:13px;color:#65748b;font-size:11px}
-.salary-rates .rate-table td{padding:13px;border-top:1px solid #eef1f6;font-size:13px}
-.salary-rates .rate-table th:first-child{width:28%}
-.salary-rates .rate-table th:last-child{width:18%}
-.salary-rates .rate-table td strong{font-weight:800}
-.salary-rates .rate-history{background:#f6f8fc;border-radius:12px;padding:13px}
-.salary-rates .rate-history table{width:100%;font-size:12px}
-.salary-rates .rate-history td{padding:7px}
+.salary-rates table{width:100%;border-collapse:collapse}
+.salary-rates th{background:#f7f9fc;padding:13px;color:#65748b;font-size:12px}
+.salary-rates td{padding:13px;border-top:1px solid #eef1f6;font-size:13px}
 .salary-rates .rate-form{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
 .salary-rates .rate-form label{font-size:12px;font-weight:700}
 .salary-rates .rate-form input{width:100%;padding:9px;border:1px solid #dce3ec;border-radius:9px}
-@media(max-width:680px){.salary-rates h1{font-size:21px}.salary-rates .rate-form{grid-template-columns:1fr}.salary-rates .rate-table th:first-child{width:40%}.salary-rates .rate-table th:last-child{width:30%}.salary-rates .rate-table td{padding:9px 6px;font-size:11px}}
-.salary-nav-cards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin:16px 0 20px}.salary-nav-card{display:flex;align-items:center;gap:14px;min-width:0;padding:17px 19px;border:1px solid #e4eaf2;border-radius:17px;background:#fff;box-shadow:0 6px 22px rgba(16,34,68,.05);color:#24344b;text-decoration:none;transition:border-color .18s,box-shadow .18s,transform .18s}.salary-nav-card:hover,.salary-nav-card:focus-visible{border-color:#9cbaed;box-shadow:0 9px 26px rgba(43,91,159,.12);transform:translateY(-2px);color:#193b6b;text-decoration:none}.salary-nav-card.is-active{border-color:#93b5ee;background:#f5f9ff}.salary-nav-icon{display:grid;place-items:center;flex:0 0 46px;width:46px;height:46px;background:#eef4fd;color:#3567b2;border-radius:13px;font-size:22px}.salary-nav-copy{display:flex;flex-direction:column;gap:3px;min-width:0}.salary-nav-copy strong{font-size:15px;font-weight:800}.salary-nav-copy small{font-size:12px;color:#718097}.salary-nav-arrow{margin-left:auto;color:#7892b8;font-size:18px}@media(max-width:600px){.salary-nav-cards{grid-template-columns:1fr;gap:10px}.salary-nav-card{padding:13px 15px}}
-</style>
-{% endblock %}
+@media(max-width:680px){.salary-rates .rate-form{grid-template-columns:1fr}.salary-rates td,.salary-rates th{padding:10px 7px}}
+</style>{% endblock %}
 {% block content %}
 <div class="salary-rates">
-<h1>Maaş Yönetimi</h1>
-<div class="lead-note">Net maaş tanımları ve hangi tarihler arasında geçerli oldukları</div>
-<nav class="salary-nav-cards" aria-label="Maaş yönetimi bölümleri"><a href="{% url 'salary_dashboard' %}" class="salary-nav-card"><span class="salary-nav-icon"><i class="bi bi-wallet2" aria-hidden="true"></i></span><span class="salary-nav-copy"><strong>Maaş Ödeme</strong><small>Ödemeler, avanslar ve kalan bakiye</small></span><i class="bi bi-arrow-right salary-nav-arrow" aria-hidden="true"></i></a><a href="{% url 'salary_definitions' %}" class="salary-nav-card is-active" aria-current="page"><span class="salary-nav-icon"><i class="bi bi-person-lines-fill" aria-hidden="true"></i></span><span class="salary-nav-copy"><strong>Maaş Tanımları</strong><small>Net ücretler ve maaş geçmişi</small></span><i class="bi bi-arrow-right salary-nav-arrow" aria-hidden="true"></i></a></nav>
-<div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
-<div><strong>{{ period_start|date:"d.m.Y" }} – {{ period_end|date:"d.m.Y" }}</strong><div class="lead-note">Maaş dönemi ayın 6'sında başlar ve sonraki ayın 5'inde biter (5 dahil).</div></div>
-<form method="get" class="d-flex gap-2"><select name="month" class="form-select form-select-sm">
-<option value="1" {% if month == 1 %}selected{% endif %}>Ocak</option><option value="2" {% if month == 2 %}selected{% endif %}>Şubat</option><option value="3" {% if month == 3 %}selected{% endif %}>Mart</option><option value="4" {% if month == 4 %}selected{% endif %}>Nisan</option><option value="5" {% if month == 5 %}selected{% endif %}>Mayıs</option><option value="6" {% if month == 6 %}selected{% endif %}>Haziran</option><option value="7" {% if month == 7 %}selected{% endif %}>Temmuz</option><option value="8" {% if month == 8 %}selected{% endif %}>Ağustos</option><option value="9" {% if month == 9 %}selected{% endif %}>Eylül</option><option value="10" {% if month == 10 %}selected{% endif %}>Ekim</option><option value="11" {% if month == 11 %}selected{% endif %}>Kasım</option><option value="12" {% if month == 12 %}selected{% endif %}>Aralık</option>
-</select><input type="number" class="form-control form-control-sm" style="width:92px" name="year" value="{{ year }}" min="2020" max="2100"><button class="btn btn-primary btn-sm">Göster</button></form>
-</div>
+<a class="salary-back" href="{% url 'salary_home' %}"><i class="bi bi-arrow-left"></i> Maaş Yönetimi</a>
+<h1>Maaş Tanımları</h1>
+<p class="lead-note">Her personelin net aylık maaşını geçerli olduğu dönem için tanımlayın. Dönem başlangıcı ayın 6'sı, bitişi sonraki ayın 5'idir.</p>
 {% if messages %}{% for message in messages %}<div class="alert alert-{% if message.tags == 'error' %}danger{% else %}success{% endif %}">{{ message }}</div>{% endfor %}{% endif %}
-<div class="panel"><table class="rate-table"><thead><tr><th>Personel</th><th>Seçilen Dönemdeki Net Maaş</th><th>İşlem</th></tr></thead><tbody>
-{% for row in rows %}<tr><td><strong>{{ row.user.get_full_name|default:row.user.username }}</strong></td><td><strong>{{ row.effective|floatformat:2 }} ₺</strong></td><td><button type="button" data-bs-toggle="modal" data-bs-target="#rate-{{ row.user.pk }}" class="btn btn-outline-primary btn-sm">Tanımla / Geçmiş</button></td></tr>{% empty %}<tr><td colspan="3" class="text-center text-muted">Aktif personel yok.</td></tr>{% endfor %}
-</tbody></table></div>
+<div class="panel"><div style="overflow-x:auto"><table><thead><tr><th>Personel</th><th>Maaş dönemi (Ay/Yıl – Ay/Yıl)</th><th>Net aylık maaş</th><th>İşlem</th></tr></thead><tbody>
 {% for row in rows %}
-<div class="modal fade" tabindex="-1" id="rate-{{ row.user.pk }}" aria-hidden="true"><div class="modal-dialog modal-lg modal-dialog-centered"><div class="modal-content rounded-4"><div class="modal-header"><div><h5 class="modal-title fw-bold">{{ row.user.get_full_name|default:row.user.username }}</h5><small class="text-muted">Net maaş ve geçerlilik tarihi</small></div><button class="btn-close" data-bs-dismiss="modal" aria-label="Kapat"></button></div>
-<div class="modal-body"><form method="post" action="{% url 'salary_rate_action' %}" class="rate-form">{% csrf_token %}<input type="hidden" name="user_id" value="{{ row.user.pk }}"><input type="hidden" name="year" value="{{ year }}"><input type="hidden" name="month" value="{{ month }}">
-<label>Net aylık maaş (TL)<input name="amount" type="number" step="0.01" min="0" required placeholder="35000"></label>
-<label>Geçerlilik başlangıcı<input name="start_date" type="date" required></label>
-<label>Bitiş (boş = devam ediyor)<input name="end_date" type="date"></label>
-<div style="grid-column:1/-1"><button type="submit" class="btn btn-primary">Maaş Tanımını Kaydet</button></div></form>
-<div class="lead-note mt-2">Dönemler çakışamaz. Önceden oluşturulmuş maaş dönemleri değişmez.</div>
-<h6 class="fw-bold mt-4">Maaş Geçmişi</h6><div class="rate-history"><table><thead><tr><th>Başlangıç</th><th>Bitiş</th><th>Aylık Net</th><th>Kaydeden</th></tr></thead><tbody>{% for rate in row.rates %}<tr><td>{{ rate.start_date|date:"d.m.Y" }}</td><td>{% if rate.end_date %}{{ rate.end_date|date:"d.m.Y" }}{% else %}Devam ediyor{% endif %}</td><td>{{ rate.monthly_net|floatformat:2 }} ₺</td><td>{{ rate.created_by.username }}</td></tr>{% empty %}<tr><td colspan="4">Henüz tarihli maaş tanımı bulunmuyor.</td></tr>{% endfor %}</tbody></table></div></div><div class="modal-footer"><button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Kapat</button></div></div></div></div>
+{% for rate in row.rates %}
+<tr><td><strong>{{ row.user.get_full_name|default:row.user.username }}</strong></td><td>{{ rate.start_date|date:"m/Y" }} – {% if rate.end_date %}{{ rate.end_date|date:"m/Y" }}{% else %}Devam ediyor{% endif %}<div class="lead-note">{{ rate.start_date|date:"d.m.Y" }} – {% if rate.end_date %}{{ rate.end_date|date:"d.m.Y" }}{% else %}Süresiz{% endif %}</div></td><td><strong>{{ rate.monthly_net|floatformat:2 }} ₺</strong></td><td><button type="button" class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#rate-{{ row.user.pk }}">Yeni dönem tanımla</button></td></tr>
+{% empty %}
+<tr><td><strong>{{ row.user.get_full_name|default:row.user.username }}</strong></td><td class="text-muted">Henüz tanımlanmadı</td><td>—</td><td><button type="button" class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#rate-{{ row.user.pk }}">Maaş Tanımla</button></td></tr>
 {% endfor %}
-</div>
-{% endblock %}
+{% empty %}<tr><td colspan="4" class="text-center text-muted">Aktif personel yok.</td></tr>
+{% endfor %}
+</tbody></table></div></div>
+{% for row in rows %}
+<div class="modal fade" tabindex="-1" id="rate-{{ row.user.pk }}" aria-hidden="true"><div class="modal-dialog modal-lg modal-dialog-centered"><div class="modal-content rounded-4"><div class="modal-header"><div><h5 class="modal-title fw-bold">{{ row.user.get_full_name|default:row.user.username }}</h5><small class="text-muted">Yeni net maaş dönemi</small></div><button class="btn-close" data-bs-dismiss="modal" aria-label="Kapat"></button></div>
+<div class="modal-body"><form method="post" action="{% url 'salary_rate_action' %}" class="rate-form">{% csrf_token %}<input type="hidden" name="user_id" value="{{ row.user.pk }}">
+<label>Başlangıç (Ay/Yıl)<input type="month" name="start_month" required></label>
+<label>Bitiş (Ay/Yıl)<input type="month" name="end_month"><small class="lead-note">Boş = devam ediyor</small></label>
+<label>Net aylık maaş (TL)<input name="amount" type="number" step="0.01" min="0" required></label>
+<div style="grid-column:1/-1"><button type="submit" class="btn btn-primary">Maaş Tanımını Kaydet</button></div></form>
+<div class="lead-note mt-2">Örnek: 10/2026 – 11/2026, 06.10.2026–05.11.2026 dönemini kapsar. Dönemler çakışamaz; mevcut ödeme kayıtları değişmez.</div>
+<h6 class="fw-bold mt-4">Maaş Geçmişi</h6>
+<table><thead><tr><th>Başlangıç</th><th>Bitiş</th><th>Net Maaş</th><th>Kaydeden</th></tr></thead><tbody>{% for rate in row.rates %}<tr><td>{{ rate.start_date|date:"d.m.Y" }}</td><td>{% if rate.end_date %}{{ rate.end_date|date:"d.m.Y" }}{% else %}Devam ediyor{% endif %}</td><td>{{ rate.monthly_net|floatformat:2 }} ₺</td><td>{{ rate.created_by.username }}</td></tr>{% empty %}<tr><td colspan="4">Henüz maaş kaydı bulunmuyor.</td></tr>{% endfor %}</tbody></table>
+</div><div class="modal-footer"><button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Kapat</button></div></div></div></div>
+{% endfor %}
+</div>{% endblock %}
