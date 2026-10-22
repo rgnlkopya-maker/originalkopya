@@ -51,7 +51,12 @@ def _salary_for(user, year, month, fallback):
     rate = SalaryRate.objects.filter(user=user, start_date__lte=finish).filter(
         Q(end_date__isnull=True) | Q(end_date__gte=finish)
     ).order_by("-start_date").first()
-    return rate.monthly_net if rate else fallback
+    if rate:
+        return rate.monthly_net
+    # Never apply a newly entered rate to a historical period lacking a definition.
+    if SalaryRate.objects.filter(user=user).exists():
+        return ZERO
+    return fallback
 
 
 def _back(year, month):
