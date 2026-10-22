@@ -582,6 +582,11 @@ def invoice_parasut_preview(request, invoice_id):
     invoice = get_object_or_404(InvoiceDraft.objects.select_related("customer"), pk=invoice_id)
     payload, problems = build_parasut_sales_invoice(invoice)
     transfer = ParasutInvoiceTransfer.objects.filter(invoice=invoice).first()
+    from .invoice_models import ParasutCustomerMapping
+    mapping = ParasutCustomerMapping.objects.filter(customer=invoice.customer).first()
+    export_enabled = (os.environ.get("PARASUT_INVOICE_EXPORT_ENABLED") == "true"
+                      and (not os.environ.get("PARASUT_FIRST_TEST_INVOICE_ID")
+                           or os.environ.get("PARASUT_FIRST_TEST_INVOICE_ID") == str(invoice_id)))
     if transfer and transfer.status in ("SENT", "SENDING", "UNKNOWN"):
         problems.append("Önceki aktarım mevcut veya sonucu belirsiz; yeniden gönderilmemeli.")
     if invoice.status != "DRAFT":
@@ -591,8 +596,51 @@ def invoice_parasut_preview(request, invoice_id):
         "prepared": payload is not None,
         "transfer": transfer,
         "line_count": invoice.lines.count(),
+        "mapping": mapping, "export_enabled": export_enabled,
     })
 
+
+
+@login_required
+@require_POST
+def invoice_parasut_customer_map(request, invoice_id):
+    """Map a pre-existing Paraşüt contact; never create external records."""
+    if not _allowed(request.user):
+        return HttpResponseForbidden("Yetkiniz yok.")
+    from .invoice_models import ParasutCustomerMapping
+    invoice = get_object_or_404(InvoiceDraft, pk=invoice_id)
+    code = request.POST.get("external_contact_id", "").strip()
+    if not code.isdecimal() or len(code) > 100:
+        messages.error(request, "Geçerli bir Paraşüt cari ID girin.")
+        return redirect("invoice_parasut_preview", invoice_id=invoice_id)
+    if ParasutCustomerMapping.objects.filter(external_contact_id=code).exclude(customer=invoice.customer).exists():
+        messages.error(request, "Bu Paraşüt carisi başka müşteriye eşleştirilmiş.")
+        return redirect("invoice_parasut_preview", invoice_id=invoice_id)
+    try:
+        ParasutCustomerMapping.objects.update_or_create(customer=invoice.customer, defaults={"external_contact_id": code})
+    except IntegrityError:
+        messages.error(request, "Cari eşleştirmesi çakıştı.")
+    else:
+        messages.success(request, "Paraşüt carisi eşleştirildi; fatura oluşturulmadı.")
+    return redirect("invoice_parasut_preview", invoice_id=invoice_id)
+
+
+@login_required
+@require_POST
+def invoice_parasut_send(request, invoice_id):
+    if not _allowed(request.user):
+        return HttpResponseForbidden("Yetkiniz yok.")
+    from .parasut_export_service import send_sales_record, ParasutExportError
+    try:
+        remote_id = send_sales_record(invoice_id)
+    except ParasutExportError as exc:
+        messages.error(request, str(exc))
+    except Exception:
+        logging.getLogger(__name__).exception("Paraşüt export failed, invoice=%s", invoice_id)
+        messages.error(request, "Aktarımın sonucu belirsiz; Paraşüt kontrol edilmeden tekrar denemeyin.")
+    else:
+        messages.success(request, "Paraşüt satış kaydı oluşturuldu (ID: " + remote_id + "). E-belge gönderilmedi.")
+    return redirect("invoice_parasut_preview", invoice_id=invoice_id)
 
 @login_required
 def invoice_parasut_connection_status(request):
