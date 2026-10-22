@@ -107,7 +107,8 @@ def salary_dashboard(request):
     plans_by_user = {}
     for plan in plans:
         plans_by_user.setdefault(plan.user_id, []).append(plan)
-    total_planned = sum((p.amount for p in plans if not p.completed), ZERO)
+    total_planned_bank = sum((p.amount for p in plans if not p.completed and p.method == "bank"), ZERO)
+    total_planned_cash = sum((p.amount for p in plans if not p.completed and p.method == "cash"), ZERO)
     rows = []
     total_earned = total_paid = ZERO
     for user in employees:
@@ -121,13 +122,15 @@ def salary_dashboard(request):
         rows.append({"user": user, "profile": profile, "period": period, "base": base, "earned": earned,
                      "adjustment": adjustment, "deduction": deduction, "paid": paid, "remaining": earned - paid,
                      "plans": plans_by_user.get(user.pk, []),
-                     "planned": sum((p.amount for p in plans_by_user.get(user.pk, []) if not p.completed), ZERO)})
+                     "planned": sum((p.amount for p in plans_by_user.get(user.pk, []) if not p.completed), ZERO),
+                     "planned_bank": sum((p.amount for p in plans_by_user.get(user.pk, []) if not p.completed and p.method == "bank"), ZERO),
+                     "planned_cash": sum((p.amount for p in plans_by_user.get(user.pk, []) if not p.completed and p.method == "cash"), ZERO)})
         total_earned += earned
         total_paid += paid
     return render(request, "attendance_v2/salaries.html", {
         "rows": rows, "year": year, "month": month, "period_start": period_start, "period_end": period_end,
         "total_earned": total_earned, "total_paid": total_paid, "total_remaining": total_earned-total_paid,
-        "total_planned": total_planned
+        "total_planned_bank": total_planned_bank, "total_planned_cash": total_planned_cash
     })
 
 
@@ -298,11 +301,14 @@ def salary_plan_action(request):
                 amount = _amount(request.POST.get("amount"), positive=True)
                 planned_on = date.fromisoformat(request.POST.get("planned_on") or "")
                 kind = request.POST.get("kind")
+                plan_method = request.POST.get("method")
+                if plan_method not in ("bank", "cash"):
+                    raise ValueError("Planlanan ödeme yöntemi geçersiz.")
                 if kind not in ("advance", "payment"):
                     raise ValueError("Planlanan ödeme türü geçersiz.")
                 SalaryPaymentPlan.objects.create(
                     user=employee, year=year, month=month, planned_on=planned_on,
-                    amount=amount, kind=kind, note=(request.POST.get("note") or "")[:300],
+                    amount=amount, kind=kind, method=plan_method, note=(request.POST.get("note") or "")[:300],
                     created_by=request.user,
                 )
                 messages.success(request, "Ödeme planı kaydedildi; maaş bakiyesi değişmedi.")
