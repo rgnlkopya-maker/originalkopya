@@ -104,6 +104,47 @@ def invoice_customer_mapping_list(request):
     })
 
 
+
+@login_required
+def invoice_parasut_mapping_list(request):
+    if not _allowed(request.user):
+        return HttpResponseForbidden("Yetkiniz yok.")
+    from .invoice_models import ParasutCustomerMapping
+    customers = list(Musteri.objects.filter(aktif=True).order_by("ad"))
+    mappings = dict(ParasutCustomerMapping.objects.filter(customer_id__in=[c.id for c in customers]).values_list("customer_id", "external_contact_id"))
+    for customer in customers:
+        customer.parasut_code = mappings.get(customer.pk, "")
+    return render(request, "product_cards/invoice_parasut_mapping.html", {
+        "customers": customers, "customer_count": len(customers), "mapped_count": len(mappings),
+    })
+
+
+@login_required
+@require_POST
+def invoice_parasut_mapping_save(request, customer_id):
+    if not _allowed(request.user):
+        return HttpResponseForbidden("Yetkiniz yok.")
+    from .invoice_models import ParasutCustomerMapping
+    customer = get_object_or_404(Musteri, pk=customer_id, aktif=True)
+    code = request.POST.get("external_contact_id", "").strip()
+    if not code.isdecimal() or len(code) > 100:
+        messages.error(request, "Geçerli bir Paraşüt cari ID girin.")
+        return redirect("invoice_parasut_mapping_list")
+    try:
+        with transaction.atomic():
+            if ParasutCustomerMapping.objects.filter(external_contact_id=code).exclude(customer=customer).exists():
+                messages.error(request, "Paraşüt cari ID başka bir müşteriye eşleştirilmiş.")
+                return redirect("invoice_parasut_mapping_list")
+            ParasutCustomerMapping.objects.update_or_create(
+                customer=customer, defaults={"external_contact_id": code},
+            )
+    except IntegrityError:
+        messages.error(request, "Cari eşleştirmesi çakıştı.")
+    else:
+        messages.success(request, customer.ad + ": Paraşüt cari eşleştirmesi kaydedildi. Fatura gönderilmedi.")
+    return redirect("invoice_parasut_mapping_list")
+
+
 @login_required
 def invoice_bizimhesap_customers(request):
     if not _allowed(request.user):
