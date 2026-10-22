@@ -73,6 +73,12 @@ def _get_period(user, year, month):
 
 @login_required
 @user_passes_test(has_full_access)
+def salary_home(request):
+    return render(request, "attendance_v2/salary_home.html")
+
+
+@login_required
+@user_passes_test(has_full_access)
 def salary_dashboard(request):
     year, month = _period(request)
     employees = User.objects.filter(is_active=True, is_superuser=False).exclude(
@@ -105,26 +111,15 @@ def salary_dashboard(request):
 @login_required
 @user_passes_test(has_full_access)
 def salary_definitions(request):
-    year, month = _period(request)
-    period_start, period_end = _bounds(year, month)
     employees = User.objects.filter(is_active=True, is_superuser=False).exclude(
-        groups__name__iexact="patron").exclude(groups__name__iexact="mudur").distinct().order_by("first_name", "last_name", "username")
-    rates = SalaryRate.objects.filter(user__in=employees).order_by("-start_date")
+        groups__name__iexact="patron"
+    ).exclude(groups__name__iexact="mudur").distinct().order_by("first_name", "last_name", "username")
+    rates = SalaryRate.objects.filter(user__in=employees).order_by("-start_date", "-id")
     indexed = {}
     for rate in rates:
         indexed.setdefault(rate.user_id, []).append(rate)
-    profiles = {p.user_id: p for p in SalaryProfile.objects.filter(user__in=employees)}
-    rows = []
-    for employee in employees:
-        profile = profiles.get(employee.pk)
-        rows.append({
-            "user": employee, "rates": indexed.get(employee.pk, []),
-            "effective": _salary_for(employee, year, month, profile.monthly_net if profile else ZERO)
-        })
-    return render(request, "attendance_v2/salary_definitions.html", {
-        "rows": rows, "year": year, "month": month,
-        "period_start": period_start, "period_end": period_end,
-    })
+    rows = [{"user": employee, "rates": indexed.get(employee.pk, [])} for employee in employees]
+    return render(request, "attendance_v2/salary_definitions.html", {"rows": rows})
 
 
 @login_required
@@ -132,16 +127,27 @@ def salary_definitions(request):
 @require_POST
 def salary_rate_action(request):
     year, month = _period(request)
-    target = f"{reverse('salary_definitions')}?year={year}&month={month}"
+    target = reverse('salary_definitions')
     employee = get_object_or_404(User, pk=request.POST.get("user_id"), is_active=True, is_superuser=False)
     if employee.groups.filter(name__in=["patron", "mudur"]).exists():
         messages.error(request, "Bu hesap personel listesinde bulunmuyor.")
         return redirect(target)
     try:
         amount = _amount(request.POST.get("amount"))
-        start = date.fromisoformat(request.POST.get("start_date") or "")
-        end_raw = request.POST.get("end_date") or ""
-        end = date.fromisoformat(end_raw) if end_raw else None
+        start_month = request.POST.get("start_month") or ""
+        end_month = request.POST.get("end_month") or ""
+        if start_month:
+            first = date.fromisoformat(start_month + "-01")
+            start = first.replace(day=6)
+            if end_month:
+                last = date.fromisoformat(end_month + "-01")
+                end = last.replace(day=5)
+            else:
+                end = None
+        else:
+            start = date.fromisoformat(request.POST.get("start_date") or "")
+            end_raw = request.POST.get("end_date") or ""
+            end = date.fromisoformat(end_raw) if end_raw else None
         if end and end < start:
             raise ValueError("Bitiş tarihi başlangıçtan önce olamaz.")
         with transaction.atomic():
