@@ -28,6 +28,7 @@ urlpatterns = [
     path("faturalar/<int:invoice_id>/durumlar/", invoice_views.invoice_live_status, name="invoice_live_status"),
     path("faturalar/<int:invoice_id>/sil/", invoice_views.invoice_delete_empty, name="invoice_delete_empty"),
     path("faturalar/<int:invoice_id>/satir/<int:line_id>/cikar/", invoice_views.invoice_remove, name="invoice_remove"),
+    path("faturalar/<int:invoice_id>/satir/<int:line_id>/kdv/", invoice_views.invoice_vat_update, name="invoice_vat_update"),
     path("faturalar/<int:invoice_id>/satir/<int:line_id>/fiyat/", invoice_views.invoice_price, name="invoice_price"),
     path("faturalar/<int:invoice_id>/acik-hesap/", invoice_views.invoice_open_account, name="invoice_open_account"),
     path("faturalar/<int:invoice_id>/faturalandirmayi-geri-al/", invoice_views.invoice_unfinalize, name="invoice_unfinalize"),
