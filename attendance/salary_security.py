@@ -18,6 +18,7 @@ class SalaryPasswordGateMiddleware:
 
     PREFIX = "/attendance/maaslar/"
     VERIFIED_SESSION_KEY = "_salary_password_verified_user"
+    HANDOFF_KEY = "_salary_gate_handoff"
 
     def __init__(self, get_response):
         self.get_response = get_response
@@ -25,6 +26,13 @@ class SalaryPasswordGateMiddleware:
     def __call__(self, request):
         path = request.path
         if not path.startswith(self.PREFIX):
+            if request.user.is_authenticated and request.method == "GET" and (
+                request.META.get("HTTP_SEC_FETCH_DEST") == "document"
+                or (request.META.get("HTTP_ACCEPT", "").startswith("text/html")
+                    and request.META.get("HTTP_X_REQUESTED_WITH") != "XMLHttpRequest")
+            ):
+                request.session.pop(self.VERIFIED_SESSION_KEY, None)
+                request.session.pop(self.HANDOFF_KEY, None)
             return self.get_response(request)
 
         user = request.user
@@ -45,7 +53,13 @@ class SalaryPasswordGateMiddleware:
         internal_navigation = trusted_referrer and ref_path.startswith(self.PREFIX)
         verified = request.session.get(self.VERIFIED_SESSION_KEY) == user.pk
 
-        if not verified or (request.method == "GET" and not internal_navigation):
+        handoff = request.session.pop(self.HANDOFF_KEY, None)
+        from_gate = handoff == request.get_full_path()
+        fresh_home = request.method == "GET" and path == reverse("salary_home") and not from_gate
+        forced_reauth = request.GET.get("salary_reauth") == "1"
+        if not verified or forced_reauth or fresh_home or (
+            request.method == "GET" and not internal_navigation and not from_gate
+        ):
             request.session.pop(self.VERIFIED_SESSION_KEY, None)
             if request.method != "GET":
                 return self._uncached(HttpResponseRedirect(gate_path))
@@ -69,6 +83,7 @@ class SalaryPasswordGateMiddleware:
                 destination = request.session.pop("_salary_gate_next", None) or reverse("salary_home")
                 if not destination.startswith(self.PREFIX) or destination == reverse("salary_password_gate"):
                     destination = reverse("salary_home")
+                request.session[self.HANDOFF_KEY] = destination
                 return HttpResponseRedirect(destination)
             error = "Şifre yanlış. Lütfen tekrar deneyin."
         return render(request, "attendance_v2/salary_password_gate.html", {"error": error})
