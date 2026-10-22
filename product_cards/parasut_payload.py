@@ -43,8 +43,6 @@ def build_parasut_sales_invoice(invoice, product_ids=None):
             parts.append("Renk: " + str(order.renk))
         if order.beden:
             parts.append("Beden: " + str(order.beden))
-        if order.siparis_tipi:
-            parts.append("Sipariş tipi: " + order.get_siparis_tipi_display())
         items.append({
             "type": "sales_invoice_details",
             "attributes": {
