@@ -12,7 +12,7 @@
     <div><strong>Ürün satırı:</strong> {{ line_count }}</div>
     <div><strong>Aktarım durumu:</strong> {% if transfer %}{{ transfer.get_status_display }}{% else %}Gönderilmedi{% endif %}</div>
   </div></div>
-  {% if problems %}
+  {% if problems and not transfer or problems and transfer.status != "SENT" %}
     <div class="alert alert-warning"><strong>Aktarım öncesi çözülmesi gerekenler:</strong>
       <ul class="mb-0">{% for problem in problems %}<li>{{ problem }}</li>{% endfor %}</ul>
     </div>
@@ -23,8 +23,10 @@
 <p><a href="{% url 'invoice_parasut_mapping_list' %}" class="btn btn-outline-primary btn-sm">Paraşüt Cari Eşleştirme Sayfası</a></p>
 {% if transfer and transfer.status == "SENT" %}
 <div class="alert alert-success">Paraşüt satış kaydı: {{ transfer.external_invoice_id }} — e-belge gönderilmedi.</div>
+{% elif transfer and transfer.status == "SENDING" %}
+<div class="alert alert-info">Paraşüt aktarımı sürüyor. Yeniden gönderim kilitli.</div>
 {% elif transfer and transfer.status == "UNKNOWN" %}
-<div class="alert alert-warning">Aktarım sonucu belirsiz. Yeniden gönderim kilitlendi.</div>
+<div class="alert alert-warning">Aktarım sonucu belirsiz. Paraşüt kayıtları kontrol edilmeden yeniden gönderilemez.</div>
 {% endif %}
 {% if export_enabled and mapping and invoice.status == "DRAFT" and not transfer %}
 <form method="post" action="{% url 'invoice_parasut_send' invoice.id %}" onsubmit="return confirm('Paraşüt üzerinde gerçek satış kaydı ve gerektiğinde ürün kartları oluşturulacak. E-belge gönderilmeyecek. Devam edilsin mi?');">
