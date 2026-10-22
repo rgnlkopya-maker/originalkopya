@@ -76,6 +76,11 @@ def _team_employees():
     employees = User.objects.filter(is_active=True, is_superuser=False).filter(
         Q(hr_profile__employment_end_date__isnull=True) | Q(hr_profile__isnull=True)
     ).exclude(groups__name__iexact="patron").exclude(groups__name__iexact="mudur").distinct()
+    # Explicitly include two management employees in payroll, without changing their permissions.
+    additional = User.objects.filter(pk__in=[15, 19], is_active=True, is_superuser=False).filter(
+        Q(hr_profile__employment_end_date__isnull=True) | Q(hr_profile__isnull=True)
+    )
+    employees = (employees | additional).distinct()
     return sorted(employees, key=lambda user: (user.get_full_name().strip() or user.username).casefold())
 
 
@@ -167,7 +172,7 @@ def salary_rate_action(request):
     year, month = _period(request)
     target = reverse('salary_definitions')
     employee = get_object_or_404(User, pk=request.POST.get("user_id"), is_active=True, is_superuser=False)
-    if employee.groups.filter(name__in=["patron", "mudur"]).exists():
+    if employee.pk not in (15, 19) and employee.groups.filter(name__in=["patron", "mudur"]).exists():
         messages.error(request, "Bu hesap personel listesinde bulunmuyor.")
         return redirect(target)
     try:
