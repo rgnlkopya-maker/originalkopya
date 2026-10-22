@@ -2,6 +2,7 @@ from django.urls import path
 from . import views, salary_views
 
 urlpatterns = [
+    path("maaslar/sifre/", salary_views.salary_home, name="salary_password_gate_placeholder"),
     path("maaslar/", salary_views.salary_home, name="salary_home"),
     path("maaslar/odeme/", salary_views.salary_dashboard, name="salary_dashboard"),
     path("maaslar/islem/", salary_views.salary_action, name="salary_action"),
