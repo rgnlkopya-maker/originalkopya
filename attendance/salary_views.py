@@ -6,6 +6,7 @@ from django.contrib.auth.models import User
 from django.db import transaction
 from django.db.models import Prefetch
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
 from django.utils import timezone
 from django.views.decorators.http import require_POST
 from app_settings.access import has_full_access
@@ -38,7 +39,7 @@ def _period(request):
 
 
 def _back(year, month):
-    return f"/attendance/maaslar/?year={year}&month={month}"
+    return f"{reverse('salary_dashboard')}?year={year}&month={month}"
 
 
 def _get_period(user, year, month):
@@ -84,7 +85,10 @@ def salary_dashboard(request):
 def salary_action(request):
     year, month = _period(request)
     back = _back(year, month)
-    employee = get_object_or_404(User, pk=request.POST.get("user_id"), is_active=True)
+    employee = get_object_or_404(User, pk=request.POST.get("user_id"), is_active=True, is_superuser=False)
+    if employee.groups.filter(name__in=["patron", "mudur"]).exists():
+        messages.error(request, "Bu hesap personel maaş listesinde bulunmuyor.")
+        return redirect(back)
     action = request.POST.get("action")
     try:
         with transaction.atomic():
