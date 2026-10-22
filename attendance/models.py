@@ -154,3 +154,51 @@ class AttendanceRecord(models.Model):
 
     def __str__(self):
         return f"{self.user} - {self.work_date}"
+
+
+class SalaryProfile(models.Model):
+    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="salary_profile")
+    monthly_net = models.DecimalField(max_digits=13, decimal_places=2, default=0)
+    updated_at = models.DateTimeField(auto_now=True)
+
+
+class SalaryPeriod(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="salary_periods")
+    year = models.PositiveSmallIntegerField()
+    month = models.PositiveSmallIntegerField()
+    base_net = models.DecimalField(max_digits=13, decimal_places=2)
+    adjustment = models.DecimalField(max_digits=13, decimal_places=2, default=0)
+    deduction = models.DecimalField(max_digits=13, decimal_places=2, default=0)
+    locked = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        constraints = [models.UniqueConstraint(fields=["user", "year", "month"], name="unique_salary_period")]
+
+    @property
+    def earned(self):
+        return self.base_net + self.adjustment - self.deduction
+
+    @property
+    def total_paid(self):
+        return sum((t.amount for t in self.transactions.filter(voided_at__isnull=True)), 0)
+
+    @property
+    def remaining(self):
+        return self.earned - self.total_paid
+
+
+class SalaryTransaction(models.Model):
+    METHOD_CHOICES = [("cash", "Nakit"), ("bank", "Banka"), ("other", "Diğer")]
+    KIND_CHOICES = [("payment", "Maaş Ödemesi"), ("advance", "Avans")]
+    period = models.ForeignKey(SalaryPeriod, on_delete=models.PROTECT, related_name="transactions")
+    amount = models.DecimalField(max_digits=13, decimal_places=2)
+    paid_on = models.DateField()
+    method = models.CharField(max_length=12, choices=METHOD_CHOICES, default="cash")
+    kind = models.CharField(max_length=12, choices=KIND_CHOICES, default="payment")
+    note = models.CharField(max_length=300, blank=True, default="")
+    recorded_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="salary_payments_recorded")
+    created_at = models.DateTimeField(auto_now_add=True)
+    voided_at = models.DateTimeField(null=True, blank=True)
+    voided_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, null=True, blank=True, related_name="salary_payments_voided")
