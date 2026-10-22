@@ -20,7 +20,28 @@
     <div class="alert alert-info">Fatura verileri ön kontrollerden geçti. Gerçek API gönderimi henüz devre dışıdır.</div>
   {% endif %}
   <div class="mb-3"><button type="button" class="btn btn-outline-primary" id="parasut-check">Paraşüt bağlantısını kontrol et</button><p id="parasut-check-result" class="small mt-2" role="status" aria-live="polite"></p></div>
-  <button class="btn btn-secondary" disabled>Paraşüt'e Gönder (henüz kapalı)</button>
+<div class="card mb-3"><div class="card-body">
+<h5>Paraşüt cari eşleştirme</h5>
+<form method="post" action="{% url 'invoice_parasut_customer_map' invoice.id %}" class="d-flex gap-2 flex-wrap">
+{% csrf_token %}
+<input class="form-control" style="max-width:220px" name="external_contact_id" value="{{ mapping.external_contact_id|default:'' }}" placeholder="Paraşüt Cari ID" required>
+<button class="btn btn-outline-primary" type="submit">Cariyi Kaydet</button>
+</form>
+<p class="small text-muted mt-2">Paraşüt carilerini görüntülemek için <a target="_blank" href="{% url 'invoice_parasut_catalog' %}?resource=contacts">mevcut cari listesini aç</a>. Bu bağlantı salt okunurdur.</p>
+</div></div>
+{% if transfer and transfer.status == "SENT" %}
+<div class="alert alert-success">Paraşüt satış kaydı: {{ transfer.external_invoice_id }} — e-belge gönderilmedi.</div>
+{% elif transfer and transfer.status == "UNKNOWN" %}
+<div class="alert alert-warning">Aktarım sonucu belirsiz. Yeniden gönderim kilitlendi.</div>
+{% endif %}
+{% if export_enabled and mapping and invoice.status == "DRAFT" and not transfer %}
+<form method="post" action="{% url 'invoice_parasut_send' invoice.id %}" onsubmit="return confirm('Paraşüt üzerinde gerçek satış kaydı ve gerektiğinde ürün kartları oluşturulacak. E-belge gönderilmeyecek. Devam edilsin mi?');">
+{% csrf_token %}<button type="submit" class="btn btn-primary">Paraşüt'e Taslak Satış Kaydı Aç</button>
+</form>
+{% else %}
+<button class="btn btn-secondary" disabled>Paraşüt'e Aktar (gönderim izni veya ön koşullar eksik)</button>
+{% endif %}
+
 <script>
 (function(){
 const button=document.getElementById("parasut-check"),result=document.getElementById("parasut-check-result");
