@@ -1,6 +1,16 @@
 {% extends "base.html" %}
 {% load l10n %}
 {% block content %}
+<script>
+// Tarayıcı geri/ileri önbelleğinden dönen puantaj ekranı yeniden şifre doğrulamalı.
+window.addEventListener('pageshow', function(event) {
+  const navigation = performance.getEntriesByType('navigation')[0];
+  if (event.persisted || (navigation && navigation.type === 'back_forward')) {
+    window.location.replace('{% url "attendance_dashboard" %}?attendance_reauth=1');
+  }
+});
+</script>
+
 <style>
   .attendance-table-wrap { overflow-x: auto; overflow-y: visible; position: relative; }
   .attendance-sticky-head th { background: #f8f9fa !important; }
