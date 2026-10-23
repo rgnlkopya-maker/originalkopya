@@ -88,10 +88,6 @@ def invoice_platform_status_update(request, invoice_id):
         invoice = get_object_or_404(InvoiceDraft.objects.select_for_update(), pk=invoice_id)
         setattr(invoice, field, recorded)
         fields = [field, "updated_at"]
-        if platform == "parasut" and recorded != "api" and invoice.official_number:
-            invoice.official_number = ""
-            fields.append("official_number")
-            InvoiceStatusHistory.objects.filter(invoice=invoice).exclude(previous_official_number="").update(previous_official_number="")
         invoice.save(update_fields=fields)
     messages.success(request, "Görünen takip durumu güncellendi. API aktarım geçmişi ve dış faturalar değişmedi.")
     return redirect("invoice_list")
