@@ -11,6 +11,7 @@ class InvoiceDraft(models.Model):
     status = models.CharField(max_length=8, choices=STATUS, default="DRAFT")
     currency = models.CharField(max_length=3, default="TRY")
     official_number = models.CharField(max_length=80, blank=True, default="")
+    show_open_account_in_list = models.BooleanField(default=False)
     bizimhesap_manual_recorded = models.BooleanField(default=False)
     parasut_manual_recorded = models.BooleanField(default=False)
     bizimhesap_display_status = models.CharField(max_length=8, blank=True, default="", choices=[("", "Otomatik"), ("no", "İşlenmedi"), ("yes", "Elle İşlendi"), ("api", "API ile Aktarıldı"), ("skip", "Aktarılmayacak")])
