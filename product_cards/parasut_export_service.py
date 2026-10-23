@@ -77,6 +77,9 @@ def send_sales_record(invoice_id):
         if previous and previous.status != "NOT_SENT":
             raise ParasutExportError("Önceki aktarım var veya sonucu belirsiz; mükerrer kayıt engellendi.")
         lines = list(invoice.lines.select_related("order").order_by("id"))
+        from decimal import Decimal
+        if not lines or any(line.vat_rate is None or Decimal(str(line.vat_rate)) != Decimal("10") for line in lines):
+            raise ParasutExportError("Paraşüt aktarımı engellendi: tüm ürünlerde KDV %10 olmalıdır.")
         if not lines or any(not str(line.order.urun_kodu or "").strip() for line in lines):
             raise ParasutExportError("Ürün kodu eksik veya fatura boş.")
         from .parasut_payload import build_parasut_sales_invoice
@@ -101,6 +104,9 @@ def send_sales_record(invoice_id):
         payload, errors = build_parasut_sales_invoice(invoice, codes)
         if errors or not payload:
             raise ParasutExportError("; ".join(errors) or "Fatura verileri hazırlanamadı.")
+        from .parasut_payload import validate_parasut_vat_payload
+        if not validate_parasut_vat_payload(payload, len(lines)):
+            raise ParasutExportError("Paraşüt veri paketinde KDV %10 doğrulanamadı; fatura gönderilmedi.")
         fingerprint = hashlib.sha256(json.dumps(payload, sort_keys=True).encode()).hexdigest()
         with transaction.atomic():
             record = ParasutInvoiceTransfer.objects.select_for_update().get(invoice_id=invoice_id)
