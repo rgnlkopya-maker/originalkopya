@@ -105,3 +105,24 @@ class InvoiceStatusHistory(models.Model):
     new_status = models.CharField(max_length=8)
     previous_official_number = models.CharField(max_length=80, blank=True, default='')
     changed_at = models.DateTimeField(auto_now_add=True)
+
+
+
+class StandaloneInvoice(models.Model):
+    """A manually entered invoice without a production order."""
+    customer = models.ForeignKey("core.Musteri", on_delete=models.PROTECT)
+    invoice_date = models.DateField()
+    due_date = models.DateField(null=True, blank=True)
+    currency = models.CharField(max_length=3, default="TRY")
+    note = models.TextField(blank=True, default="")
+    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+
+class StandaloneInvoiceLine(models.Model):
+    invoice = models.ForeignKey(StandaloneInvoice, on_delete=models.CASCADE, related_name="lines")
+    description = models.CharField(max_length=300)
+    quantity = models.DecimalField(max_digits=12, decimal_places=2, default=1)
+    unit = models.CharField(max_length=20, default="Adet")
+    unit_price = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    vat_rate = models.DecimalField(max_digits=7, decimal_places=2, default=10)
