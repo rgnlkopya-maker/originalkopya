@@ -1,16 +1,14 @@
 from urllib.parse import urlsplit
 
-from django.conf import settings
 from django.contrib.auth import authenticate
 from django.http import HttpResponseForbidden, HttpResponseRedirect
 from django.shortcuts import render
 from django.urls import reverse
 from django.utils.http import url_has_allowed_host_and_scheme
-from django.views.decorators.cache import never_cache
 
 
 class AttendancePasswordGateMiddleware:
-    """Require the signed-in user's password when entering the salary area.
+    """Require the signed-in user's password when entering the attendance dashboard.
 
     Internal navigation remains unlocked; a fresh external/deep-link entry
     requires re-verification. Sensitive pages are never browser-cached.
@@ -43,7 +41,7 @@ class AttendancePasswordGateMiddleware:
         if path == gate_path:
             return self._uncached(self._gate(request))
 
-        # An internal salary navigation may reuse the verification, but
+        # An internal attendance navigation may reuse the verification, but
         # entering from elsewhere (including a direct bookmark) cannot.
         referrer = request.META.get("HTTP_REFERER", "")
         ref_path = urlsplit(referrer).path if referrer else ""
