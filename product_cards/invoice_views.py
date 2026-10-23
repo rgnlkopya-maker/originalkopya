@@ -753,6 +753,24 @@ def invoice_parasut_customer_map(request, invoice_id):
 
 @login_required
 @require_POST
+def invoice_parasut_archive_deleted(request, invoice_id):
+    if not _allowed(request.user):
+        return HttpResponseForbidden("Yetkiniz yok.")
+    from .parasut_export_service import archive_deleted_parasut_draft, ParasutExportError
+    try:
+        old_id = archive_deleted_parasut_draft(invoice_id)
+    except ParasutExportError as exc:
+        messages.error(request, "Paraşüt bağlantısı değiştirilmedi: " + str(exc))
+    except Exception:
+        logging.getLogger(__name__).exception("Paraşüt deleted draft verify failed: FT-%s", invoice_id)
+        messages.error(request, "Paraşüt kaydı doğrulanamadı. Bağlantı korunuyor.")
+    else:
+        messages.success(request, "Paraşüt'te silindiği doğrulanan taslak bağlantısı arşivlendi (eski ID: " + old_id + ").")
+    return redirect("invoice_detail", invoice_id=invoice_id)
+
+
+@login_required
+@require_POST
 def invoice_parasut_update(request, invoice_id):
     if not _allowed(request.user):
         return HttpResponseForbidden("Yetkiniz yok.")
