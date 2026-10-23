@@ -976,6 +976,10 @@ def standalone_invoice_edit(request, invoice_id=None):
         return HttpResponseForbidden("Yetkiniz yok.")
     invoice = get_object_or_404(StandaloneInvoice, pk=invoice_id) if invoice_id else None
     if request.method == "POST":
+        from .invoice_models import StandaloneInvoiceTransfer
+        if invoice and StandaloneInvoiceTransfer.objects.filter(invoice=invoice, status__in=("SENDING", "UNKNOWN")).exists():
+            messages.error(request, "Aktarım sonucu belirsiz olan fatura düzenlenemez.")
+            return redirect("standalone_invoice_edit", invoice_id=invoice.pk)
         try:
             customer = Musteri.objects.get(pk=int(request.POST.get("customer", "")))
             currency = request.POST.get("currency", "")
@@ -1024,6 +1028,24 @@ def standalone_invoice_edit(request, invoice_id=None):
         "invoice": invoice, "customers": Musteri.objects.order_by("ad"),
         "today": timezone.localdate(),
         "manual_lines": list(invoice.lines.order_by("pk")) if invoice else [],
+        "manual_transfers": {item.platform: item.status for item in invoice.transfers.all()} if invoice else {},
     })
 
 
+
+@login_required
+@require_POST
+def standalone_invoice_send(request, invoice_id, platform):
+    if not _allowed(request.user):
+        return HttpResponseForbidden("Yetkiniz yok.")
+    from .standalone_invoice_export import send_manual_invoice, ManualTransferError
+    try:
+        send_manual_invoice(invoice_id, platform)
+    except ManualTransferError as exc:
+        messages.error(request, str(exc))
+    except Exception:
+        logging.getLogger(__name__).exception("manual_invoice_transfer_failed id=%s platform=%s", invoice_id, platform)
+        messages.error(request, "Aktarım tamamlanamadı. Dış muhasebe kaydını kontrol edin.")
+    else:
+        messages.success(request, "Fatura taslağı muhasebe sistemine aktarıldı.")
+    return redirect("standalone_invoice_edit", invoice_id=invoice_id)
