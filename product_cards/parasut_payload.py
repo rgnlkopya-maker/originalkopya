@@ -5,10 +5,10 @@ from .invoice_models import ParasutCustomerMapping, ParasutProductMapping
 CURRENCY = {"TRY": "TRL", "TL": "TRL", "USD": "USD", "EUR": "EUR", "GBP": "GBP"}
 
 
-def build_parasut_sales_invoice(invoice, product_ids=None):
+def build_parasut_sales_invoice(invoice, product_ids=None, lines_override=None):
     product_ids = product_ids or {}
     problems = []
-    if invoice.parasut_manual_recorded:
+    if getattr(invoice, "parasut_manual_recorded", False):
         problems.append("Paraşüt'te elle işlendi olarak işaretlenmiş.")
     contact = ParasutCustomerMapping.objects.filter(customer=invoice.customer).first()
     if not contact:
@@ -21,18 +21,19 @@ def build_parasut_sales_invoice(invoice, product_ids=None):
                (getattr(detail, "adres", "") or "").strip())
     if not address:
         problems.append("Müşteri kartında fatura adresi eksik.")
-    lines = list(invoice.lines.select_related("order").order_by("id"))
+    lines = list(lines_override) if lines_override is not None else list(invoice.lines.select_related("order").order_by("id"))
     if not lines:
         problems.append("Faturada ürün yok.")
     items = []
     for line in lines:
-        code = str(line.order.urun_kodu or "").strip()
+        order = getattr(line, "order", None)
+        code = str(order.urun_kodu if order else line.description or "").strip()
         product = ParasutProductMapping.objects.filter(product_code=code).first() if code not in product_ids else None
         product_id = product_ids.get(code) or (product.external_product_id if product else None)
         if not product_id:
             problems.append("Paraşüt ürünü henüz hazırlanmadı: " + code[:70])
             continue
-        price = Decimal(line.price)
+        price = Decimal(line.price if order else line.unit_price)
         rate = Decimal(line.vat_rate)
         if rate != Decimal("10"):
             problems.append("Paraşüt aktarımı yalnızca tüm satırlarda %10 KDV ile yapılabilir.")
@@ -40,21 +41,20 @@ def build_parasut_sales_invoice(invoice, product_ids=None):
         if not price.is_finite() or price < 0 or not rate.is_finite() or rate < 0 or rate > 100:
             problems.append("Geçersiz ürün fiyatı veya KDV.")
             continue
-        order = line.order
-        if (order.para_birimi or "TRY") != invoice.currency:
+        if order and (order.para_birimi or "TRY") != invoice.currency:
             problems.append("Sipariş ve fatura para birimleri farklı; aktarım engellendi.")
         parts = []
-        if order.renk:
+        if order and order.renk:
             parts.append("Renk: " + str(order.renk))
-        if order.beden:
+        if order and order.beden:
             parts.append("Beden: " + str(order.beden))
         items.append({
             "type": "sales_invoice_details",
             "attributes": {
-                "quantity": 1,
+                "quantity": float(line.quantity) if order is None else 1,
                 "unit_price": str(price),
                 "vat_rate": str(rate),
-                "description": " / ".join(parts) or "Ürün",
+                "description": " / ".join(parts) or (code if order is None else "Ürün"),
             },
             "relationships": {"product": {"data": {"id": product_id, "type": "products"}}},
         })
