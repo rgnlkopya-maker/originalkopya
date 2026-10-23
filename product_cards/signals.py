@@ -182,3 +182,29 @@ def sync_order_financial_snapshot(sender, instance, created, **kwargs):
         "beklenen_kar_tl",
         "beklenen_kar_orani",
     ])
+
+
+@receiver(post_save, sender=Order)
+def sync_unexported_invoice_line_from_order(sender, instance, created, update_fields=None, **kwargs):
+    """Keep a local draft invoice aligned with edited order price/VAT.
+
+    Sent or uncertain transfers are immutable: never rewrite external invoice snapshots.
+    Queryset.update avoids recursion through the Order save signal.
+    """
+    if created:
+        return
+    if update_fields is not None and not {"satis_fiyati", "vat_rate"}.intersection(update_fields):
+        return
+    from .invoice_models import InvoiceLine, BizimHesapInvoiceTransfer, ParasutInvoiceTransfer
+    from django.db.models import Exists, OuterRef
+    blocked_bh = BizimHesapInvoiceTransfer.objects.filter(
+        invoice_id=OuterRef("invoice_id"), status__in=("SENDING", "SENT", "UNKNOWN")
+    )
+    blocked_ps = ParasutInvoiceTransfer.objects.filter(
+        invoice_id=OuterRef("invoice_id"), status__in=("SENDING", "SENT", "UNKNOWN")
+    )
+    line = (InvoiceLine.objects.filter(order_id=instance.pk, invoice__status="DRAFT")
+            .annotate(bh_blocked=Exists(blocked_bh), ps_blocked=Exists(blocked_ps))
+            .filter(bh_blocked=False, ps_blocked=False))
+    line.update(price=instance.satis_fiyati or Decimal("0"),
+                vat_rate=instance.vat_rate or Decimal("0"))
