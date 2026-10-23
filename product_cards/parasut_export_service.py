@@ -124,3 +124,65 @@ def send_sales_record(invoice_id):
         record.last_error = ""
         record.save(update_fields=["status", "external_invoice_id", "last_error", "updated_at"])
     return remote_id
+
+
+def update_sales_record(invoice_id):
+    """Explicit update of the SAME Paraşüt sales invoice, never POST another record."""
+    company = os.environ.get("PARASUT_COMPANY_ID", "").strip()
+    if not company.isdecimal():
+        raise ParasutExportError("Paraşüt firma bilgisi eksik.")
+    with transaction.atomic():
+        inv = InvoiceDraft.objects.select_for_update().select_related("customer").get(pk=invoice_id)
+        rec = ParasutInvoiceTransfer.objects.select_for_update().filter(invoice=inv).first()
+        if not rec or rec.status != "SENT" or not rec.external_invoice_id:
+            raise ParasutExportError("Güncellenebilir Paraşüt aktarım kaydı bulunamadı.")
+        if not rec.needs_sync:
+            raise ParasutExportError("Paraşüt ile eşitlenmesi gereken bir değişiklik yok.")
+        if inv.status != "DRAFT":
+            raise ParasutExportError("Yalnızca taslak MoliApp faturası güncellenebilir.")
+        remote_id = rec.external_invoice_id
+        rec.status = "SENDING"
+        rec.save(update_fields=["status", "updated_at"])
+    try:
+        from .parasut_credentials import valid_access_token
+        from .parasut_payload import build_parasut_sales_invoice
+        token = valid_access_token(company)
+        current = _request(company, token, "sales_invoices/" + remote_id + "?include=details,active_e_document,payments")
+        resource = current.get("data") or {}
+        attrs = resource.get("attributes") or {}
+        relations = resource.get("relationships") or {}
+        if str(resource.get("id")) != remote_id:
+            raise ParasutExportError("Paraşüt kaydı eşleşmedi.")
+        if (relations.get("active_e_document") or {}).get("data"):
+            raise ParasutExportError("Paraşüt faturası resmileşmiş; güncelleme yapılmadı.")
+        if (relations.get("payments") or {}).get("data"):
+            raise ParasutExportError("Paraşüt faturasında tahsilat var; güncelleme yapılmadı.")
+        if attrs.get("item_type") != "invoice":
+            raise ParasutExportError("Paraşüt kayıt tipi uyumsuz.")
+        lines = list(inv.lines.select_related("order").order_by("id"))
+        product_ids = {}
+        for line in lines:
+            code = str(line.order.urun_kodu or "").strip()
+            if code not in product_ids:
+                product_ids[code] = _product(company, token, code, line.vat_rate)
+        payload, errors = build_parasut_sales_invoice(inv, product_ids)
+        if errors or not payload:
+            raise ParasutExportError("; ".join(errors) or "Fatura verisi hazırlanamadı.")
+        # Only update the existing remote ID, never create a second sales invoice.
+        payload["data"]["id"] = remote_id
+        result = _request(company, token, "sales_invoices/" + remote_id, "PUT", payload)
+        if str((result.get("data") or {}).get("id")) != remote_id:
+            raise ParasutExportError("Güncelleme yanıtındaki Paraşüt ID uyuşmuyor; kontrol gerekli.")
+    except ParasutExportError as exc:
+        ParasutInvoiceTransfer.objects.filter(invoice_id=invoice_id, status="SENDING").update(status="SENT", last_error=str(exc)[:255])
+        raise
+    except Exception:
+        ParasutInvoiceTransfer.objects.filter(invoice_id=invoice_id, status="SENDING").update(status="UNKNOWN", last_error="Güncelleme sonucu belirsiz; dış kayıt kontrol edilmeli.")
+        raise ParasutExportError("Paraşüt güncelleme sonucu belirsiz; tekrar denemeden önce dış kaydı kontrol edin.") from None
+    with transaction.atomic():
+        rec = ParasutInvoiceTransfer.objects.select_for_update().get(invoice_id=invoice_id)
+        rec.status = "SENT"
+        rec.needs_sync = False
+        rec.last_error = ""
+        rec.save(update_fields=["status", "needs_sync", "last_error", "updated_at"])
+    return remote_id
