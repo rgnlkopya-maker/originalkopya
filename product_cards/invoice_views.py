@@ -59,7 +59,7 @@ def invoice_list(request):
         invoice.bh_display = invoice.bizimhesap_display_status or ("api" if invoice.bh_transfer_status == "SENT" else ("yes" if invoice.bizimhesap_manual_recorded else "no"))
         invoice.parasut_display = invoice.parasut_display_status or ("api" if invoice.parasut_transfer_status == "SENT" else ("yes" if invoice.parasut_manual_recorded else "no"))
         invoice.list_total = sum((line.price * (Decimal("1") + line.vat_rate / Decimal("100")) for line in invoice.lines.all()), Decimal("0"))
-        invoice.visible_official_number = invoice.official_number if invoice.parasut_display == "api" else ""
+        invoice.visible_official_number = invoice.official_number
     return render(request, "product_cards/invoice_list.html", {"invoices": invoices, "accounting_status_choices": [("no", "İşlenmedi"), ("yes", "Elle İşlendi"), ("api", "API ile Aktarıldı"), ("skip", "Aktarılmayacak")]})
 
 
@@ -254,7 +254,7 @@ def invoice_detail(request, invoice_id):
     if not _allowed(request.user):
         return HttpResponseForbidden("Yetkiniz yok.")
     invoice = get_object_or_404(InvoiceDraft.objects.select_related("customer"), pk=invoice_id)
-    invoice.show_parasut_official_number = (invoice.parasut_display_status or ("api" if ParasutInvoiceTransfer.objects.filter(invoice=invoice, status="SENT").exists() else ("yes" if invoice.parasut_manual_recorded else "no"))) == "api"
+    invoice.show_parasut_official_number = True
     lines = list(invoice.lines.select_related("order").order_by("id"))
     for line in lines:
         line.current_status = status_label(latest_status_event(line.order))
