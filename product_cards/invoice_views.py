@@ -45,6 +45,14 @@ def _pending_shipments_by_invoice():
 
 @login_required
 def invoice_list(request):
+    try:
+        return _invoice_list_impl(request)
+    except Exception:
+        logging.getLogger(__name__).exception("invoice_list_runtime_failure")
+        raise
+
+
+def _invoice_list_impl(request):
     if not _allowed(request.user):
         return HttpResponseForbidden("Yetkiniz yok.")
     invoices = list(InvoiceDraft.objects.select_related("customer").prefetch_related("lines", "bizimhesap_transfer", "parasut_transfer").order_by("-invoice_date", "-id"))
