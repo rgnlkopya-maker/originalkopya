@@ -21,6 +21,7 @@ urlpatterns = [
     path("faturalar/parasut-baglanti/", invoice_views.invoice_parasut_oauth_setup, name="invoice_parasut_oauth_setup"),
     path("faturalar/parasut-baglanti/kaydet/", invoice_views.invoice_parasut_oauth_connect, name="invoice_parasut_oauth_connect"),
     path("faturalar/<int:invoice_id>/parasut-cari-eslestir/", invoice_views.invoice_parasut_customer_map, name="invoice_parasut_customer_map"),
+    path("faturalar/<int:invoice_id>/parasut-resmi-no-sorgula/", invoice_views.invoice_parasut_fetch_official_number, name="invoice_parasut_fetch_official_number"),
     path("faturalar/<int:invoice_id>/parasut-guncelle/", invoice_views.invoice_parasut_update, name="invoice_parasut_update"),
     path("faturalar/<int:invoice_id>/parasut-gonder/", invoice_views.invoice_parasut_send, name="invoice_parasut_send"),
     path("faturalar/parasut-katalog/", invoice_views.invoice_parasut_catalog, name="invoice_parasut_catalog"),
