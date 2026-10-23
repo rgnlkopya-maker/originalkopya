@@ -84,14 +84,20 @@
  <div class="invoice-pending" data-invoice-id="{{ f.id }}" {% if not f.has_pending_shipment %}hidden{% endif %}>● Sevk edilmemiş ürün var</div></div>
  </td>
  <td data-label="BizimHesap">
- {% if f.bh_transfer_status == "SENT" %}<span class="badge bg-success">API ile Aktarıldı</span>
- {% elif f.bh_transfer_status == "SENDING" or f.bh_transfer_status == "UNKNOWN" %}<span class="badge bg-warning text-dark">Kontrol Gerekli</span>
- {% else %}<form method="post" action="{% url 'invoice_platform_status_update' f.id %}">{% csrf_token %}<input type="hidden" name="platform" value="bizimhesap"><select name="recorded" class="form-select form-select-sm" aria-label="FT-{{ f.id }} BizimHesap durumu" onchange="this.form.requestSubmit()"><option value="no" {% if not f.bizimhesap_manual_recorded %}selected{% endif %}>İşlenmedi</option><option value="yes" {% if f.bizimhesap_manual_recorded %}selected{% endif %}>Elle İşlendi</option></select></form>{% endif %}
+ <form method="post" action="{% url 'invoice_platform_status_update' f.id %}" onsubmit="return confirmInvoicePlatformChange(this, 'FT-{{ f.id }}', 'BizimHesap')">{% csrf_token %}<input type="hidden" name="platform" value="bizimhesap"><input type="hidden" name="confirmation" value=""><select name="recorded" class="form-select form-select-sm" aria-label="FT-{{ f.id }} BizimHesap durumu" onchange="this.form.requestSubmit()">
+ <option value="no" {% if f.bh_transfer_status != 'SENT' and not f.bizimhesap_manual_recorded %}selected{% endif %}>İşlenmedi</option>
+ <option value="yes" {% if f.bh_transfer_status != 'SENT' and f.bizimhesap_manual_recorded %}selected{% endif %}>Elle İşlendi</option>
+ {% if f.bh_transfer_status == "SENT" %}<option value="api" selected>API ile Aktarıldı</option><option value="reset">Dış sistemden silindi — Sıfırla</option>
+ {% elif f.bh_transfer_status == "SENDING" or f.bh_transfer_status == "UNKNOWN" %}<option value="blocked" selected>Kontrol Gerekli</option>{% endif %}
+ </select></form>
  </td>
  <td data-label="Paraşüt">
- {% if f.parasut_transfer_status == "SENT" %}<span class="badge bg-success">API ile Aktarıldı</span>
- {% elif f.parasut_transfer_status == "SENDING" or f.parasut_transfer_status == "UNKNOWN" %}<span class="badge bg-warning text-dark">Kontrol Gerekli</span>
- {% else %}<form method="post" action="{% url 'invoice_platform_status_update' f.id %}">{% csrf_token %}<input type="hidden" name="platform" value="parasut"><select name="recorded" class="form-select form-select-sm" aria-label="FT-{{ f.id }} Paraşüt durumu" onchange="this.form.requestSubmit()"><option value="no" {% if not f.parasut_manual_recorded %}selected{% endif %}>İşlenmedi</option><option value="yes" {% if f.parasut_manual_recorded %}selected{% endif %}>Elle İşlendi</option></select></form>{% endif %}
+ <form method="post" action="{% url 'invoice_platform_status_update' f.id %}" onsubmit="return confirmInvoicePlatformChange(this, 'FT-{{ f.id }}', 'Paraşüt')">{% csrf_token %}<input type="hidden" name="platform" value="parasut"><input type="hidden" name="confirmation" value=""><select name="recorded" class="form-select form-select-sm" aria-label="FT-{{ f.id }} Paraşüt durumu" onchange="this.form.requestSubmit()">
+ <option value="no" {% if f.parasut_transfer_status != 'SENT' and not f.parasut_manual_recorded %}selected{% endif %}>İşlenmedi</option>
+ <option value="yes" {% if f.parasut_transfer_status != 'SENT' and f.parasut_manual_recorded %}selected{% endif %}>Elle İşlendi</option>
+ {% if f.parasut_transfer_status == "SENT" %}<option value="api" selected>API ile Aktarıldı</option><option value="reset">Dış sistemden silindi — Sıfırla</option>
+ {% elif f.parasut_transfer_status == "SENDING" or f.parasut_transfer_status == "UNKNOWN" %}<option value="blocked" selected>Kontrol Gerekli</option>{% endif %}
+ </select></form>
  </td>
  <td data-label="İşlem">{% if f.status == "DRAFT" and not f.lines.count %}<form method="post" action="{% url 'invoice_delete_empty' f.id %}" onsubmit="return confirm('FT-{{ f.id }} numaralı boş fatura taslağı kalıcı olarak silinsin mi?');">{% csrf_token %}<button type="submit" class="btn btn-sm btn-outline-danger" title="Boş faturayı sil" aria-label="FT-{{ f.id }} taslağını sil">×</button></form>{% endif %}</td>
 </tr>
@@ -114,5 +120,17 @@
  async function sync(){if(document.hidden)return;try{const res=await fetch("{% url 'invoice_list_shipment_status' %}",{credentials:'same-origin',cache:'no-store'});if(!res.ok)return;const data=await res.json();const pending=new Set(data.pending_invoice_ids||[]);nodes.forEach(node=>{node.hidden=!pending.has(Number(node.dataset.invoiceId))})}catch(e){}}
  setInterval(sync,15000);document.addEventListener('visibilitychange',()=>{if(!document.hidden)sync()});
 })();
+</script>
+<script>
+function confirmInvoicePlatformChange(form, invoiceNo, platform) {
+  const select = form.querySelector('select[name="recorded"]');
+  const value = select.value;
+  if (value === 'api' || value === 'blocked') return false;
+  if (value !== 'reset') return true;
+  const confirmed = window.prompt(platform + ' üzerindeki ' + invoiceNo + ' satış kaydını gerçekten SİLDİYSENİZ, yeniden aktarımı açmak için ' + invoiceNo + ' yazın.\n\nBu işlem dış sistemden hiçbir şey silmez.');
+  if (confirmed !== invoiceNo) { select.value = 'api'; return false; }
+  form.querySelector('input[name="confirmation"]').value = confirmed;
+  return true;
+}
 </script>
 {% endblock %}
