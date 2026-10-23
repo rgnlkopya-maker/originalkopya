@@ -110,28 +110,41 @@ def invoice_platform_status_update(request, invoice_id):
     if platform not in ("bizimhesap", "parasut") or recorded not in ("no", "yes", "api", "skip"):
         messages.error(request, "Geçersiz durum seçimi.")
         return redirect("invoice_list")
-    # Selecting "İşlenmedi" on Paraşüt additionally verifies whether an existing
-    # exported draft was removed remotely. Never erase a live external connection.
-    if platform == "parasut" and recorded == "no":
-        transfer = ParasutInvoiceTransfer.objects.filter(invoice_id=invoice_id).first()
-        if transfer and transfer.status == "SENT" and transfer.external_invoice_id:
-            from .parasut_export_service import archive_deleted_parasut_draft, ParasutExportError
-            try:
-                archive_deleted_parasut_draft(invoice_id)
-            except ParasutExportError as exc:
-                messages.warning(request, "Paraşüt bağlantısı korundu: " + str(exc))
-            except Exception:
-                logging.getLogger(__name__).exception("Paraşüt list selection verification failed, invoice=%s", invoice_id)
-                messages.warning(request, "Paraşüt kaydı doğrulanamadı; API bağlantısı korunuyor.")
-            else:
-                messages.success(request, "Paraşüt'ten silinmiş taslak doğrulandı. Eski bağlantı arşivlendi.")
     field = "bizimhesap_display_status" if platform == "bizimhesap" else "parasut_display_status"
     with transaction.atomic():
         invoice = get_object_or_404(InvoiceDraft.objects.select_for_update(), pk=invoice_id)
         setattr(invoice, field, recorded)
-        fields = [field, "updated_at"]
-        invoice.save(update_fields=fields)
-    messages.success(request, "Görünen takip durumu güncellendi. API aktarım geçmişi ve dış faturalar değişmedi.")
+        invoice_fields = [field, "updated_at"]
+        if recorded == "no":
+            # "İşlenmedi" is the operator's explicit reset of the LOCAL accounting
+            # tracking state. Never calls or alters a remote accounting system.
+            # Keep old external IDs in an archive for audit and troubleshooting.
+            if platform == "parasut":
+                transfer = ParasutInvoiceTransfer.objects.select_for_update().filter(invoice=invoice).first()
+                if transfer:
+                    if transfer.external_invoice_id:
+                        transfer.deleted_external_invoice_id = transfer.external_invoice_id
+                    transfer.deleted_verified_at = None
+                    transfer.external_invoice_id = ""
+                    transfer.external_invoice_no = ""
+                    transfer.payload_fingerprint = ""
+                    transfer.needs_sync = False
+                    transfer.status = "NOT_SENT"
+                    transfer.last_error = ""
+                    transfer.save(update_fields=["deleted_external_invoice_id","deleted_verified_at","external_invoice_id","external_invoice_no","payload_fingerprint","needs_sync","status","last_error","updated_at"])
+            else:
+                transfer = BizimHesapInvoiceTransfer.objects.select_for_update().filter(invoice=invoice).first()
+                if transfer:
+                    transfer.status = "NOT_SENT"
+                    transfer.external_invoice_no = ""
+                    transfer.external_invoice_id = ""
+                    transfer.payload_fingerprint = ""
+                    transfer.last_error = ""
+                    transfer.save(update_fields=["status","external_invoice_no","external_invoice_id","payload_fingerprint","last_error","updated_at"])
+            invoice.official_number = ""
+            invoice_fields.append("official_number")
+        invoice.save(update_fields=invoice_fields)
+    messages.success(request, "İşlenmedi olarak sıfırlandı. MoliApp aktarım kilidi ve resmî FT no temizlendi; dış muhasebe kayıtlarına dokunulmadı." if recorded == "no" else "Görünen takip durumu güncellendi.")
     return redirect("invoice_list")
 
 
