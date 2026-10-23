@@ -32,31 +32,31 @@ def build_invoice_payload(invoice, lines, mapping, firm_id):
         blockers.append("Fatura durumu aktarım için uygun değil.")
     details = []
     for line in lines:
-        price = money(line.price)
+        price = money(line.price if getattr(line, "order", None) else line.unit_price)
         rate = Decimal(line.vat_rate)
         if not price.is_finite() or price < 0 or not rate.is_finite() or rate < 0 or rate > 100:
             blockers.append("Geçersiz fiyat veya KDV.")
             continue
-        order = line.order
-        if (order.para_birimi or "TRY") != invoice.currency:
+        order = getattr(line, "order", None)
+        if order and (order.para_birimi or "TRY") != invoice.currency:
             blockers.append("Sipariş ve fatura para birimleri farklı; aktarım engellendi.")
-        product_name = str(order.urun_kodu or "").strip()
+        product_name = str(order.urun_kodu if order else line.description or "").strip()
         if not product_name:
             blockers.append("Ürün kodu eksik.")
             continue
         tax = money(price * rate / Decimal("100"))
         details.append({
-            "productId": str(order.urun_kodu),
-            "productName": " / ".join(str(v) for v in (order.renk, order.beden) if v) or "Ürün",
+            "productId": product_name,
+            "productName": (" / ".join(str(v) for v in (order.renk, order.beden) if v) or "Ürün") if order else product_name,
             "note": "",
             "taxRate": str(rate),
-            "quantity": 1,
+            "quantity": str(line.quantity) if order is None else 1,
             "unitPrice": str(price),
-            "grossPrice": str(price),
+            "grossPrice": str(money(price * (line.quantity if order is None else 1))),
             "discount": "0.00",
-            "net": str(price),
-            "tax": str(tax),
-            "total": str(money(price + tax)),
+            "net": str(money(price * (line.quantity if order is None else 1))),
+            "tax": str(money(tax * (line.quantity if order is None else 1))),
+            "total": str(money((price + tax) * (line.quantity if order is None else 1))),
         })
     if any(problem != "FirmId tanımlı değil." for problem in blockers):
         return None, list(dict.fromkeys(blockers))
