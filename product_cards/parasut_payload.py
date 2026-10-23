@@ -41,6 +41,8 @@ def build_parasut_sales_invoice(invoice, product_ids=None):
             problems.append("Geçersiz ürün fiyatı veya KDV.")
             continue
         order = line.order
+        if (order.para_birimi or "TRY") != invoice.currency:
+            problems.append("Sipariş ve fatura para birimleri farklı; aktarım engellendi.")
         parts = []
         if order.renk:
             parts.append("Renk: " + str(order.renk))
