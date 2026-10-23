@@ -28,7 +28,7 @@ def build_invoice_payload(invoice, lines, mapping, firm_id):
         blockers.append("Para birimi desteklenmiyor.")
     if not lines:
         blockers.append("Fatura satırı yok.")
-    if invoice.status not in ("DRAFT", "FINAL"):
+    if getattr(invoice, "status", "DRAFT") not in ("DRAFT", "FINAL"):
         blockers.append("Fatura durumu aktarım için uygun değil.")
     details = []
     for line in lines:
