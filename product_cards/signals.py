@@ -211,3 +211,41 @@ def sync_unexported_invoice_line_from_order(sender, instance, created, update_fi
         ParasutInvoiceTransfer.objects.filter(invoice_id__in=changed_invoice_ids).update(needs_sync=True)
     line.update(price=instance.satis_fiyati if instance.satis_fiyati is not None else Decimal("0"),
                 vat_rate=instance.vat_rate if instance.vat_rate is not None else Decimal("0"))
+
+
+@receiver(post_save, sender=Order)
+def sync_invoice_currency_from_order(sender, instance, created, update_fields=None, **kwargs):
+    """Keep MoliApp draft invoice currency consistent with its orders.
+
+    Different currencies never share a draft; no external accounting API is called.
+    """
+    if created or (update_fields is not None and "para_birimi" not in update_fields):
+        return
+    from django.db import transaction
+    from .invoice_models import InvoiceDraft, InvoiceLine
+    new_currency = instance.para_birimi or "TRY"
+    with transaction.atomic():
+        for line in InvoiceLine.objects.select_for_update().filter(order_id=instance.pk, invoice__status="DRAFT").select_related("invoice"):
+            invoice = InvoiceDraft.objects.select_for_update().get(pk=line.invoice_id)
+            if invoice.currency == new_currency:
+                continue
+            other_lines = InvoiceLine.objects.filter(invoice_id=invoice.pk).exclude(pk=line.pk)
+            if not other_lines.exists():
+                existing = InvoiceDraft.objects.filter(
+                    customer_id=invoice.customer_id, invoice_date=invoice.invoice_date,
+                    currency=new_currency, status="DRAFT"
+                ).exclude(pk=invoice.pk).first()
+                if existing:
+                    line.invoice_id = existing.pk
+                    line.save(update_fields=["invoice"])
+                else:
+                    invoice.currency = new_currency
+                    invoice.save(update_fields=["currency", "updated_at"])
+            else:
+                target, _ = InvoiceDraft.objects.get_or_create(
+                    customer_id=invoice.customer_id, invoice_date=invoice.invoice_date,
+                    currency=new_currency, status="DRAFT",
+                    defaults={"created_by_id": invoice.created_by_id},
+                )
+                line.invoice_id = target.pk
+                line.save(update_fields=["invoice"])
