@@ -53,6 +53,25 @@
  .invoice-table tr[data-invoice-row][hidden]{display:none}
 }
 .accounting-status-dropdown{width:100%;max-width:195px;position:relative}.accounting-status-dropdown>summary{list-style:none}.accounting-status-dropdown>summary::-webkit-details-marker{display:none}.accounting-status-dropdown[open]{z-index:100}.accounting-status-dropdown[open] .accounting-status-menu{display:block}.accounting-status-menu{position:absolute;top:calc(100% + 4px);left:0;z-index:1100;display:none;background:#fff;width:max-content;max-width:min(240px,90vw)}.accounting-status-trigger{width:100%;border:1px solid transparent;border-radius:11px;min-height:34px;display:flex;align-items:center;gap:7px;justify-content:flex-start;padding:6px 9px;font-size:11px;font-weight:750;white-space:nowrap;cursor:pointer;transition:background .15s,border-color .15s}.accounting-status-trigger>span{overflow:hidden;text-overflow:ellipsis}.accounting-status-trigger>.bi{font-size:15px}.accounting-status-trigger:after{margin-left:auto}.accounting-status-trigger.status-api{background:#e5f6eb;color:#136638;border-color:#bfe6cc}.accounting-status-trigger.status-yes{background:#eaf1ff;color:#28569f;border-color:#c9dafa}.accounting-status-trigger.status-no{background:#fff3e5;color:#97540d;border-color:#f5ddbc}.accounting-status-menu{min-width:198px;border:1px solid #e3e8ee;border-radius:12px;box-shadow:0 10px 30px #1f29371c}.accounting-status-option{display:flex;gap:9px;align-items:center;border-radius:8px;font-size:12px;font-weight:650;padding:9px 10px}.accounting-status-option.status-api{color:#16743f}.accounting-status-option.status-yes{color:#2a5aaf}.accounting-status-option.status-no{color:#a46314}.accounting-status-trigger.status-skip{background:#eff1f4;color:#586273;border-color:#d5dae1}.accounting-status-option.status-skip{color:#586273}.accounting-status-option.selected{background:#f3f7fb}.accounting-status-option:hover{background:#edf3f8}.invoice-list-card{overflow:visible}.invoice-table td{overflow-wrap:normal}
+
+.invoice-page{padding:24px clamp(16px,2vw,34px) 38px}
+.invoice-head{margin-bottom:23px;align-items:center}
+.invoice-head h2{font-size:30px;font-weight:800;letter-spacing:-.04em;color:#101b3f}
+.invoice-head>.d-flex .btn{border-radius:11px;padding:10px 14px;font-weight:650;font-size:12px}
+.invoice-filter-panel{background:#fff;border:1px solid #e1e7f1;border-radius:17px;padding:17px;display:flex;align-items:end;gap:12px;flex-wrap:wrap;margin-bottom:20px;box-shadow:0 8px 28px rgba(30,56,98,.045)}
+.filter-field{display:flex;flex-direction:column;gap:6px;flex:1 1 125px;min-width:100px}
+.filter-field label{font-size:11px;font-weight:750;color:#61708e}
+.filter-field .form-select,.filter-field .form-control{min-height:40px;border:1px solid #dce5f1;border-radius:9px;color:#34456c;font-size:12px;box-shadow:none;background-color:#fff}
+.filter-search{flex:3 1 280px}.filter-customer{flex:1.4 1 160px}
+.filter-input-icon{position:relative}.filter-input-icon i{position:absolute;left:13px;top:12px;color:#667da7}.filter-input-icon input{padding-left:36px}
+.filter-clear{height:40px;flex:0 0 auto;white-space:nowrap;border-radius:9px;font-weight:650;font-size:12px}
+.invoice-list-card{border-radius:16px;border:1px solid #e0e7f1;box-shadow:0 7px 27px rgba(33,55,94,.045)}
+.invoice-table thead th{background:#f7f9fe;color:#65789c;font-weight:800;padding:17px 10px}
+.invoice-table tbody td{padding:15px 10px;border-color:#e9eef7}
+.invoice-table tbody tr:hover{background:#f7faff}
+.invoice-table a{color:#1748a7}.invoice-table td:nth-child(6) small{font-size:10px;color:#64748b}
+.accounting-status-trigger{border-radius:999px;min-height:38px;padding:7px 12px}
+@media(max-width:760px){.invoice-filter-panel{gap:10px;padding:13px}.filter-field{flex:1 1 42%}.filter-search{flex-basis:100%}.invoice-head h2{font-size:26px}.invoice-table tbody td{padding:7px 0}}
 </style>
 <main class="invoice-page">
  <div class="invoice-head">
@@ -60,24 +79,24 @@
   <div class="d-flex align-items-center gap-2 flex-wrap">
    <a href="{% url 'invoice_customer_mapping_list' %}" class="btn btn-sm btn-outline-primary">BizimHesap Cari Eşleştirme</a>
    <a href="{% url 'invoice_parasut_mapping_list' %}" class="btn btn-sm btn-outline-primary">Paraşüt Cari Eşleştirme</a>
-   <span class="badge bg-secondary">Resmî fatura oluşturulmaz</span>
   </div>
  </div>
- <section class="invoice-stats" aria-label="Fatura özeti">
-  <div class="invoice-stat"><div class="invoice-stat-label">Toplam</div><div class="invoice-stat-value" id="invoice-total">0</div></div>
-  <div class="invoice-stat"><div class="invoice-stat-label">Taslak</div><div class="invoice-stat-value" id="invoice-drafts">0</div></div>
-  <div class="invoice-stat"><div class="invoice-stat-label">Faturalandırılmış</div><div class="invoice-stat-value" id="invoice-issued">0</div></div>
+ <section class="invoice-filter-panel" aria-label="Fatura arama ve filtreleme">
+  <div class="filter-field filter-search"><label for="invoice-search">Hızlı arama</label><div class="filter-input-icon"><i class="bi bi-search"></i><input id="invoice-search" class="form-control" type="search" placeholder="Fatura no, müşteri veya ürün ara..."></div></div>
+  <div class="filter-field"><label for="invoice-filter">Durum</label><select id="invoice-filter" class="form-select"><option value="all">Tümü</option><option value="DRAFT">Taslak</option><option value="ISSUED">Faturalandırılmış</option><option value="OPEN">Açık Hesap</option></select></div>
+  <div class="filter-field"><label for="invoice-platform">Muhasebe platformu</label><select id="invoice-platform" class="form-select"><option value="all">Tümü</option><option value="bizimhesap">BizimHesap</option><option value="parasut">Paraşüt</option></select></div>
+  <div class="filter-field"><label for="invoice-accounting-status">Aktarım durumu</label><select id="invoice-accounting-status" class="form-select"><option value="all">Tümü</option><option value="no">İşlenmedi</option><option value="yes">Elle İşlendi</option><option value="api">API ile Aktarıldı</option><option value="skip">Aktarılmayacak</option></select></div>
+  <div class="filter-field"><label for="invoice-date-start">Başlangıç</label><input id="invoice-date-start" type="date" class="form-control"></div>
+  <div class="filter-field"><label for="invoice-date-end">Bitiş</label><input id="invoice-date-end" type="date" class="form-control"></div>
+  <div class="filter-field filter-customer"><label for="invoice-customer">Müşteri</label><select id="invoice-customer" class="form-select"><option value="all">Tüm müşteriler</option>{% for customer in invoice_customers %}<option value="{{ customer.id }}">{{ customer.ad }}</option>{% endfor %}</select></div>
+  <button id="invoice-clear" class="btn btn-outline-secondary filter-clear" type="button"><i class="bi bi-arrow-counterclockwise"></i> Temizle</button>
  </section>
- <div class="invoice-tools">
-  <input id="invoice-search" class="form-control" type="search" placeholder="Fatura no veya müşteri ara" aria-label="Fatura veya müşteri ara">
-  <select id="invoice-filter" class="form-select" aria-label="Fatura durumu"><option value="all">Tüm faturalar</option><option value="DRAFT">Taslak</option><option value="ISSUED">Faturalandırılmış</option><option value="OPEN">Açık Hesap</option></select>
- </div>
  <div class="invoice-list-card">
  <table class="table invoice-table align-middle">
   <thead><tr><th>Tarih</th><th>MoliApp FT No</th><th>Paraşüt Resmî FT No</th><th>Müşteri</th><th>Ürün</th><th>Toplam Tutar</th><th>BizimHesap</th><th>Paraşüt</th><th>İşlem</th></tr></thead>
   <tbody>
 {% for f in invoices %}
-<tr data-invoice-row data-status="{% if f.status == 'DRAFT' %}DRAFT{% elif f.status == 'OPEN' %}OPEN{% else %}ISSUED{% endif %}">
+<tr data-invoice-row data-customer-id="{{ f.customer_id }}" data-date="{{ f.invoice_date|date:'Y-m-d' }}" data-bh-status="{{ f.bh_display }}" data-parasut-status="{{ f.parasut_display }}" data-status="{% if f.status == 'DRAFT' %}DRAFT{% elif f.status == 'OPEN' %}OPEN{% else %}ISSUED{% endif %}">
  <td data-label="Tarih"><a href="{% url 'invoice_detail' f.id %}">{{ f.invoice_date|date:"d.m.Y" }}</a></td>
  <td data-label="Fatura"><a href="{% url 'invoice_detail' f.id %}">FT-{{ f.id }}</a></td>
  <td data-label="Paraşüt Resmî FT No"><a href="{% url 'invoice_detail' f.id %}" class="invoice-official-no">{% if f.visible_official_number %}{{ f.visible_official_number }}{% else %}—{% endif %}</a></td>
@@ -96,12 +115,29 @@
 (function(){
  const rows=Array.from(document.querySelectorAll('[data-invoice-row]'));
  const search=document.getElementById('invoice-search'),filter=document.getElementById('invoice-filter'),noResults=document.getElementById('invoice-no-results');
- const normalize=s=>(s||'').toLocaleLowerCase('tr-TR');
- document.getElementById('invoice-total').textContent=rows.length;
- document.getElementById('invoice-drafts').textContent=rows.filter(r=>r.dataset.status==='DRAFT').length;
- document.getElementById('invoice-issued').textContent=rows.filter(r=>r.dataset.status==='ISSUED').length;
- function apply(){const term=normalize(search.value.trim());let visible=0;rows.forEach(row=>{const ok=(!term||normalize(row.cells[1].innerText+' '+row.cells[2].innerText+' '+row.cells[3].innerText).includes(term))&&(filter.value==='all'||row.dataset.status===filter.value);row.hidden=!ok;if(ok)visible++});noResults.hidden=visible>0||rows.length===0}
- search.addEventListener('input',apply);filter.addEventListener('change',apply);
+ const platform=document.getElementById('invoice-platform'),accounting=document.getElementById('invoice-accounting-status'),customer=document.getElementById('invoice-customer'),start=document.getElementById('invoice-date-start'),end=document.getElementById('invoice-date-end');
+ const normalize=value=>(value||'').toLocaleLowerCase('tr-TR');
+ function apply(){
+   const term=normalize(search.value.trim());
+   let visible=0;
+   rows.forEach(row=>{
+     const platformStatuses=platform.value==='bizimhesap'?[row.dataset.bhStatus]:platform.value==='parasut'?[row.dataset.parasutStatus]:[row.dataset.bhStatus,row.dataset.parasutStatus];
+     const ok=(!term||normalize(row.cells[1].innerText+' '+row.cells[2].innerText+' '+row.cells[3].innerText+' '+row.cells[4].innerText).includes(term))
+      &&(filter.value==='all'||row.dataset.status===filter.value)
+      &&(customer.value==='all'||row.dataset.customerId===customer.value)
+      &&(!start.value||row.dataset.date>=start.value)
+      &&(!end.value||row.dataset.date<=end.value)
+      &&(accounting.value==='all'||platformStatuses.includes(accounting.value))
+      &&(platform.value==='all'||accounting.value!=='all'||platformStatuses.includes(accounting.value));
+     row.hidden=!ok;if(ok)visible++;
+   });
+   noResults.hidden=visible>0||rows.length===0;
+ }
+ [search,filter,platform,accounting,customer,start,end].forEach(el=>el.addEventListener(el===search?'input':'change',apply));
+ document.getElementById('invoice-clear').addEventListener('click',()=>{
+   search.value='';filter.value='all';platform.value='all';accounting.value='all';customer.value='all';start.value='';end.value='';apply();
+ });
+ apply();
  const nodes=document.querySelectorAll('.invoice-pending');
  if(!nodes.length)return;
  async function sync(){if(document.hidden)return;try{const res=await fetch("{% url 'invoice_list_shipment_status' %}",{credentials:'same-origin',cache:'no-store'});if(!res.ok)return;const data=await res.json();const pending=new Set(data.pending_invoice_ids||[]);nodes.forEach(node=>{node.hidden=!pending.has(Number(node.dataset.invoiceId))})}catch(e){}}
