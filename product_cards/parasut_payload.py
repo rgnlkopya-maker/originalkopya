@@ -41,7 +41,7 @@ def build_parasut_sales_invoice(invoice, product_ids=None):
             problems.append("Geçersiz ürün fiyatı veya KDV.")
             continue
         order = line.order
-        parts = [code]
+        parts = []
         if order.renk:
             parts.append("Renk: " + str(order.renk))
         if order.beden:
@@ -52,7 +52,7 @@ def build_parasut_sales_invoice(invoice, product_ids=None):
                 "quantity": 1,
                 "unit_price": str(price),
                 "vat_rate": str(rate),
-                "description": " / ".join(parts),
+                "description": " / ".join(parts) or "Ürün",
             },
             "relationships": {"product": {"data": {"id": product_id, "type": "products"}}},
         })
