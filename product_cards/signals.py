@@ -201,10 +201,13 @@ def sync_unexported_invoice_line_from_order(sender, instance, created, update_fi
         invoice_id=OuterRef("invoice_id"), status__in=("SENDING", "SENT", "UNKNOWN")
     )
     blocked_ps = ParasutInvoiceTransfer.objects.filter(
-        invoice_id=OuterRef("invoice_id"), status__in=("SENDING", "SENT", "UNKNOWN")
+        invoice_id=OuterRef("invoice_id"), status__in=("SENDING", "UNKNOWN")
     )
     line = (InvoiceLine.objects.filter(order_id=instance.pk, invoice__status="DRAFT")
             .annotate(bh_blocked=Exists(blocked_bh), ps_blocked=Exists(blocked_ps))
             .filter(bh_blocked=False, ps_blocked=False))
-    line.update(price=instance.satis_fiyati or Decimal("0"),
-                vat_rate=instance.vat_rate or Decimal("0"))
+    changed_invoice_ids = list(line.filter(invoice__parasut_transfer__status="SENT").values_list("invoice_id", flat=True))
+    if changed_invoice_ids:
+        ParasutInvoiceTransfer.objects.filter(invoice_id__in=changed_invoice_ids).update(needs_sync=True)
+    line.update(price=instance.satis_fiyati if instance.satis_fiyati is not None else Decimal("0"),
+                vat_rate=instance.vat_rate if instance.vat_rate is not None else Decimal("0"))
