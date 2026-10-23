@@ -961,3 +961,65 @@ def invoice_parasut_oauth_connect(request):
             logging.getLogger(__name__).info("parasut_oauth_success stage=SAVE")
             messages.success(request, "Paraşüt OAuth tokenları şifreli olarak kaydedildi. Fatura gönderilmedi.")
     return redirect("invoice_parasut_oauth_setup")
+
+
+@login_required
+def standalone_invoice_edit(request, invoice_id=None):
+    """Edit manually created invoice without creating a production order."""
+    from .invoice_models import StandaloneInvoice, StandaloneInvoiceLine
+    from decimal import Decimal, InvalidOperation
+    if not _allowed(request.user):
+        return HttpResponseForbidden("Yetkiniz yok.")
+    invoice = get_object_or_404(StandaloneInvoice, pk=invoice_id) if invoice_id else None
+    if request.method == "POST":
+        try:
+            customer = Musteri.objects.get(pk=int(request.POST.get("customer", "")))
+            currency = request.POST.get("currency", "")
+            if currency not in ("TRY", "EUR", "USD"):
+                raise ValueError("Geçersiz para birimi.")
+            invoice_date = date.fromisoformat(request.POST.get("invoice_date", ""))
+            due_date = date.fromisoformat(request.POST.get("due_date", "")) if request.POST.get("due_date") else None
+            descriptions = request.POST.getlist("description")
+            quantities = request.POST.getlist("quantity")
+            units = request.POST.getlist("unit")
+            prices = request.POST.getlist("unit_price")
+            vats = request.POST.getlist("vat_rate")
+            if not descriptions or not all(len(v) == len(descriptions) for v in (quantities, units, prices, vats)):
+                raise ValueError("Fatura kalemleri eksik.")
+            items = []
+            for desc, quantity, unit, price, vat in zip(descriptions, quantities, units, prices, vats):
+                if not desc.strip():
+                    raise ValueError("Ürün / hizmet adı boş olamaz.")
+                qty, amount, tax = (Decimal(v.replace(",", ".")) for v in (quantity, price, vat))
+                if not all(v.is_finite() for v in (qty, amount, tax)) or qty <= 0 or amount < 0 or not 0 <= tax <= 100:
+                    raise ValueError("Miktar, fiyat veya KDV geçersiz.")
+                if not unit.strip():
+                    raise ValueError("Birim boş olamaz.")
+                items.append((desc.strip(), qty, unit.strip(), amount, tax))
+        except (ValueError, TypeError, InvalidOperation, Musteri.DoesNotExist) as exc:
+            messages.error(request, "Fatura kaydedilemedi: " + str(exc))
+        else:
+            with transaction.atomic():
+                if invoice is None:
+                    invoice = StandaloneInvoice.objects.create(customer=customer, invoice_date=invoice_date, due_date=due_date, currency=currency, note=request.POST.get("note", "").strip(), created_by=request.user)
+                else:
+                    invoice.customer = customer
+                    invoice.invoice_date = invoice_date
+                    invoice.due_date = due_date
+                    invoice.currency = currency
+                    invoice.note = request.POST.get("note", "").strip()
+                    invoice.save(update_fields=["customer", "invoice_date", "due_date", "currency", "note"])
+                    invoice.lines.all().delete()
+                StandaloneInvoiceLine.objects.bulk_create([
+                    StandaloneInvoiceLine(invoice=invoice, description=d, quantity=q, unit=u, unit_price=p, vat_rate=v)
+                    for d, q, u, p, v in items
+                ])
+            messages.success(request, "Fatura taslağı kaydedildi.")
+            return redirect("standalone_invoice_edit", invoice_id=invoice.pk)
+    return render(request, "product_cards/standalone_invoice_edit.html", {
+        "invoice": invoice, "customers": Musteri.objects.order_by("ad"),
+        "today": timezone.localdate(),
+        "manual_lines": list(invoice.lines.order_by("pk")) if invoice else [],
+    })
+
+
