@@ -34,6 +34,9 @@ def build_parasut_sales_invoice(invoice, product_ids=None):
             continue
         price = Decimal(line.price)
         rate = Decimal(line.vat_rate)
+        if rate != Decimal("10"):
+            problems.append("Paraşüt aktarımı yalnızca tüm satırlarda %10 KDV ile yapılabilir.")
+            continue
         if not price.is_finite() or price < 0 or not rate.is_finite() or rate < 0 or rate > 100:
             problems.append("Geçersiz ürün fiyatı veya KDV.")
             continue
@@ -70,3 +73,14 @@ def build_parasut_sales_invoice(invoice, product_ids=None):
             "details": {"data": items},
         },
     }}, []
+
+
+def validate_parasut_vat_payload(payload, expected_count):
+    """Fail closed before any invoice POST: every transmitted line must have VAT 10."""
+    try:
+        items = payload["data"]["relationships"]["details"]["data"]
+        if len(items) != expected_count or expected_count < 1:
+            return False
+        return all(Decimal(str(item["attributes"]["vat_rate"])) == Decimal("10") for item in items)
+    except (KeyError, TypeError, ValueError, ArithmeticError):
+        return False
