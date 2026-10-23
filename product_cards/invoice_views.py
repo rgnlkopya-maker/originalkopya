@@ -531,8 +531,8 @@ def invoice_remove(request, invoice_id, line_id):
         return HttpResponseForbidden("Yetkiniz yok.")
     with transaction.atomic():
         invoice = get_object_or_404(InvoiceDraft.objects.select_for_update(), pk=invoice_id)
-        if _transfer_locked(invoice):
-            return HttpResponseForbidden("Aktarım sürecindeki fatura değiştirilemez.")
+        if BizimHesapInvoiceTransfer.objects.filter(invoice=invoice, status__in=("SENDING","SENT","UNKNOWN")).exists() or ParasutInvoiceTransfer.objects.filter(invoice=invoice, status__in=("SENDING","UNKNOWN")).exists():
+            return HttpResponseForbidden("Kesinleşmiş BizimHesap kaydı veya süren aktarım nedeniyle düzenleme kapalı.")
         if invoice.status != "DRAFT":
             return HttpResponseForbidden("Tamamlanmış faturadan sipariş çıkarılamaz.")
         line = get_object_or_404(InvoiceLine, pk=line_id, invoice=invoice)
@@ -558,9 +558,11 @@ def invoice_vat_update(request, invoice_id, line_id):
         return redirect("invoice_detail", invoice_id=invoice_id)
     with transaction.atomic():
         invoice = get_object_or_404(InvoiceDraft.objects.select_for_update(), pk=invoice_id)
-        if invoice.status != "DRAFT" or _transfer_locked(invoice):
+        if invoice.status != "DRAFT" or BizimHesapInvoiceTransfer.objects.filter(invoice=invoice, status__in=("SENDING","SENT","UNKNOWN")).exists() or ParasutInvoiceTransfer.objects.filter(invoice=invoice, status__in=("SENDING","UNKNOWN")).exists():
             return HttpResponseForbidden("Aktarılmış veya tamamlanmış faturanın KDV'si değiştirilemez.")
         line = get_object_or_404(InvoiceLine.objects.select_for_update().select_related("order"), pk=line_id, invoice=invoice)
+        if ParasutInvoiceTransfer.objects.filter(invoice=invoice, status="SENT").exists():
+            ParasutInvoiceTransfer.objects.filter(invoice=invoice).update(needs_sync=True)
         line.vat_rate = rate
         line.save(update_fields=["vat_rate"])
         order = line.order
@@ -591,6 +593,8 @@ def invoice_price(request, invoice_id, line_id):
             messages.error(request, "Geçersiz fiyat.")
             return redirect("invoice_detail", invoice_id=invoice.pk)
         previous = line.order.satis_fiyati
+        if ParasutInvoiceTransfer.objects.filter(invoice=invoice, status="SENT").exists():
+            ParasutInvoiceTransfer.objects.filter(invoice=invoice).update(needs_sync=True)
         line.price = price
         line.save(update_fields=["price"])
         order = line.order
