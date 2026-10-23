@@ -65,7 +65,7 @@ def _invoice_list_impl(request):
         parasut_transfer = getattr(invoice, "parasut_transfer", None)
         invoice.parasut_transfer_status = parasut_transfer.status if parasut_transfer else ""
         invoice.bh_display = invoice.bizimhesap_display_status or ("api" if invoice.bh_transfer_status == "SENT" else ("yes" if invoice.bizimhesap_manual_recorded else "no"))
-        invoice.parasut_display = invoice.parasut_display_status or ("api" if invoice.parasut_transfer_status == "SENT" else ("yes" if invoice.parasut_manual_recorded else "no"))
+        invoice.parasut_display = "api" if invoice.parasut_transfer_status == "SENT" else (invoice.parasut_display_status or ("yes" if invoice.parasut_manual_recorded else "no"))
         invoice.list_total = sum((line.price * (Decimal("1") + line.vat_rate / Decimal("100")) for line in invoice.lines.all()), Decimal("0"))
         invoice.visible_official_number = invoice.official_number
     return render(request, "product_cards/invoice_list.html", {"invoices": invoices, "invoice_customers": Musteri.objects.filter(pk__in={invoice.customer_id for invoice in invoices}).order_by("ad"), "accounting_status_choices": [("no", "İşlenmedi"), ("yes", "Elle İşlendi"), ("api", "API ile Aktarıldı"), ("skip", "Aktarılmayacak")]})
