@@ -14,7 +14,7 @@ UA = "MoliApp/1.0 (+https://originalkopya.onrender.com)"
 class ParasutExportError(Exception):
     pass
 
-def _request(company, token, path, method="GET", payload=None):
+def _request(company, token, path, method="GET", payload=None, not_found_ok=False):
     data = json.dumps(payload).encode("utf-8") if payload is not None else None
     req = Request("https://api.parasut.com/v4/" + company + "/" + path, data=data, method=method,
                   headers={"Authorization": "Bearer " + token, "Accept": "application/json",
@@ -23,6 +23,8 @@ def _request(company, token, path, method="GET", payload=None):
         with urlopen(req, timeout=20) as response:
             return json.load(response)
     except HTTPError as exc:
+        if exc.code == 404 and not_found_ok and method == "GET":
+            return None
         raise ParasutExportError("Paraşüt HTTP " + str(exc.code) + "; işlem sonucu Paraşüt'ten kontrol edilmeli.") from None
     except (URLError, TimeoutError, ValueError):
         raise ParasutExportError("Paraşüt erişimi veya yanıtı doğrulanamadı; tekrar gönderimden önce dış kayıt kontrol edilmeli.") from None
@@ -214,3 +216,41 @@ def update_sales_record(invoice_id):
         rec.last_error = ""
         rec.save(update_fields=["status", "needs_sync", "last_error", "updated_at"])
     return remote_id
+
+
+def archive_deleted_parasut_draft(invoice_id):
+    """Only unlink after Paraşüt responds 404 to a direct authorized GET."""
+    from django.utils import timezone
+    from .parasut_credentials import valid_access_token
+    company = os.environ.get("PARASUT_COMPANY_ID", "").strip()
+    if not company.isdecimal():
+        raise ParasutExportError("Paraşüt firma ID eksik.")
+    with transaction.atomic():
+        invoice = InvoiceDraft.objects.select_for_update().get(pk=invoice_id)
+        record = ParasutInvoiceTransfer.objects.select_for_update().filter(invoice=invoice).first()
+        if not record or record.status != "SENT" or not record.external_invoice_id:
+            raise ParasutExportError("Doğrulanabilecek aktif Paraşüt bağlantısı yok.")
+        original_id = record.external_invoice_id
+        if not original_id.isdecimal():
+            raise ParasutExportError("Paraşüt kayıt ID geçersiz.")
+    token = valid_access_token(company)
+    # A specific API 404 is authoritative; 401, 403, 5xx and network errors must fail closed.
+    found = _request(company, token, "sales_invoices/" + original_id, not_found_ok=True)
+    if found is not None:
+        raise ParasutExportError("Paraşüt kaydı hâlâ mevcut. Bağlantı pasifleştirilmedi.")
+    with transaction.atomic():
+        record = ParasutInvoiceTransfer.objects.select_for_update().get(invoice_id=invoice_id)
+        if record.status != "SENT" or record.external_invoice_id != original_id:
+            raise ParasutExportError("Aktarım kaydı kontrol sırasında değişti. İşlem iptal edildi.")
+        record.deleted_external_invoice_id = original_id
+        record.deleted_verified_at = timezone.now()
+        record.external_invoice_id = ""
+        record.external_invoice_no = ""
+        record.payload_fingerprint = ""
+        record.needs_sync = False
+        record.status = "NOT_SENT"
+        record.last_error = ""
+        record.save(update_fields=["deleted_external_invoice_id", "deleted_verified_at", "external_invoice_id",
+                                   "external_invoice_no", "payload_fingerprint", "needs_sync", "status",
+                                   "last_error", "updated_at"])
+    return original_id
