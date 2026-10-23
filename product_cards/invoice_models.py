@@ -126,3 +126,16 @@ class StandaloneInvoiceLine(models.Model):
     unit = models.CharField(max_length=20, default="Adet")
     unit_price = models.DecimalField(max_digits=14, decimal_places=2, default=0)
     vat_rate = models.DecimalField(max_digits=7, decimal_places=2, default=10)
+
+
+class StandaloneInvoiceTransfer(models.Model):
+    """Manual invoice platform delivery lock; uncertain results block retries."""
+    invoice = models.ForeignKey(StandaloneInvoice, on_delete=models.PROTECT, related_name="transfers")
+    platform = models.CharField(max_length=16, choices=[("bizimhesap", "BizimHesap"), ("parasut", "Paraşüt")])
+    status = models.CharField(max_length=16, default="NOT_SENT")
+    external_invoice_id = models.CharField(max_length=100, blank=True, default="")
+    last_error = models.TextField(blank=True, default="")
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        constraints = [models.UniqueConstraint(fields=["invoice", "platform"], name="unique_standalone_invoice_platform")]
