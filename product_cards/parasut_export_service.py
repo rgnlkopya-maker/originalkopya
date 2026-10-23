@@ -168,7 +168,33 @@ def update_sales_record(invoice_id):
         payload, errors = build_parasut_sales_invoice(inv, product_ids)
         if errors or not payload:
             raise ParasutExportError("; ".join(errors) or "Fatura verisi hazırlanamadı.")
-        # Only update the existing remote ID, never create a second sales invoice.
+        # Require an exact one-to-one match with existing remote line IDs.
+        # This prevents a PUT from inadvertently creating duplicate product details.
+        remote_refs = (relations.get("details") or {}).get("data") or []
+        remote_items = {str(item.get("id")): item for item in current.get("included", [])
+                        if item.get("type") == "sales_invoice_details"}
+        desired_items = payload["data"]["relationships"]["details"]["data"]
+        if len(remote_refs) != len(desired_items):
+            raise ParasutExportError("Paraşüt satır sayısı değişmiş; otomatik güncelleme güvenli değil.")
+        available = list(remote_refs)
+        for item in desired_items:
+            desc = item["attributes"]["description"]
+            product = item["relationships"]["product"]["data"]["id"]
+            matched = []
+            for ref in available:
+                saved = remote_items.get(str(ref.get("id")))
+                if not saved:
+                    continue
+                rattrs = saved.get("attributes") or {}
+                rproduct = ((saved.get("relationships") or {}).get("product") or {}).get("data") or {}
+                if rattrs.get("description") == desc and str(rproduct.get("id")) == str(product):
+                    matched.append(ref)
+            if len(matched) != 1:
+                raise ParasutExportError("Paraşüt ürün satırları güvenle eşleştirilemedi; güncelleme iptal edildi.")
+            chosen = matched[0]
+            item["id"] = str(chosen["id"])
+            available.remove(chosen)
+        # Only update the existing remote ID and its verified line IDs.
         payload["data"]["id"] = remote_id
         result = _request(company, token, "sales_invoices/" + remote_id, "PUT", payload)
         if str((result.get("data") or {}).get("id")) != remote_id:
