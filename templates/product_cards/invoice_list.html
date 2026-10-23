@@ -20,13 +20,15 @@
 .invoice-table tbody tr:hover{background:#fafcff}
 .invoice-table a{color:#2447a4;text-decoration:none;font-weight:650}
 .invoice-table a:hover{text-decoration:underline}
-.invoice-table th:nth-child(1){width:9%}
-.invoice-table th:nth-child(2){width:10%}
-.invoice-table th:nth-child(3){width:19%}
-.invoice-table th:nth-child(4){width:7%}
-.invoice-table th:nth-child(5){width:19%}
-.invoice-table th:nth-child(6),.invoice-table th:nth-child(7){width:16%}
-.invoice-table th:nth-child(8){width:4%}
+.invoice-table th:nth-child(1){width:8%}
+.invoice-table th:nth-child(2){width:9%}
+.invoice-table th:nth-child(3){width:13%}
+.invoice-table th:nth-child(4){width:16%}
+.invoice-table th:nth-child(5){width:6%}
+.invoice-table th:nth-child(6){width:12%}
+.invoice-table th:nth-child(7),.invoice-table th:nth-child(8){width:16%}
+.invoice-table th:nth-child(9){width:4%}
+.invoice-total-amount{white-space:nowrap;font-variant-numeric:tabular-nums;color:#17253d}
 .invoice-table .form-select-sm{width:100%;min-width:0;max-width:100%;font-size:11px;padding:5px 22px 5px 7px}
 .invoice-table .badge{white-space:normal;text-align:left;font-size:10px;line-height:1.4}
 .invoice-table .invoice-pending{font-size:10px;color:#a76511;font-weight:650;margin-top:5px}
@@ -72,23 +74,21 @@
  </div>
  <div class="invoice-list-card">
  <table class="table invoice-table align-middle">
-  <thead><tr><th>Tarih</th><th>Fatura</th><th>Müşteri</th><th>Ürün</th><th>Durum</th><th>BizimHesap</th><th>Paraşüt</th><th>İşlem</th></tr></thead>
+  <thead><tr><th>Tarih</th><th>MoliApp FT No</th><th>Paraşüt Resmî FT No</th><th>Müşteri</th><th>Ürün</th><th>Toplam Tutar</th><th>BizimHesap</th><th>Paraşüt</th><th>İşlem</th></tr></thead>
   <tbody>
 {% for f in invoices %}
 <tr data-invoice-row data-status="{% if f.status == 'DRAFT' %}DRAFT{% elif f.status == 'OPEN' %}OPEN{% else %}ISSUED{% endif %}">
  <td data-label="Tarih"><a href="{% url 'invoice_detail' f.id %}">{{ f.invoice_date|date:"d.m.Y" }}</a></td>
  <td data-label="Fatura"><a href="{% url 'invoice_detail' f.id %}">FT-{{ f.id }}</a></td>
+ <td data-label="Paraşüt Resmî FT No"><a href="{% url 'invoice_detail' f.id %}" class="invoice-official-no">{% if f.visible_official_number %}{{ f.visible_official_number }}{% else %}—{% endif %}</a></td>
  <td data-label="Müşteri"><a href="{% url 'invoice_detail' f.id %}">{{ f.customer.ad }}</a></td>
  <td data-label="Ürün">{{ f.lines.count }}</td>
- <td data-label="Durum">
- <div>{% if f.status == "DRAFT" %}<span class="invoice-status draft">Taslak</span>{% elif f.status == "OPEN" %}<span class="invoice-status draft">Açık Hesap</span>{% else %}<span class="invoice-status issued">Faturalandırıldı</span>{% if f.official_number %}<div class="invoice-muted">{{ f.official_number }}</div>{% endif %}{% endif %}
- <div class="invoice-pending" data-invoice-id="{{ f.id }}" {% if not f.has_pending_shipment %}hidden{% endif %}>● Sevk edilmemiş ürün var</div></div>
- </td>
+ <td data-label="Toplam Tutar"><strong class="invoice-total-amount" data-invoice-total="{{ f.id }}">{{ f.list_total|floatformat:2 }}</strong> <small>{{ f.currency }}</small><div class="invoice-pending" data-invoice-id="{{ f.id }}" {% if not f.has_pending_shipment %}hidden{% endif %}>● Sevk edilmemiş ürün var</div></td>
  <td data-label="BizimHesap"><details class="accounting-status-dropdown"><summary class="accounting-status-trigger dropdown-toggle status-{% if f.bh_display == 'api' %}api{% elif f.bh_display == 'yes' %}yes{% else %}no{% endif %}" aria-label="FT-{{ f.id }} BizimHesap durumunu değiştir"><i class="bi bi-list"></i><span>{% if f.bh_display == 'api' %}API ile Aktarıldı{% elif f.bh_display == 'yes' %}Elle İşlendi{% else %}İşlenmedi{% endif %}</span></summary><div class="accounting-status-menu p-1">{% for value,label in accounting_status_choices %}<form method="post" action="{% url 'invoice_platform_status_update' f.id %}">{% csrf_token %}<input type="hidden" name="platform" value="bizimhesap"><input type="hidden" name="recorded" value="{{ value }}"><button type="submit" class="dropdown-item accounting-status-option status-{{ value }} {% if f.bh_display == value %}selected{% endif %}"><i class="bi {% if value == 'api' %}bi-check-circle-fill{% elif value == 'yes' %}bi-pencil-square{% else %}bi-circle{% endif %}"></i>{{ label }}{% if f.bh_display == value %}<i class="bi bi-check-lg ms-auto"></i>{% endif %}</button></form>{% endfor %}</div></details></td>
  <td data-label="Paraşüt"><details class="accounting-status-dropdown"><summary class="accounting-status-trigger dropdown-toggle status-{% if f.parasut_display == 'api' %}api{% elif f.parasut_display == 'yes' %}yes{% else %}no{% endif %}" aria-label="FT-{{ f.id }} Paraşüt durumunu değiştir"><i class="bi bi-list"></i><span>{% if f.parasut_display == 'api' %}API ile Aktarıldı{% elif f.parasut_display == 'yes' %}Elle İşlendi{% else %}İşlenmedi{% endif %}</span></summary><div class="accounting-status-menu p-1">{% for value,label in accounting_status_choices %}<form method="post" action="{% url 'invoice_platform_status_update' f.id %}">{% csrf_token %}<input type="hidden" name="platform" value="parasut"><input type="hidden" name="recorded" value="{{ value }}"><button type="submit" class="dropdown-item accounting-status-option status-{{ value }} {% if f.parasut_display == value %}selected{% endif %}"><i class="bi {% if value == 'api' %}bi-check-circle-fill{% elif value == 'yes' %}bi-pencil-square{% else %}bi-circle{% endif %}"></i>{{ label }}{% if f.parasut_display == value %}<i class="bi bi-check-lg ms-auto"></i>{% endif %}</button></form>{% endfor %}</div></details></td>
  <td data-label="İşlem">{% if f.status == "DRAFT" and not f.lines.count %}<form method="post" action="{% url 'invoice_delete_empty' f.id %}" onsubmit="return confirm('FT-{{ f.id }} numaralı boş fatura taslağı kalıcı olarak silinsin mi?');">{% csrf_token %}<button type="submit" class="btn btn-sm btn-outline-danger" title="Boş faturayı sil" aria-label="FT-{{ f.id }} taslağını sil">×</button></form>{% endif %}</td>
 </tr>
-{% empty %}<tr><td colspan="8"><div class="invoice-empty">Henüz fatura taslağı yok.</div></td></tr>
+{% empty %}<tr><td colspan="9"><div class="invoice-empty">Henüz fatura taslağı yok.</div></td></tr>
 {% endfor %}
 </tbody></table><div id="invoice-no-results" class="invoice-empty" hidden>Aramanıza uygun fatura bulunamadı.</div></div>
 </main>
@@ -100,12 +100,13 @@
  document.getElementById('invoice-total').textContent=rows.length;
  document.getElementById('invoice-drafts').textContent=rows.filter(r=>r.dataset.status==='DRAFT').length;
  document.getElementById('invoice-issued').textContent=rows.filter(r=>r.dataset.status==='ISSUED').length;
- function apply(){const term=normalize(search.value.trim());let visible=0;rows.forEach(row=>{const ok=(!term||normalize(row.cells[1].innerText+' '+row.cells[2].innerText).includes(term))&&(filter.value==='all'||row.dataset.status===filter.value);row.hidden=!ok;if(ok)visible++});noResults.hidden=visible>0||rows.length===0}
+ function apply(){const term=normalize(search.value.trim());let visible=0;rows.forEach(row=>{const ok=(!term||normalize(row.cells[1].innerText+' '+row.cells[2].innerText+' '+row.cells[3].innerText).includes(term))&&(filter.value==='all'||row.dataset.status===filter.value);row.hidden=!ok;if(ok)visible++});noResults.hidden=visible>0||rows.length===0}
  search.addEventListener('input',apply);filter.addEventListener('change',apply);
  const nodes=document.querySelectorAll('.invoice-pending');
  if(!nodes.length)return;
  async function sync(){if(document.hidden)return;try{const res=await fetch("{% url 'invoice_list_shipment_status' %}",{credentials:'same-origin',cache:'no-store'});if(!res.ok)return;const data=await res.json();const pending=new Set(data.pending_invoice_ids||[]);nodes.forEach(node=>{node.hidden=!pending.has(Number(node.dataset.invoiceId))})}catch(e){}}
- setInterval(sync,15000);document.addEventListener('visibilitychange',()=>{if(!document.hidden)sync()});
+ async function refreshTotals(){if(document.hidden)return;try{const response=await fetch("{% url 'invoice_list_live_totals' %}",{credentials:'same-origin',cache:'no-store'});if(!response.ok)return;const data=await response.json();const fmt=new Intl.NumberFormat('tr-TR',{minimumFractionDigits:2,maximumFractionDigits:2});document.querySelectorAll('[data-invoice-total]').forEach(el=>{const value=data.totals?.[el.dataset.invoiceTotal];if(value!==undefined)el.textContent=fmt.format(Number(value))});}catch(error){}}
+ setInterval(refreshTotals,15000);document.addEventListener('visibilitychange',()=>{if(!document.hidden)refreshTotals()}); setInterval(sync,15000);document.addEventListener('visibilitychange',()=>{if(!document.hidden)sync()});
 })();
 </script>
 <script>
