@@ -383,11 +383,11 @@ def invoice_bizimhesap_send(request, invoice_id):
     from .bizimhesap_export_service import prepare_transfer, deliver_prepared_invoice, TransferBlocked
     if os.environ.get("BIZIMHESAP_INVOICE_EXPORT_ENABLED") != "true":
         messages.error(request, "BizimHesap aktarımı kapalı.")
-        return redirect("invoice_bizimhesap_preview", invoice_id=invoice_id)
+        return redirect("invoice_detail", invoice_id=invoice_id)
     test_id = os.environ.get("BIZIMHESAP_FIRST_TEST_INVOICE_ID", "")
     if test_id and test_id != str(invoice_id):
         messages.error(request, "İlk test yalnızca belirlenen fatura için açık.")
-        return redirect("invoice_bizimhesap_preview", invoice_id=invoice_id)
+        return redirect("invoice_detail", invoice_id=invoice_id)
     try:
         # FT-9: allow a single retry after manual verification of no external record.
         if invoice_id == 9:
@@ -411,7 +411,7 @@ def invoice_bizimhesap_send(request, invoice_id):
             messages.success(request, "Fatura BizimHesap'a aktarıldı.")
         else:
             messages.warning(request, "Aktarım sonucu belirsiz; tekrar gönderim kapalı.")
-    return redirect("invoice_bizimhesap_preview", invoice_id=invoice_id)
+    return redirect("invoice_detail", invoice_id=invoice_id)
 
 
 @login_required
