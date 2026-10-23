@@ -1,36 +1,50 @@
 {% extends "base.html" %}
 {% block content %}
 <style>
-.pm-wrap{max-width:1120px;margin:28px auto;padding:0 16px 45px;color:#22324a}
-.pm-panel{background:#fff;border:1px solid #e0e7ef;border-radius:16px;padding:22px;box-shadow:0 4px 18px rgba(27,47,77,.04)}
-.pm-sub{color:#66788e;font-size:13px}
-.pm-table{width:100%;border-collapse:collapse}
-.pm-table th,.pm-table td{padding:12px 10px;border-bottom:1px solid #e9eef5;text-align:left}
-.pm-table th{font-size:12px;color:#64748b;background:#f8fafc}
-.pm-table form{display:flex;gap:7px;align-items:center;flex-wrap:wrap}
-.pm-table input{width:150px}
-.pm-status{font-size:12px;font-weight:650;color:#a16207}
-.pm-status.ready{color:#17834d}
-@media(max-width:700px){.pm-panel{padding:12px}.pm-table th:nth-child(2),.pm-table td:nth-child(2){display:none}.pm-table td{padding:9px 5px}}
+.pm-wrap{max-width:1240px;margin:28px auto;padding:0 18px 55px;color:#162840}
+.pm-panel{background:#fff;border:1px solid #e3eaf2;border-radius:18px;padding:25px;box-shadow:0 10px 28px rgba(33,54,88,.035)}
+.pm-sub{color:#708199;font-size:13px}
+.pm-list,.pm-table{width:100%;border-collapse:separate;border-spacing:0}
+.pm-list th,.pm-table th{padding:15px 13px;font-size:11px;text-transform:uppercase;letter-spacing:.055em;color:#71829c;font-weight:750;background:#f7f9fc;text-align:left}
+.pm-list td,.pm-table td{padding:16px 13px;border-bottom:1px solid #edf1f6;text-align:left;vertical-align:middle;font-size:13px}
+.pm-list tbody tr:hover,.pm-table tbody tr:hover{background:#fafcff}
+.pm-list form,.pm-table form{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.pm-list input,.pm-table input{min-width:170px;max-width:240px;flex:1}
+.pm-status,.pm-status.ready{display:inline-block;border-radius:99px;padding:5px 10px;background:#fff5e6;color:#985911;font-size:12px;font-weight:650}
+.pm-status.mapped,.pm-status.ready{background:#e8f6ef;color:#18734c}
+.cm-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:13px;margin:20px 0}
+.cm-stat{background:#fff;border:1px solid #e3eaf2;border-radius:15px;padding:17px 20px}
+.cm-stat .cm-value{display:block;font-size:28px;font-weight:750;letter-spacing:-.04em;color:#162840}
+.cm-stat .cm-label{font-size:12px;color:#708199}
+.cm-toolbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:18px 0}
+.cm-toolbar input{min-width:210px;flex:1;margin:0!important}
+.cm-filters{display:flex;gap:5px;padding:4px;border:1px solid #e3eaf2;border-radius:11px;background:#f6f8fb}
+.cm-filter{border:0;border-radius:8px;background:transparent;color:#64748b;padding:8px 12px;font-size:12px;font-weight:650;cursor:pointer}
+.cm-filter.active{background:white;box-shadow:0 1px 5px #dbe2ed;color:#165bd9}
+.cm-edit{font-size:12px!important;border-radius:8px!important}
+.cm-code{color:#5d6d83;font-size:12px;font-family:inherit;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:inline-block;vertical-align:middle}
+.cm-hide{display:none!important}
+@media(max-width:720px){.cm-stats{gap:7px}.cm-stat{padding:12px}.cm-stat .cm-value{font-size:22px}.pm-panel{padding:13px}.pm-list th:nth-child(2),.pm-list td:nth-child(2),.pm-table th:nth-child(2),.pm-table td:nth-child(2){display:none}}
 </style>
 <main class="pm-wrap">
 <div class="d-flex align-items-center justify-content-between gap-2 flex-wrap mb-3">
 <div><h2 class="mb-1">Paraşüt Cari Eşleştirme</h2><p class="pm-sub mb-0">MoliApp müşterisini Paraşüt'teki mevcut cariye bir kez eşleştirin.</p></div>
 <a href="{% url 'invoice_list' %}" class="btn btn-sm btn-outline-secondary">← Faturalara Dön</a>
 </div>
+<div class="cm-stats" aria-label="Eşleştirme özeti"><div class="cm-stat"><span class="cm-value">{{ customer_count }}</span><span class="cm-label">Aktif müşteri</span></div><div class="cm-stat"><span class="cm-value">{{ mapped_count }}</span><span class="cm-label">Eşleşen müşteri</span></div><div class="cm-stat"><span class="cm-value" id="cmUnmapped"></span><span class="cm-label">Eşleşmeyen müşteri</span></div></div>
 <div class="pm-panel">
 <div class="d-flex justify-content-between gap-2 flex-wrap mb-3"><strong>Aktif Müşteriler</strong><span class="pm-sub">{{ mapped_count }} / {{ customer_count }} eşleştirildi</span></div>
 <div class="d-flex gap-2 align-items-center flex-wrap mb-3">
 <button id="pm-load" type="button" class="btn btn-outline-primary btn-sm">Paraşüt Müşterilerini Getir</button>
 <span class="pm-sub" id="pm-message" role="status">Liste salt okunur olarak alınır; Paraşüt'te kayıt oluşturulmaz.</span>
 </div>
-<input id="pm-search" class="form-control mb-3" type="search" placeholder="MoliApp müşterisi ara..." aria-label="MoliApp müşterisi ara">
+<div class="cm-toolbar"><input id="pm-search" class="form-control mb-3" type="search" placeholder="MoliApp müşterisi ara..." aria-label="MoliApp müşterisi ara"><div class="cm-filters" role="group" aria-label="Durum filtresi"><button type="button" class="cm-filter active" data-cm-filter="all">Tümü</button><button type="button" class="cm-filter" data-cm-filter="mapped">Eşleşen</button><button type="button" class="cm-filter" data-cm-filter="unmapped">Eşleşmeyen</button></div></div>
 <div class="table-responsive"><table class="pm-table">
 <thead><tr><th>MoliApp Müşterisi</th><th>Durum</th><th>Paraşüt Cari ID</th></tr></thead>
 <tbody>{% for customer in customers %}
-<tr data-name="{{ customer.ad|lower }}"><td><strong>{{ customer.ad }}</strong></td>
+<tr data-name="{{ customer.ad|lower }}" data-cm-status="{% if customer.parasut_code %}mapped{% else %}unmapped{% endif %}"><td><strong>{{ customer.ad }}</strong></td>
 <td><span class="pm-status {% if customer.parasut_code %}ready{% endif %}">{% if customer.parasut_code %}Eşleşti{% else %}Eşleşmedi{% endif %}</span></td>
-<td><form method="post" action="{% url 'invoice_parasut_mapping_save' customer.id %}">{% csrf_token %}
+<td>{% if customer.parasut_code %}<span class="cm-code" title="{{ customer.parasut_code }}">{{ customer.parasut_code }}</span> <button type="button" class="btn btn-sm btn-outline-secondary cm-edit" onclick="const cell=this.closest('td');cell.querySelector('form').classList.remove('cm-hide');cell.querySelector('form input').focus();this.classList.add('cm-hide');cell.querySelector('.cm-code').classList.add('cm-hide')">Düzenle</button>{% endif %}<form class="{% if customer.parasut_code %}cm-hide{% endif %}" method="post" action="{% url 'invoice_parasut_mapping_save' customer.id %}">{% csrf_token %}
 <input type="text" name="external_contact_id" class="form-control form-control-sm" maxlength="100" value="{{ customer.parasut_code }}" placeholder="Cari ID" required>
 <button class="btn btn-sm btn-outline-secondary pm-choose" type="button" disabled>Listeden Seç</button>
 <button class="btn btn-sm btn-outline-primary" type="submit">Kaydet</button>
@@ -65,4 +79,11 @@ picker.addEventListener('input',display);
 more.addEventListener('click',async()=>{more.disabled=true;moreStatus.textContent='Yükleniyor...';try{await loadPage(page+1);moreStatus.textContent='';}catch(e){moreStatus.textContent=e.message;}finally{more.disabled=false;}});
 })();
 </script>
-{% endblock %}
+<script>(function(){
+const rows=[...document.querySelectorAll('[data-cm-status]')];
+const counter=document.getElementById('cmUnmapped');if(counter)counter.textContent=rows.filter(r=>r.dataset.cmStatus==='unmapped').length;
+let filter='all';const search=document.getElementById('pm-search');
+function apply(){const q=(search?.value||'').toLocaleLowerCase('tr-TR').trim();rows.forEach(r=>{const name=(r.getAttribute('data-name')||'').toLocaleLowerCase('tr-TR');r.hidden=!(name.includes(q)&&(filter==='all'||r.dataset.cmStatus===filter));});}
+document.querySelectorAll('[data-cm-filter]').forEach(b=>b.addEventListener('click',()=>{filter=b.dataset.cmFilter;document.querySelectorAll('[data-cm-filter]').forEach(x=>x.classList.toggle('active',x===b));apply();}));
+search?.addEventListener('input',apply);
+})();</script>{% endblock %}
