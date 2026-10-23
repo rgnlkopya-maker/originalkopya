@@ -75,6 +75,25 @@ def invoice_list_live_totals(request):
 
 @login_required
 @require_POST
+def invoice_open_account_label(request, invoice_id):
+    if not _allowed(request.user):
+        return HttpResponseForbidden("Yetkiniz yok.")
+    selected = request.POST.get("label")
+    if selected not in ("open", "empty"):
+        messages.error(request, "Geçersiz seçim.")
+        return redirect("invoice_list")
+    with transaction.atomic():
+        invoice = get_object_or_404(InvoiceDraft.objects.select_for_update(), pk=invoice_id)
+        if invoice.official_number:
+            messages.error(request, "Resmî fatura numarası olan kayıtta bu etiket değiştirilemez.")
+            return redirect("invoice_list")
+        invoice.show_open_account_in_list = selected == "open"
+        invoice.save(update_fields=["show_open_account_in_list", "updated_at"])
+    return redirect("invoice_list")
+
+
+@login_required
+@require_POST
 def invoice_platform_status_update(request, invoice_id):
     if not _allowed(request.user):
         return HttpResponseForbidden("Yetkiniz yok.")
