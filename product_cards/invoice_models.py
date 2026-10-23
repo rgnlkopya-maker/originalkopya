@@ -55,6 +55,7 @@ class BizimHesapInvoiceTransfer(models.Model):
     external_invoice_id = models.CharField(max_length=100, blank=True, default="")
     external_invoice_no = models.CharField(max_length=100, blank=True, default="")
     payload_fingerprint = models.CharField(max_length=64, blank=True, default="")
+    needs_sync = models.BooleanField(default=False)
     last_error = models.CharField(max_length=255, blank=True, default="")
     updated_at = models.DateTimeField(auto_now=True)
 
