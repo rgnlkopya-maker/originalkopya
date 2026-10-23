@@ -143,6 +143,7 @@ def update_sales_record(invoice_id):
         remote_id = rec.external_invoice_id
         rec.status = "SENDING"
         rec.save(update_fields=["status", "updated_at"])
+    remote_write_started = False
     try:
         from .parasut_credentials import valid_access_token
         from .parasut_payload import build_parasut_sales_invoice
@@ -196,11 +197,12 @@ def update_sales_record(invoice_id):
             available.remove(chosen)
         # Only update the existing remote ID and its verified line IDs.
         payload["data"]["id"] = remote_id
+        remote_write_started = True
         result = _request(company, token, "sales_invoices/" + remote_id, "PUT", payload)
         if str((result.get("data") or {}).get("id")) != remote_id:
             raise ParasutExportError("Güncelleme yanıtındaki Paraşüt ID uyuşmuyor; kontrol gerekli.")
     except ParasutExportError as exc:
-        ParasutInvoiceTransfer.objects.filter(invoice_id=invoice_id, status="SENDING").update(status="SENT", last_error=str(exc)[:255])
+        ParasutInvoiceTransfer.objects.filter(invoice_id=invoice_id, status="SENDING").update(status="UNKNOWN" if remote_write_started else "SENT", last_error=str(exc)[:255])
         raise
     except Exception:
         ParasutInvoiceTransfer.objects.filter(invoice_id=invoice_id, status="SENDING").update(status="UNKNOWN", last_error="Güncelleme sonucu belirsiz; dış kayıt kontrol edilmeli.")
