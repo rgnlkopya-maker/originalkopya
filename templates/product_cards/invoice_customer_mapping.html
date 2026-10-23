@@ -1,13 +1,39 @@
 {% extends "base.html" %}
 {% block content %}
-<style>.map-wrap{max-width:1050px;margin:30px auto;padding:0 15px 45px}.map-panel{background:#fff;border:1px solid #e3e8ef;border-radius:15px;padding:23px}.map-sub{color:#778397;font-size:13px}.map-list{width:100%;border-collapse:collapse}.map-list th,.map-list td{padding:12px;border-bottom:1px solid #eef1f5;text-align:left}.map-list th{font-size:12px;color:#66748b}.map-list form{display:flex;gap:8px;align-items:center}.map-list input{max-width:230px;min-width:120px}.map-status{font-size:12px;font-weight:650;color:#a16207}.map-status.mapped{color:#167545}@media(max-width:720px){.map-list th:nth-child(2),.map-list td:nth-child(2){display:none}.map-panel{padding:14px}.map-list form{flex-wrap:wrap}}</style>
+<style>
+.map-wrap{max-width:1240px;margin:28px auto;padding:0 18px 55px;color:#162840}
+.map-panel{background:#fff;border:1px solid #e3eaf2;border-radius:18px;padding:25px;box-shadow:0 10px 28px rgba(33,54,88,.035)}
+.map-sub{color:#708199;font-size:13px}
+.map-list,.map-table{width:100%;border-collapse:separate;border-spacing:0}
+.map-list th,.map-table th{padding:15px 13px;font-size:11px;text-transform:uppercase;letter-spacing:.055em;color:#71829c;font-weight:750;background:#f7f9fc;text-align:left}
+.map-list td,.map-table td{padding:16px 13px;border-bottom:1px solid #edf1f6;text-align:left;vertical-align:middle;font-size:13px}
+.map-list tbody tr:hover,.map-table tbody tr:hover{background:#fafcff}
+.map-list form,.map-table form{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.map-list input,.map-table input{min-width:170px;max-width:240px;flex:1}
+.map-status,.map-status.ready{display:inline-block;border-radius:99px;padding:5px 10px;background:#fff5e6;color:#985911;font-size:12px;font-weight:650}
+.map-status.mapped,.map-status.ready{background:#e8f6ef;color:#18734c}
+.cm-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:13px;margin:20px 0}
+.cm-stat{background:#fff;border:1px solid #e3eaf2;border-radius:15px;padding:17px 20px}
+.cm-stat .cm-value{display:block;font-size:28px;font-weight:750;letter-spacing:-.04em;color:#162840}
+.cm-stat .cm-label{font-size:12px;color:#708199}
+.cm-toolbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:18px 0}
+.cm-toolbar input{min-width:210px;flex:1;margin:0!important}
+.cm-filters{display:flex;gap:5px;padding:4px;border:1px solid #e3eaf2;border-radius:11px;background:#f6f8fb}
+.cm-filter{border:0;border-radius:8px;background:transparent;color:#64748b;padding:8px 12px;font-size:12px;font-weight:650;cursor:pointer}
+.cm-filter.active{background:white;box-shadow:0 1px 5px #dbe2ed;color:#165bd9}
+.cm-edit{font-size:12px!important;border-radius:8px!important}
+.cm-code{color:#5d6d83;font-size:12px;font-family:inherit;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:inline-block;vertical-align:middle}
+.cm-hide{display:none!important}
+@media(max-width:720px){.cm-stats{gap:7px}.cm-stat{padding:12px}.cm-stat .cm-value{font-size:22px}.map-panel{padding:13px}.map-list th:nth-child(2),.map-list td:nth-child(2),.map-table th:nth-child(2),.map-table td:nth-child(2){display:none}}
+</style>
 <main class="map-wrap">
  <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3"><div><h2 class="mb-1">BizimHesap Cari Eşleştirme</h2><div class="map-sub">Bir müşteriyi bir kez eşleştirmeniz yeterli. Sonraki faturalar aynı kodu kullanır.</div></div><a href="{% url 'invoice_list' %}" class="btn btn-sm btn-outline-secondary">← Faturalara Dön</a></div>
- <div class="map-panel">
+ <div class="cm-stats" aria-label="Eşleştirme özeti"><div class="cm-stat"><span class="cm-value">{{ customer_count }}</span><span class="cm-label">Aktif müşteri</span></div><div class="cm-stat"><span class="cm-value">{{ mapped_count }}</span><span class="cm-label">Eşleşen müşteri</span></div><div class="cm-stat"><span class="cm-value" id="cmUnmapped"></span><span class="cm-label">Eşleşmeyen müşteri</span></div></div>
+<div class="map-panel">
   <div class="d-flex justify-content-between gap-2 flex-wrap mb-3"><strong>Aktif Müşteriler</strong><span class="map-sub">{{ mapped_count }} / {{ customer_count }} eşleştirildi</span></div>
   <p class="map-sub">BizimHesap'taki <strong>mevcut cari kodunu (CustomerID)</strong> girin. Kodun doğru müşteriye ait olduğunu BizimHesap'tan kontrol edin. Bu işlem fatura, cari veya tahsilat oluşturmaz.</p>
-  <div class="d-flex gap-2 align-items-center flex-wrap mb-3"><button type="button" id="bhLoadCustomers" class="btn btn-sm btn-outline-primary">BizimHesap Müşterilerini Getir</button><span id="bhApiStatus" class="map-sub">API anahtarı Render üzerinde tanımlandığında liste alınabilir.</span></div><input type="search" id="customerFilter" class="form-control mb-3" placeholder="Müşteri adıyla ara..." aria-label="Müşteri ara">
-  <div class="table-responsive"><table class="map-list"><thead><tr><th>MoliApp Müşterisi</th><th>Durum</th><th>BizimHesap Cari Kodu</th></tr></thead><tbody>{% for customer in customers %}<tr data-customer-name="{{ customer.ad|lower }}"><td><strong>{{ customer.ad }}</strong></td><td><span class="map-status {% if customer.bh_code %}mapped{% endif %}">{% if customer.bh_code %}Eşleşti{% else %}Eşleşmedi{% endif %}</span></td><td><form method="post" action="{% url 'invoice_customer_mapping_save' customer.id %}">{% csrf_token %}<input type="text" name="external_customer_id" class="form-control form-control-sm" value="{{ customer.bh_code }}" maxlength="100" required autocomplete="off" placeholder="CustomerID" aria-label="{{ customer.ad }} cari kodu"><button type="button" class="btn btn-sm btn-outline-secondary bhChoose" disabled>Listeden Seç</button><button type="submit" class="btn btn-sm btn-outline-primary">Kaydet</button></form></td></tr>{% empty %}<tr><td colspan="3">Aktif müşteri bulunamadı.</td></tr>{% endfor %}</tbody></table></div>
+  <div class="d-flex gap-2 align-items-center flex-wrap mb-3"><button type="button" id="bhLoadCustomers" class="btn btn-sm btn-outline-primary">BizimHesap Müşterilerini Getir</button><span id="bhApiStatus" class="map-sub">API anahtarı Render üzerinde tanımlandığında liste alınabilir.</span></div><div class="cm-toolbar"><input type="search" id="customerFilter" class="form-control mb-3" placeholder="Müşteri adıyla ara..." aria-label="Müşteri ara"><div class="cm-filters" role="group" aria-label="Durum filtresi"><button type="button" class="cm-filter active" data-cm-filter="all">Tümü</button><button type="button" class="cm-filter" data-cm-filter="mapped">Eşleşen</button><button type="button" class="cm-filter" data-cm-filter="unmapped">Eşleşmeyen</button></div></div>
+  <div class="table-responsive"><table class="map-list"><thead><tr><th>MoliApp Müşterisi</th><th>Durum</th><th>BizimHesap Cari Kodu</th></tr></thead><tbody>{% for customer in customers %}<tr data-customer-name="{{ customer.ad|lower }}" data-cm-status="{% if customer.bh_code %}mapped{% else %}unmapped{% endif %}"><td><strong>{{ customer.ad }}</strong></td><td><span class="map-status {% if customer.bh_code %}mapped{% endif %}">{% if customer.bh_code %}Eşleşti{% else %}Eşleşmedi{% endif %}</span></td><td>{% if customer.bh_code %}<span class="cm-code" title="{{ customer.bh_code }}">{{ customer.bh_code }}</span> <button type="button" class="btn btn-sm btn-outline-secondary cm-edit" onclick="const cell=this.closest('td');cell.querySelector('form').classList.remove('cm-hide');cell.querySelector('form input').focus();this.classList.add('cm-hide');cell.querySelector('.cm-code').classList.add('cm-hide')">Düzenle</button>{% endif %}<form class="{% if customer.bh_code %}cm-hide{% endif %}" method="post" action="{% url 'invoice_customer_mapping_save' customer.id %}">{% csrf_token %}<input type="text" name="external_customer_id" class="form-control form-control-sm" value="{{ customer.bh_code }}" maxlength="100" required autocomplete="off" placeholder="CustomerID" aria-label="{{ customer.ad }} cari kodu"><button type="button" class="btn btn-sm btn-outline-secondary bhChoose" disabled>Listeden Seç</button><button type="submit" class="btn btn-sm btn-outline-primary">Kaydet</button></form></td></tr>{% empty %}<tr><td colspan="3">Aktif müşteri bulunamadı.</td></tr>{% endfor %}</tbody></table></div>
  </div>
 </main>
 <div class="modal fade" id="bhPickerModal" tabindex="-1" aria-labelledby="bhPickerTitle" aria-hidden="true"><div class="modal-dialog modal-dialog-centered modal-lg"><div class="modal-content"><div class="modal-header"><div><h5 class="modal-title" id="bhPickerTitle">BizimHesap Carisi Seç</h5><div class="map-sub" id="bhPickerFor"></div></div><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Kapat"></button></div><div class="modal-body"><input type="search" class="form-control mb-3" id="bhPickerSearch" placeholder="BizimHesap müşteri adı veya cari kodu ara..." autocomplete="off" aria-label="BizimHesap carisi ara"><div class="map-sub mb-2" id="bhPickerCount"></div><div id="bhPickerResults" class="list-group" style="max-height:380px;overflow-y:auto"></div></div><div class="modal-footer"><button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Vazgeç</button></div></div></div></div>
@@ -45,4 +71,11 @@ document.querySelectorAll('.bhChoose').forEach(b=>b.addEventListener('click',()=
 }));
 search.addEventListener('input',showResults);
 modalEl.addEventListener('shown.bs.modal',()=>search.focus());
+})();</script><script>(function(){
+const rows=[...document.querySelectorAll('[data-cm-status]')];
+const counter=document.getElementById('cmUnmapped');if(counter)counter.textContent=rows.filter(r=>r.dataset.cmStatus==='unmapped').length;
+let filter='all';const search=document.getElementById('customerFilter');
+function apply(){const q=(search?.value||'').toLocaleLowerCase('tr-TR').trim();rows.forEach(r=>{const name=(r.getAttribute('data-customer-name')||'').toLocaleLowerCase('tr-TR');r.hidden=!(name.includes(q)&&(filter==='all'||r.dataset.cmStatus===filter));});}
+document.querySelectorAll('[data-cm-filter]').forEach(b=>b.addEventListener('click',()=>{filter=b.dataset.cmFilter;document.querySelectorAll('[data-cm-filter]').forEach(x=>x.classList.toggle('active',x===b));apply();}));
+search?.addEventListener('input',apply);
 })();</script>{% endblock %}
