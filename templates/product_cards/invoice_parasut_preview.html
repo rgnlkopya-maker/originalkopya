@@ -22,13 +22,18 @@
   <div class="mb-3"><button type="button" class="btn btn-outline-primary" id="parasut-check">Paraşüt bağlantısını kontrol et</button><p id="parasut-check-result" class="small mt-2" role="status" aria-live="polite"></p></div>
 <p><a href="{% url 'invoice_parasut_mapping_list' %}" class="btn btn-outline-primary btn-sm">Paraşüt Cari Eşleştirme Sayfası</a></p>
 {% if transfer and transfer.status == "SENT" %}
-<div class="alert alert-success">Paraşüt satış kaydı: {{ transfer.external_invoice_id }} — e-belge gönderilmedi.</div>
+<div class="alert alert-success">MoliApp'te kayıtlı Paraşüt satış kaydı: {{ transfer.external_invoice_id }}. Bu kayıt artık Paraşüt'te bulunmuyorsa aşağıdan doğrulayın.</div>
+<form class="mb-3" method="post" action="{% url 'invoice_parasut_archive_deleted' invoice.id %}" onsubmit="return confirm('Paraşüt sisteminde bu taslak gerçekten silinmişse eski bağlantı arşivlenecek. Devam edilsin mi?')">
+{% csrf_token %}<button type="submit" class="btn btn-outline-warning">Paraşüt'te Silinen Taslağı Kontrol Et</button>
+</form>
+{% elif transfer and transfer.status == "NOT_SENT" and transfer.deleted_external_invoice_id %}
+<div class="alert alert-info">Önceki Paraşüt taslağı silinmiş olarak doğrulandı (eski ID: {{ transfer.deleted_external_invoice_id }}). Fatura yeniden taslak olarak gönderilebilir.</div>
 {% elif transfer and transfer.status == "SENDING" %}
 <div class="alert alert-info">Paraşüt aktarımı sürüyor. Yeniden gönderim kilitli.</div>
 {% elif transfer and transfer.status == "UNKNOWN" %}
 <div class="alert alert-warning">Aktarım sonucu belirsiz. Paraşüt kayıtları kontrol edilmeden yeniden gönderilemez.</div>
 {% endif %}
-{% if export_enabled and mapping and invoice.status == "DRAFT" and not transfer %}
+{% if export_enabled and mapping and invoice.status == "DRAFT" and not problems and not transfer or export_enabled and mapping and invoice.status == "DRAFT" and not problems and transfer.status == "NOT_SENT" %}
 <form method="post" action="{% url 'invoice_parasut_send' invoice.id %}" onsubmit="return confirm('Paraşüt üzerinde gerçek satış kaydı ve gerektiğinde ürün kartları oluşturulacak. E-belge gönderilmeyecek. Devam edilsin mi?');">
 {% csrf_token %}<button type="submit" class="btn btn-primary">Paraşüt'e Taslak Satış Kaydı Aç</button>
 </form>
