@@ -58,7 +58,19 @@ def invoice_list(request):
         invoice.parasut_transfer_status = parasut_transfer.status if parasut_transfer else ""
         invoice.bh_display = invoice.bizimhesap_display_status or ("api" if invoice.bh_transfer_status == "SENT" else ("yes" if invoice.bizimhesap_manual_recorded else "no"))
         invoice.parasut_display = invoice.parasut_display_status or ("api" if invoice.parasut_transfer_status == "SENT" else ("yes" if invoice.parasut_manual_recorded else "no"))
+        invoice.list_total = sum((line.price * (Decimal("1") + line.vat_rate / Decimal("100")) for line in invoice.lines.all()), Decimal("0"))
+        invoice.visible_official_number = invoice.official_number if invoice.parasut_display == "api" else ""
     return render(request, "product_cards/invoice_list.html", {"invoices": invoices, "accounting_status_choices": [("no", "İşlenmedi"), ("yes", "Elle İşlendi"), ("api", "API ile Aktarıldı")]})
+
+
+@login_required
+def invoice_list_live_totals(request):
+    if not _allowed(request.user):
+        return HttpResponseForbidden("Yetkiniz yok.")
+    from django.db.models import Sum, F, DecimalField, ExpressionWrapper
+    line_amount = ExpressionWrapper(F("price") * (1 + F("vat_rate") / 100), output_field=DecimalField(max_digits=20, decimal_places=4))
+    rows = InvoiceLine.objects.values("invoice_id").annotate(total=Sum(line_amount))
+    return JsonResponse({"totals": {str(row["invoice_id"]): str(row["total"] or 0) for row in rows}})
 
 
 @login_required
@@ -72,7 +84,15 @@ def invoice_platform_status_update(request, invoice_id):
         messages.error(request, "Geçersiz durum seçimi.")
         return redirect("invoice_list")
     field = "bizimhesap_display_status" if platform == "bizimhesap" else "parasut_display_status"
-    InvoiceDraft.objects.filter(pk=invoice_id).update(**{field: recorded})
+    with transaction.atomic():
+        invoice = get_object_or_404(InvoiceDraft.objects.select_for_update(), pk=invoice_id)
+        setattr(invoice, field, recorded)
+        fields = [field, "updated_at"]
+        if platform == "parasut" and recorded != "api" and invoice.official_number:
+            invoice.official_number = ""
+            fields.append("official_number")
+            InvoiceStatusHistory.objects.filter(invoice=invoice).exclude(previous_official_number="").update(previous_official_number="")
+        invoice.save(update_fields=fields)
     messages.success(request, "Görünen takip durumu güncellendi. API aktarım geçmişi ve dış faturalar değişmedi.")
     return redirect("invoice_list")
 
