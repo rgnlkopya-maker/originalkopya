@@ -25,6 +25,16 @@
 .cm-code{color:#5d6d83;font-size:12px;font-family:inherit;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:inline-block;vertical-align:middle}
 .cm-hide{display:none!important}
 @media(max-width:720px){.cm-stats{gap:7px}.cm-stat{padding:12px}.cm-stat .cm-value{font-size:22px}.pm-panel{padding:13px}.pm-list th:nth-child(2),.pm-list td:nth-child(2),.pm-table th:nth-child(2),.pm-table td:nth-child(2){display:none}}
+
+.cm-section-head{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:15px}
+.cm-section-help{margin-top:5px}
+.cm-load{font-weight:650;border-radius:10px;padding:9px 14px;white-space:nowrap}
+.cm-api-status{min-height:0;margin:-4px 0 12px;font-size:12px}
+.cm-api-status:empty{display:none}
+.cm-toolbar{justify-content:space-between;align-items:center;gap:12px;margin:14px 0 18px}
+.cm-toolbar input{flex:0 1 335px;min-width:200px;max-width:335px;width:100%;height:41px;border-radius:10px}
+.cm-filters{margin-left:auto}
+@media(max-width:640px){.cm-toolbar input{flex:1 1 100%;max-width:none}.cm-filters{margin-left:0;width:100%;justify-content:space-between}.cm-section-head{align-items:flex-start}}
 </style>
 <main class="pm-wrap">
 <div class="d-flex align-items-center justify-content-between gap-2 flex-wrap mb-3">
@@ -33,11 +43,8 @@
 </div>
 <div class="cm-stats" aria-label="Eşleştirme özeti"><div class="cm-stat"><span class="cm-value">{{ customer_count }}</span><span class="cm-label">Aktif müşteri</span></div><div class="cm-stat"><span class="cm-value">{{ mapped_count }}</span><span class="cm-label">Eşleşen müşteri</span></div><div class="cm-stat"><span class="cm-value" id="cmUnmapped"></span><span class="cm-label">Eşleşmeyen müşteri</span></div></div>
 <div class="pm-panel">
-<div class="d-flex justify-content-between gap-2 flex-wrap mb-3"><strong>Aktif Müşteriler</strong><span class="pm-sub">{{ mapped_count }} / {{ customer_count }} eşleştirildi</span></div>
-<div class="d-flex gap-2 align-items-center flex-wrap mb-3">
-<button id="pm-load" type="button" class="btn btn-outline-primary btn-sm">Paraşüt Müşterilerini Getir</button>
-<span class="pm-sub" id="pm-message" role="status">Liste salt okunur olarak alınır; Paraşüt'te kayıt oluşturulmaz.</span>
-</div>
+<div class="cm-section-head"><div><strong>Aktif Müşteriler</strong><div class="pm-sub cm-section-help">Mevcut Paraşüt carilerini müşterilerinizle eşleştirin.</div></div><button id="pm-load" type="button" class="btn btn-sm btn-outline-primary cm-load">↻ Müşterileri Getir</button></div>
+<div id="pm-message" class="pm-sub cm-api-status" role="status"></div>
 <div class="cm-toolbar"><input id="pm-search" class="form-control mb-3" type="search" placeholder="MoliApp müşterisi ara..." aria-label="MoliApp müşterisi ara"><div class="cm-filters" role="group" aria-label="Durum filtresi"><button type="button" class="cm-filter active" data-cm-filter="all">Tümü</button><button type="button" class="cm-filter" data-cm-filter="mapped">Eşleşen</button><button type="button" class="cm-filter" data-cm-filter="unmapped">Eşleşmeyen</button></div></div>
 <div class="table-responsive"><table class="pm-table">
 <thead><tr><th>MoliApp Müşterisi</th><th>Durum</th><th>Paraşüt Cari ID</th></tr></thead>
