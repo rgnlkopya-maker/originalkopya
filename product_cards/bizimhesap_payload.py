@@ -45,8 +45,8 @@ def build_invoice_payload(invoice, lines, mapping, firm_id):
         tax = money(price * rate / Decimal("100"))
         details.append({
             "productId": str(order.urun_kodu),
-            "productName": product_name,
-            "note": " / ".join(str(v) for v in (order.renk, order.beden) if v),
+            "productName": " / ".join(str(v) for v in (order.renk, order.beden) if v) or "Ürün",
+            "note": "",
             "taxRate": str(rate),
             "quantity": 1,
             "unitPrice": str(price),
