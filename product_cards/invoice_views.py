@@ -56,6 +56,8 @@ def invoice_list(request):
         invoice.bh_is_recorded = invoice.bizimhesap_manual_recorded or bool(transfer and transfer.status == "SENT")
         parasut_transfer = getattr(invoice, "parasut_transfer", None)
         invoice.parasut_transfer_status = parasut_transfer.status if parasut_transfer else ""
+        invoice.bh_display = invoice.bizimhesap_display_status or ("api" if invoice.bh_transfer_status == "SENT" else ("yes" if invoice.bizimhesap_manual_recorded else "no"))
+        invoice.parasut_display = invoice.parasut_display_status or ("api" if invoice.parasut_transfer_status == "SENT" else ("yes" if invoice.parasut_manual_recorded else "no"))
     return render(request, "product_cards/invoice_list.html", {"invoices": invoices})
 
 
@@ -66,45 +68,32 @@ def invoice_platform_status_update(request, invoice_id):
         return HttpResponseForbidden("Yetkiniz yok.")
     platform = request.POST.get("platform", "")
     recorded = request.POST.get("recorded", "")
-    if platform not in ("bizimhesap", "parasut") or recorded not in ("yes", "no", "reset"):
-        messages.error(request, "Geçersiz aktarım durumu.")
+    if platform not in ("bizimhesap", "parasut") or recorded not in ("no", "yes", "api"):
+        messages.error(request, "Geçersiz durum seçimi.")
         return redirect("invoice_list")
+    field = "bizimhesap_display_status" if platform == "bizimhesap" else "parasut_display_status"
+    InvoiceDraft.objects.filter(pk=invoice_id).update(**{field: recorded})
+    messages.success(request, "Görünen takip durumu güncellendi. API aktarım geçmişi ve dış faturalar değişmedi.")
+    return redirect("invoice_list")
+
+
+@login_required
+@require_POST
+def invoice_official_number_update(request, invoice_id):
+    if not _allowed(request.user):
+        return HttpResponseForbidden("Yetkiniz yok.")
+    number = request.POST.get("official_number", "").strip()
+    if len(number) > 80:
+        messages.error(request, "Fatura numarası en fazla 80 karakter olabilir.")
+        return redirect("invoice_detail", invoice_id=invoice_id)
     with transaction.atomic():
         invoice = get_object_or_404(InvoiceDraft.objects.select_for_update(), pk=invoice_id)
-        model = BizimHesapInvoiceTransfer if platform == "bizimhesap" else ParasutInvoiceTransfer
-        transfer = model.objects.select_for_update().filter(invoice=invoice).first()
-        field = "bizimhesap_manual_recorded" if platform == "bizimhesap" else "parasut_manual_recorded"
-        if recorded == "reset":
-            # Do not infer external deletion from the API; an authorized operator must
-            # explicitly confirm that the sales record was deleted on the provider side.
-            if request.POST.get("confirmation") != "FT-" + str(invoice.id):
-                messages.error(request, "Sıfırlama onayı eşleşmedi; hiçbir kayıt değiştirilmedi.")
-                return redirect("invoice_list")
-            if not transfer or transfer.status != "SENT":
-                messages.error(request, "Yalnızca başarılı API aktarımı manuel olarak sıfırlanabilir.")
-                return redirect("invoice_list")
-            previous_id = transfer.external_invoice_id
-            transfer.status = "NOT_SENT"
-            transfer.external_invoice_id = ""
-            transfer.external_invoice_no = ""
-            transfer.payload_fingerprint = ""
-            transfer.last_error = ("Dış sistemden silindiği kullanıcı tarafından onaylandı; eski ID: " + previous_id)[:255]
-            transfer.save(update_fields=["status", "external_invoice_id", "external_invoice_no", "payload_fingerprint", "last_error", "updated_at"])
-            setattr(invoice, field, False)
-            invoice.save(update_fields=[field, "updated_at"])
-            logging.getLogger(__name__).warning(
-                "invoice_api_transfer_manually_reset invoice=%s platform=%s previous_external_id=%s user=%s",
-                invoice.id, platform, previous_id, request.user.pk,
-            )
-            messages.success(request, "Aktarım işareti sıfırlandı. Dış sistemde hiçbir kayıt silinmedi.")
-        else:
-            if transfer and transfer.status in ("SENDING", "UNKNOWN", "SENT"):
-                messages.warning(request, "API aktarım kaydı korunuyor. Silindiğini doğruladıysanız özel sıfırlama seçeneğini kullanın.")
-                return redirect("invoice_list")
-            setattr(invoice, field, recorded == "yes")
-            invoice.save(update_fields=[field, "updated_at"])
-            messages.success(request, "Manuel kayıt durumu güncellendi; dış sisteme fatura gönderilmedi.")
-    return redirect("invoice_list")
+        invoice.official_number = number
+        invoice.save(update_fields=["official_number", "updated_at"])
+        InvoiceStatusHistory.objects.filter(invoice=invoice).exclude(previous_official_number="").update(previous_official_number="")
+    messages.success(request, "Fatura numarası güncellendi." if number else "Fatura numarası silindi.")
+    return redirect("invoice_detail", invoice_id=invoice_id)
+
 
 @login_required
 def invoice_customer_mapping_list(request):
