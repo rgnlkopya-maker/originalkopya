@@ -863,7 +863,7 @@ def invoice_parasut_send(request, invoice_id):
         messages.error(request, "Aktarımın sonucu belirsiz; Paraşüt kontrol edilmeden tekrar denemeyin.")
     else:
         messages.success(request, "Paraşüt satış kaydı oluşturuldu (ID: " + remote_id + "). E-belge gönderilmedi.")
-    return redirect("invoice_parasut_preview", invoice_id=invoice_id)
+    return redirect("invoice_detail", invoice_id=invoice_id)
 
 @login_required
 def invoice_parasut_connection_status(request):
