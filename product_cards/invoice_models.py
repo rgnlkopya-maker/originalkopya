@@ -71,6 +71,8 @@ class ParasutInvoiceTransfer(models.Model):
     official_number_synced_at = models.DateTimeField(null=True, blank=True)
     payload_fingerprint = models.CharField(max_length=64, blank=True, default="")
     needs_sync = models.BooleanField(default=False)
+    deleted_external_invoice_id = models.CharField(max_length=100, blank=True, default="")
+    deleted_verified_at = models.DateTimeField(null=True, blank=True)
     last_error = models.CharField(max_length=255, blank=True, default="")
     updated_at = models.DateTimeField(auto_now=True)
 
