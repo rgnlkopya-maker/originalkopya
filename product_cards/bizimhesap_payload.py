@@ -38,6 +38,8 @@ def build_invoice_payload(invoice, lines, mapping, firm_id):
             blockers.append("Geçersiz fiyat veya KDV.")
             continue
         order = line.order
+        if (order.para_birimi or "TRY") != invoice.currency:
+            blockers.append("Sipariş ve fatura para birimleri farklı; aktarım engellendi.")
         product_name = str(order.urun_kodu or "").strip()
         if not product_name:
             blockers.append("Ürün kodu eksik.")
