@@ -19,6 +19,7 @@ urlpatterns = [
     path("cihazlar/", views.device_management, name="attendance_device_management"),
     path("cihazlar/<int:user_id>/onayla/", views.approve_device, name="attendance_approve_device"),
     path("cihazlar/<int:user_id>/sifirla/", views.reset_device, name="attendance_reset_device"),
+    path("panel/sifre/", views.dashboard, name="attendance_password_gate"),
     path("panel/", views.dashboard, name="attendance_dashboard"),
     path("panel/kayit-duzenle/", views.edit_record, name="attendance_edit_record"),
     path("panel/konum-kaydet/", views.save_workplace, name="attendance_save_workplace"),
