@@ -137,6 +137,39 @@ def invoice_platform_status_update(request, invoice_id):
 
 @login_required
 @require_POST
+def invoice_parasut_fetch_official_number(request, invoice_id):
+    if not _allowed(request.user):
+        return HttpResponseForbidden("Yetkiniz yok.")
+    from .parasut_export_service import fetch_official_number, ParasutExportError
+    try:
+        number, remote_id = fetch_official_number(invoice_id)
+    except ParasutExportError as exc:
+        messages.warning(request, "Paraşüt numarası kaydedilmedi: " + str(exc))
+        return redirect("invoice_list")
+    except Exception:
+        logging.getLogger(__name__).exception("Paraşüt official number lookup failed FT-%s", invoice_id)
+        messages.error(request, "Paraşüt numarası doğrulanamadı; mevcut kayıt korunuyor.")
+        return redirect("invoice_list")
+    with transaction.atomic():
+        invoice = get_object_or_404(InvoiceDraft.objects.select_for_update(), pk=invoice_id)
+        transfer = ParasutInvoiceTransfer.objects.select_for_update().filter(invoice=invoice).first()
+        if not transfer or transfer.status != "SENT" or transfer.external_invoice_id != remote_id:
+            messages.warning(request, "Fatura bağlantısı sorgulama sırasında değişmiş. Numara kaydedilmedi.")
+            return redirect("invoice_list")
+        if invoice.official_number:
+            messages.info(request, "Resmî fatura numarası zaten kayıtlı; üzerine yazılmadı.")
+            return redirect("invoice_list")
+        invoice.official_number = number
+        invoice.save(update_fields=["official_number", "updated_at"])
+        transfer.external_invoice_no = number
+        transfer.official_number_synced_at = timezone.now()
+        transfer.save(update_fields=["external_invoice_no", "official_number_synced_at", "updated_at"])
+    messages.success(request, "Paraşüt resmî FT numarası kaydedildi: " + number)
+    return redirect("invoice_list")
+
+
+@login_required
+@require_POST
 def invoice_official_number_update(request, invoice_id):
     if not _allowed(request.user):
         return HttpResponseForbidden("Yetkiniz yok.")
