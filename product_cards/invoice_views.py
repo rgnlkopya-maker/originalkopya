@@ -1029,6 +1029,9 @@ def standalone_invoice_edit(request, invoice_id=None):
         "today": timezone.localdate(),
         "manual_lines": list(invoice.lines.order_by("pk")) if invoice else [],
         "manual_transfers": {item.platform: item.status for item in invoice.transfers.all()} if invoice else {},
+        "bh_manual_status": next((t.status for t in invoice.transfers.all() if t.platform == "bizimhesap"), "") if invoice else "",
+        "ps_manual_status": next((t.status for t in invoice.transfers.all() if t.platform == "parasut"), "") if invoice else "",
+        "manual_parasut_vat_ready": bool(invoice and invoice.lines.exists() and all(t.vat_rate == Decimal("10") for t in invoice.lines.all())),
     })
 
 
