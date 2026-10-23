@@ -254,6 +254,7 @@ def invoice_detail(request, invoice_id):
     if not _allowed(request.user):
         return HttpResponseForbidden("Yetkiniz yok.")
     invoice = get_object_or_404(InvoiceDraft.objects.select_related("customer"), pk=invoice_id)
+    invoice.show_parasut_official_number = (invoice.parasut_display_status or ("api" if ParasutInvoiceTransfer.objects.filter(invoice=invoice, status="SENT").exists() else ("yes" if invoice.parasut_manual_recorded else "no"))) == "api"
     lines = list(invoice.lines.select_related("order").order_by("id"))
     for line in lines:
         line.current_status = status_label(latest_status_event(line.order))
