@@ -68,7 +68,11 @@ def _invoice_list_impl(request):
         invoice.parasut_display = "api" if invoice.parasut_transfer_status == "SENT" else (invoice.parasut_display_status or ("yes" if invoice.parasut_manual_recorded else "no"))
         invoice.list_total = sum((line.price * (Decimal("1") + line.vat_rate / Decimal("100")) for line in invoice.lines.all()), Decimal("0"))
         invoice.visible_official_number = invoice.official_number
-    return render(request, "product_cards/invoice_list.html", {"invoices": invoices, "invoice_customers": Musteri.objects.filter(pk__in={invoice.customer_id for invoice in invoices}).order_by("ad"), "accounting_status_choices": [("no", "İşlenmedi"), ("yes", "Elle İşlendi"), ("api", "API ile Aktarıldı"), ("skip", "Aktarılmayacak")]})
+    from .invoice_models import StandaloneInvoice
+    standalone_invoices = list(StandaloneInvoice.objects.select_related("customer").prefetch_related("lines").order_by("-invoice_date", "-id")[:200])
+    for draft in standalone_invoices:
+        draft.list_total = sum((item.quantity * item.unit_price * (Decimal("1") + item.vat_rate / Decimal("100")) for item in draft.lines.all()), Decimal("0"))
+    return render(request, "product_cards/invoice_list.html", {"standalone_invoices": standalone_invoices, "invoices": invoices, "invoice_customers": Musteri.objects.filter(pk__in={invoice.customer_id for invoice in invoices}).order_by("ad"), "accounting_status_choices": [("no", "İşlenmedi"), ("yes", "Elle İşlendi"), ("api", "API ile Aktarıldı"), ("skip", "Aktarılmayacak")]})
 
 
 @login_required
