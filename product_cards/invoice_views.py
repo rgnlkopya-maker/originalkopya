@@ -745,6 +745,24 @@ def invoice_parasut_customer_map(request, invoice_id):
 
 @login_required
 @require_POST
+def invoice_parasut_update(request, invoice_id):
+    if not _allowed(request.user):
+        return HttpResponseForbidden("Yetkiniz yok.")
+    from .parasut_export_service import update_sales_record, ParasutExportError
+    try:
+        remote_id = update_sales_record(invoice_id)
+    except ParasutExportError as exc:
+        messages.error(request, str(exc))
+    except Exception:
+        logging.getLogger(__name__).exception("Paraşüt update failure for FT-%s", invoice_id)
+        messages.error(request, "Paraşüt güncellemesi doğrulanamadı; dış kaydı kontrol edin.")
+    else:
+        messages.success(request, "Paraşüt'teki mevcut taslak güncellendi (ID: "+remote_id+"). Yeni fatura oluşturulmadı.")
+    return redirect("invoice_detail", invoice_id=invoice_id)
+
+
+@login_required
+@require_POST
 def invoice_parasut_send(request, invoice_id):
     if not _allowed(request.user):
         return HttpResponseForbidden("Yetkiniz yok.")
