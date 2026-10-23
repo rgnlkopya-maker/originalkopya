@@ -110,6 +110,21 @@ def invoice_platform_status_update(request, invoice_id):
     if platform not in ("bizimhesap", "parasut") or recorded not in ("no", "yes", "api", "skip"):
         messages.error(request, "Geçersiz durum seçimi.")
         return redirect("invoice_list")
+    # Selecting "İşlenmedi" on Paraşüt additionally verifies whether an existing
+    # exported draft was removed remotely. Never erase a live external connection.
+    if platform == "parasut" and recorded == "no":
+        transfer = ParasutInvoiceTransfer.objects.filter(invoice_id=invoice_id).first()
+        if transfer and transfer.status == "SENT" and transfer.external_invoice_id:
+            from .parasut_export_service import archive_deleted_parasut_draft, ParasutExportError
+            try:
+                archive_deleted_parasut_draft(invoice_id)
+            except ParasutExportError as exc:
+                messages.warning(request, "Paraşüt bağlantısı korundu: " + str(exc))
+            except Exception:
+                logging.getLogger(__name__).exception("Paraşüt list selection verification failed, invoice=%s", invoice_id)
+                messages.warning(request, "Paraşüt kaydı doğrulanamadı; API bağlantısı korunuyor.")
+            else:
+                messages.success(request, "Paraşüt'ten silinmiş taslak doğrulandı. Eski bağlantı arşivlendi.")
     field = "bizimhesap_display_status" if platform == "bizimhesap" else "parasut_display_status"
     with transaction.atomic():
         invoice = get_object_or_404(InvoiceDraft.objects.select_for_update(), pk=invoice_id)
