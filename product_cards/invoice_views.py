@@ -60,7 +60,7 @@ def invoice_list(request):
         invoice.parasut_display = invoice.parasut_display_status or ("api" if invoice.parasut_transfer_status == "SENT" else ("yes" if invoice.parasut_manual_recorded else "no"))
         invoice.list_total = sum((line.price * (Decimal("1") + line.vat_rate / Decimal("100")) for line in invoice.lines.all()), Decimal("0"))
         invoice.visible_official_number = invoice.official_number
-    return render(request, "product_cards/invoice_list.html", {"invoices": invoices, "accounting_status_choices": [("no", "İşlenmedi"), ("yes", "Elle İşlendi"), ("api", "API ile Aktarıldı"), ("skip", "Aktarılmayacak")]})
+    return render(request, "product_cards/invoice_list.html", {"invoices": invoices, "invoice_customers": Musteri.objects.filter(pk__in={invoice.customer_id for invoice in invoices}).order_by("ad"), "accounting_status_choices": [("no", "İşlenmedi"), ("yes", "Elle İşlendi"), ("api", "API ile Aktarıldı"), ("skip", "Aktarılmayacak")]})
 
 
 @login_required
