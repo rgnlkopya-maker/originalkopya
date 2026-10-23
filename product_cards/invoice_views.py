@@ -60,7 +60,7 @@ def invoice_list(request):
         invoice.parasut_display = invoice.parasut_display_status or ("api" if invoice.parasut_transfer_status == "SENT" else ("yes" if invoice.parasut_manual_recorded else "no"))
         invoice.list_total = sum((line.price * (Decimal("1") + line.vat_rate / Decimal("100")) for line in invoice.lines.all()), Decimal("0"))
         invoice.visible_official_number = invoice.official_number if invoice.parasut_display == "api" else ""
-    return render(request, "product_cards/invoice_list.html", {"invoices": invoices, "accounting_status_choices": [("no", "İşlenmedi"), ("yes", "Elle İşlendi"), ("api", "API ile Aktarıldı")]})
+    return render(request, "product_cards/invoice_list.html", {"invoices": invoices, "accounting_status_choices": [("no", "İşlenmedi"), ("yes", "Elle İşlendi"), ("api", "API ile Aktarıldı"), ("skip", "Aktarılmayacak")]})
 
 
 @login_required
@@ -80,7 +80,7 @@ def invoice_platform_status_update(request, invoice_id):
         return HttpResponseForbidden("Yetkiniz yok.")
     platform = request.POST.get("platform", "")
     recorded = request.POST.get("recorded", "")
-    if platform not in ("bizimhesap", "parasut") or recorded not in ("no", "yes", "api"):
+    if platform not in ("bizimhesap", "parasut") or recorded not in ("no", "yes", "api", "skip"):
         messages.error(request, "Geçersiz durum seçimi.")
         return redirect("invoice_list")
     field = "bizimhesap_display_status" if platform == "bizimhesap" else "parasut_display_status"
