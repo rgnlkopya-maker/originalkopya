@@ -58,7 +58,7 @@ def invoice_list(request):
         invoice.parasut_transfer_status = parasut_transfer.status if parasut_transfer else ""
         invoice.bh_display = invoice.bizimhesap_display_status or ("api" if invoice.bh_transfer_status == "SENT" else ("yes" if invoice.bizimhesap_manual_recorded else "no"))
         invoice.parasut_display = invoice.parasut_display_status or ("api" if invoice.parasut_transfer_status == "SENT" else ("yes" if invoice.parasut_manual_recorded else "no"))
-    return render(request, "product_cards/invoice_list.html", {"invoices": invoices})
+    return render(request, "product_cards/invoice_list.html", {"invoices": invoices, "accounting_status_choices": [("no", "İşlenmedi"), ("yes", "Elle İşlendi"), ("api", "API ile Aktarıldı")]})
 
 
 @login_required
