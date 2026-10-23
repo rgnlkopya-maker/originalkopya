@@ -254,3 +254,30 @@ def archive_deleted_parasut_draft(invoice_id):
                                    "external_invoice_no", "payload_fingerprint", "needs_sync", "status",
                                    "last_error", "updated_at"])
     return original_id
+
+
+def fetch_official_number(invoice_id):
+    """Read-only check of an existing Paraşüt sale and its actual e-document."""
+    from .invoice_models import ParasutInvoiceTransfer
+    company = os.environ.get("PARASUT_COMPANY_ID", "").strip()
+    if not company.isdecimal():
+        raise ParasutExportError("Paraşüt firma ID eksik.")
+    transfer = ParasutInvoiceTransfer.objects.filter(invoice_id=invoice_id, status="SENT").first()
+    if not transfer or not transfer.external_invoice_id or not transfer.external_invoice_id.isdecimal():
+        raise ParasutExportError("Sorgulanabilecek Paraşüt fatura bağlantısı bulunmuyor.")
+    from .parasut_credentials import valid_access_token
+    token = valid_access_token(company)
+    data = _request(company, token, "sales_invoices/" + transfer.external_invoice_id + "?include=active_e_document")
+    invoice = data.get("data") or {}
+    if str(invoice.get("id")) != transfer.external_invoice_id or invoice.get("type") != "sales_invoices":
+        raise ParasutExportError("Paraşüt kayıt eşleşmesi doğrulanamadı.")
+    active = ((invoice.get("relationships") or {}).get("active_e_document") or {}).get("data")
+    if not isinstance(active, dict) or active.get("type") not in ("e_invoices", "e_archives") or not str(active.get("id") or "").isdecimal():
+        raise ParasutExportError("Paraşüt faturasında resmileştirilmiş e-belge bulunamadı.")
+    number = str((invoice.get("attributes") or {}).get("invoice_no") or "").strip()
+    if not number:
+        raise ParasutExportError("E-belge mevcut ancak resmî numara henüz Paraşüt yanıtına yansımamış.")
+    import re
+    if not re.fullmatch(r"[A-Za-z0-9]{3}20[0-9]{2}[0-9]{9}", number):
+        raise ParasutExportError("Paraşüt numarası resmî belge biçiminde doğrulanamadı.")
+    return number, transfer.external_invoice_id
