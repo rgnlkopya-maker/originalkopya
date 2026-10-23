@@ -66,28 +66,45 @@ def invoice_platform_status_update(request, invoice_id):
         return HttpResponseForbidden("Yetkiniz yok.")
     platform = request.POST.get("platform", "")
     recorded = request.POST.get("recorded", "")
-    if platform not in ("bizimhesap", "parasut") or recorded not in ("yes", "no"):
+    if platform not in ("bizimhesap", "parasut") or recorded not in ("yes", "no", "reset"):
         messages.error(request, "Geçersiz aktarım durumu.")
         return redirect("invoice_list")
     with transaction.atomic():
         invoice = get_object_or_404(InvoiceDraft.objects.select_for_update(), pk=invoice_id)
-        if platform == "bizimhesap":
-            transfer = BizimHesapInvoiceTransfer.objects.filter(invoice=invoice).first()
-            if transfer and transfer.status in ("SENDING", "UNKNOWN", "SENT"):
-                messages.warning(request, "Bu faturanın API aktarım kaydı var; manuel durum değiştirilemez.")
+        model = BizimHesapInvoiceTransfer if platform == "bizimhesap" else ParasutInvoiceTransfer
+        transfer = model.objects.select_for_update().filter(invoice=invoice).first()
+        field = "bizimhesap_manual_recorded" if platform == "bizimhesap" else "parasut_manual_recorded"
+        if recorded == "reset":
+            # Do not infer external deletion from the API; an authorized operator must
+            # explicitly confirm that the sales record was deleted on the provider side.
+            if request.POST.get("confirmation") != "FT-" + str(invoice.id):
+                messages.error(request, "Sıfırlama onayı eşleşmedi; hiçbir kayıt değiştirilmedi.")
                 return redirect("invoice_list")
-            invoice.bizimhesap_manual_recorded = recorded == "yes"
-            invoice.save(update_fields=["bizimhesap_manual_recorded", "updated_at"])
+            if not transfer or transfer.status != "SENT":
+                messages.error(request, "Yalnızca başarılı API aktarımı manuel olarak sıfırlanabilir.")
+                return redirect("invoice_list")
+            previous_id = transfer.external_invoice_id
+            transfer.status = "NOT_SENT"
+            transfer.external_invoice_id = ""
+            transfer.external_invoice_no = ""
+            transfer.payload_fingerprint = ""
+            transfer.last_error = ("Dış sistemden silindiği kullanıcı tarafından onaylandı; eski ID: " + previous_id)[:255]
+            transfer.save(update_fields=["status", "external_invoice_id", "external_invoice_no", "payload_fingerprint", "last_error", "updated_at"])
+            setattr(invoice, field, False)
+            invoice.save(update_fields=[field, "updated_at"])
+            logging.getLogger(__name__).warning(
+                "invoice_api_transfer_manually_reset invoice=%s platform=%s previous_external_id=%s user=%s",
+                invoice.id, platform, previous_id, request.user.pk,
+            )
+            messages.success(request, "Aktarım işareti sıfırlandı. Dış sistemde hiçbir kayıt silinmedi.")
         else:
-            parasut_transfer = ParasutInvoiceTransfer.objects.filter(invoice=invoice).first()
-            if parasut_transfer and parasut_transfer.status in ("SENDING", "SENT", "UNKNOWN"):
-                messages.warning(request, "Paraşüt API aktarım kaydı var; manuel durum değiştirilemez.")
+            if transfer and transfer.status in ("SENDING", "UNKNOWN", "SENT"):
+                messages.warning(request, "API aktarım kaydı korunuyor. Silindiğini doğruladıysanız özel sıfırlama seçeneğini kullanın.")
                 return redirect("invoice_list")
-            invoice.parasut_manual_recorded = recorded == "yes"
-            invoice.save(update_fields=["parasut_manual_recorded", "updated_at"])
-    messages.success(request, "Manuel kayıt durumu güncellendi; dış sisteme fatura gönderilmedi.")
+            setattr(invoice, field, recorded == "yes")
+            invoice.save(update_fields=[field, "updated_at"])
+            messages.success(request, "Manuel kayıt durumu güncellendi; dış sisteme fatura gönderilmedi.")
     return redirect("invoice_list")
-
 
 @login_required
 def invoice_customer_mapping_list(request):
