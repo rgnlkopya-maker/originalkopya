@@ -1149,3 +1149,32 @@ def company_invoice_profile_edit(request):
     return render(request, "product_cards/company_invoice_profile_edit.html", {"profile": profile})
 
 
+
+
+@login_required
+def standalone_available_orders(request):
+    if not _allowed(request.user):
+        return HttpResponseForbidden("Yetkiniz yok.")
+    try:
+        customer_id = int(request.GET.get("customer", ""))
+    except (ValueError, TypeError):
+        return JsonResponse({"orders": []})
+    currency = request.GET.get("currency", "TRY")
+    invoice_id = request.GET.get("invoice_id")
+    existing_ids = set()
+    if invoice_id:
+        from .invoice_models import StandaloneInvoice, StandaloneInvoiceLine
+        inv = StandaloneInvoice.objects.filter(pk=invoice_id, customer_id=customer_id, is_proforma=False).first()
+        if inv:
+            existing_ids = set(StandaloneInvoiceLine.objects.filter(invoice=inv, order_id__isnull=False).values_list("order_id", flat=True))
+    from .invoice_models import StandaloneInvoiceLine
+    available = Order.objects.filter(musteri_id=customer_id).exclude(invoice_line__isnull=False).exclude(shipment_plan__isnull=False).exclude(standalone_invoice_line__isnull=False).order_by("-id")[:800]
+    orders = [
+        {"id":o.pk,"number":o.siparis_numarasi or str(o.pk),
+         "description":" / ".join(str(v) for v in (o.urun_kodu, o.renk, o.beden) if v),
+         "quantity":o.adet or 1,"price":str(o.satis_fiyati or 0),
+         "vat":str(o.vat_rate or 0)}
+        for o in available if (o.para_birimi or "TRY") == currency
+    ]
+    return JsonResponse({"orders":orders})
+
