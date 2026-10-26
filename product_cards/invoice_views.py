@@ -1015,7 +1015,7 @@ def standalone_invoice_edit(request, invoice_id=None, proforma=False):
             prices = request.POST.getlist("unit_price")
             vats = request.POST.getlist("vat_rate")
             order_ids = request.POST.getlist("order_id")
-            if not descriptions or not all(len(v) == len(descriptions) for v in (quantities, units, prices, vats, order_ids)):
+            if not all(len(v) == len(descriptions) for v in (quantities, units, prices, vats, order_ids)):
                 raise ValueError("Fatura kalemleri eksik.")
             items = []
             for desc, quantity, unit, price, vat, order_id in zip(descriptions, quantities, units, prices, vats, order_ids):
