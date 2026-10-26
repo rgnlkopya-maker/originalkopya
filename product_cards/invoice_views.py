@@ -90,8 +90,9 @@ def _invoice_list_impl(request):
     for draft in standalone_invoices:
         draft.has_locked_transfer = any(t.status != "NOT_SENT" or bool(t.external_invoice_id) for t in draft.transfers.all())
         statuses = {t.platform: t.status for t in draft.transfers.all()}
-        draft.bh_display = draft.bizimhesap_display_status or ("api" if statuses.get("bizimhesap") == "SENT" else "no")
-        draft.parasut_display = draft.parasut_display_status or ("api" if statuses.get("parasut") == "SENT" else "no")
+        draft.bh_display = "api" if statuses.get("bizimhesap") == "SENT" else (draft.bizimhesap_display_status or "no")
+        draft.parasut_display = "api" if statuses.get("parasut") == "SENT" else (draft.parasut_display_status or "no")
+        draft.parasut_can_fetch_number = bool(statuses.get("parasut") == "SENT" and any(t.platform == "parasut" and t.external_invoice_id for t in draft.transfers.all()))
     for draft in standalone_invoices + proforma_invoices:
         draft.list_total = sum((item.quantity * item.unit_price * (Decimal("1") + item.vat_rate / Decimal("100")) for item in draft.lines.all()), Decimal("0"))
     for draft in standalone_invoices:
@@ -1367,12 +1368,66 @@ def standalone_invoice_list_control(request, invoice_id):
             value = request.POST.get("recorded")
             if platform not in ("bizimhesap", "parasut") or value not in ("no", "yes", "api", "skip"):
                 messages.error(request, "Geçersiz durum.")
+            elif value == "api":
+                messages.error(request, "API ile Aktarıldı durumu yalnızca başarılı gerçek aktarım sonrasında otomatik belirlenir.")
+            elif inv.transfers.filter(platform=platform, status__in=("SENDING", "SENT", "UNKNOWN")).exists() and value in ("no", "skip"):
+                messages.error(request, "Mevcut dış muhasebe bağlantısı korunuyor. Aktarılmış veya sonucu belirsiz kayıt İşlenmedi/Atlanacak olarak sıfırlanamaz.")
             else:
-                # Manual changes affect only the MoliApp tracking label, never remote bookkeeping.
+                # This changes only the local label; it never rewrites an external transfer.
                 field = "bizimhesap_display_status" if platform == "bizimhesap" else "parasut_display_status"
                 setattr(inv, field, value)
                 inv.save(update_fields=[field])
                 messages.success(request, "Muhasebe takip durumu güncellendi (dış sistem değiştirilmedi).")
         else:
             messages.error(request, "Geçersiz işlem.")
+    return redirect("invoice_list")
+
+
+@login_required
+@require_POST
+def standalone_invoice_parasut_fetch_official_number(request, invoice_id):
+    """Read-only Paraşüt e-document verification for a manually created FT."""
+    from .invoice_models import StandaloneInvoice, StandaloneInvoiceTransfer
+    from .parasut_export_service import _request, ParasutExportError
+    from .parasut_credentials import valid_access_token
+    import re
+    invoice = get_object_or_404(StandaloneInvoice, pk=invoice_id, is_proforma=False)
+    transfer = StandaloneInvoiceTransfer.objects.filter(invoice=invoice, platform="parasut", status="SENT").first()
+    if not transfer or not transfer.external_invoice_id or not transfer.external_invoice_id.isdecimal():
+        messages.error(request, "Paraşüt'te sorgulanabilecek doğrulanmış fatura bağlantısı bulunmuyor.")
+        return redirect("invoice_list")
+    company = os.environ.get("PARASUT_COMPANY_ID", "").strip()
+    if not company.isdecimal():
+        messages.error(request, "Paraşüt firma kimliği tanımsız.")
+        return redirect("invoice_list")
+    try:
+        token = valid_access_token(company)
+        data = _request(company, token, "sales_invoices/" + transfer.external_invoice_id + "?include=active_e_document")
+        remote = data.get("data") or {}
+        if str(remote.get("id")) != transfer.external_invoice_id or remote.get("type") != "sales_invoices":
+            raise ParasutExportError("Paraşüt kaydı doğrulanamadı.")
+        active = ((remote.get("relationships") or {}).get("active_e_document") or {}).get("data")
+        if not isinstance(active, dict) or active.get("type") not in ("e_invoices", "e_archives") or not str(active.get("id") or "").isdecimal():
+            raise ParasutExportError("Paraşüt faturasında henüz resmileştirilmiş e-belge bulunmuyor.")
+        number = str((remote.get("attributes") or {}).get("invoice_no") or "").strip()
+        if not re.fullmatch(r"[A-Za-z0-9]{3}20[0-9]{2}[0-9]{9}", number):
+            raise ParasutExportError("Resmî belge numarası henüz oluşmamış veya doğrulanamamış.")
+    except ParasutExportError as exc:
+        messages.warning(request, str(exc))
+        return redirect("invoice_list")
+    except Exception:
+        logging.getLogger(__name__).exception("Manual FT-%s Paraşüt number lookup failed", invoice_id)
+        messages.error(request, "Paraşüt sorgusu tamamlanamadı; önceki bilgiler korundu.")
+        return redirect("invoice_list")
+    with transaction.atomic():
+        locked = get_object_or_404(StandaloneInvoice.objects.select_for_update(), pk=invoice_id, is_proforma=False)
+        current = StandaloneInvoiceTransfer.objects.select_for_update().filter(invoice=locked, platform="parasut", status="SENT", external_invoice_id=transfer.external_invoice_id).first()
+        if not current:
+            messages.warning(request, "Aktarım bağlantısı değişti; numara kaydedilmedi.")
+        elif locked.official_number:
+            messages.info(request, "Resmî numara zaten mevcut, üzerine yazılmadı.")
+        else:
+            locked.official_number = number
+            locked.save(update_fields=["official_number"])
+            messages.success(request, "Paraşüt resmî FT numarası kaydedildi: " + number)
     return redirect("invoice_list")
