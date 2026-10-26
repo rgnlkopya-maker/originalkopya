@@ -3179,6 +3179,7 @@ def dashboard_view(request):
 
     last_orders = (
         Order.objects
+        .filter(siparis_tarihi__range=(start_date, end_date))
         .select_related("musteri")
         .only("id", "siparis_numarasi", "siparis_tarihi", "urun_kodu", "renk", "beden", "musteri__ad")
         .order_by("-id")[:10]
