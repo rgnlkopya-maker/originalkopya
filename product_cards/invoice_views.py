@@ -1058,3 +1058,13 @@ def standalone_invoice_send(request, invoice_id, platform):
     else:
         messages.success(request, "Fatura taslağı muhasebe sistemine aktarıldı.")
     return redirect("standalone_invoice_edit", invoice_id=invoice_id)
+
+
+@login_required
+def proforma_invoice_create(request):
+    return standalone_invoice_edit(request, proforma=True)
+
+
+@login_required
+def proforma_invoice_detail(request, invoice_id):
+    return standalone_invoice_edit(request, invoice_id=invoice_id, proforma=True)
