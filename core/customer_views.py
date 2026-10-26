@@ -10,6 +10,7 @@ from .models import Musteri
 
 
 DETAIL_FIELDS = (
+    "resmi_unvan", "vergi_dairesi", "vergi_numarasi", "mersis_no", "ticaret_sicil_no", "posta_kodu",
     "yetkili_kisi", "telefon", "telefon_2", "email", "ulke", "adres",
     "teslimat_adresi", "fatura_adresi", "dis_ticaret_firmasi", "notlar",
 )
