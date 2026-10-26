@@ -338,24 +338,30 @@ def invoice_list_shipment_status(request):
 def invoice_delete_empty(request, invoice_id):
     if not _allowed(request.user):
         return HttpResponseForbidden("Yetkiniz yok.")
-    if request.POST.get("confirm_delete") != "yes":
-        messages.error(request, "Silme işlemini onaylayın.")
-        return redirect("invoice_list")
     with transaction.atomic():
         invoice = get_object_or_404(InvoiceDraft.objects.select_for_update(), pk=invoice_id)
-        if BizimHesapInvoiceTransfer.objects.filter(invoice=invoice, status="SENDING").exists() or ParasutInvoiceTransfer.objects.filter(invoice=invoice, status="SENDING").exists():
-            messages.error(request, "Devam eden aktarım sırasında silinemez.")
+        if invoice.status != "DRAFT" or invoice.lines.exists():
+            messages.error(request, "Yalnızca boş taslak faturalar silinebilir.")
             return redirect("invoice_list")
-        ft = invoice.shared_number.number
-        order_ids = list(invoice.lines.values_list("order_id", flat=True))
-        logging.getLogger(__name__).warning("MoliApp FT deletion ft=%s user=%s invoice=%s bh=%s ps=%s", ft, request.user.pk, invoice.pk, list(BizimHesapInvoiceTransfer.objects.filter(invoice=invoice).values_list("external_invoice_id", flat=True)), list(ParasutInvoiceTransfer.objects.filter(invoice=invoice).values_list("external_invoice_id", flat=True)))
+        if (_transfer_locked(invoice) or invoice.bizimhesap_manual_recorded or
+                invoice.parasut_manual_recorded):
+            messages.error(request, "Muhasebe sistemine aktarılmış veya işlenmiş fatura silinemez.")
+            return redirect("invoice_list")
+        # Protect even NOT_SENT transfer rows if they hold evidence of an external record.
+        if (BizimHesapInvoiceTransfer.objects.filter(invoice=invoice).exclude(
+                external_invoice_id="").exists() or
+                ParasutInvoiceTransfer.objects.filter(invoice=invoice).exclude(
+                external_invoice_id="").exists()):
+            messages.error(request, "Dış sistem belge bağlantısı bulunan fatura silinemez.")
+            return redirect("invoice_list")
+        # Empty, untransferred local drafts may have a reversal audit row
+        # (InvoiceStatusHistory.invoice uses PROTECT). Clear only these local rows.
         invoice.status_history.all().delete()
-        BizimHesapInvoiceTransfer.objects.filter(invoice=invoice).delete()
-        ParasutInvoiceTransfer.objects.filter(invoice=invoice).delete()
-        invoice.lines.all().delete()
-        ShipmentPlan.objects.filter(order_id__in=order_ids).delete()
+        BizimHesapInvoiceTransfer.objects.filter(invoice=invoice, status="NOT_SENT").delete()
+        ParasutInvoiceTransfer.objects.filter(invoice=invoice, status="NOT_SENT").delete()
         invoice.delete()
-    messages.success(request, "FT-" + str(ft) + " yalnızca MoliApp'ten silindi.")
+    logging.getLogger(__name__).info("empty_invoice_deleted invoice_id=%s user_id=%s", invoice_id, request.user.pk)
+    messages.success(request, "Boş fatura taslağı silindi.")
     return redirect("invoice_list")
 
 
@@ -1312,25 +1318,22 @@ def order_invoice_finance_status(request, order_id):
 @login_required
 @require_POST
 def standalone_invoice_delete_empty(request, invoice_id):
-    from .invoice_models import StandaloneInvoice
+    """Same empty-draft deletion rules as ordinary invoices."""
+    from .invoice_models import StandaloneInvoice, StandaloneInvoiceTransfer
     if not _allowed(request.user):
         return HttpResponseForbidden("Yetkiniz yok.")
-    if request.POST.get("confirm_delete") != "yes":
-        messages.error(request, "Silme işlemini onaylayın.")
-        return redirect("invoice_list")
     with transaction.atomic():
         invoice = get_object_or_404(StandaloneInvoice.objects.select_for_update(), pk=invoice_id, is_proforma=False)
-        if invoice.transfers.filter(status="SENDING").exists():
-            messages.error(request, "Devam eden aktarım sırasında silinemez.")
+        if invoice.lines.exists():
+            messages.error(request, "Yalnızca boş taslak faturalar silinebilir.")
             return redirect("invoice_list")
-        ft = invoice.shared_number.number
-        order_ids = list(invoice.lines.exclude(order_id__isnull=True).values_list("order_id", flat=True))
-        logging.getLogger(__name__).warning("MoliApp manual FT deletion ft=%s user=%s invoice=%s transfers=%s", ft, request.user.pk, invoice.pk, list(invoice.transfers.values_list("platform", "external_invoice_id")))
-        invoice.transfers.all().delete()
-        invoice.lines.all().delete()
-        ShipmentPlan.objects.filter(order_id__in=order_ids).delete()
+        if invoice.transfers.exclude(status="NOT_SENT").exists() or invoice.transfers.exclude(external_invoice_id="").exists():
+            messages.error(request, "Muhasebe sistemine aktarılmış veya işlenmiş fatura silinemez.")
+            return redirect("invoice_list")
+        StandaloneInvoiceTransfer.objects.filter(invoice=invoice, status="NOT_SENT", external_invoice_id="").delete()
         invoice.delete()
-    messages.success(request, "FT-" + str(ft) + " yalnızca MoliApp'ten silindi.")
+    logging.getLogger(__name__).info("empty_standalone_invoice_deleted invoice_id=%s user_id=%s", invoice_id, request.user.pk)
+    messages.success(request, "Boş fatura taslağı silindi.")
     return redirect("invoice_list")
 
 
