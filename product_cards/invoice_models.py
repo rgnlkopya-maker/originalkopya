@@ -168,3 +168,15 @@ class LegacyInvoiceAcknowledgement(models.Model):
     order = models.OneToOneField("core.Order", on_delete=models.PROTECT, related_name="legacy_invoice_acknowledgement")
     note = models.TextField(default="Geçmiş dönemde faturaya bağlandığı bildirildi; MoliApp içinde FT bağlantısı bulunmuyor.")
     recorded_at = models.DateTimeField(auto_now_add=True)
+
+
+class SharedInvoiceNumber(models.Model):
+    """A single unique FT number across order-based and manually created invoices."""
+    number = models.PositiveIntegerField(unique=True)
+    draft = models.OneToOneField("InvoiceDraft", null=True, blank=True, on_delete=models.CASCADE, related_name="shared_number")
+    manual = models.OneToOneField("StandaloneInvoice", null=True, blank=True, on_delete=models.CASCADE, related_name="shared_number")
+
+
+class InvoiceNumberSequence(models.Model):
+    """Singleton, transactionally locked to allocate invoice numbers."""
+    last_number = models.PositiveIntegerField(default=0)
