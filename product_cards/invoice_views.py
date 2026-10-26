@@ -72,9 +72,13 @@ def _invoice_list_impl(request):
     from .invoice_models import StandaloneInvoice
     standalone_invoices = list(StandaloneInvoice.objects.filter(is_proforma=False).select_related("customer").prefetch_related("lines").order_by("-invoice_date", "-id")[:200])
     proforma_invoices = list(StandaloneInvoice.objects.filter(is_proforma=True).select_related("customer").prefetch_related("lines").order_by("-invoice_date", "-id")[:200])
+    for draft in standalone_invoices:
+        statuses = {t.platform: t.status for t in draft.transfers.all()}
+        draft.bh_display = "api" if statuses.get("bizimhesap") == "SENT" else "no"
+        draft.parasut_display = "api" if statuses.get("parasut") == "SENT" else "no"
     for draft in standalone_invoices + proforma_invoices:
         draft.list_total = sum((item.quantity * item.unit_price * (Decimal("1") + item.vat_rate / Decimal("100")) for item in draft.lines.all()), Decimal("0"))
-    return render(request, "product_cards/invoice_list.html", {"standalone_invoices": standalone_invoices, "proforma_invoices": proforma_invoices, "invoices": invoices, "invoice_customers": Musteri.objects.filter(pk__in={invoice.customer_id for invoice in invoices}).order_by("ad"), "accounting_status_choices": [("no", "İşlenmedi"), ("yes", "Elle İşlendi"), ("api", "API ile Aktarıldı"), ("skip", "Aktarılmayacak")]})
+    return render(request, "product_cards/invoice_list.html", {"standalone_invoices": standalone_invoices, "proforma_invoices": proforma_invoices, "invoices": invoices, "invoice_customers": Musteri.objects.filter(pk__in=({invoice.customer_id for invoice in invoices} | {invoice.customer_id for invoice in standalone_invoices})).order_by("ad"), "accounting_status_choices": [("no", "İşlenmedi"), ("yes", "Elle İşlendi"), ("api", "API ile Aktarıldı"), ("skip", "Aktarılmayacak")]})
 
 
 @login_required
