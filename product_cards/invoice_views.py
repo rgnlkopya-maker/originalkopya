@@ -1174,6 +1174,7 @@ def standalone_available_orders(request):
     orders = [
         {"id":o.pk,"number":o.siparis_numarasi or str(o.pk),
          "description":" / ".join(str(v) for v in (o.urun_kodu, o.renk, o.beden) if v),
+         "customer_reference":o.musteri_referans or "", "order_note":o.aciklama or "",
          "quantity":o.adet or 1,"price":str(o.satis_fiyati or 0),
          "vat":str(o.vat_rate or 0)}
         for o in available if (o.para_birimi or "TRY") == currency
