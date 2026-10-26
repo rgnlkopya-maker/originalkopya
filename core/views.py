@@ -1831,10 +1831,12 @@ def product_cost_list(request):
                     defaults={"maliyet": maliyet, "para_birimi": para_birimi},
                 )
 
-        # ❌ Silme işlemi
-        elif action == "delete":
+        # Maliyet kayıtlarını geçmiş siparişler için silme; yalnızca aktiflik değiştir.
+        elif action in ("deactivate", "activate"):
             pk = request.POST.get("id")
-            ProductCost.objects.filter(id=pk).delete()
+            if pk and str(pk).isdigit():
+                ProductCost.objects.filter(pk=pk).update(is_active=(action == "activate"))
+            return redirect(request.get_full_path())
 
     # 📋 Listele (sayfalama ile)
     from django.db.models import Exists, OuterRef
