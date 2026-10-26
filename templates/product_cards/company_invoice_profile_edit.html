@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block content %}
+<style>.company-profile-page{max-width:920px;margin:24px auto;padding:24px;background:linear-gradient(160deg,#f8fbff,#eef4fc);color:#0d1a42}.company-profile-card{background:#fff;border:1px solid #e2eaf6;border-radius:16px;padding:26px}.company-profile-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}.company-profile-field{display:flex;flex-direction:column;gap:5px}.company-profile-field label{font-weight:650;font-size:12px;color:#62789f}.company-profile-field.wide{grid-column:1/-1}.company-profile-field input,.company-profile-field textarea{border:1px solid #dae4f4;border-radius:9px;background:#fbfcff;padding:10px;color:#2c4371}.company-profile-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:20px}@media(max-width:680px){.company-profile-grid{grid-template-columns:1fr}.company-profile-page{padding:12px}.company-profile-card{padding:16px}}</style>
+<div class="company-profile-page"><h2 style="font-weight:800">Firma Bilgileri</h2><p class="text-muted">Bu bilgiler yalnızca MoliApp'teki normal, manuel ve proforma fatura görünümünde ve çıktılarında kullanılır. Paraşüt ve BizimHesap'a aktarılmaz.</p>
+{% for message in messages %}<div class="alert {% if 'error' in message.tags %}alert-danger{% else %}alert-success{% endif %}">{{ message }}</div>{% endfor %}
+<form method="post" class="company-profile-card">{% csrf_token %}<div class="company-profile-grid">
+<div class="company-profile-field wide"><label>Resmî Firma Unvanı</label><input name="company_name" maxlength="250" value="{{ profile.company_name|default:'' }}" placeholder="Vergi levhasındaki şirket unvanı"></div>
+<div class="company-profile-field wide"><label>Firma Adresi</label><textarea name="address" rows="3" maxlength="2000" placeholder="Açık adres">{{ profile.address|default:'' }}</textarea></div>
+<div class="company-profile-field"><label>Vergi Dairesi</label><input name="tax_office" maxlength="120" value="{{ profile.tax_office|default:'' }}"></div>
+<div class="company-profile-field"><label>Vergi Kimlik Numarası</label><input name="tax_number" maxlength="30" value="{{ profile.tax_number|default:'' }}"></div>
+<div class="company-profile-field"><label>MERSİS Numarası</label><input name="mersis_number" maxlength="40" value="{{ profile.mersis_number|default:'' }}"></div>
+<div class="company-profile-field"><label>Ticaret Sicil Numarası</label><input name="registry_number" maxlength="50" value="{{ profile.registry_number|default:'' }}"></div>
+<div class="company-profile-field"><label>Telefon</label><input name="phone" maxlength="50" value="{{ profile.phone|default:'' }}"></div>
+<div class="company-profile-field"><label>E-posta</label><input type="email" name="email" maxlength="254" value="{{ profile.email|default:'' }}"></div>
+<div class="company-profile-field wide"><label>IBAN</label><input name="iban" maxlength="60" value="{{ profile.iban|default:'' }}"></div>
+</div><div class="company-profile-actions"><a href="{% url 'invoice_list' %}" class="btn btn-outline-primary">Faturalara Dön</a><button class="btn btn-primary" type="submit">Firma Bilgilerini Kaydet</button></div></form></div>
+{% endblock %}
