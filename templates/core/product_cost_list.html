@@ -28,6 +28,18 @@
 .cost-detail-btn:hover{background:#e3edff}
 @media(max-width:767px){.page-wrap{width:100%}.soft-card-body{padding:12px!important}.soft-card-header{padding:16px!important}.cost-filter-form>*{flex:1 1 100%}.cost-filter-form select{width:100%}}
 </style>
+<style>
+.cost-filter-form{padding:10px 12px!important;gap:9px!important;margin-bottom:12px!important;align-items:end}
+.cost-filter-form label{font-size:11px!important;gap:4px!important}
+.cost-filter-form .search-field{flex:1 1 240px;min-width:180px}
+.cost-filter-form label:not(.search-field){flex:0 1 145px}
+.cost-filter-form input,.cost-filter-form select{height:36px!important;min-width:0!important;width:100%;font-size:12px!important;padding:0 9px!important}
+.cost-filter-form .filter-apply,.cost-filter-form .filter-reset{height:36px!important;padding:0 12px!important;white-space:nowrap}
+.cost-toggle-btn{display:inline-flex;gap:6px;align-items:center;justify-content:center;border:1px solid #e6c8a2;border-radius:9px;background:#fff7ed;color:#9a550f;font-size:12px;font-weight:700;padding:7px 10px;white-space:nowrap}
+.cost-toggle-btn.is-inactive{border-color:#bcd8c5;background:#f0faf3;color:#237044}
+.cost-inactive-tag{font-size:10px;color:#9a601c;background:#fff1d9;border-radius:6px;padding:3px 6px;margin-left:8px}
+@media(max-width:760px){.cost-filter-form label:not(.search-field){flex:1 1 110px}.cost-filter-form .search-field{flex:1 1 100%}.cost-filter-form .filter-apply,.cost-filter-form .filter-reset{flex:1 1 auto}}
+</style>
 {% endblock %}
 
 {% block content %}
@@ -42,12 +54,11 @@
   <div class="soft-card-body">
     <form method="get" class="cost-filter-form" aria-label="Maliyet filtreleri">
 <label class="search-field">Ürün kodu<input type="search" name="q" value="{{ cost_query }}" placeholder="Ürün kodu ara..."></label>
-<label>Para birimi<select name="currency"><option value="">Tüm para birimleri</option><option value="TRY" {% if currency_filter == 'TRY' %}selected{% endif %}>TL</option><option value="USD" {% if currency_filter == 'USD' %}selected{% endif %}>USD</option></select></label>
-<label>Reçete durumu<select name="recipe"><option value="">Tüm ürünler</option><option value="yes" {% if recipe_filter == 'yes' %}selected{% endif %}>Reçetesi olanlar</option><option value="no" {% if recipe_filter == 'no' %}selected{% endif %}>Reçetesi olmayanlar</option></select></label>
-<button type="submit" class="filter-apply"><i class="bi bi-funnel me-1"></i> Filtrele</button><a class="filter-reset" href="?">Temizle</a>
-</form><div class="cost-summary">Eşleşen {{ costs.paginator.count }} ürün maliyeti · Sayfa {{ costs.number }} / {{ costs.paginator.num_pages }}</div>
+<label>Para birimi<select name="currency"><option value="">Tümü</option><option value="TRY" {% if currency_filter == 'TRY' %}selected{% endif %}>TL</option><option value="USD" {% if currency_filter == 'USD' %}selected{% endif %}>USD</option></select></label>
+<label>Reçete<select name="recipe"><option value="">Tümü</option><option value="yes" {% if recipe_filter == 'yes' %}selected{% endif %}>Olanlar</option><option value="no" {% if recipe_filter == 'no' %}selected{% endif %}>Olmayanlar</option></select></label>
+<button type="submit" class="filter-apply"><i class="bi bi-funnel me-1"></i> Filtrele</button><a class="filter-reset" href="?">Temizle</a></form><div class="cost-summary">Eşleşen {{ costs.paginator.count }} ürün maliyeti · Sayfa {{ costs.number }} / {{ costs.paginator.num_pages }}</div>
     <div class="table-responsive"><table class="table cost-table align-middle mb-0"><thead><tr><th>Ürün Kodu</th><th>Maliyet</th><th>Para Birimi</th><th>Maliyet Detayı</th><th class="text-end">İşlem</th></tr></thead><tbody id="costTableBody">
-      {% for cost in costs %}<tr class="cost-row" data-code="{{ cost.urun_kodu|lower }}"><td class="fw-bold">{{ cost.urun_kodu }}</td><td>{{ cost.maliyet|floatformat:2 }}</td><td><span class="badge-soft">{{ cost.para_birimi }}</span></td><td>{% if cost.has_cost_breakdown %}<a class="cost-detail-btn" href="{% url 'product_card_detail' cost.product_card_id %}">Kartı Aç <span>→</span></a>{% else %}<span class="cost-detail-empty">Ürün kartı yok</span>{% endif %}</td><td class="text-end"><form method="POST" class="d-inline">{% csrf_token %}<input type="hidden" name="action" value="delete"><input type="hidden" name="id" value="{{ cost.id }}"><button class="cost-delete-btn" title="Maliyet kaydını sil" onclick="return confirm('Bu maliyeti silmek istiyor musun?');"><i class="bi bi-trash"></i></button></form></td></tr>{% empty %}<tr><td colspan="5" class="text-center text-muted py-4">Henüz maliyet kaydı yok.</td></tr>{% endfor %}
+      {% for cost in costs %}<tr class="cost-row" data-code="{{ cost.urun_kodu|lower }}"><td class="fw-bold">{{ cost.urun_kodu }}{% if not cost.is_active %} <span class="cost-inactive-tag">Pasif</span>{% endif %}</td><td>{{ cost.maliyet|floatformat:2 }}</td><td><span class="badge-soft">{{ cost.para_birimi }}</span></td><td>{% if cost.has_cost_breakdown %}<a class="cost-detail-btn" href="{% url 'product_card_detail' cost.product_card_id %}">Detayı Gör <span>→</span></a>{% else %}<span class="cost-detail-empty">Ürün kartı yok</span>{% endif %}</td><td class="text-end"><form method="POST" class="d-inline">{% csrf_token %}<input type="hidden" name="action" value="{% if cost.is_active %}deactivate{% else %}activate{% endif %}"><input type="hidden" name="id" value="{{ cost.id }}"><button type="submit" class="cost-toggle-btn {% if not cost.is_active %}is-inactive{% endif %}" title="{% if cost.is_active %}Maliyet kaydını pasif yap{% else %}Maliyet kaydını tekrar aktif yap{% endif %}" onclick="return confirm('{% if cost.is_active %}Bu maliyet kaydı pasife alınsın mı? Geçmiş siparişler korunacak.{% else %}Bu maliyet kaydı tekrar aktif edilsin mi?{% endif %}');"><i class="bi {% if cost.is_active %}bi-pause-circle{% else %}bi-arrow-counterclockwise{% endif %}"></i><span>{% if cost.is_active %}Pasif Et{% else %}Aktif Et{% endif %}</span></button></form></td></tr>{% empty %}<tr><td colspan="5" class="text-center text-muted py-4">Henüz maliyet kaydı yok.</td></tr>{% endfor %}
     </tbody></table></div>
     <div id="noCostResults" class="no-cost-results">Aramaya uygun ürün kodu bulunamadı.</div>
     <div id="clientPagination" class="client-pagination"></div>
