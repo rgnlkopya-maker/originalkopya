@@ -17,6 +17,21 @@ from planning.models import ShipmentPlan
 from core.services.order_status import latest_status_event, status_label, FINANCIAL_STAGES
 
 
+
+def _assign_shared_ft_number(*, draft=None, manual=None):
+    """Allocate a single FT number atomically across both invoice models."""
+    from .invoice_models import SharedInvoiceNumber, InvoiceNumberSequence
+    if draft is None and manual is None:
+        raise ValueError("Invoice required")
+    number_owner = {"draft": draft} if draft is not None else {"manual": manual}
+    if SharedInvoiceNumber.objects.filter(**number_owner).exists():
+        return
+    seq = InvoiceNumberSequence.objects.select_for_update().get(pk=1)
+    seq.last_number += 1
+    seq.save(update_fields=["last_number"])
+    SharedInvoiceNumber.objects.create(number=seq.last_number, **number_owner)
+
+
 def _allowed(user):
     from app_settings.access import has_full_access
     return has_full_access(user)
@@ -609,6 +624,7 @@ def invoice_add(request, order_id):
             return redirect("order_detail", pk=order.pk)
         currency = order.para_birimi or "TRY"
         invoice, _ = InvoiceDraft.objects.get_or_create(customer=order.musteri, invoice_date=planned_date, currency=currency, status="DRAFT", defaults={"created_by": request.user})
+        _assign_shared_ft_number(draft=invoice)
         InvoiceLine.objects.create(invoice=invoice, order=order, price=order.satis_fiyati or 0, vat_rate=order.vat_rate or 0)
         ShipmentPlan.objects.create(order=order, planned_date=planned_date, created_by=request.user)
     messages.success(request, "Sipariş faturaya ve sevkiyat planına eklendi.")
@@ -1041,6 +1057,8 @@ def standalone_invoice_edit(request, invoice_id=None, proforma=False):
                 with transaction.atomic():
                     if invoice is None:
                         invoice = StandaloneInvoice.objects.create(customer=customer, invoice_date=invoice_date, due_date=due_date, currency=currency, note=request.POST.get("note", "").strip(), created_by=request.user, is_proforma=proforma)
+                        if not proforma:
+                            _assign_shared_ft_number(manual=invoice)
                     else:
                         invoice = StandaloneInvoice.objects.select_for_update().get(pk=invoice.pk)
                         if invoice.transfers.filter(status__in=("SENDING", "SENT", "UNKNOWN")).exists():
