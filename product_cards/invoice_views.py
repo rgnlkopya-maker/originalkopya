@@ -8,6 +8,7 @@ from django.db import IntegrityError, transaction
 from django.db.models import Prefetch
 from django.http import HttpResponseForbidden, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
 from django.utils import timezone
 from django.views.decorators.http import require_POST
 from core.models import Order, Musteri
@@ -1263,3 +1264,22 @@ def invoice_free_delivery_decision(request, order_id):
             InvoiceFreeDelivery.objects.filter(order=order).delete()
             messages.success(request, "Faturasız teslim kararı geri alındı.")
     return redirect("uninvoiced_shipped_orders")
+
+
+@login_required
+def order_invoice_finance_status(request, order_id):
+    from core.views import order_scope_allows
+    from .invoice_models import StandaloneInvoiceLine, InvoiceFreeDelivery
+    order = get_object_or_404(Order, pk=order_id)
+    if not order_scope_allows(request.user, order):
+        return HttpResponseForbidden("Yetkiniz yok.")
+    line = InvoiceLine.objects.filter(order_id=order_id).select_related("invoice").first()
+    if line:
+        return JsonResponse({"type":"invoice","label":"FT-" + str(line.invoice_id), "url": reverse("invoice_detail", args=[line.invoice_id])})
+    manual = StandaloneInvoiceLine.objects.filter(order_id=order_id, invoice__is_proforma=False).select_related("invoice").first()
+    if manual:
+        return JsonResponse({"type":"invoice","label":"FT-" + str(manual.invoice_id), "url": reverse("standalone_invoice_edit", args=[manual.invoice_id])})
+    free = InvoiceFreeDelivery.objects.filter(order_id=order_id).first()
+    if free:
+        return JsonResponse({"type":"free","explanation":free.explanation})
+    return JsonResponse({"type":"none"})
