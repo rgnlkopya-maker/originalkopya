@@ -270,20 +270,20 @@ def invoice_parasut_mapping_save(request, customer_id):
     customer = get_object_or_404(Musteri, pk=customer_id, aktif=True)
     code = request.POST.get("external_contact_id", "").strip()
     if not code.isdecimal() or len(code) > 100:
-        messages.error(request, "Geçerli bir Paraşüt cari ID girin.")
+        messages.error(request, "Geçerli bir Paraşüt cari ID girin.", extra_tags="mapping_notice")
         return redirect("invoice_parasut_mapping_list")
     try:
         with transaction.atomic():
             if ParasutCustomerMapping.objects.filter(external_contact_id=code).exclude(customer=customer).exists():
-                messages.error(request, "Paraşüt cari ID başka bir müşteriye eşleştirilmiş.")
+                messages.error(request, "Paraşüt cari ID başka bir müşteriye eşleştirilmiş.", extra_tags="mapping_notice")
                 return redirect("invoice_parasut_mapping_list")
             ParasutCustomerMapping.objects.update_or_create(
                 customer=customer, defaults={"external_contact_id": code},
             )
     except IntegrityError:
-        messages.error(request, "Cari eşleştirmesi çakıştı.")
+        messages.error(request, "Cari eşleştirmesi çakıştı.", extra_tags="mapping_notice")
     else:
-        messages.success(request, customer.ad + ": Paraşüt cari eşleştirmesi kaydedildi. Fatura gönderilmedi.")
+        messages.success(request, customer.ad + ": Paraşüt cari eşleştirmesi kaydedildi. Fatura gönderilmedi.", extra_tags="mapping_notice")
     return redirect("invoice_parasut_mapping_list")
 
 
