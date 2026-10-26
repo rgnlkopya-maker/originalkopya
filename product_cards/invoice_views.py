@@ -90,8 +90,8 @@ def _invoice_list_impl(request):
     for draft in standalone_invoices:
         draft.has_locked_transfer = any(t.status != "NOT_SENT" or bool(t.external_invoice_id) for t in draft.transfers.all())
         statuses = {t.platform: t.status for t in draft.transfers.all()}
-        draft.bh_display = "api" if statuses.get("bizimhesap") == "SENT" else "no"
-        draft.parasut_display = "api" if statuses.get("parasut") == "SENT" else "no"
+        draft.bh_display = draft.bizimhesap_display_status or ("api" if statuses.get("bizimhesap") == "SENT" else "no")
+        draft.parasut_display = draft.parasut_display_status or ("api" if statuses.get("parasut") == "SENT" else "no")
     for draft in standalone_invoices + proforma_invoices:
         draft.list_total = sum((item.quantity * item.unit_price * (Decimal("1") + item.vat_rate / Decimal("100")) for item in draft.lines.all()), Decimal("0"))
     for draft in standalone_invoices:
@@ -1335,3 +1335,44 @@ def standalone_invoice_delete_empty(request, invoice_id):
     messages.success(request, "Boş fatura taslağı silindi.")
     return redirect("invoice_list")
 
+
+@login_required
+@require_POST
+def standalone_invoice_list_control(request, invoice_id):
+    from .invoice_models import StandaloneInvoice
+    if not _allowed(request.user):
+        return HttpResponseForbidden("Yetkiniz yok.")
+    action = request.POST.get("action")
+    with transaction.atomic():
+        inv = get_object_or_404(StandaloneInvoice.objects.select_for_update(), pk=invoice_id, is_proforma=False)
+        if action == "official":
+            number = request.POST.get("official_number", "").strip()
+            if len(number) > 80:
+                messages.error(request, "Resmî FT numarası en fazla 80 karakter olabilir.")
+            else:
+                inv.official_number = number
+                inv.save(update_fields=["official_number"])
+                messages.success(request, "Resmî FT numarası güncellendi.")
+        elif action == "open_account":
+            value = request.POST.get("label")
+            if value not in ("open", "empty"):
+                messages.error(request, "Geçersiz açık hesap seçimi.")
+            elif inv.official_number:
+                messages.error(request, "Resmî FT numarası olan kayıtta açık hesap seçilemez.")
+            else:
+                inv.show_open_account_in_list = value == "open"
+                inv.save(update_fields=["show_open_account_in_list"])
+        elif action == "platform":
+            platform = request.POST.get("platform")
+            value = request.POST.get("recorded")
+            if platform not in ("bizimhesap", "parasut") or value not in ("no", "yes", "api", "skip"):
+                messages.error(request, "Geçersiz durum.")
+            else:
+                # Manual changes affect only the MoliApp tracking label, never remote bookkeeping.
+                field = "bizimhesap_display_status" if platform == "bizimhesap" else "parasut_display_status"
+                setattr(inv, field, value)
+                inv.save(update_fields=[field])
+                messages.success(request, "Muhasebe takip durumu güncellendi (dış sistem değiştirilmedi).")
+        else:
+            messages.error(request, "Geçersiz işlem.")
+    return redirect("invoice_list")
