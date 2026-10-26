@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block content %}
+<style>
+.uninv-page{width:100%;padding:24px clamp(14px,2vw,34px);color:#17253d}
+.uninv-head{display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;margin-bottom:20px}
+.uninv-head h2{font-weight:750;letter-spacing:-.025em;margin:0}
+.uninv-head p{color:#64748b;margin:5px 0 0;font-size:13px}
+.uninv-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-bottom:18px}
+.uninv-stat,.uninv-card{background:#fff;border:1px solid #e2e8f0;border-radius:14px}
+.uninv-stat{padding:16px 19px}
+.uninv-stat-label{font-size:12px;color:#64748b;font-weight:600}
+.uninv-stat-value{font-size:26px;font-weight:750;line-height:1.3;font-variant-numeric:tabular-nums}
+.uninv-filters{display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap}
+.uninv-filters input{flex:1 1 250px;max-width:470px;background:#fbfcff;border:1px solid #dae4f4;border-radius:9px;padding:10px 12px}
+.uninv-filters button,.uninv-head a{border:1px solid #9ebfff;border-radius:9px;background:#f6f9ff;color:#0750ca;padding:9px 15px;font-weight:650;text-decoration:none}
+.uninv-card{overflow-x:auto}
+.uninv-table{width:100%;border-collapse:collapse;font-size:12.5px;min-width:1160px}
+.uninv-table th{background:#f8fafc;color:#64748b;font-size:11px;text-transform:uppercase;letter-spacing:.04em;padding:13px 10px;border-bottom:1px solid #e2e8f0;text-align:left;white-space:nowrap}
+.uninv-table td{padding:12px 10px;border-bottom:1px solid #edf1f7;vertical-align:top}
+.uninv-table tbody tr:hover{background:#fafcff}
+.uninv-table a{color:#2447a4;text-decoration:none;font-weight:650}
+.uninv-table .sub{color:#718096;font-size:11px;margin-top:3px}
+.uninv-note{color:#64748b;font-size:12px;margin-top:12px}
+@media(max-width:760px){.uninv-page{padding:16px 12px}.uninv-stats{gap:8px}.uninv-stat{padding:12px}.uninv-stat-value{font-size:20px}}
+</style>
+<div class="uninv-page">
+ <div class="uninv-head"><div><h2>Faturaya Aktarılmayanlar</h2><p>Son durumu Sevk Edildi olan ve normal / manuel hiçbir faturaya bağlı bulunmayan siparişler. Proformalar hariçtir.</p></div><a href="{% url 'invoice_list' %}"><i class="bi bi-arrow-left"></i> Faturalar Listesi</a></div>
+ <div class="uninv-stats">
+  <div class="uninv-stat"><div class="uninv-stat-label">Faturasız sevk edilmiş sipariş</div><div class="uninv-stat-value">{{ order_count }}</div></div>
+  <div class="uninv-stat"><div class="uninv-stat-label">Toplam ürün adedi</div><div class="uninv-stat-value">{{ total_qty }}</div></div>
+  <div class="uninv-stat"><div class="uninv-stat-label">Satış tutarı (para birimi bazında)</div><div style="font-size:17px;font-weight:750">{% for currency,amount in totals %}<div>{{ amount|floatformat:2 }} {{ currency }}</div>{% empty %}—{% endfor %}</div></div>
+ </div>
+ <form method="get" class="uninv-filters"><input name="q" value="{{ search }}" placeholder="Müşteri, sipariş no, ürün kodu, renk, beden, referans veya açıklama" aria-label="Sipariş ara"><button type="submit"><i class="bi bi-search"></i> Ara</button>{% if search %}<a href="{% url 'uninvoiced_shipped_orders' %}" style="align-self:center;color:#0750ca">Temizle</a>{% endif %}</form>
+ <div class="uninv-card"><table class="uninv-table"><thead><tr><th>Müşteri</th><th>Sipariş</th><th>Ürün Kodu</th><th>Renk / Beden</th><th>Adet</th><th>Müşteri Referansı</th><th>Açıklama</th><th>Satış Fiyatı</th><th>Sevkiyat</th></tr></thead><tbody>
+ {% for o in orders %}<tr>
+ <td><strong>{{ o.musteri.ad|default:"—" }}</strong></td>
+ <td><a href="{% url 'order_detail' o.id %}">{{ o.siparis_numarasi|default:o.id }}</a></td>
+ <td>{{ o.urun_kodu|default:"—" }}</td>
+ <td>{{ o.renk|default:"—" }} / {{ o.beden|default:"—" }}</td>
+ <td>{{ o.adet|default:"—" }}</td>
+ <td>{{ o.musteri_referans|default:"—" }}</td>
+ <td style="max-width:270px;white-space:pre-wrap">{{ o.aciklama|default:"—" }}</td>
+ <td style="white-space:nowrap">{{ o.satis_fiyati|floatformat:2 }} {{ o.para_birimi|default:"TRY" }}</td>
+ <td><span style="color:#166534;font-weight:750">Sevk Edildi</span></td>
+ </tr>{% empty %}<tr><td colspan="9" style="padding:30px;text-align:center;color:#64748b">Bu koşullara uygun sipariş bulunamadı.</td></tr>{% endfor %}
+ </tbody></table></div>
+ <p class="uninv-note">Bu sayfa her açılışta güncel sipariş hareketlerini ve fatura bağlantılarını yeniden kontrol eder. Buradan hiçbir sipariş veya fatura değiştirilmez.</p>
+</div>
+{% endblock %}
