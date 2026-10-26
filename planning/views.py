@@ -6,7 +6,7 @@ from django.contrib import messages
 from django.db import transaction
 from django.http import HttpResponseForbidden
 from app_settings.access import has_full_access, has_feature_access
-from product_cards.invoice_models import InvoiceLine
+from product_cards.invoice_models import InvoiceLine, BizimHesapInvoiceTransfer, ParasutInvoiceTransfer
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
@@ -107,7 +107,7 @@ def remove_shipment_plan(request, plan_id):
         plan = get_object_or_404(ShipmentPlan.objects.select_for_update(), pk=plan_id)
         planned_date = plan.planned_date
         line = InvoiceLine.objects.select_related("invoice").filter(order_id=plan.order_id).first()
-        if line and (line.invoice.status != "DRAFT" or line.invoice.bizimhesap_transfer.filter(status__in=("SENDING", "SENT", "UNKNOWN")).exists() or line.invoice.parasut_transfer.filter(status__in=("SENDING", "UNKNOWN")).exists()):
+        if line and (line.invoice.status != "DRAFT" or BizimHesapInvoiceTransfer.objects.filter(invoice=line.invoice, status__in=("SENDING", "SENT", "UNKNOWN")).exists() or ParasutInvoiceTransfer.objects.filter(invoice=line.invoice, status__in=("SENDING", "UNKNOWN")).exists()):
             messages.error(request, "Tamamlanmış veya muhasebe aktarımı kilitli faturaya bağlı sipariş kaldırılamaz.")
             return redirect(f"{reverse('shipment_planning_page')}?date={planned_date.isoformat()}")
         if line:
