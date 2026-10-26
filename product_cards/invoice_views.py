@@ -190,17 +190,19 @@ def invoice_parasut_fetch_official_number(request, invoice_id):
 def invoice_official_number_update(request, invoice_id):
     if not _allowed(request.user):
         return HttpResponseForbidden("Yetkiniz yok.")
+    return_to_list = request.POST.get("return_to") == "list"
+    destination = redirect("invoice_list") if return_to_list else redirect("invoice_detail", invoice_id=invoice_id)
     number = request.POST.get("official_number", "").strip()
     if len(number) > 80:
         messages.error(request, "Fatura numarası en fazla 80 karakter olabilir.")
-        return redirect("invoice_detail", invoice_id=invoice_id)
+        return destination
     with transaction.atomic():
         invoice = get_object_or_404(InvoiceDraft.objects.select_for_update(), pk=invoice_id)
         invoice.official_number = number
         invoice.save(update_fields=["official_number", "updated_at"])
         InvoiceStatusHistory.objects.filter(invoice=invoice).exclude(previous_official_number="").update(previous_official_number="")
     messages.success(request, "Fatura numarası güncellendi." if number else "Fatura numarası silindi.")
-    return redirect("invoice_detail", invoice_id=invoice_id)
+    return destination
 
 
 @login_required
