@@ -1837,7 +1837,20 @@ def product_cost_list(request):
             ProductCost.objects.filter(id=pk).delete()
 
     # 📋 Listele (sayfalama ile)
-    maliyetler = ProductCost.objects.all().order_by("urun_kodu")
+    from django.db.models import Exists, OuterRef
+    from product_cards.models import ProductCard
+    query = request.GET.get("q", "").strip()
+    currency_filter = request.GET.get("currency", "")
+    recipe_filter = request.GET.get("recipe", "")
+    maliyetler = ProductCost.objects.all()
+    if query:
+        maliyetler = maliyetler.filter(urun_kodu__icontains=query)
+    if currency_filter in ("TRY", "USD"):
+        maliyetler = maliyetler.filter(para_birimi=currency_filter)
+    if recipe_filter in ("yes", "no"):
+        matching_card = ProductCard.objects.filter(urun__kod__iexact=OuterRef("urun_kodu"))
+        maliyetler = maliyetler.annotate(_has_card=Exists(matching_card)).filter(_has_card=(recipe_filter == "yes"))
+    maliyetler = maliyetler.order_by("urun_kodu")
     paginator = Paginator(maliyetler, 50)
     page_number = request.GET.get("page")
     page_obj = paginator.get_page(page_number)
@@ -1874,7 +1887,7 @@ def product_cost_list(request):
         cost.cost_breakdown = breakdown
         cost.has_cost_breakdown = bool(card)
 
-    return render(request, "core/product_cost_list.html", {"costs": page_obj})
+    return render(request, "core/product_cost_list.html", {"costs": page_obj, "cost_query": query, "currency_filter": currency_filter, "recipe_filter": recipe_filter})
 
 
 
