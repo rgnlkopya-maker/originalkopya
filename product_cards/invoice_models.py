@@ -109,7 +109,8 @@ class InvoiceStatusHistory(models.Model):
 
 
 class StandaloneInvoice(models.Model):
-    """A manually entered invoice without a production order."""
+    """A manually entered invoice or a non-exportable proforma."""
+    is_proforma = models.BooleanField(default=False)
     customer = models.ForeignKey("core.Musteri", on_delete=models.PROTECT)
     invoice_date = models.DateField()
     due_date = models.DateField(null=True, blank=True)
