@@ -116,6 +116,10 @@ class StandaloneInvoice(models.Model):
     due_date = models.DateField(null=True, blank=True)
     currency = models.CharField(max_length=3, default="TRY")
     note = models.TextField(blank=True, default="")
+    official_number = models.CharField(max_length=80, blank=True, default="")
+    show_open_account_in_list = models.BooleanField(default=False)
+    bizimhesap_display_status = models.CharField(max_length=8, blank=True, default="")
+    parasut_display_status = models.CharField(max_length=8, blank=True, default="")
     created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
     created_at = models.DateTimeField(auto_now_add=True)
 
