@@ -6,7 +6,7 @@ from django.contrib import messages
 from django.db import transaction
 from django.http import HttpResponseForbidden
 from app_settings.access import has_full_access, has_feature_access
-from product_cards.invoice_models import InvoiceLine, BizimHesapInvoiceTransfer, ParasutInvoiceTransfer
+from product_cards.invoice_models import InvoiceLine, BizimHesapInvoiceTransfer, ParasutInvoiceTransfer, StandaloneInvoiceLine
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
@@ -110,8 +110,16 @@ def remove_shipment_plan(request, plan_id):
         if line and (line.invoice.status != "DRAFT" or BizimHesapInvoiceTransfer.objects.filter(invoice=line.invoice, status__in=("SENDING", "SENT", "UNKNOWN")).exists() or ParasutInvoiceTransfer.objects.filter(invoice=line.invoice, status__in=("SENDING", "UNKNOWN")).exists()):
             messages.error(request, "Tamamlanmış veya muhasebe aktarımı kilitli faturaya bağlı sipariş kaldırılamaz.")
             return redirect(f"{reverse('shipment_planning_page')}?date={planned_date.isoformat()}")
+        manual_line = StandaloneInvoiceLine.objects.select_related("invoice").filter(order_id=plan.order_id).first()
+        if manual_line:
+            inv = manual_line.invoice
+            if inv.transfers.filter(status__in=("SENDING", "SENT", "UNKNOWN")).exists():
+                messages.error(request, "Muhasebeye aktarılmış manuel faturadan sipariş çıkarılamaz.")
+                return redirect(f"{reverse('shipment_planning_page')}?date={planned_date.isoformat()}")
         if line:
             line.delete()
+        if manual_line:
+            manual_line.delete()
         plan.delete()
     messages.success(request, "Sipariş sevkiyat planından ve fatura taslağından çıkarıldı.")
     return redirect(f"{reverse('shipment_planning_page')}?date={planned_date.isoformat()}")
