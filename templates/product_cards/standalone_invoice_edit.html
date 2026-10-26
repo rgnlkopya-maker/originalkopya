@@ -5,6 +5,22 @@
 <style>.proforma-heading{display:flex;flex-direction:column;align-items:flex-end;text-align:right;margin:0 0 22px;border-bottom:2px solid #48596d;padding:0 0 12px}.proforma-heading strong{font-size:38px;font-weight:900;letter-spacing:-1.4px;color:#405268;line-height:1.05}.proforma-heading span{font-size:11px;color:#667185;margin-top:8px;max-width:315px}.invoice-paper:has(.proforma-heading) .invoice-header{min-height:220px}@media(max-width:600px){.proforma-heading strong{font-size:30px}}@media print{.proforma-heading{break-inside:avoid;print-color-adjust:exact}}</style>
 <style>@media print{.invoice-paper .invoice-customer select[name="customer"]{appearance:none!important} .invoice-paper .invoice-customer select[name="customer"] option[value=""]{display:none}}.invoice-manual-table .vatIncluded{font-size:12px}</style>
 <style>.invoice-paper:has(.proforma-heading) .invoice-manual-table td:has([name="unit_price"]){white-space:nowrap}.invoice-paper:has(.proforma-heading) .invoice-manual-table td:has([name="unit_price"]) input{display:inline-block;width:calc(100% - 76px);min-width:55px}.invoice-manual-table td .row-currency{display:none}</style>
+<style>
+.invoice-paper:has(.proforma-heading) .invoice-manual-table{table-layout:fixed;width:100%;min-width:800px}
+.invoice-paper:has(.proforma-heading) .invoice-manual-table th:nth-child(1){width:29%}
+.invoice-paper:has(.proforma-heading) .invoice-manual-table th:nth-child(2){width:9%}
+.invoice-paper:has(.proforma-heading) .invoice-manual-table th:nth-child(3){width:11%}
+.invoice-paper:has(.proforma-heading) .invoice-manual-table th:nth-child(4){width:23%}
+.invoice-paper:has(.proforma-heading) .invoice-manual-table th:nth-child(5){width:9%}
+.invoice-paper:has(.proforma-heading) .invoice-manual-table th:nth-child(6){width:15%}
+.invoice-paper:has(.proforma-heading) .invoice-manual-table th:nth-child(7){width:4%}
+.invoice-paper:has(.proforma-heading) .invoice-manual-table td:has([name="unit_price"]){padding-right:8px}
+.invoice-paper:has(.proforma-heading) .invoice-manual-table td:has([name="unit_price"]) input{width:calc(100% - 74px);min-width:64px;box-sizing:border-box;text-align:right}
+.invoice-paper:has(.proforma-heading) #currencyAtPrice{width:68px!important;max-width:68px;min-width:68px;box-sizing:border-box;padding:5px 1px;margin-left:3px!important}
+.invoice-paper:has(.proforma-heading) .invoice-manual-table td input,.invoice-paper:has(.proforma-heading) .invoice-manual-table td select{font-size:12px}
+.invoice-paper:has(.proforma-heading) .invoice-manual-table .vatIncluded{text-align:right;white-space:nowrap}
+@media print{.invoice-paper:has(.proforma-heading) .invoice-manual-table{min-width:0}}
+</style>
 <div class="invoice-actions"><a class="btn btn-sm btn-outline-secondary" href="{% url 'invoice_list' %}">← Faturalar</a><button type="submit" form="standaloneInvoice" class="btn btn-sm btn-primary"><i class="bi bi-check2-circle me-1"></i>{% if is_proforma %}Proformayı Kaydet{% else %}Faturayı Kaydet{% endif %}</button><button type="button" class="btn btn-sm btn-outline-secondary" onclick="window.print()">🖨 Yazdır / PDF</button></div>
 {% if messages %}{% for message in messages %}<div class="invoice-actions"><div class="alert {% if 'error' in message.tags %}alert-danger{% else %}alert-success{% endif %} w-100">{{ message }}</div></div>{% endfor %}{% endif %}
 <form method="post" id="standaloneInvoice">{% csrf_token %}
