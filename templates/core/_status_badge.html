@@ -118,6 +118,40 @@ document.addEventListener('DOMContentLoaded', function () {
     {% else %}
     box.innerHTML = `<div class="finance-legacy"><strong>KDV %{{ order.vat_rate|floatformat:2 }}</strong><br>Bu sipariş finans snapshot sistemi kurulmadan önce oluşturulmuş. Geçmiş tarihli kur veya maliyet üretilmediği için sipariş günü kârı gösterilmiyor.</div>`;
     {% endif %}
+    const invoiceStatus=document.createElement('div');
+    invoiceStatus.id='order-finance-invoice-status';
+    invoiceStatus.style.cssText='display:none;margin-top:12px;padding:11px 13px;border:1px solid #dbe5f2;border-radius:10px;background:#f6f9ff;font-size:12px;color:#30445f';
+    box.appendChild(invoiceStatus);
+    const statusUrl="{% url 'order_invoice_finance_status' order.id %}";
+    async function refreshInvoiceFinance(){
+        try{
+            const response=await fetch(statusUrl,{cache:'no-store',credentials:'same-origin'});
+            if(!response.ok)return;
+            const data=await response.json();
+            invoiceStatus.replaceChildren();
+            if(data.type==='none'){invoiceStatus.style.display='none';return;}
+            invoiceStatus.style.display='block';
+            const title=document.createElement('strong');
+            if(data.type==='invoice'){
+                title.textContent='Faturaya Aktarıldı: ';
+                const link=document.createElement('a');
+                link.href=data.url;
+                link.textContent=data.label;
+                link.style.cssText='color:#2447a4;font-weight:750;text-decoration:underline';
+                invoiceStatus.append(title,link);
+            }else if(data.type==='free'){
+                title.textContent='Faturasız Teslim Edildi';
+                invoiceStatus.appendChild(title);
+                const note=document.createElement('div');
+                note.textContent=data.explanation||'';
+                note.style.cssText='margin-top:5px;white-space:pre-wrap;overflow-wrap:anywhere';
+                invoiceStatus.appendChild(note);
+            }
+        }catch(err){/* Preserve the last visible status if the network is unavailable. */}
+    }
+    refreshInvoiceFinance();
+    const invoiceStatusInterval=setInterval(()=>{if(!document.hidden)refreshInvoiceFinance();},10000);
+    window.addEventListener('pagehide',()=>clearInterval(invoiceStatusInterval),{once:true});
 });
 </script>
 {% endif %}
