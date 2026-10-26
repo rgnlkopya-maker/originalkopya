@@ -1181,3 +1181,48 @@ def standalone_available_orders(request):
     ]
     return JsonResponse({"orders":orders})
 
+
+
+@login_required
+def uninvoiced_shipped_orders(request):
+    """Live reconciliation: latest production status is shipped, no non-proforma invoice line."""
+    if not _allowed(request.user):
+        return HttpResponseForbidden("Yetkiniz yok.")
+    from django.db.models import OuterRef, Subquery, Exists, Q
+    from core.models import OrderEvent
+    from .invoice_models import StandaloneInvoiceLine
+    latest = (OrderEvent.objects.filter(order_id=OuterRef("pk"))
+              .exclude(event_type="order_update")
+              .exclude(stage__in=FINANCIAL_STAGES)
+              .order_by("-timestamp", "-id"))
+    ordinary = InvoiceLine.objects.filter(order_id=OuterRef("pk"))
+    manual = StandaloneInvoiceLine.objects.filter(order_id=OuterRef("pk"), invoice__is_proforma=False)
+    orders = (Order.objects.select_related("musteri")
+              .annotate(last_stage=Subquery(latest.values("stage")[:1]),
+                        last_value=Subquery(latest.values("value")[:1]),
+                        normal_ft=Exists(ordinary), manual_ft=Exists(manual))
+              .filter(last_stage="sevkiyat_durum", last_value="gonderildi",
+                      normal_ft=False, manual_ft=False)
+              .order_by("musteri__ad", "-id"))
+    q = (request.GET.get("q") or "").strip()
+    if q:
+        orders = orders.filter(Q(musteri__ad__icontains=q) |
+                               Q(siparis_numarasi__icontains=q) |
+                               Q(urun_kodu__icontains=q) |
+                               Q(renk__icontains=q) |
+                               Q(beden__icontains=q) |
+                               Q(musteri_referans__icontains=q) |
+                               Q(aciklama__icontains=q))
+    entries = list(orders)
+    from collections import defaultdict
+    totals = defaultdict(lambda: Decimal("0"))
+    total_qty = 0
+    for order in entries:
+        total_qty += order.adet or 0
+        amount = (order.satis_fiyati or Decimal("0")) * (order.adet or 1)
+        totals[order.para_birimi or "TRY"] += amount
+    return render(request, "product_cards/uninvoiced_shipped_orders.html", {
+        "orders": entries, "order_count": len(entries), "total_qty": total_qty,
+        "totals": sorted(totals.items()), "search": q,
+    })
+
