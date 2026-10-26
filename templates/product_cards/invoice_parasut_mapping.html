@@ -37,6 +37,7 @@
 @media(max-width:640px){.cm-toolbar input{flex:1 1 100%;max-width:none}.cm-filters{margin-left:0;width:100%;justify-content:space-between}.cm-section-head{align-items:flex-start}}
 </style>
 <main class="pm-wrap">
+{% if messages %}<div aria-live="polite" role="status">{% for message in messages %}<div class="alert {% if 'error' in message.tags %}alert-danger{% elif 'warning' in message.tags %}alert-warning{% elif 'success' in message.tags %}alert-success{% else %}alert-info{% endif %}" role="alert">{{ message }}</div>{% endfor %}</div>{% endif %}
 <div class="d-flex align-items-center justify-content-between gap-2 flex-wrap mb-3">
 <div><h2 class="mb-1">Paraşüt Cari Eşleştirme</h2><p class="pm-sub mb-0">MoliApp müşterisini Paraşüt'teki mevcut cariye bir kez eşleştirin.</p></div>
 <a href="{% url 'invoice_list' %}" class="btn btn-sm btn-outline-secondary">← Faturalara Dön</a>
