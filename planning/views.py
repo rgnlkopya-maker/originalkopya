@@ -107,8 +107,8 @@ def remove_shipment_plan(request, plan_id):
         plan = get_object_or_404(ShipmentPlan.objects.select_for_update(), pk=plan_id)
         planned_date = plan.planned_date
         line = InvoiceLine.objects.select_related("invoice").filter(order_id=plan.order_id).first()
-        if line and line.invoice.status != "DRAFT":
-            messages.error(request, "Tamamlanmış faturaya bağlı sipariş kaldırılamaz.")
+        if line and (line.invoice.status != "DRAFT" or line.invoice.bizimhesap_transfer.filter(status__in=("SENDING", "SENT", "UNKNOWN")).exists() or line.invoice.parasut_transfer.filter(status__in=("SENDING", "UNKNOWN")).exists()):
+            messages.error(request, "Tamamlanmış veya muhasebe aktarımı kilitli faturaya bağlı sipariş kaldırılamaz.")
             return redirect(f"{reverse('shipment_planning_page')}?date={planned_date.isoformat()}")
         if line:
             line.delete()
