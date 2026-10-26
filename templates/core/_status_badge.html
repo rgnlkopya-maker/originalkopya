@@ -139,6 +139,13 @@ document.addEventListener('DOMContentLoaded', function () {
                 link.textContent=data.label;
                 link.style.cssText='color:#2447a4;font-weight:750;text-decoration:underline';
                 invoiceStatus.append(title,link);
+            }else if(data.type==='legacy'){
+                title.textContent='Geçmişte Faturalandırılmış (FT bağlantısı bulunmuyor)';
+                invoiceStatus.appendChild(title);
+                const note=document.createElement('div');
+                note.textContent=data.explanation||'';
+                note.style.cssText='margin-top:5px;white-space:pre-wrap;overflow-wrap:anywhere';
+                invoiceStatus.appendChild(note);
             }else if(data.type==='free'){
                 title.textContent='Faturasız Teslim Edildi';
                 invoiceStatus.appendChild(title);
