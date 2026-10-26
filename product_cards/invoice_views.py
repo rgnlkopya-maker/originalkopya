@@ -93,7 +93,10 @@ def _invoice_list_impl(request):
         draft.parasut_display = "api" if statuses.get("parasut") == "SENT" else "no"
     for draft in standalone_invoices + proforma_invoices:
         draft.list_total = sum((item.quantity * item.unit_price * (Decimal("1") + item.vat_rate / Decimal("100")) for item in draft.lines.all()), Decimal("0"))
-    return render(request, "product_cards/invoice_list.html", {"standalone_invoices": standalone_invoices, "proforma_invoices": proforma_invoices, "invoices": invoices, "invoice_customers": Musteri.objects.filter(pk__in=({invoice.customer_id for invoice in invoices} | {invoice.customer_id for invoice in standalone_invoices})).order_by("ad"), "accounting_status_choices": [("no", "İşlenmedi"), ("yes", "Elle İşlendi"), ("api", "API ile Aktarıldı"), ("skip", "Aktarılmayacak")]})
+    for draft in standalone_invoices:
+        draft.is_manual = True
+    combined_invoices = sorted(invoices + standalone_invoices, key=lambda inv: (inv.invoice_date, inv.shared_number.number), reverse=True)
+    return render(request, "product_cards/invoice_list.html", {"combined_invoices": combined_invoices, "standalone_invoices": standalone_invoices, "proforma_invoices": proforma_invoices, "invoices": invoices, "invoice_customers": Musteri.objects.filter(pk__in=({invoice.customer_id for invoice in invoices} | {invoice.customer_id for invoice in standalone_invoices})).order_by("ad"), "accounting_status_choices": [("no", "İşlenmedi"), ("yes", "Elle İşlendi"), ("api", "API ile Aktarıldı"), ("skip", "Aktarılmayacak")]})
 
 
 @login_required
@@ -1297,10 +1300,10 @@ def order_invoice_finance_status(request, order_id):
         return HttpResponseForbidden("Yetkiniz yok.")
     line = InvoiceLine.objects.filter(order_id=order_id).select_related("invoice").first()
     if line:
-        return JsonResponse({"type":"invoice","label":"FT-" + str(line.invoice_id), "url": reverse("invoice_detail", args=[line.invoice_id])})
+        return JsonResponse({"type":"invoice","label":"FT-" + str(line.invoice.shared_number.number), "url": reverse("invoice_detail", args=[line.invoice_id])})
     manual = StandaloneInvoiceLine.objects.filter(order_id=order_id, invoice__is_proforma=False).select_related("invoice").first()
     if manual:
-        return JsonResponse({"type":"invoice","label":"FT-" + str(manual.invoice_id), "url": reverse("standalone_invoice_edit", args=[manual.invoice_id])})
+        return JsonResponse({"type":"invoice","label":"FT-" + str(manual.invoice.shared_number.number), "url": reverse("standalone_invoice_edit", args=[manual.invoice_id])})
     from .invoice_models import LegacyInvoiceAcknowledgement
     legacy = LegacyInvoiceAcknowledgement.objects.filter(order_id=order_id).first()
     if legacy:
