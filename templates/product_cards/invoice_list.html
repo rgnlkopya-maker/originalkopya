@@ -167,7 +167,7 @@
 <td data-label="Toplam Tutar"><strong class="invoice-total-amount">{{ f.list_total|floatformat:2 }}</strong> <small>{{ f.currency }}</small></td>
 <td data-label="BizimHesap"><span class="invoice-status {% if f.bh_display == 'api' %}issued{% else %}draft{% endif %}">{% if f.bh_display == 'api' %}API ile Aktarıldı{% else %}İşlenmedi{% endif %}</span></td>
 <td data-label="Paraşüt"><span class="invoice-status {% if f.parasut_display == 'api' %}issued{% else %}draft{% endif %}">{% if f.parasut_display == 'api' %}API ile Aktarıldı{% else %}İşlenmedi{% endif %}</span></td>
-<td data-label="İşlem"><a class="btn btn-sm btn-outline-primary" href="{% url 'standalone_invoice_edit' f.id %}">Düzenle</a></td>
+<td data-label="İşlem"><div class="d-flex gap-2 align-items-center flex-wrap"><a class="btn btn-sm btn-outline-primary" href="{% url 'standalone_invoice_edit' f.id %}">Düzenle</a>{% if not f.lines.count and not f.has_locked_transfer %}<form method="post" class="m-0" action="{% url 'standalone_invoice_delete_empty' f.id %}" onsubmit="return confirm('FT-{{ f.shared_number.number }} numaralı boş fatura taslağı kalıcı olarak silinsin mi?');">{% csrf_token %}<button class="btn btn-sm btn-outline-danger py-0 px-2" type="submit" title="Boş faturayı sil"><i class="bi bi-trash me-1"></i>Sil</button></form>{% endif %}</div></td>
 </tr>
 {% else %}
 <tr data-invoice-row data-customer-id="{{ f.customer_id }}" data-date="{{ f.invoice_date|date:'Y-m-d' }}" data-bh-status="{{ f.bh_display }}" data-parasut-status="{{ f.parasut_display }}" data-status="{% if f.status == 'DRAFT' %}DRAFT{% elif f.status == 'OPEN' %}OPEN{% else %}ISSUED{% endif %}">
