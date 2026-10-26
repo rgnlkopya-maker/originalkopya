@@ -1886,6 +1886,7 @@ def product_cost_list(request):
             ]
         cost.cost_breakdown = breakdown
         cost.has_cost_breakdown = bool(card)
+        cost.product_card_id = card.pk if card else None
 
     return render(request, "core/product_cost_list.html", {"costs": page_obj, "cost_query": query, "currency_filter": currency_filter, "recipe_filter": recipe_filter})
 
