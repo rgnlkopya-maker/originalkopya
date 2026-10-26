@@ -142,6 +142,13 @@
    <a href="{% url 'invoice_parasut_mapping_list' %}" class="btn btn-sm btn-outline-primary">Paraşüt Cari Eşleştirme</a>
   </div>
  </div>
+ {% if messages %}
+ <div class="invoice-flash-messages" role="status" aria-live="polite">
+  {% for message in messages %}
+  <div class="alert {% if 'error' in message.tags %}alert-danger{% elif 'warning' in message.tags %}alert-warning{% elif 'success' in message.tags %}alert-success{% else %}alert-info{% endif %}" role="alert">{{ message }}</div>
+  {% endfor %}
+ </div>
+ {% endif %}
  {% if proforma_invoices %}<section class="invoice-list-card mb-3 p-3"><div class="d-flex align-items-center justify-content-between mb-2"><strong>Proforma Faturalar</strong><small class="text-muted">Muhasebeye aktarılmaz</small></div><div class="table-responsive"><table class="table table-sm align-middle mb-0"><thead><tr><th>Proforma</th><th>Müşteri</th><th>Tarih</th><th>Toplam</th><th></th></tr></thead><tbody>{% for draft in proforma_invoices %}<tr><td><a href="{% url 'proforma_invoice_edit' draft.id %}">Proforma #{{ draft.id }}</a></td><td>{{ draft.customer.ad }}</td><td>{{ draft.invoice_date|date:'d.m.Y' }}</td><td>{{ draft.list_total|floatformat:2 }} {{ draft.currency }}</td><td><a class="btn btn-sm btn-outline-primary" href="{% url 'proforma_invoice_edit' draft.id %}">Düzenle</a></td></tr>{% endfor %}</tbody></table></div></section>{% endif %}
   <section class="invoice-filter-panel" aria-label="Fatura arama ve filtreleme">
   <div class="filter-field filter-search"><label for="invoice-search">Hızlı arama</label><div class="filter-input-icon"><i class="bi bi-search"></i><input id="invoice-search" class="form-control" type="search" placeholder="Fatura no, müşteri veya ürün ara..."></div></div>
