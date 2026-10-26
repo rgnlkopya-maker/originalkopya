@@ -37,6 +37,7 @@
 @media(max-width:640px){.cm-toolbar input{flex:1 1 100%;max-width:none}.cm-filters{margin-left:0;width:100%;justify-content:space-between}.cm-section-head{align-items:flex-start}}
 </style>
 <main class="map-wrap">
+{% if messages %}<div role="status" aria-live="polite">{% for message in messages %}<div class="alert {% if 'error' in message.tags %}alert-danger{% elif 'warning' in message.tags %}alert-warning{% elif 'success' in message.tags %}alert-success{% else %}alert-info{% endif %}" role="alert">{{ message }}</div>{% endfor %}</div>{% endif %}
  <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3"><div><h2 class="mb-1">BizimHesap Cari Eşleştirme</h2><div class="map-sub">Bir müşteriyi bir kez eşleştirmeniz yeterli. Sonraki faturalar aynı kodu kullanır.</div></div><a href="{% url 'invoice_list' %}" class="btn btn-sm btn-outline-secondary">← Faturalara Dön</a></div>
  <div class="cm-stats" aria-label="Eşleştirme özeti"><div class="cm-stat"><span class="cm-value">{{ customer_count }}</span><span class="cm-label">Aktif müşteri</span></div><div class="cm-stat"><span class="cm-value">{{ mapped_count }}</span><span class="cm-label">Eşleşen müşteri</span></div><div class="cm-stat"><span class="cm-value" id="cmUnmapped"></span><span class="cm-label">Eşleşmeyen müşteri</span></div></div>
 <div class="map-panel">
