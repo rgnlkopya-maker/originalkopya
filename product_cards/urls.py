@@ -15,6 +15,7 @@ urlpatterns = [
     path("faturalar/uygun-siparisler/", invoice_views.standalone_available_orders, name="standalone_available_orders"),
     path("faturalar/olustur/", invoice_views.standalone_invoice_edit, name="standalone_invoice_create"),
     path("faturalar/manuel/<int:invoice_id>/", invoice_views.standalone_invoice_edit, name="standalone_invoice_edit"),
+    path("faturalar/manuel/<int:invoice_id>/liste-islem/", invoice_views.standalone_invoice_list_control, name="standalone_invoice_list_control"),
     path("faturalar/manuel/<int:invoice_id>/sil/", invoice_views.standalone_invoice_delete_empty, name="standalone_invoice_delete_empty"),
     path("faturalar/manuel/<int:invoice_id>/aktar/<str:platform>/", invoice_views.standalone_invoice_send, name="standalone_invoice_send"),
     path("faturalar/<int:invoice_id>/platform-durum/", invoice_views.invoice_platform_status_update, name="invoice_platform_status_update"),
