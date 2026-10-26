@@ -1190,7 +1190,7 @@ def uninvoiced_shipped_orders(request):
         return HttpResponseForbidden("Yetkiniz yok.")
     from django.db.models import OuterRef, Subquery, Exists, Q
     from core.models import OrderEvent
-    from .invoice_models import StandaloneInvoiceLine
+    from .invoice_models import StandaloneInvoiceLine, InvoiceFreeDelivery
     latest = (OrderEvent.objects.filter(order_id=OuterRef("pk"))
               .exclude(event_type="order_update")
               .exclude(stage__in=FINANCIAL_STAGES)
@@ -1213,6 +1213,11 @@ def uninvoiced_shipped_orders(request):
                                Q(beden__icontains=q) |
                                Q(musteri_referans__icontains=q) |
                                Q(aciklama__icontains=q))
+    tab = "delivered" if request.GET.get("tab") == "delivered" else "pending"
+    if tab == "delivered":
+        orders = orders.filter(invoice_free_delivery__isnull=False).select_related("invoice_free_delivery", "invoice_free_delivery__created_by")
+    else:
+        orders = orders.filter(invoice_free_delivery__isnull=True)
     entries = list(orders)
     from collections import defaultdict
     totals = defaultdict(lambda: Decimal("0"))
@@ -1223,6 +1228,38 @@ def uninvoiced_shipped_orders(request):
         totals[order.para_birimi or "TRY"] += amount
     return render(request, "product_cards/uninvoiced_shipped_orders.html", {
         "orders": entries, "order_count": len(entries), "total_qty": total_qty,
-        "totals": sorted(totals.items()), "search": q,
+        "totals": sorted(totals.items()), "search": q, "tab": tab,
     })
 
+
+@login_required
+@require_POST
+def invoice_free_delivery_decision(request, order_id):
+    if not _allowed(request.user):
+        return HttpResponseForbidden("Yetkiniz yok.")
+    from .invoice_models import InvoiceFreeDelivery, StandaloneInvoiceLine
+    from django.db.models import OuterRef, Subquery
+    from core.models import OrderEvent
+    action = request.POST.get("action")
+    if action not in ("save", "undo"):
+        return HttpResponseForbidden("Geçersiz işlem.")
+    with transaction.atomic():
+        order = get_object_or_404(Order.objects.select_for_update(), pk=order_id)
+        if InvoiceLine.objects.filter(order=order).exists() or StandaloneInvoiceLine.objects.filter(order=order, invoice__is_proforma=False).exists():
+            messages.error(request, "Sipariş zaten faturaya alınmış; işlem yapılamaz.")
+            return redirect("uninvoiced_shipped_orders")
+        event = latest_status_event(order)
+        if not event or (event.stage, event.value) != ("sevkiyat_durum", "gonderildi"):
+            messages.error(request, "Siparişin güncel durumu Sevk Edildi değil.")
+            return redirect("uninvoiced_shipped_orders")
+        if action == "save":
+            note = (request.POST.get("explanation") or "").strip()
+            if not note:
+                messages.error(request, "Açıklama zorunludur.")
+                return redirect("uninvoiced_shipped_orders")
+            InvoiceFreeDelivery.objects.update_or_create(order=order, defaults={"explanation": note, "created_by": request.user})
+            messages.success(request, "Faturasız teslim kaydedildi.")
+        else:
+            InvoiceFreeDelivery.objects.filter(order=order).delete()
+            messages.success(request, "Faturasız teslim kararı geri alındı.")
+    return redirect("uninvoiced_shipped_orders")
