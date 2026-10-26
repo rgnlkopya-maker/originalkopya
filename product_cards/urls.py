@@ -9,6 +9,7 @@ urlpatterns = [
     path("faturalar/", invoice_views.invoice_list, name="invoice_list"),
     path("faturalar/proforma/olustur/", invoice_views.proforma_invoice_create, name="proforma_invoice_create"),
     path("faturalar/proforma/<int:invoice_id>/", invoice_views.proforma_invoice_detail, name="proforma_invoice_edit"),
+    path("faturalar/uygun-siparisler/", invoice_views.standalone_available_orders, name="standalone_available_orders"),
     path("faturalar/olustur/", invoice_views.standalone_invoice_edit, name="standalone_invoice_create"),
     path("faturalar/manuel/<int:invoice_id>/", invoice_views.standalone_invoice_edit, name="standalone_invoice_edit"),
     path("faturalar/manuel/<int:invoice_id>/aktar/<str:platform>/", invoice_views.standalone_invoice_send, name="standalone_invoice_send"),
