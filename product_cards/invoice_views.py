@@ -353,7 +353,15 @@ def invoice_detail(request, invoice_id):
     parasut_vat_ready = bool(lines) and all(line.vat_rate is not None and Decimal(str(line.vat_rate)) == Decimal("10") for line in lines)
     subtotal = sum((line.price for line in lines), Decimal("0"))
     tax = sum((line.price * line.vat_rate / Decimal("100") for line in lines), Decimal("0"))
-    return render(request, "product_cards/invoice_detail.html", {"invoice": invoice, "lines": lines, "subtotal": subtotal, "tax": tax, "total": subtotal + tax, "parasut_vat_ready": parasut_vat_ready, "status_history": invoice.status_history.select_related("changed_by").order_by("-changed_at")[:10]})
+    bh_transfer = BizimHesapInvoiceTransfer.objects.filter(invoice=invoice).first()
+    ps_transfer = ParasutInvoiceTransfer.objects.filter(invoice=invoice).first()
+    bh_status = invoice.bizimhesap_display_status or ("api" if bh_transfer and bh_transfer.status == "SENT" else ("yes" if invoice.bizimhesap_manual_recorded else "no"))
+    ps_status = "api" if ps_transfer and ps_transfer.status == "SENT" else (invoice.parasut_display_status or ("yes" if invoice.parasut_manual_recorded else "no"))
+    if bh_transfer and bh_transfer.status in ("SENDING", "UNKNOWN"):
+        bh_status = "pending"
+    if ps_transfer and ps_transfer.status in ("SENDING", "UNKNOWN"):
+        ps_status = "pending"
+    return render(request, "product_cards/invoice_detail.html", {"bh_status": bh_status, "ps_status": ps_status, "invoice": invoice, "lines": lines, "subtotal": subtotal, "tax": tax, "total": subtotal + tax, "parasut_vat_ready": parasut_vat_ready, "status_history": invoice.status_history.select_related("changed_by").order_by("-changed_at")[:10]})
 
 
 @login_required
