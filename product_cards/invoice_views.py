@@ -1312,3 +1312,25 @@ def order_invoice_finance_status(request, order_id):
     if free:
         return JsonResponse({"type":"free","explanation":free.explanation})
     return JsonResponse({"type":"none"})
+
+@login_required
+@require_POST
+def standalone_invoice_delete_empty(request, invoice_id):
+    """Same empty-draft deletion rules as ordinary invoices."""
+    from .invoice_models import StandaloneInvoice, StandaloneInvoiceTransfer
+    if not _allowed(request.user):
+        return HttpResponseForbidden("Yetkiniz yok.")
+    with transaction.atomic():
+        invoice = get_object_or_404(StandaloneInvoice.objects.select_for_update(), pk=invoice_id, is_proforma=False)
+        if invoice.lines.exists():
+            messages.error(request, "Yalnızca boş taslak faturalar silinebilir.")
+            return redirect("invoice_list")
+        if invoice.transfers.exclude(status="NOT_SENT").exists() or invoice.transfers.exclude(external_invoice_id="").exists():
+            messages.error(request, "Muhasebe sistemine aktarılmış veya işlenmiş fatura silinemez.")
+            return redirect("invoice_list")
+        StandaloneInvoiceTransfer.objects.filter(invoice=invoice, status="NOT_SENT", external_invoice_id="").delete()
+        invoice.delete()
+    logging.getLogger(__name__).info("empty_standalone_invoice_deleted invoice_id=%s user_id=%s", invoice_id, request.user.pk)
+    messages.success(request, "Boş fatura taslağı silindi.")
+    return redirect("invoice_list")
+
