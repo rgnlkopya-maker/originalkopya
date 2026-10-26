@@ -361,7 +361,9 @@ def invoice_detail(request, invoice_id):
         bh_status = "pending"
     if ps_transfer and ps_transfer.status in ("SENDING", "UNKNOWN"):
         ps_status = "pending"
-    return render(request, "product_cards/invoice_detail.html", {"bh_status": bh_status, "ps_status": ps_status, "invoice": invoice, "lines": lines, "subtotal": subtotal, "tax": tax, "total": subtotal + tax, "parasut_vat_ready": parasut_vat_ready, "status_history": invoice.status_history.select_related("changed_by").order_by("-changed_at")[:10]})
+    from .invoice_models import CompanyInvoiceProfile
+    company_profile = CompanyInvoiceProfile.objects.order_by("pk").first()
+    return render(request, "product_cards/invoice_detail.html", {"company_profile": company_profile, "bh_status": bh_status, "ps_status": ps_status, "invoice": invoice, "lines": lines, "subtotal": subtotal, "tax": tax, "total": subtotal + tax, "parasut_vat_ready": parasut_vat_ready, "status_history": invoice.status_history.select_related("changed_by").order_by("-changed_at")[:10]})
 
 
 @login_required
@@ -1046,6 +1048,7 @@ def standalone_invoice_edit(request, invoice_id=None, proforma=False):
     from core.customer_models import CustomerDetail
     customer_details = {str(d.customer_id): {"address": d.fatura_adresi or d.adres, "phone": d.telefon, "email": d.email, "country": d.ulke, "contact": d.yetkili_kisi} for d in CustomerDetail.objects.all()}
     return render(request, "product_cards/standalone_invoice_edit.html", {
+        "company_profile": __import__("product_cards.invoice_models", fromlist=["CompanyInvoiceProfile"]).CompanyInvoiceProfile.objects.order_by("pk").first(),
         "invoice": invoice, "is_proforma": proforma, "customer_details": customer_details, "customers": Musteri.objects.order_by("ad"),
         "today": timezone.localdate(),
         "manual_lines": list(invoice.lines.order_by("pk")) if invoice else [],
@@ -1086,3 +1089,40 @@ def proforma_invoice_create(request):
 @login_required
 def proforma_invoice_detail(request, invoice_id):
     return standalone_invoice_edit(request, invoice_id=invoice_id, proforma=True)
+
+
+@login_required
+def company_invoice_profile_edit(request):
+    """Patron/mudur-only local invoice sender profile; never exported to external accounting."""
+    from .invoice_models import CompanyInvoiceProfile
+    if not _allowed(request.user):
+        return HttpResponseForbidden("Yetkiniz yok.")
+    fields = ("company_name", "address", "tax_office", "tax_number", "mersis_number",
+              "registry_number", "phone", "email", "iban")
+    profile = CompanyInvoiceProfile.objects.order_by("pk").first()
+    if request.method == "POST":
+        from django.core.validators import validate_email
+        from django.core.exceptions import ValidationError
+        values = {name: request.POST.get(name, "").strip() for name in fields}
+        if any(len(values[name]) > limit for name, limit in (
+            ("company_name", 250), ("tax_office", 120), ("tax_number", 30),
+            ("mersis_number", 40), ("registry_number", 50), ("phone", 50),
+            ("email", 254), ("iban", 60))) or len(values["address"]) > 2000:
+            messages.error(request, "Firma bilgisi alanlarından biri çok uzun.")
+        else:
+            try:
+                if values["email"]:
+                    validate_email(values["email"])
+            except ValidationError:
+                messages.error(request, "E-posta adresi geçersiz.")
+            else:
+                with transaction.atomic():
+                    profile, _ = CompanyInvoiceProfile.objects.select_for_update().get_or_create(pk=1)
+                    for name, value in values.items():
+                        setattr(profile, name, value)
+                    profile.save()
+                messages.success(request, "Firma bilgileri kaydedildi.")
+                return redirect("company_invoice_profile_edit")
+    return render(request, "product_cards/company_invoice_profile_edit.html", {"profile": profile})
+
+
