@@ -119,6 +119,7 @@
   <button class="main-menu-btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false"><i class="bi bi-calculator"></i><span>Muhasebe</span></button>
   <ul class="dropdown-menu">
     {% if user|is_management %}<li><a href="{% url 'invoice_list' %}" class="dropdown-item {% if request.resolver_match.url_name == 'invoice_list' or request.resolver_match.url_name == 'invoice_detail' %}active{% endif %}"><i class="bi bi-receipt"></i>Faturalar</a></li>{% endif %}
+    {% if user|is_management %}<li><a href="{% url 'uninvoiced_shipped_orders' %}" class="dropdown-item {% if request.resolver_match.url_name == 'uninvoiced_shipped_orders' %}active{% endif %}"><i class="bi bi-clipboard-check"></i>Faturaya Aktarılmayanlar</a></li>{% endif %}
     {% if user|is_management %}<li><a href="{% url 'salary_home' %}" class="dropdown-item {% if request.resolver_match.url_name == 'salary_home' or request.resolver_match.url_name == 'salary_dashboard' or request.resolver_match.url_name == 'salary_definitions' %}active{% endif %}"><i class="bi bi-wallet2"></i>Maaşlar</a></li>{% endif %}
   </ul>
 </div>
