@@ -397,6 +397,10 @@ def invoice_bizimhesap_send(request, invoice_id):
     if not _allowed(request.user):
         return HttpResponseForbidden("Yetkiniz yok.")
     from .bizimhesap_export_service import prepare_transfer, deliver_prepared_invoice, TransferBlocked
+    inv = get_object_or_404(InvoiceDraft, pk=invoice_id)
+    if inv.bizimhesap_manual_recorded or inv.bizimhesap_display_status in ("yes", "skip", "api"):
+        messages.error(request, "BizimHesap işlemi zaten kayıtlı veya aktarım kapalı.")
+        return redirect("invoice_detail", invoice_id=invoice_id)
     if os.environ.get("BIZIMHESAP_INVOICE_EXPORT_ENABLED") != "true":
         messages.error(request, "BizimHesap aktarımı kapalı.")
         return redirect("invoice_detail", invoice_id=invoice_id)
@@ -870,6 +874,10 @@ def invoice_parasut_send(request, invoice_id):
     if not _allowed(request.user):
         return HttpResponseForbidden("Yetkiniz yok.")
     from .parasut_export_service import send_sales_record, ParasutExportError
+    inv = get_object_or_404(InvoiceDraft, pk=invoice_id)
+    if inv.parasut_manual_recorded or inv.parasut_display_status in ("yes", "skip", "api"):
+        messages.error(request, "Paraşüt işlemi zaten kayıtlı veya aktarım kapalı.")
+        return redirect("invoice_detail", invoice_id=invoice_id)
     try:
         remote_id = send_sales_record(invoice_id)
     except ParasutExportError as exc:
