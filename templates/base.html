@@ -34,6 +34,13 @@
     .modal{z-index:20000!important}.modal-backdrop{z-index:19999!important}.select2-container,.select2-dropdown{z-index:5000!important}.modal .select2-container,.modal .select2-dropdown{z-index:20001!important}.select2-hidden-accessible{display:none!important;visibility:hidden!important}.navbar .container-fluid{flex-wrap:nowrap!important}table thead th{font-weight:600;font-size:12px;color:#64748b;letter-spacing:.4px;text-transform:uppercase}table tbody td{font-weight:500;color:#111827;font-size:14px;padding-top:16px!important;padding-bottom:16px!important}table tbody td:nth-child(2),table tbody td:nth-child(3),table tbody td:nth-child(4){font-weight:700;color:#0f172a}table a{color:#2563eb;font-weight:600;text-decoration:none}table a:hover{text-decoration:underline}table tbody tr{transition:.15s ease}table tbody tr:hover{background:#f4f7ff;box-shadow:inset 0 0 0 1px rgba(99,102,241,.18)}.badge,.btn-status{font-weight:700;border-radius:12px;padding:8px 12px}hr:has(+ h5 + div #adet_kesim),h5:has(+ div #adet_kesim),div:has(> div > #adet_kesim){display:none!important}
   </style>
   {% block extra_css %}{% endblock %}<script src="{% static 'vendor/htmx-1.9.10.min.js' %}"></script>
+<style>
+.stock-submenu-toggle{width:100%;border:0;background:transparent;text-align:left;font:inherit;cursor:pointer}
+.stock-submenu-chevron{font-size:11px;transition:transform .15s ease}
+.stock-submenu-toggle[aria-expanded="true"] .stock-submenu-chevron{transform:rotate(180deg)}
+#operations-stock-links[hidden]{display:none!important}
+#operations-stock-links .dropdown-item{padding-left:17px}
+</style>
 </head><body>
 {% if request.is_user_preview %}<div class="preview-bar"><span><i class="bi bi-eye"></i> {{ request.user.get_full_name|default:request.user.username }} olarak görüntülüyorsunuz</span><a href="{% url 'preview_user_exit' %}"><i class="bi bi-arrow-return-left"></i> Kendi hesabıma dön</a></div>{% endif %}
 <nav class="navbar app-navbar px-3 mb-0"><div class="container-fluid topbar-grid"><div class="topbar-center">
@@ -47,9 +54,18 @@
     {% if user|can:'can_manage_planning' %}<li><a href="{% url 'shipment_planning_page' %}" class="dropdown-item {% if request.resolver_match.url_name == 'planning_page' or request.resolver_match.url_name == 'shipment_planning_page' %}active{% endif %}"><i class="bi bi-calendar3"></i>Sevkiyat Planı</a></li>{% endif %}
     {% if user|can:'can_manage_planning' %}<li><a href="{% url 'serial_cutting_page' %}" class="dropdown-item"><i class="bi bi-scissors"></i>Seri Kesim Planı</a></li>{% endif %}
     {% if user|can:'can_view_assistant' %}<li><a href="{% url 'ai_assistant' %}" class="dropdown-item {% if request.resolver_match.url_name == 'ai_assistant' %}active{% endif %}"><i class="bi bi-robot"></i>Moli Asistan</a></li>{% endif %}
-    {% if user|can:'can_view_depots' or user|can_feature:'consignment.view' %}<li><hr class="dropdown-divider"></li><li><h6 class="dropdown-header"><i class="bi bi-box-seam me-1"></i>Stok &amp; Lojistik</h6></li>{% endif %}
-    {% if user|can:'can_view_depots' %}<li><a href="{% url 'depo_ozet' %}" class="dropdown-item {% if request.resolver_match.url_name == 'depo_ozet' %}active{% endif %}"><i class="bi bi-building"></i>Depolar</a></li>{% endif %}
-    {% if user|can_feature:'consignment.view' %}<li><a href="{% url 'consignment_list' %}" class="dropdown-item {% if request.resolver_match.url_name == 'consignment_list' %}active{% endif %}"><i class="bi bi-box-seam"></i>Konsinye Ürünler</a></li>{% endif %}
+    {% if user|can:'can_view_depots' or user|can_feature:'consignment.view' %}
+    <li><hr class="dropdown-divider"></li>
+    <li class="px-2">
+      <button type="button" class="dropdown-item d-flex align-items-center justify-content-between stock-submenu-toggle" aria-expanded="{% if request.resolver_match.url_name == 'depo_ozet' or request.resolver_match.url_name == 'consignment_list' %}true{% else %}false{% endif %}" aria-controls="operations-stock-links" onclick="event.stopPropagation();var box=document.getElementById('operations-stock-links');var expanded=this.getAttribute('aria-expanded')==='true';this.setAttribute('aria-expanded',expanded?'false':'true');box.hidden=expanded;">
+        <span><i class="bi bi-box-seam me-2"></i>Stok &amp; Lojistik</span><i class="bi bi-chevron-down stock-submenu-chevron"></i>
+      </button>
+      <ul id="operations-stock-links" class="list-unstyled ms-2 mb-1" {% if request.resolver_match.url_name != 'depo_ozet' and request.resolver_match.url_name != 'consignment_list' %}hidden{% endif %}>
+        {% if user|can:'can_view_depots' %}<li><a href="{% url 'depo_ozet' %}" class="dropdown-item {% if request.resolver_match.url_name == 'depo_ozet' %}active{% endif %}"><i class="bi bi-building"></i>Depolar</a></li>{% endif %}
+        {% if user|can_feature:'consignment.view' %}<li><a href="{% url 'consignment_list' %}" class="dropdown-item {% if request.resolver_match.url_name == 'consignment_list' %}active{% endif %}"><i class="bi bi-box-seam"></i>Konsinye Ürünler</a></li>{% endif %}
+      </ul>
+    </li>
+    {% endif %}
 </ul>
 </div>
 
