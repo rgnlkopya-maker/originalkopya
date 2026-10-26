@@ -121,6 +121,7 @@ class StandaloneInvoice(models.Model):
 
 
 class StandaloneInvoiceLine(models.Model):
+    order = models.OneToOneField("core.Order", null=True, blank=True, on_delete=models.PROTECT, related_name="standalone_invoice_line")
     invoice = models.ForeignKey(StandaloneInvoice, on_delete=models.CASCADE, related_name="lines")
     description = models.CharField(max_length=300)
     quantity = models.DecimalField(max_digits=12, decimal_places=2, default=1)
