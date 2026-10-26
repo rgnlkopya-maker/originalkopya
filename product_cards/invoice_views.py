@@ -1035,7 +1035,7 @@ def standalone_invoice_edit(request, invoice_id=None, proforma=False):
             try:
                 with transaction.atomic():
                     if invoice is None:
-                    invoice = StandaloneInvoice.objects.create(customer=customer, invoice_date=invoice_date, due_date=due_date, currency=currency, note=request.POST.get("note", "").strip(), created_by=request.user, is_proforma=proforma)
+                        invoice = StandaloneInvoice.objects.create(customer=customer, invoice_date=invoice_date, due_date=due_date, currency=currency, note=request.POST.get("note", "").strip(), created_by=request.user, is_proforma=proforma)
                     else:
                         invoice = StandaloneInvoice.objects.select_for_update().get(pk=invoice.pk)
                         if invoice.transfers.filter(status__in=("SENDING", "SENT", "UNKNOWN")).exists():
