@@ -155,3 +155,10 @@ class CompanyInvoiceProfile(models.Model):
     email = models.EmailField(blank=True, default="")
     iban = models.CharField(max_length=60, blank=True, default="")
     updated_at = models.DateTimeField(auto_now=True)
+
+
+class InvoiceFreeDelivery(models.Model):
+    order = models.OneToOneField("core.Order", on_delete=models.PROTECT, related_name="invoice_free_delivery")
+    explanation = models.TextField()
+    created_by = models.ForeignKey("auth.User", on_delete=models.SET_NULL, null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
