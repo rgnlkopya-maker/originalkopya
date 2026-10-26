@@ -1203,7 +1203,7 @@ def uninvoiced_shipped_orders(request):
                         last_value=Subquery(latest.values("value")[:1]),
                         normal_ft=Exists(ordinary), manual_ft=Exists(manual))
               .filter(last_stage="sevkiyat_durum", last_value="gonderildi",
-                      normal_ft=False, manual_ft=False)
+                      normal_ft=False, manual_ft=False, legacy_invoice_acknowledgement__isnull=True)
               .order_by("musteri__ad", "-id"))
     q = (request.GET.get("q") or "").strip()
     if q:
@@ -1279,6 +1279,10 @@ def order_invoice_finance_status(request, order_id):
     manual = StandaloneInvoiceLine.objects.filter(order_id=order_id, invoice__is_proforma=False).select_related("invoice").first()
     if manual:
         return JsonResponse({"type":"invoice","label":"FT-" + str(manual.invoice_id), "url": reverse("standalone_invoice_edit", args=[manual.invoice_id])})
+    from .invoice_models import LegacyInvoiceAcknowledgement
+    legacy = LegacyInvoiceAcknowledgement.objects.filter(order_id=order_id).first()
+    if legacy:
+        return JsonResponse({"type":"legacy","explanation":legacy.note})
     free = InvoiceFreeDelivery.objects.filter(order_id=order_id).first()
     if free:
         return JsonResponse({"type":"free","explanation":free.explanation})
