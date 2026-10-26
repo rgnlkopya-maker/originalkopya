@@ -29,6 +29,8 @@ def send_manual_invoice(invoice_id, platform):
         raise ManualTransferError("Bu muhasebe entegrasyonu kapalı.")
     with transaction.atomic():
         invoice = StandaloneInvoice.objects.select_for_update().select_related("customer").get(pk=invoice_id)
+        if invoice.is_proforma:
+            raise ManualTransferError("Proforma faturalar muhasebe sistemlerine aktarılamaz.")
         rows = list(invoice.lines.order_by("id"))
         if not rows:
             raise ManualTransferError("Boş fatura gönderilemez.")
