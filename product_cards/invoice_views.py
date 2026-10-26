@@ -88,6 +88,7 @@ def _invoice_list_impl(request):
     standalone_invoices = list(StandaloneInvoice.objects.filter(is_proforma=False).select_related("customer").prefetch_related("lines").order_by("-invoice_date", "-id")[:200])
     proforma_invoices = list(StandaloneInvoice.objects.filter(is_proforma=True).select_related("customer").prefetch_related("lines").order_by("-invoice_date", "-id")[:200])
     for draft in standalone_invoices:
+        draft.has_locked_transfer = any(t.status != "NOT_SENT" or bool(t.external_invoice_id) for t in draft.transfers.all())
         statuses = {t.platform: t.status for t in draft.transfers.all()}
         draft.bh_display = "api" if statuses.get("bizimhesap") == "SENT" else "no"
         draft.parasut_display = "api" if statuses.get("parasut") == "SENT" else "no"
