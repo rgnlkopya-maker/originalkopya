@@ -69,10 +69,11 @@ def _invoice_list_impl(request):
         invoice.list_total = sum((line.price * (Decimal("1") + line.vat_rate / Decimal("100")) for line in invoice.lines.all()), Decimal("0"))
         invoice.visible_official_number = invoice.official_number
     from .invoice_models import StandaloneInvoice
-    standalone_invoices = list(StandaloneInvoice.objects.select_related("customer").prefetch_related("lines").order_by("-invoice_date", "-id")[:200])
-    for draft in standalone_invoices:
+    standalone_invoices = list(StandaloneInvoice.objects.filter(is_proforma=False).select_related("customer").prefetch_related("lines").order_by("-invoice_date", "-id")[:200])
+    proforma_invoices = list(StandaloneInvoice.objects.filter(is_proforma=True).select_related("customer").prefetch_related("lines").order_by("-invoice_date", "-id")[:200])
+    for draft in standalone_invoices + proforma_invoices:
         draft.list_total = sum((item.quantity * item.unit_price * (Decimal("1") + item.vat_rate / Decimal("100")) for item in draft.lines.all()), Decimal("0"))
-    return render(request, "product_cards/invoice_list.html", {"standalone_invoices": standalone_invoices, "invoices": invoices, "invoice_customers": Musteri.objects.filter(pk__in={invoice.customer_id for invoice in invoices}).order_by("ad"), "accounting_status_choices": [("no", "İşlenmedi"), ("yes", "Elle İşlendi"), ("api", "API ile Aktarıldı"), ("skip", "Aktarılmayacak")]})
+    return render(request, "product_cards/invoice_list.html", {"standalone_invoices": standalone_invoices, "proforma_invoices": proforma_invoices, "invoices": invoices, "invoice_customers": Musteri.objects.filter(pk__in={invoice.customer_id for invoice in invoices}).order_by("ad"), "accounting_status_choices": [("no", "İşlenmedi"), ("yes", "Elle İşlendi"), ("api", "API ile Aktarıldı"), ("skip", "Aktarılmayacak")]})
 
 
 @login_required
@@ -970,18 +971,18 @@ def invoice_parasut_oauth_connect(request):
 
 
 @login_required
-def standalone_invoice_edit(request, invoice_id=None):
+def standalone_invoice_edit(request, invoice_id=None, proforma=False):
     """Edit manually created invoice without creating a production order."""
     from .invoice_models import StandaloneInvoice, StandaloneInvoiceLine
     from decimal import Decimal, InvalidOperation
     if not _allowed(request.user):
         return HttpResponseForbidden("Yetkiniz yok.")
-    invoice = get_object_or_404(StandaloneInvoice, pk=invoice_id) if invoice_id else None
+    invoice = get_object_or_404(StandaloneInvoice, pk=invoice_id, is_proforma=proforma) if invoice_id else None
     if request.method == "POST":
         from .invoice_models import StandaloneInvoiceTransfer
         if invoice and StandaloneInvoiceTransfer.objects.filter(invoice=invoice, status__in=("SENDING", "UNKNOWN")).exists():
             messages.error(request, "Aktarım sonucu belirsiz olan fatura düzenlenemez.")
-            return redirect("standalone_invoice_edit", invoice_id=invoice.pk)
+            return redirect("proforma_invoice_edit" if proforma else "standalone_invoice_edit", invoice_id=invoice.pk)
         try:
             customer = Musteri.objects.get(pk=int(request.POST.get("customer", "")))
             currency = request.POST.get("currency", "")
@@ -1011,7 +1012,7 @@ def standalone_invoice_edit(request, invoice_id=None):
         else:
             with transaction.atomic():
                 if invoice is None:
-                    invoice = StandaloneInvoice.objects.create(customer=customer, invoice_date=invoice_date, due_date=due_date, currency=currency, note=request.POST.get("note", "").strip(), created_by=request.user)
+                    invoice = StandaloneInvoice.objects.create(customer=customer, invoice_date=invoice_date, due_date=due_date, currency=currency, note=request.POST.get("note", "").strip(), created_by=request.user, is_proforma=proforma)
                 else:
                     invoice.customer = customer
                     invoice.invoice_date = invoice_date
@@ -1027,7 +1028,7 @@ def standalone_invoice_edit(request, invoice_id=None):
             messages.success(request, "Fatura taslağı kaydedildi.")
             return redirect("standalone_invoice_edit", invoice_id=invoice.pk)
     return render(request, "product_cards/standalone_invoice_edit.html", {
-        "invoice": invoice, "customers": Musteri.objects.order_by("ad"),
+        "invoice": invoice, "is_proforma": proforma, "customers": Musteri.objects.order_by("ad"),
         "today": timezone.localdate(),
         "manual_lines": list(invoice.lines.order_by("pk")) if invoice else [],
         "manual_transfers": {item.platform: item.status for item in invoice.transfers.all()} if invoice else {},
@@ -1044,6 +1045,9 @@ def standalone_invoice_send(request, invoice_id, platform):
     if not _allowed(request.user):
         return HttpResponseForbidden("Yetkiniz yok.")
     from .standalone_invoice_export import send_manual_invoice, ManualTransferError
+    from .invoice_models import StandaloneInvoice
+    if get_object_or_404(StandaloneInvoice, pk=invoice_id).is_proforma:
+        return HttpResponseForbidden("Proforma faturalar dış sistemlere aktarılamaz.")
     try:
         send_manual_invoice(invoice_id, platform)
     except ManualTransferError as exc:
