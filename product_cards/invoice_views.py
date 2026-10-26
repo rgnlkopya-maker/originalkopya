@@ -1013,10 +1013,11 @@ def standalone_invoice_edit(request, invoice_id=None, proforma=False):
             units = request.POST.getlist("unit")
             prices = request.POST.getlist("unit_price")
             vats = request.POST.getlist("vat_rate")
-            if not descriptions or not all(len(v) == len(descriptions) for v in (quantities, units, prices, vats)):
+            order_ids = request.POST.getlist("order_id")
+            if not descriptions or not all(len(v) == len(descriptions) for v in (quantities, units, prices, vats, order_ids)):
                 raise ValueError("Fatura kalemleri eksik.")
             items = []
-            for desc, quantity, unit, price, vat in zip(descriptions, quantities, units, prices, vats):
+            for desc, quantity, unit, price, vat, order_id in zip(descriptions, quantities, units, prices, vats, order_ids):
                 if not desc.strip():
                     raise ValueError("Ürün / hizmet adı boş olamaz.")
                 qty, amount, tax = (Decimal(v.replace(",", ".")) for v in (quantity, price, vat))
@@ -1024,25 +1025,47 @@ def standalone_invoice_edit(request, invoice_id=None, proforma=False):
                     raise ValueError("Miktar, fiyat veya KDV geçersiz.")
                 if not unit.strip():
                     raise ValueError("Birim boş olamaz.")
-                items.append((desc.strip(), qty, unit.strip(), amount, tax))
+                items.append((desc.strip(), qty, unit.strip(), amount, tax, int(order_id) if order_id else None))
+            selected_ids = [item[5] for item in items if item[5]]
+            if len(selected_ids) != len(set(selected_ids)) or (proforma and selected_ids):
+                raise ValueError("Sipariş tekrar ediyor veya proformaya bağlı sipariş eklenemez.")
         except (ValueError, TypeError, InvalidOperation, Musteri.DoesNotExist) as exc:
             messages.error(request, "Fatura kaydedilemedi: " + str(exc))
         else:
-            with transaction.atomic():
-                if invoice is None:
+            try:
+                with transaction.atomic():
+                    if invoice is None:
                     invoice = StandaloneInvoice.objects.create(customer=customer, invoice_date=invoice_date, due_date=due_date, currency=currency, note=request.POST.get("note", "").strip(), created_by=request.user, is_proforma=proforma)
-                else:
-                    invoice.customer = customer
-                    invoice.invoice_date = invoice_date
-                    invoice.due_date = due_date
-                    invoice.currency = currency
-                    invoice.note = request.POST.get("note", "").strip()
-                    invoice.save(update_fields=["customer", "invoice_date", "due_date", "currency", "note"])
+                    else:
+                        invoice = StandaloneInvoice.objects.select_for_update().get(pk=invoice.pk)
+                        if invoice.transfers.filter(status__in=("SENDING", "SENT", "UNKNOWN")).exists():
+                            raise ValueError("Muhasebeye aktarılmış fatura değiştirilemez.")
+                        invoice.customer = customer
+                        invoice.invoice_date = invoice_date
+                        invoice.due_date = due_date
+                        invoice.currency = currency
+                        invoice.note = request.POST.get("note", "").strip()
+                        invoice.save(update_fields=["customer", "invoice_date", "due_date", "currency", "note"])
+                    existing_orders = set(invoice.lines.exclude(order_id__isnull=True).values_list("order_id", flat=True))
+                    new_orders = set(selected_ids)
+                    chosen = list(Order.objects.select_for_update().filter(pk__in=new_orders, musteri=customer))
+                    if len(chosen) != len(new_orders) or any((o.para_birimi or "TRY") != currency for o in chosen):
+                        raise ValueError("Seçilen sipariş müşteri veya para birimiyle uyuşmuyor.")
+                    if InvoiceLine.objects.filter(order_id__in=new_orders).exists() or ShipmentPlan.objects.filter(order_id__in=new_orders - existing_orders).exists() or StandaloneInvoiceLine.objects.filter(order_id__in=new_orders).exclude(invoice=invoice).exists():
+                        raise ValueError("Sipariş başka bir faturada veya sevkiyat planında kayıtlı.")
+                    removed = existing_orders - new_orders
                     invoice.lines.all().delete()
-                StandaloneInvoiceLine.objects.bulk_create([
-                    StandaloneInvoiceLine(invoice=invoice, description=d, quantity=q, unit=u, unit_price=p, vat_rate=v)
-                    for d, q, u, p, v in items
-                ])
+                    ShipmentPlan.objects.filter(order_id__in=removed).delete()
+                    StandaloneInvoiceLine.objects.bulk_create([
+                        StandaloneInvoiceLine(invoice=invoice, description=d, quantity=q, unit=u, unit_price=p, vat_rate=v, order_id=oid)
+                        for d, q, u, p, v, oid in items
+                    ])
+                    for oid in new_orders - existing_orders:
+                        ShipmentPlan.objects.create(order_id=oid, planned_date=invoice_date, created_by=request.user)
+                    ShipmentPlan.objects.filter(order_id__in=new_orders).update(planned_date=invoice_date)
+            except (ValueError, IntegrityError) as exc:
+                messages.error(request, "Fatura kaydedilemedi: " + str(exc))
+                return redirect("standalone_invoice_edit", invoice_id=invoice.pk) if invoice else redirect("standalone_invoice_create")
             messages.success(request, "Fatura taslağı kaydedildi.")
             return redirect("proforma_invoice_edit" if proforma else "standalone_invoice_edit", invoice_id=invoice.pk)
     from core.customer_models import CustomerDetail
