@@ -1046,7 +1046,7 @@ def standalone_invoice_edit(request, invoice_id=None, proforma=False):
             messages.success(request, "Fatura taslağı kaydedildi.")
             return redirect("proforma_invoice_edit" if proforma else "standalone_invoice_edit", invoice_id=invoice.pk)
     from core.customer_models import CustomerDetail
-    customer_details = {str(d.customer_id): {"address": d.fatura_adresi or d.adres, "delivery_address": d.teslimat_adresi, "phone": d.telefon, "phone2": d.telefon_2, "email": d.email, "country": d.ulke, "contact": d.yetkili_kisi, "legal_name": d.resmi_unvan, "tax_office": d.vergi_dairesi, "tax_number": d.vergi_numarasi, "mersis": d.mersis_no, "registry": d.ticaret_sicil_no, "postal": d.posta_kodu} for d in CustomerDetail.objects.all()}
+    customer_details = {str(d.customer_id): {"address": d.fatura_adresi or d.adres, "delivery_address": d.teslimat_adresi, "export_company": d.dis_ticaret_firmasi, "phone": d.telefon, "phone2": d.telefon_2, "email": d.email, "country": d.ulke, "contact": d.yetkili_kisi, "legal_name": d.resmi_unvan, "tax_office": d.vergi_dairesi, "tax_number": d.vergi_numarasi, "mersis": d.mersis_no, "registry": d.ticaret_sicil_no, "postal": d.posta_kodu} for d in CustomerDetail.objects.all()}
     return render(request, "product_cards/standalone_invoice_edit.html", {
         "company_profile": __import__("product_cards.invoice_models", fromlist=["CompanyInvoiceProfile"]).CompanyInvoiceProfile.objects.order_by("pk").first(),
         "invoice": invoice, "is_proforma": proforma, "customer_details": customer_details, "customers": Musteri.objects.order_by("ad"),
