@@ -1026,9 +1026,11 @@ def standalone_invoice_edit(request, invoice_id=None, proforma=False):
                     for d, q, u, p, v in items
                 ])
             messages.success(request, "Fatura taslağı kaydedildi.")
-            return redirect("standalone_invoice_edit", invoice_id=invoice.pk)
+            return redirect("proforma_invoice_edit" if proforma else "standalone_invoice_edit", invoice_id=invoice.pk)
+    from core.customer_models import CustomerDetail
+    customer_details = {str(d.customer_id): {"address": d.fatura_adresi or d.adres, "phone": d.telefon, "email": d.email, "country": d.ulke, "contact": d.yetkili_kisi} for d in CustomerDetail.objects.all()}
     return render(request, "product_cards/standalone_invoice_edit.html", {
-        "invoice": invoice, "is_proforma": proforma, "customers": Musteri.objects.order_by("ad"),
+        "invoice": invoice, "is_proforma": proforma, "customer_details_json": __import__("json").dumps(customer_details, ensure_ascii=False), "customers": Musteri.objects.order_by("ad"),
         "today": timezone.localdate(),
         "manual_lines": list(invoice.lines.order_by("pk")) if invoice else [],
         "manual_transfers": {item.platform: item.status for item in invoice.transfers.all()} if invoice else {},
