@@ -1049,7 +1049,9 @@ def standalone_invoice_edit(request, invoice_id=None, proforma=False):
                     existing_orders = set(invoice.lines.exclude(order_id__isnull=True).values_list("order_id", flat=True))
                     new_orders = set(selected_ids)
                     chosen = list(Order.objects.select_for_update().filter(pk__in=new_orders, musteri=customer))
-                    if len(chosen) != len(new_orders) or any((o.para_birimi or "TRY") != currency for o in chosen):
+                    if new_orders and invoice_date.weekday() >= 5:
+                    raise ValueError("Sevkiyat planına aktarılacak siparişler için hafta içi tarih seçin.")
+                if len(chosen) != len(new_orders) or any((o.para_birimi or "TRY") != currency for o in chosen):
                         raise ValueError("Seçilen sipariş müşteri veya para birimiyle uyuşmuyor.")
                     if InvoiceLine.objects.filter(order_id__in=new_orders).exists() or ShipmentPlan.objects.filter(order_id__in=new_orders - existing_orders).exists() or StandaloneInvoiceLine.objects.filter(order_id__in=new_orders).exclude(invoice=invoice).exists():
                         raise ValueError("Sipariş başka bir faturada veya sevkiyat planında kayıtlı.")
