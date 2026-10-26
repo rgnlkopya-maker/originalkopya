@@ -6,6 +6,7 @@ urlpatterns = [
     path("akilli-kalip/ana-kalip/kaydet/", smart_pattern_views.smart_pattern_master_save, name="smart_pattern_master_save"),
     path("akilli-kalip/siparis/<int:order_id>/", smart_pattern_views.smart_pattern_order, name="smart_pattern_order"),
     path("firma-bilgileri/", invoice_views.company_invoice_profile_edit, name="company_invoice_profile_edit"),
+    path("faturalar/aktarilmayan-sevkler/<int:order_id>/faturasiz-teslim/", invoice_views.invoice_free_delivery_decision, name="invoice_free_delivery_decision"),
     path("faturalar/aktarilmayan-sevkler/", invoice_views.uninvoiced_shipped_orders, name="uninvoiced_shipped_orders"),
     path("faturalar/", invoice_views.invoice_list, name="invoice_list"),
     path("faturalar/proforma/olustur/", invoice_views.proforma_invoice_create, name="proforma_invoice_create"),
