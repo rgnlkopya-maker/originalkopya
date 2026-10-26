@@ -162,3 +162,9 @@ class InvoiceFreeDelivery(models.Model):
     explanation = models.TextField()
     created_by = models.ForeignKey("auth.User", on_delete=models.SET_NULL, null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
+
+
+class LegacyInvoiceAcknowledgement(models.Model):
+    order = models.OneToOneField("core.Order", on_delete=models.PROTECT, related_name="legacy_invoice_acknowledgement")
+    note = models.TextField(default="Geçmiş dönemde faturaya bağlandığı bildirildi; MoliApp içinde FT bağlantısı bulunmuyor.")
+    recorded_at = models.DateTimeField(auto_now_add=True)
