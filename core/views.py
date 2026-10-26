@@ -3109,13 +3109,25 @@ def dashboard_view(request):
     # =========================================================
     period = request.GET.get("period", "week")
 
-    today = timezone.now().date()
-
-    if period == "today":
+    today = timezone.localdate()
+    end_date = today
+    if period == "custom":
+        from datetime import date
+        try:
+            start_date = date.fromisoformat(request.GET.get("start", ""))
+            end_date = date.fromisoformat(request.GET.get("end", ""))
+            if start_date > end_date or (end_date - start_date).days > 366:
+                raise ValueError("Invalid date range")
+        except (TypeError, ValueError):
+            period = "week"
+            start_date = today - timedelta(days=7)
+            end_date = today
+    elif period == "today":
         start_date = today
     elif period == "month":
         start_date = today - timedelta(days=30)
     else:
+        period = "week"
         start_date = today - timedelta(days=7)
 
     # =========================================================
@@ -3129,16 +3141,16 @@ def dashboard_view(request):
     # =========================================================
     # 3) ÖZET (Seçilen period’e göre)
     # =========================================================
-    son7_yeni = Order.objects.filter(siparis_tarihi__gte=start_date).count()
+    son7_yeni = Order.objects.filter(siparis_tarihi__range=(start_date, end_date)).count()
 
     son7_sevk = Order.objects.filter(
         sevkiyat_durum="gonderildi",
-        siparis_tarihi__gte=start_date
+        siparis_tarihi__range=(start_date, end_date)
     ).count()
 
     son7_uretim = (
         Order.objects
-        .filter(is_active=True, siparis_tarihi__gte=start_date)
+        .filter(is_active=True, siparis_tarihi__range=(start_date, end_date))
         .exclude(sevkiyat_durum="gonderildi")
         .count()
     )
@@ -3148,7 +3160,7 @@ def dashboard_view(request):
     # =========================================================
     top_musteriler = (
         Order.objects
-        .filter(siparis_tarihi__gte=start_date, is_active=True)
+        .filter(siparis_tarihi__range=(start_date, end_date), is_active=True)
         .exclude(musteri__isnull=True)
         .values("musteri__ad")
         .annotate(total=Count("id"))
@@ -3157,7 +3169,7 @@ def dashboard_view(request):
 
     top_urunler = (
         Order.objects
-        .filter(siparis_tarihi__gte=start_date, is_active=True)
+        .filter(siparis_tarihi__range=(start_date, end_date), is_active=True)
         .exclude(urun_kodu__isnull=True)
         .exclude(urun_kodu__exact="")
         .values("urun_kodu")
@@ -3179,7 +3191,7 @@ def dashboard_view(request):
     # 5.1 Sipariş Trend (Gün Gün)  ✅ DateField ise __date KULLANMA
     siparis_dates = (
         Order.objects
-        .filter(siparis_tarihi__gte=start_date, is_active=True)  # ✅ düzeltildi
+        .filter(siparis_tarihi__range=(start_date, end_date), is_active=True)  # ✅ düzeltildi
         .values_list("siparis_tarihi", flat=True)
     )
 
@@ -3195,7 +3207,7 @@ def dashboard_view(request):
     siparis_trend_values = []
 
     d = start_date
-    while d <= today:
+    while d <= end_date:
         siparis_trend_labels.append(d.strftime("%d.%m"))
         siparis_trend_values.append(int(siparis_counts.get(d, 0)))
         d += timedelta(days=1)
@@ -3212,7 +3224,7 @@ def dashboard_view(request):
             is_active=True,
             sevkiyat_durum="gonderildi",
             sevkiyat_tarihi__isnull=False,
-            sevkiyat_tarihi__date__gte=start_date
+            sevkiyat_tarihi__date__range=(start_date, end_date)
         )
         .values_list("sevkiyat_tarihi", flat=True)
     )
@@ -3226,7 +3238,7 @@ def dashboard_view(request):
     # 2) sevkiyat_tarihi boş kalanlar için OrderEvent'ten türet
     sevk_event_dates = (
         OrderEvent.objects
-        .filter(stage="sevkiyat_durum", value="gonderildi", timestamp__date__gte=start_date)
+        .filter(stage="sevkiyat_durum", value="gonderildi", timestamp__date__range=(start_date, end_date))
         .values_list("timestamp", flat=True)
     )
 
@@ -3243,7 +3255,7 @@ def dashboard_view(request):
     sevkiyat_trend_labels = []
     sevkiyat_trend_values = []
     d = start_date
-    while d <= today:
+    while d <= end_date:
         sevkiyat_trend_labels.append(d.strftime("%d.%m"))
         sevkiyat_trend_values.append(int(sevk_counts.get(d, 0)))
         d += timedelta(days=1)
@@ -3251,7 +3263,7 @@ def dashboard_view(request):
     # 5.3 Kâr Trend ✅ DateField ise __date KULLANMA
     kar_rows = (
         Order.objects
-        .filter(siparis_tarihi__gte=start_date, is_active=True)  # ✅ düzeltildi
+        .filter(siparis_tarihi__range=(start_date, end_date), is_active=True)  # ✅ düzeltildi
         .values_list("siparis_tarihi", "satis_fiyati", "maliyet_uygulanan", "ekstra_maliyet")
     )
 
@@ -3273,7 +3285,7 @@ def dashboard_view(request):
     kar_trend_values = []
 
     d = start_date
-    while d <= today:
+    while d <= end_date:
         kar_trend_labels.append(d.strftime("%d.%m"))
         kar_trend_values.append(float(kar_map.get(d, 0)))
         d += timedelta(days=1)
@@ -3285,7 +3297,7 @@ def dashboard_view(request):
     # 6.1 Top 10 personel
     top_personel_qs = (
         OrderEvent.objects
-        .filter(timestamp__date__gte=start_date, event_type="stage")
+        .filter(timestamp__date__range=(start_date, end_date), event_type="stage")
         .values("user")
         .annotate(cnt=Count("id"))
         .order_by("-cnt")[:10]
@@ -3306,7 +3318,7 @@ def dashboard_view(request):
 
     stack_qs = (
         OrderEvent.objects
-        .filter(timestamp__date__gte=start_date, event_type="stage")
+        .filter(timestamp__date__range=(start_date, end_date), event_type="stage")
         .annotate(stage_group=stage_label)
         .values("user", "stage_group")
         .annotate(cnt=Count("id"))
@@ -3330,7 +3342,7 @@ def dashboard_view(request):
     # ---------------------------------------------------------
     heat_events = (
         OrderEvent.objects
-        .filter(timestamp__date__gte=start_date, event_type="stage")
+        .filter(timestamp__date__range=(start_date, end_date), event_type="stage")
         .values_list("timestamp", flat=True)
     )
 
@@ -3365,7 +3377,7 @@ def dashboard_view(request):
     # =========================================================
     musteri_top_qs = (
         Order.objects
-        .filter(siparis_tarihi__gte=start_date, is_active=True, musteri__isnull=False)
+        .filter(siparis_tarihi__range=(start_date, end_date), is_active=True, musteri__isnull=False)
         .values("musteri__ad")
         .annotate(cnt=Count("id"))
         .order_by("-cnt")[:5]
@@ -3375,7 +3387,7 @@ def dashboard_view(request):
 
     musteri_ciro_qs = (
         Order.objects
-        .filter(siparis_tarihi__gte=start_date, is_active=True, musteri__isnull=False)
+        .filter(siparis_tarihi__range=(start_date, end_date), is_active=True, musteri__isnull=False)
         .values("musteri__ad")
         .annotate(
             ciro=Sum(
@@ -3394,7 +3406,7 @@ def dashboard_view(request):
     # =========================================================
     urun_top_qs = (
         Order.objects
-        .filter(siparis_tarihi__gte=start_date, is_active=True)
+        .filter(siparis_tarihi__range=(start_date, end_date), is_active=True)
         .exclude(urun_kodu__isnull=True)
         .exclude(urun_kodu__exact="")
         .values("urun_kodu")
@@ -3416,7 +3428,7 @@ def dashboard_view(request):
 
     urun_kar_qs = (
         Order.objects
-        .filter(siparis_tarihi__gte=start_date, is_active=True)
+        .filter(siparis_tarihi__range=(start_date, end_date), is_active=True)
         .exclude(urun_kodu__isnull=True)
         .exclude(urun_kodu__exact="")
         .values("urun_kodu")
@@ -3431,6 +3443,8 @@ def dashboard_view(request):
     # =========================================================
     context = {
         "period": period,
+        "dashboard_start": start_date.isoformat(),
+        "dashboard_end": end_date.isoformat(),
 
         "toplam_siparis": toplam_siparis,
         "aktif_siparis": aktif_siparis,
