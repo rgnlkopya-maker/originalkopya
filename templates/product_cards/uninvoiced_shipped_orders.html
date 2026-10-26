@@ -22,16 +22,20 @@
 .uninv-table .sub{color:#718096;font-size:11px;margin-top:3px}
 .uninv-note{color:#64748b;font-size:12px;margin-top:12px}
 @media(max-width:760px){.uninv-page{padding:16px 12px}.uninv-stats{gap:8px}.uninv-stat{padding:12px}.uninv-stat-value{font-size:20px}}
+
+.uninv-tabs{display:flex;gap:8px;margin:0 0 15px}.uninv-tabs a{padding:10px 16px;border-radius:10px;background:#f6f9ff;color:#38618f;text-decoration:none;font-weight:700;border:1px solid #dae4f4}.uninv-tabs a.active{background:#2447a4;color:white;border-color:#2447a4}.decision-btn{border:1px solid #9ebfff;background:#f6f9ff;color:#0750ca;padding:7px 9px;border-radius:8px;font-weight:650;font-size:11px}.decision-dialog{border:1px solid #dbe4f1;border-radius:15px;padding:22px;width:min(95vw,490px);box-shadow:0 20px 60px #15234044}.decision-dialog::backdrop{background:#101c2a99}.decision-dialog textarea{width:100%;padding:10px;border:1px solid #dbe4f1;border-radius:8px;min-height:105px;margin:8px 0 15px}
 </style>
 <div class="uninv-page">
- <div class="uninv-head"><div><h2>Faturaya Aktarılmayanlar</h2><p>Son durumu Sevk Edildi olan ve normal / manuel hiçbir faturaya bağlı bulunmayan siparişler. Proformalar hariçtir.</p></div><a href="{% url 'invoice_list' %}"><i class="bi bi-arrow-left"></i> Faturalar Listesi</a></div>
+ <div class="uninv-head"><div><h2>Faturaya Aktarılmayanlar</h2><p>Sevk edilmiş ve normal / manuel FT’ye alınmamış siparişlerin kontrolü. Proformalar hariçtir.</p></div><a href="{% url 'invoice_list' %}"><i class="bi bi-arrow-left"></i> Faturalar Listesi</a></div>
+ <div class="uninv-tabs"><a class="{% if tab == 'pending' %}active{% endif %}" href="{% url 'uninvoiced_shipped_orders' %}">Fatura Bekleyenler</a><a class="{% if tab == 'delivered' %}active{% endif %}" href="{% url 'uninvoiced_shipped_orders' %}?tab=delivered">Faturasız Teslim Edilenler</a></div>
+ {% if messages %}{% for message in messages %}<div class="alert {% if 'error' in message.tags %}alert-danger{% else %}alert-success{% endif %}">{{ message }}</div>{% endfor %}{% endif %}
  <div class="uninv-stats">
   <div class="uninv-stat"><div class="uninv-stat-label">Faturasız sevk edilmiş sipariş</div><div class="uninv-stat-value">{{ order_count }}</div></div>
   <div class="uninv-stat"><div class="uninv-stat-label">Toplam ürün adedi</div><div class="uninv-stat-value">{{ total_qty }}</div></div>
   <div class="uninv-stat"><div class="uninv-stat-label">Satış tutarı (para birimi bazında)</div><div style="font-size:17px;font-weight:750">{% for currency,amount in totals %}<div>{{ amount|floatformat:2 }} {{ currency }}</div>{% empty %}—{% endfor %}</div></div>
  </div>
- <form method="get" class="uninv-filters"><input name="q" value="{{ search }}" placeholder="Müşteri, sipariş no, ürün kodu, renk, beden, referans veya açıklama" aria-label="Sipariş ara"><button type="submit"><i class="bi bi-search"></i> Ara</button>{% if search %}<a href="{% url 'uninvoiced_shipped_orders' %}" style="align-self:center;color:#0750ca">Temizle</a>{% endif %}</form>
- <div class="uninv-card"><table class="uninv-table"><thead><tr><th>Müşteri</th><th>Sipariş</th><th>Ürün Kodu</th><th>Renk / Beden</th><th>Adet</th><th>Müşteri Referansı</th><th>Açıklama</th><th>Satış Fiyatı</th><th>Sevkiyat</th></tr></thead><tbody>
+ <form method="get" class="uninv-filters"><input type="hidden" name="tab" value="{{ tab }}"><input name="q" value="{{ search }}" placeholder="Müşteri, sipariş no, ürün kodu, renk, beden, referans veya açıklama" aria-label="Sipariş ara"><button type="submit"><i class="bi bi-search"></i> Ara</button>{% if search %}<a href="{% url 'uninvoiced_shipped_orders' %}" style="align-self:center;color:#0750ca">Temizle</a>{% endif %}</form>
+ <div class="uninv-card"><table class="uninv-table"><thead><tr><th>Müşteri</th><th>Sipariş</th><th>Ürün Kodu</th><th>Renk / Beden</th><th>Adet</th><th>Müşteri Referansı</th><th>Açıklama</th><th>Satış Fiyatı</th><th>Sevkiyat</th><th>İşlem</th></tr></thead><tbody>
  {% for o in orders %}<tr>
  <td><strong>{{ o.musteri.ad|default:"—" }}</strong></td>
  <td><a href="{% url 'order_detail' o.id %}">{{ o.siparis_numarasi|default:o.id }}</a></td>
@@ -41,9 +45,11 @@
  <td>{{ o.musteri_referans|default:"—" }}</td>
  <td style="max-width:270px;white-space:pre-wrap">{{ o.aciklama|default:"—" }}</td>
  <td style="white-space:nowrap">{{ o.satis_fiyati|floatformat:2 }} {{ o.para_birimi|default:"TRY" }}</td>
- <td><span style="color:#166534;font-weight:750">Sevk Edildi</span></td>
- </tr>{% empty %}<tr><td colspan="9" style="padding:30px;text-align:center;color:#64748b">Bu koşullara uygun sipariş bulunamadı.</td></tr>{% endfor %}
+ <td><span style="color:#166534;font-weight:750">Sevk Edildi</span></td><td>{% if tab == "delivered" %}<div style="max-width:230px;white-space:pre-wrap">{{ o.invoice_free_delivery.explanation }}</div><div class="sub">{{ o.invoice_free_delivery.created_by|default:"—" }} · {{ o.invoice_free_delivery.created_at|date:"d.m.Y H:i" }}</div><form method="post" action="{% url 'invoice_free_delivery_decision' o.id %}" onsubmit="return confirm('Faturasız teslim kararı geri alınsın mı?')">{% csrf_token %}<input type="hidden" name="action" value="undo"><button class="decision-btn" type="submit">Geri Al</button></form>{% else %}<button type="button" class="decision-btn" data-order="{{ o.id }}" data-label="{{ o.siparis_numarasi }}" onclick="openInvoiceFreeDelivery(this)">Faturasız Teslim Edildi</button>{% endif %}</td>
+ </tr>{% empty %}<tr><td colspan="10" style="padding:30px;text-align:center;color:#64748b">Bu koşullara uygun sipariş bulunamadı.</td></tr>{% endfor %}
  </tbody></table></div>
- <p class="uninv-note">Bu sayfa her açılışta güncel sipariş hareketlerini ve fatura bağlantılarını yeniden kontrol eder. Buradan hiçbir sipariş veya fatura değiştirilmez.</p>
+ <p class="uninv-note">Liste, her açılışta güncel sipariş durumuna ve normal / manuel FT bağlantılarına göre yenilenir. Faturasız teslim kaydı resmî fatura değildir.</p>
+ <dialog id="invoiceFreeDialog" class="decision-dialog"><h4 style="font-weight:750">Faturasız Teslim Edildi</h4><p style="color:#64748b;font-size:13px" id="invoiceFreeTitle"></p><form method="post" id="invoiceFreeForm">{% csrf_token %}<input type="hidden" name="action" value="save"><label for="invoiceFreeNote" style="font-weight:650">Açıklama (zorunlu)</label><textarea id="invoiceFreeNote" name="explanation" required maxlength="2000" placeholder="Müşteriyle yapılan anlaşma / teslim açıklaması"></textarea><div style="display:flex;justify-content:end;gap:8px"><button type="button" class="decision-btn" onclick="document.getElementById('invoiceFreeDialog').close()">Vazgeç</button><button class="btn btn-primary" type="submit">Kaydet</button></div></form></dialog>
+ <script>function openInvoiceFreeDelivery(btn){const dialog=document.getElementById("invoiceFreeDialog");document.getElementById("invoiceFreeForm").action="{% url 'uninvoiced_shipped_orders' %}"+btn.dataset.order+"/faturasiz-teslim/";document.getElementById("invoiceFreeTitle").textContent="Sipariş: "+btn.dataset.label;document.getElementById("invoiceFreeNote").value="";dialog.showModal();}</script>
 </div>
 {% endblock %}
