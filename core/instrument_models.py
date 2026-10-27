@@ -49,3 +49,14 @@ class InstrumentMovement(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     class Meta:
         ordering = ["-created_at", "-id"]
+
+
+class InstrumentPhoto(models.Model):
+    instrument = models.ForeignKey(NegotiableInstrument, on_delete=models.CASCADE, related_name="photos")
+    side = models.CharField(max_length=5, choices=[("FRONT","Ön"),("BACK","Arka")])
+    storage_path = models.CharField(max_length=450)
+    original_name = models.CharField(max_length=255, blank=True, default="")
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [models.UniqueConstraint(fields=["instrument","side"], name="unique_instrument_photo_side")]
