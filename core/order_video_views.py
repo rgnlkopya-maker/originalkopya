@@ -18,6 +18,32 @@ def _can_edit(user):
     return user.is_superuser or user.groups.filter(name__in=["patron", "mudur"]).exists()
 
 
+def save_order_video(order, uploaded):
+    """Validate and save an order video after its order is persisted."""
+    if not uploaded:
+        return
+    ext = Path(uploaded.name).suffix.lower()
+    if ext not in (".mp4", ".mov") or uploaded.size > 100 * 1024 * 1024 or uploaded.size < 12:
+        raise ValueError("MP4/MOV ve en fazla 100 MB video seçin.")
+    uploaded.seek(0)
+    if uploaded.read(16)[4:8] != b"ftyp":
+        raise ValueError("Geçerli bir MP4 veya MOV dosyası seçin.")
+    if not settings.SUPABASE_URL or not settings.SUPABASE_SERVICE_ROLE_KEY:
+        raise ValueError("Video depolama ayarları eksik.")
+    safe_order = "".join(ch for ch in order.siparis_numarasi if ch.isalnum() or ch in "-_") or "siparis"
+    key = f"order-videos/{safe_order}/{uuid.uuid4().hex}{ext}"
+    uploaded.seek(0)
+    client = create_client(settings.SUPABASE_URL, settings.SUPABASE_SERVICE_ROLE_KEY)
+    bucket = client.storage.from_(settings.SUPABASE_BUCKET_NAME)
+    bucket.upload(key, uploaded.read(), file_options={"content-type": "video/quicktime" if ext == ".mov" else "video/mp4", "upsert": "false"})
+    url = bucket.get_public_url(key)
+    try:
+        OrderVideo.objects.create(order=order, video_url=url, original_name=Path(uploaded.name).name[:255])
+    except Exception:
+        bucket.remove([key])
+        raise
+
+
 @login_required
 @require_POST
 def order_video_upload(request, pk):
@@ -28,34 +54,12 @@ def order_video_upload(request, pk):
     if not uploaded:
         messages.error(request, "Video dosyası seçin.")
         return redirect("order_detail", pk=pk)
-    ext = Path(uploaded.name).suffix.lower()
-    if ext not in (".mp4", ".mov") or uploaded.size > 100 * 1024 * 1024 or uploaded.size < 12:
-        messages.error(request, "Yalnızca 100 MB altındaki MP4 veya MOV videolar kabul edilir.")
-        return redirect("order_detail", pk=pk)
-    uploaded.seek(0)
-    header = uploaded.read(16)
-    if len(header) < 12 or header[4:8] != b"ftyp":
-        messages.error(request, "Dosya geçerli bir MP4/MOV videosu değil.")
-        return redirect("order_detail", pk=pk)
-    if not settings.SUPABASE_URL or not settings.SUPABASE_SERVICE_ROLE_KEY:
-        messages.error(request, "Video depolama bağlantısı yapılandırılmamış.")
-        return redirect("order_detail", pk=pk)
-    safe_order = "".join(ch for ch in order.siparis_numarasi if ch.isalnum() or ch in "-_") or "siparis"
-    key = f"order-videos/{safe_order}/{uuid.uuid4().hex}{ext}"
-    content_type = "video/quicktime" if ext == ".mov" else "video/mp4"
     try:
-        uploaded.seek(0)
-        client = create_client(settings.SUPABASE_URL, settings.SUPABASE_SERVICE_ROLE_KEY)
-        bucket = client.storage.from_(settings.SUPABASE_BUCKET_NAME)
-        bucket.upload(key, uploaded.read(), file_options={"content-type": content_type, "upsert": "false"})
-        url = bucket.get_public_url(key)
-        try:
-            OrderVideo.objects.create(order=order, video_url=url, original_name=Path(uploaded.name).name[:255])
-        except Exception:
-            bucket.remove([key])
-            raise
+        save_order_video(order, uploaded)
+    except ValueError as exc:
+        messages.error(request, str(exc))
     except Exception:
-        messages.error(request, "Video yüklenemedi. Supabase boyut ve dosya ayarlarını kontrol edin.")
+        messages.error(request, "Video yüklenemedi. Supabase dosya boyutu sınırını kontrol edin.")
     else:
         messages.success(request, "Video siparişe eklendi.")
     return redirect("order_detail", pk=pk)
