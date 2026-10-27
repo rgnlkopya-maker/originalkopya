@@ -18,10 +18,10 @@ def _manager(user):
 class InstrumentForm(forms.ModelForm):
     class Meta:
         model = NegotiableInstrument
-        fields = ["kind", "direction", "customer", "issuer_name", "received_from", "given_to", "bank", "branch", "document_number", "amount", "currency", "issue_date", "due_date", "status", "note"]
+        fields = ["kind", "direction", "customer", "issuer_name", "given_to", "bank", "branch", "document_number", "amount", "currency", "issue_date", "due_date", "status", "note"]
         labels = {
-            "kind": "Belge Türü", "direction": "Alınan / Verilen", "customer": "Cari Hesabına İşlenecek Müşteri",
-            "issuer_name": "Çek Sahibi / Senet Borçlusu", "received_from": "Kimden Alındı",
+            "kind": "Belge Türü", "direction": "Alınan / Verilen", "customer": "Müşteri",
+            "issuer_name": "Çek Sahibi / Senet Borçlusu",
             "given_to": "Kime Verildi", "bank": "Banka", "branch": "Şube",
             "document_number": "Çek / Senet Numarası", "amount": "Tutar",
             "currency": "Para Birimi", "issue_date": "Düzenleme Tarihi",
@@ -50,7 +50,7 @@ def instrument_list(request):
     term = request.GET.get("q", "").strip()
     if term:
         from django.db.models import Q
-        records = records.filter(Q(issuer_name__icontains=term)|Q(received_from__icontains=term)|Q(given_to__icontains=term)|Q(document_number__icontains=term)|Q(customer__ad__icontains=term))
+        records = records.filter(Q(issuer_name__icontains=term)|Q(given_to__icontains=term)|Q(document_number__icontains=term)|Q(customer__ad__icontains=term))
     return render(request, "core/instrument_list.html", {"records": records[:300], "kinds":NegotiableInstrument.KIND, "statuses":NegotiableInstrument.STATUS})
 
 
@@ -66,6 +66,16 @@ def instrument_edit(request, pk=None):
                 record = form.save(commit=False)
                 if not record.pk: record.created_by = request.user
                 was_new = not bool(record.pk)
+                if record.direction == "IN":
+                    if not record.customer_id:
+                        form.add_error("customer", "Alınan çek/senet için müşteri seçilmelidir.")
+                if form.errors:
+                    return render(request, "core/instrument_form.html", {"form": form, "instrument": instrument})
+                if record.direction == "IN":
+                    record.received_from = record.customer.ad
+                    record.given_to = ""
+                else:
+                    record.received_from = ""
                 record.save()
                 InstrumentMovement.objects.create(instrument=record, actor=request.user, action="CREATED" if was_new else "UPDATED", description="Çek/senet kaydı oluşturuldu." if was_new else "Çek/senet bilgileri güncellendi.")
             messages.success(request, "Çek/senet kaydedildi.")
