@@ -1,5 +1,8 @@
 import os
 import uuid
+import logging
+
+logger = logging.getLogger(__name__)
 
 from django.conf import settings
 from django.contrib import messages
@@ -16,13 +19,27 @@ def _allowed(user):
     return user.is_authenticated and (user.is_superuser or user.groups.filter(name__in=["patron", "mudur"]).exists())
 
 
-def _storage():
+def _storage(ensure_bucket=False):
     url = getattr(settings, "SUPABASE_URL", None)
     key = getattr(settings, "SUPABASE_SERVICE_ROLE_KEY", None)
     bucket_name = os.getenv("SUPABASE_INSTRUMENT_BUCKET", "moli-financial-documents")
     if not url or not key:
         raise RuntimeError("Supabase servis bağlantısı yapılandırılmamış.")
-    return create_client(url, key).storage.from_(bucket_name)
+    client = create_client(url, key)
+    if ensure_bucket:
+        try:
+            client.storage.get_bucket(bucket_name)
+        except Exception as error:
+            # Only create when the private bucket is genuinely missing.
+            msg = str(error).lower()
+            if not any(term in msg for term in ("not found", "does not exist", "404", "bucket not found")):
+                raise
+            try:
+                client.storage.create_bucket(bucket_name, options={"public": False})
+            except Exception:
+                # Handle concurrent requests which may have created it already.
+                client.storage.get_bucket(bucket_name)
+    return client.storage.from_(bucket_name)
 
 
 @login_required
@@ -46,7 +63,7 @@ def instrument_photo_upload(request, pk):
         if ext.lower() not in (".jpg", ".jpeg", ".png", ".webp"):
             raise ValidationError("JPG, PNG veya WEBP fotoğraf seçin.")
         file.seek(0)
-        storage = _storage()
+        storage = _storage(ensure_bucket=True)
         code = f"CS-{instrument.pk:06d}"
         path = f"instrument-photos/{code}/{code}-{'ON' if side == 'FRONT' else 'ARKA'}-{uuid.uuid4().hex[:8]}{ext.lower()}"
         storage.upload(path, file.read(), file_options={"content-type": content_type, "upsert": "false"})
@@ -65,7 +82,8 @@ def instrument_photo_upload(request, pk):
     except (ValidationError, ValueError) as exc:
         messages.error(request, str(exc))
     except Exception:
-        messages.error(request, "Fotoğraf yüklenemedi. Özel Supabase bucket ayarlarını kontrol edin.")
+        logger.exception("Instrument photo upload failed for instrument %s", pk)
+        messages.error(request, "Fotoğraf kaydedilemedi. Supabase özel depolama bağlantısını ve bucket yetkisini kontrol edin.")
     return redirect("instrument_list")
 
 
