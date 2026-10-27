@@ -21,7 +21,7 @@ def build_parasut_sales_invoice(invoice, product_ids=None, lines_override=None):
                (getattr(detail, "adres", "") or "").strip())
     if not address:
         problems.append("Müşteri kartında fatura adresi eksik.")
-    lines = list(lines_override) if lines_override is not None else list(invoice.lines.select_related("order").order_by("id"))
+    lines = list(lines_override) if lines_override is not None else list(invoice.lines.select_related("order").order_by("id")) + list(invoice.manual_lines.order_by("id"))
     if not lines:
         problems.append("Faturada ürün yok.")
     items = []
