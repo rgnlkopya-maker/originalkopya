@@ -40,12 +40,7 @@ class InstrumentForm(forms.ModelForm):
 def instrument_list(request):
     if not _manager(request.user):
         return HttpResponseForbidden("Muhasebe yetkiniz yok.")
-    from django.db.models import Exists, OuterRef
-    from .instrument_models import InstrumentPhoto
-    records = NegotiableInstrument.objects.select_related("customer", "customer__bizimhesap_mapping").annotate(
-        has_front_photo=Exists(InstrumentPhoto.objects.filter(instrument_id=OuterRef("pk"), side="FRONT")),
-        has_back_photo=Exists(InstrumentPhoto.objects.filter(instrument_id=OuterRef("pk"), side="BACK")),
-    )
+    records = NegotiableInstrument.objects.select_related("customer", "customer__bizimhesap_mapping")
     direction = request.GET.get("direction")
     kind = request.GET.get("kind")
     status = request.GET.get("status")
