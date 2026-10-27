@@ -23,6 +23,7 @@ class NegotiableInstrument(models.Model):
     due_date = models.DateField()
     status = models.CharField(max_length=16, choices=STATUS, default="PORTFOLIO")
     note = models.TextField(blank=True, default="")
+    next_photo_sequence = models.PositiveIntegerField(default=1)
     created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -60,3 +61,15 @@ class InstrumentPhoto(models.Model):
 
     class Meta:
         constraints = [models.UniqueConstraint(fields=["instrument","side"], name="unique_instrument_photo_side")]
+
+
+class InstrumentAttachment(models.Model):
+    instrument = models.ForeignKey(NegotiableInstrument, on_delete=models.CASCADE, related_name="attachments")
+    sequence = models.PositiveIntegerField()
+    storage_path = models.CharField(max_length=450)
+    original_name = models.CharField(max_length=255, blank=True, default="")
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["sequence"]
+        constraints = [models.UniqueConstraint(fields=["instrument", "sequence"], name="unique_instrument_attachment_sequence")]
