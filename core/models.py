@@ -409,6 +409,14 @@ class OrderImage(models.Model):
         super().save(*args, **kwargs)
 
 
+class OrderVideo(models.Model):
+    order = models.ForeignKey("Order", on_delete=models.CASCADE, related_name="videos")
+    video_url = models.URLField(max_length=1200)
+    original_name = models.CharField(max_length=255, blank=True, default="")
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+
+
+
 # 📜 ÜRETİM GEÇMİŞİ
 class OrderEvent(models.Model):
     GOREV_SECENEKLERI = UserProfile.GOREV_SECENEKLERI
