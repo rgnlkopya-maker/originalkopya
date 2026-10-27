@@ -102,3 +102,21 @@ def instrument_photo_view(request, pk, side):
         return result
     except Exception:
         return HttpResponseNotFound("Fotoğraf görüntülenemedi.")
+
+
+@login_required
+@require_POST
+def instrument_photo_delete(request, pk, side):
+    if not _allowed(request.user):
+        return HttpResponseForbidden("Yetkiniz yok.")
+    if side.upper() not in ("FRONT", "BACK"):
+        return HttpResponseNotFound("Geçersiz fotoğraf yüzü.")
+    photo = get_object_or_404(InstrumentPhoto, instrument_id=pk, side=side.upper())
+    try:
+        _storage().remove([photo.storage_path])
+        photo.delete()
+        messages.success(request, "Çek/senet fotoğrafı silindi.")
+    except Exception:
+        logger.exception("Instrument photo delete failed for instrument %s", pk)
+        messages.error(request, "Fotoğraf silinemedi. Depolama bağlantısını kontrol edin.")
+    return redirect("instrument_list")
