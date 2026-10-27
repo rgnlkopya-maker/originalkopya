@@ -6,6 +6,15 @@
 .customer-options{display:none;position:absolute;z-index:2000;background:#fff;border:1px solid #d8e0ed;box-shadow:0 12px 25px #15224324;border-radius:9px;width:100%;max-height:230px;overflow-y:auto}
 .customer-options.open{display:block}.customer-options button{display:block;width:100%;text-align:left;border:0;background:white;padding:8px 11px;font-size:12px}
 .customer-options button:hover{background:#eaf0ff}.customer-picker input.invalid{border-color:#dc3545}
+.instrument-table .instrument-cell-editor{position:relative;min-width:90px}
+.instrument-cell-editor>summary{list-style:none;cursor:pointer;min-height:34px;display:flex;align-items:center;padding:5px 6px;border-radius:7px;white-space:nowrap;font-size:13px;font-weight:600;color:#25364f;max-width:275px;overflow:hidden;text-overflow:ellipsis}
+.instrument-cell-editor>summary::-webkit-details-marker{display:none}
+.instrument-cell-editor>summary:hover{background:#eef3ff;color:#3954b8}
+.instrument-cell-editor[open]>summary{background:#edf2ff;color:#3954b8}
+.instrument-cell-popover{position:absolute;top:100%;left:0;z-index:1100;padding:10px;min-width:185px;width:max-content;max-width:min(350px,90vw);background:#fff;border:1px solid #dce4ef;box-shadow:0 12px 28px rgba(25,42,70,.16);border-radius:10px}
+.instrument-cell-popover .customer-picker{min-width:270px}
+.instrument-table td:has(.instrument-cell-editor){overflow:visible}
+.instrument-table .instrument-cell-editor>summary:focus-visible{outline:2px solid #6c8cff}
 </style>
 <div class="table-responsive"><table class="table table-hover align-middle instrument-table">
 <thead><tr><th>Tür</th><th>İşlem</th><th>İşlem Tarihi</th><th>Müşteri</th><th>Tutar</th><th>Vade</th><th>Durum</th><th>Verilen Tarih</th><th>Verilen Firma / Banka</th><th>İşlemler</th></tr></thead><tbody>
@@ -23,15 +32,15 @@
 </tr>
 {% for record in records %}
 <tr>
-<td><select name="kind" form="movement{{ record.pk }}" class="form-select form-select-sm"><option value="CHECK" {% if record.kind == 'CHECK' %}selected{% endif %}>Çek</option><option value="NOTE" {% if record.kind == 'NOTE' %}selected{% endif %}>Senet</option></select></td>
-<td><select name="direction" form="movement{{ record.pk }}" class="form-select form-select-sm"><option value="IN" {% if record.direction == 'IN' %}selected{% endif %}>Alınan</option><option value="OUT" {% if record.direction == 'OUT' %}selected{% endif %}>Verilen</option></select></td>
-<td><input name="transaction_date" form="movement{{ record.pk }}" type="date" value="{{ record.transaction_date|date:'Y-m-d' }}" class="form-control form-control-sm"></td>
-<td><div class="customer-picker"><input class="form-control form-control-sm customer-search" autocomplete="off" required placeholder="Müşteri ara / seç" value="{{ record.customer.ad|default:'' }}"><input type="hidden" class="customer-id" name="customer" form="movement{{ record.pk }}" value="{{ record.customer_id|default:'' }}"><div class="customer-options"></div></div></td>
-<td><div class="d-flex gap-1"><input name="amount" form="movement{{ record.pk }}" type="number" min="0.01" step="0.01" required value="{{ record.amount|stringformat:'.2f' }}" class="form-control form-control-sm" style="width:118px"><select name="currency" form="movement{{ record.pk }}" class="form-select form-select-sm" style="width:68px">{% for currency in currencies %}<option value="{{ currency.0 }}" {% if record.currency == currency.0 %}selected{% endif %}>{{ currency.1 }}</option>{% endfor %}</select></div></td>
-<td><input name="due_date" form="movement{{ record.pk }}" type="date" required value="{{ record.due_date|date:'Y-m-d' }}" class="form-control form-control-sm"></td>
-<td><select name="status" form="movement{{ record.pk }}" class="form-select form-select-sm">{% for key,label in statuses %}<option value="{{ key }}" {% if record.status == key %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></td>
-<td><input name="given_date" form="movement{{ record.pk }}" type="date" value="{{ record.given_date|date:'Y-m-d' }}" class="form-control form-control-sm"></td>
-<td><input name="given_to" form="movement{{ record.pk }}" value="{{ record.given_to }}" maxlength="250" class="form-control form-control-sm" placeholder="Firma / banka"></td>
+<td><details class="instrument-cell-editor"><summary title="Düzenlemek için tıklayın">{{ record.get_kind_display }}</summary><div class="instrument-cell-popover"><select name="kind" form="movement{{ record.pk }}" class="form-select form-select-sm"><option value="CHECK" {% if record.kind == 'CHECK' %}selected{% endif %}>Çek</option><option value="NOTE" {% if record.kind == 'NOTE' %}selected{% endif %}>Senet</option></select></div></details></td>
+<td><details class="instrument-cell-editor"><summary title="Düzenlemek için tıklayın">{{ record.get_direction_display }}</summary><div class="instrument-cell-popover"><select name="direction" form="movement{{ record.pk }}" class="form-select form-select-sm"><option value="IN" {% if record.direction == 'IN' %}selected{% endif %}>Alınan</option><option value="OUT" {% if record.direction == 'OUT' %}selected{% endif %}>Verilen</option></select></div></details></td>
+<td><details class="instrument-cell-editor"><summary title="Düzenlemek için tıklayın">{{ record.transaction_date|date:'d.m.Y'|default:'—' }}</summary><div class="instrument-cell-popover"><input name="transaction_date" form="movement{{ record.pk }}" type="date" value="{{ record.transaction_date|date:'Y-m-d' }}" class="form-control form-control-sm"></div></details></td>
+<td><details class="instrument-cell-editor"><summary title="Düzenlemek için tıklayın">{{ record.customer.ad|default:'—' }}</summary><div class="instrument-cell-popover"><div class="customer-picker"><input class="form-control form-control-sm customer-search" autocomplete="off" required placeholder="Müşteri ara / seç" value="{{ record.customer.ad|default:'' }}"><input type="hidden" class="customer-id" name="customer" form="movement{{ record.pk }}" value="{{ record.customer_id|default:'' }}"><div class="customer-options"></div></div></div></details></td>
+<td><details class="instrument-cell-editor"><summary title="Düzenlemek için tıklayın">{{ record.amount }} {{ record.currency }}</summary><div class="instrument-cell-popover"><div class="d-flex gap-1"><input name="amount" form="movement{{ record.pk }}" type="number" min="0.01" step="0.01" required value="{{ record.amount|stringformat:'.2f' }}" class="form-control form-control-sm" style="width:118px"><select name="currency" form="movement{{ record.pk }}" class="form-select form-select-sm" style="width:75px">{% for currency in currencies %}<option value="{{ currency.0 }}" {% if record.currency == currency.0 %}selected{% endif %}>{{ currency.1 }}</option>{% endfor %}</select></div></div></details></td>
+<td><details class="instrument-cell-editor"><summary title="Düzenlemek için tıklayın">{{ record.due_date|date:'d.m.Y' }}</summary><div class="instrument-cell-popover"><input name="due_date" form="movement{{ record.pk }}" type="date" value="{{ record.due_date|date:'Y-m-d' }}" class="form-control form-control-sm"></div></details></td>
+<td><details class="instrument-cell-editor"><summary title="Düzenlemek için tıklayın">{{ record.get_status_display }}</summary><div class="instrument-cell-popover"><select name="status" form="movement{{ record.pk }}" class="form-select form-select-sm">{% for key,label in statuses %}<option value="{{ key }}" {% if record.status == key %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></div></details></td>
+<td><details class="instrument-cell-editor"><summary title="Düzenlemek için tıklayın">{{ record.given_date|date:'d.m.Y'|default:'—' }}</summary><div class="instrument-cell-popover"><input name="given_date" form="movement{{ record.pk }}" type="date" value="{{ record.given_date|date:'Y-m-d' }}" class="form-control form-control-sm"></div></details></td>
+<td><details class="instrument-cell-editor"><summary title="Düzenlemek için tıklayın">{{ record.given_to|default:'—' }}</summary><div class="instrument-cell-popover"><input name="given_to" form="movement{{ record.pk }}" value="{{ record.given_to }}" maxlength="250" class="form-control form-control-sm" placeholder="Firma / banka"></div></details></td>
 <td class="text-nowrap"><form id="movement{{ record.pk }}" method="post" action="{% url 'instrument_inline_status_update' record.pk %}">{% csrf_token %}</form><button type="submit" form="movement{{ record.pk }}" class="btn btn-sm btn-primary">Kaydet</button> <a href="{% url 'instrument_detail' record.pk %}" class="btn btn-sm btn-outline-primary">Detay</a></td>
 </tr>
 {% empty %}<tr><td colspan="10" class="text-center text-muted py-4">Henüz çek/senet kaydı yok.</td></tr>{% endfor %}
@@ -40,6 +49,40 @@
 </div>
 <script>
 (function(){
+
+// Keep the list looking like plain text; edit controls open only when a cell is clicked.
+document.querySelectorAll('.instrument-cell-editor').forEach(function(details){
+  const summary=details.querySelector('summary');
+  details.addEventListener('toggle',function(){
+    if(details.open){
+      document.querySelectorAll('.instrument-cell-editor[open]').forEach(other=>{if(other!==details)other.open=false;});
+      const field=details.querySelector('.instrument-cell-popover input:not([type=hidden]),.instrument-cell-popover select');
+      if(field)field.focus({preventScroll:true});
+    }
+  });
+  details.querySelectorAll('input,select').forEach(function(field){
+    field.addEventListener('change',function(){
+      if(field.classList.contains('customer-search'))return;
+      if(field.type==='date'){
+        if(field.value){const parts=field.value.split('-');summary.textContent=parts[2]+'.'+parts[1]+'.'+parts[0];}
+        else summary.textContent='—';
+      }else if(field.name==='amount'||field.name==='currency'){
+        const amount=details.querySelector('[name=amount]').value;
+        const currency=details.querySelector('[name=currency]').value;
+        summary.textContent=(amount||'—')+' '+currency;
+      }else if(field.tagName==='SELECT') summary.textContent=field.selectedOptions[0].textContent;
+      else summary.textContent=field.value||'—';
+      details.open=false;
+    });
+    if(field.tagName==='INPUT'&&field.type==='text'&&!field.classList.contains('customer-search')){
+      field.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();field.dispatchEvent(new Event('change',{bubbles:true}));}});
+    }
+  });
+});
+document.addEventListener('click',e=>{
+  document.querySelectorAll('.instrument-cell-editor[open]').forEach(d=>{if(!d.contains(e.target))d.open=false;});
+});
+
 const customers=[...document.querySelectorAll('#customerSource span')].map(e=>({id:e.dataset.id,name:e.dataset.name}));
 for(const picker of document.querySelectorAll('.customer-picker')){
  const input=picker.querySelector('.customer-search'), hidden=picker.querySelector('.customer-id'),menu=picker.querySelector('.customer-options');
@@ -47,7 +90,7 @@ for(const picker of document.querySelectorAll('.customer-picker')){
   const q=input.value.trim().toLocaleLowerCase('tr-TR');menu.replaceChildren();
   let count=0;for(const c of customers){if(q&&!c.name.toLocaleLowerCase('tr-TR').includes(q))continue;
     const b=document.createElement('button');b.type='button';b.textContent=c.name;
-    b.addEventListener('click',()=>{input.value=c.name;hidden.value=c.id;input.classList.remove('invalid');menu.classList.remove('open');});
+    b.addEventListener('click',()=>{input.value=c.name;hidden.value=c.id;input.classList.remove('invalid');menu.classList.remove('open');const editor=picker.closest('.instrument-cell-editor');if(editor){editor.querySelector('summary').textContent=c.name;editor.open=false;}});
     menu.appendChild(b);if(++count>=35)break;}
   if(!count){const no=document.createElement('div');no.className='p-2 text-muted small';no.textContent='Kayıtlı müşteri bulunamadı';menu.appendChild(no);}
   menu.classList.add('open');
