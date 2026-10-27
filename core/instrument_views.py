@@ -18,16 +18,16 @@ def _manager(user):
 class InstrumentForm(forms.ModelForm):
     class Meta:
         model = NegotiableInstrument
-        fields = ["kind", "direction", "customer", "issuer_name", "given_to", "bank", "branch", "document_number", "amount", "currency", "issue_date", "due_date", "status", "note"]
+        fields = ["kind", "direction", "customer", "issuer_name", "given_to", "bank", "branch", "document_number", "amount", "currency", "issue_date", "transaction_date", "given_date", "due_date", "status", "note"]
         labels = {
             "kind": "Belge Türü", "direction": "Alınan / Verilen", "customer": "Müşteri",
             "issuer_name": "Çek Sahibi / Senet Borçlusu",
             "given_to": "Kime Verildi", "bank": "Banka", "branch": "Şube",
             "document_number": "Çek / Senet Numarası", "amount": "Tutar",
-            "currency": "Para Birimi", "issue_date": "Düzenleme Tarihi",
+            "currency": "Para Birimi", "issue_date": "Düzenleme Tarihi", "transaction_date": "İşlem Tarihi", "given_date": "Verilen Tarih",
             "due_date": "Vade Tarihi", "status": "Durum", "note": "Açıklama",
         }
-        widgets = {"issue_date":forms.DateInput(attrs={"type":"date"}), "due_date":forms.DateInput(attrs={"type":"date"}), "note":forms.Textarea(attrs={"rows":3})}
+        widgets = {"issue_date":forms.DateInput(attrs={"type":"date"}), "transaction_date":forms.DateInput(attrs={"type":"date"}), "given_date":forms.DateInput(attrs={"type":"date"}), "due_date":forms.DateInput(attrs={"type":"date"}), "note":forms.Textarea(attrs={"rows":3})}
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -63,16 +63,11 @@ def instrument_inline_add(request):
     # The inline table uses the same validated model fields as the detail form.
     if data.get("direction") not in ("IN", "OUT"):
         data["direction"] = "IN"
-    if data.get("direction") == "IN":
-        data["status"] = "PORTFOLIO"
-        data["given_to"] = ""
-    elif not data.get("status"):
-        data["status"] = "ISSUED"
+    if not data.get("status"):
+        data["status"] = "PORTFOLIO" if data.get("direction") == "IN" else "ISSUED"
     form = InstrumentForm(data)
     if data.get("direction") == "IN" and not data.get("customer"):
         form.add_error("customer", "Müşteri seçilmelidir.")
-    if data.get("direction") == "OUT" and not data.get("given_to", "").strip():
-        form.add_error("given_to", "Kime verildiğini yazın.")
     if not form.is_valid():
         messages.error(request, "Satır kaydedilemedi: " + "; ".join(
             f"{field}: {', '.join(str(e) for e in errors)}"
@@ -82,7 +77,7 @@ def instrument_inline_add(request):
     with transaction.atomic():
         record = form.save(commit=False)
         record.created_by = request.user
-        if record.direction == "IN" and record.customer_id:
+        if record.customer_id:
             record.received_from = record.customer.ad
         record.save()
         InstrumentMovement.objects.create(
@@ -90,6 +85,43 @@ def instrument_inline_add(request):
             description="Çek/senet liste üzerinden kaydedildi."
         )
     messages.success(request, "Yeni çek/senet satırı kaydedildi.")
+    return redirect("instrument_list")
+
+
+@login_required
+@require_POST
+def instrument_inline_status_update(request, pk):
+    if not _manager(request.user):
+        return HttpResponseForbidden("Muhasebe yetkiniz yok.")
+    with transaction.atomic():
+        record = get_object_or_404(NegotiableInstrument.objects.select_for_update(), pk=pk)
+        status = (request.POST.get("status") or "").strip()
+        given_date = (request.POST.get("given_date") or "").strip()
+        given_to = (request.POST.get("given_to") or "").strip()
+        if status not in dict(NegotiableInstrument.STATUS):
+            messages.error(request, "Geçersiz durum.")
+            return redirect("instrument_list")
+        from datetime import date
+        try:
+            parsed_date = date.fromisoformat(given_date) if given_date else None
+        except ValueError:
+            messages.error(request, "Verilen tarih geçersiz.")
+            return redirect("instrument_list")
+        if len(given_to) > 250:
+            messages.error(request, "Verilen firma adı çok uzun.")
+            return redirect("instrument_list")
+        if status in ("ENDORSED", "BANK", "ISSUED") and (not parsed_date or not given_to):
+            messages.error(request, "Ciro/bankaya verme işlemi için tarih ve verilen firma/banka gerekli.")
+            return redirect("instrument_list")
+        old = (record.status, record.given_date, record.given_to)
+        record.status, record.given_date, record.given_to = status, parsed_date, given_to
+        if old != (record.status, record.given_date, record.given_to):
+            record.save(update_fields=["status", "given_date", "given_to", "updated_at"])
+            InstrumentMovement.objects.create(
+                instrument=record, actor=request.user, action="STATUS_UPDATED",
+                description=f"Durum: {record.get_status_display()}; Tarih: {parsed_date or '-'}; Firma/Banka: {given_to or '-'}"
+            )
+    messages.success(request, "Çek/senet hareketi kaydedildi.")
     return redirect("instrument_list")
 
 
@@ -110,11 +142,7 @@ def instrument_edit(request, pk=None):
                         form.add_error("customer", "Alınan çek/senet için müşteri seçilmelidir.")
                 if form.errors:
                     return render(request, "core/instrument_form.html", {"form": form, "instrument": instrument})
-                if record.direction == "IN":
-                    record.received_from = record.customer.ad
-                    record.given_to = ""
-                else:
-                    record.received_from = ""
+                record.received_from = record.customer.ad if record.customer_id else ""
                 record.save()
                 InstrumentMovement.objects.create(instrument=record, actor=request.user, action="CREATED" if was_new else "UPDATED", description="Çek/senet kaydı oluşturuldu." if was_new else "Çek/senet bilgileri güncellendi.")
             messages.success(request, "Çek/senet kaydedildi.")
