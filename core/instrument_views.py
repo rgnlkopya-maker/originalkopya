@@ -51,7 +51,7 @@ def instrument_list(request):
     if term:
         from django.db.models import Q
         records = records.filter(Q(issuer_name__icontains=term)|Q(given_to__icontains=term)|Q(document_number__icontains=term)|Q(customer__ad__icontains=term))
-    return render(request, "core/instrument_list.html", {"records": records[:300], "kinds":NegotiableInstrument.KIND, "statuses":NegotiableInstrument.STATUS, "customers":Musteri.objects.filter(aktif=True).order_by("ad")})
+    return render(request, "core/instrument_list.html", {"records": records[:300], "kinds":NegotiableInstrument.KIND, "statuses":NegotiableInstrument.STATUS, "customers":Musteri.objects.all().order_by("ad"), "currencies":NegotiableInstrument._meta.get_field("currency").choices})
 
 
 @login_required
@@ -111,6 +111,11 @@ def instrument_inline_status_update(request, pk):
             return redirect("instrument_list")
         data["issuer_name"] = customer.ad
         data["received_from"] = customer.ad
+        # Keep detail-only fields unchanged when saving a table row.
+        for key in ("bank", "branch", "document_number", "issue_date", "note"):
+            if key not in data:
+                val = getattr(record, key)
+                data[key] = val.isoformat() if hasattr(val, "isoformat") else (val or "")
         form = InstrumentForm(data, instance=record)
         if not form.is_valid():
             messages.error(request, "Satır kaydedilemedi: " + "; ".join(
