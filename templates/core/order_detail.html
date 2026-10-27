@@ -132,13 +132,6 @@ document.addEventListener('DOMContentLoaded',function(){
 <div class="info-item description-wide"><span class="info-label">Açıklama</span><div class="info-value">{{ order.aciklama|default:'Açıklama yok' }}</div></div>
 </div>
 <section class="section-card no-print"><div class="section-head"><h2 class="section-title">📸 Sipariş Görselleri ve Videoları</h2></div><div class="section-body"><div class="extra-images-section">{% if order.resim %}<img src="{{ order.resim.url }}" class="img-thumbnail preview-img" data-full-image="{{ order.resim.url }}" data-print-kind="main_image" alt="Ana sipariş görseli">{% endif %}{% for img in order.extra_images.all %}{% if img.image_url %}<img src="{{ img.image_url }}" class="img-thumbnail preview-img" data-full-image="{{ img.image_url }}" data-print-kind="extra_image" data-print-id="{{ img.id }}" alt="Sipariş görseli {{ forloop.counter }}">{% endif %}{% empty %}{% if not order.resim %}<div class="empty-box" style="width:100%">Henüz sipariş görseli yok.</div>{% endif %}{% endfor %}</div><div class="order-video-area" style="margin-top:16px;border-top:1px solid #e9edf5;padding-top:14px">
-{% if is_manager %}
-<form method="post" action="{% url 'order_video_upload' order.id %}" enctype="multipart/form-data" style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:14px">{% csrf_token %}
-<label for="orderVideoFile" style="font-size:12px;font-weight:700;color:#48566d">Video Ekle (MP4 / MOV, en fazla 100 MB)</label>
-<input id="orderVideoFile" type="file" name="video" accept=".mp4,.mov,video/mp4,video/quicktime" required class="form-control form-control-sm" style="max-width:310px">
-<button type="submit" class="btn btn-sm btn-outline-primary"><i class="bi bi-cloud-upload"></i> Video Yükle</button>
-</form>
-{% endif %}
 {% if order.videos.exists %}
 <div style="display:flex;flex-wrap:wrap;gap:12px">
 {% for video in order.videos.all %}
