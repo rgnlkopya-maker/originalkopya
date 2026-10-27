@@ -5,7 +5,7 @@ from django.conf.urls.static import static
 from django.contrib.auth import logout
 from django.shortcuts import redirect
 from core import views
-from core.instrument_photo_views import instrument_photo_upload, instrument_photo_view
+from core.instrument_photo_views import instrument_photo_upload, instrument_photo_view, instrument_photo_delete
 from core.instrument_views import instrument_list, instrument_edit, instrument_detail, instrument_endorser_add, instrument_mapping_save, instrument_inline_add, instrument_inline_status_update
 from core.print_tracking_views import mark_order_print
 from core.order_video_views import order_video_upload, order_video_delete
@@ -45,6 +45,7 @@ from core.cad_lab_views import cad_lab
 urlpatterns = [
     path("muhasebe/cek-senet/<int:pk>/foto-yukle/", instrument_photo_upload, name="instrument_photo_upload"),
     path("muhasebe/cek-senet/<int:pk>/foto/<str:side>/", instrument_photo_view, name="instrument_photo_view"),
+    path("muhasebe/cek-senet/<int:pk>/foto/<str:side>/sil/", instrument_photo_delete, name="instrument_photo_delete"),
     path("muhasebe/cek-senet/", instrument_list, name="instrument_list"),
     path("muhasebe/cek-senet/<int:pk>/hareket-kaydet/", instrument_inline_status_update, name="instrument_inline_status_update"),
     path("muhasebe/cek-senet/satir-kaydet/", instrument_inline_add, name="instrument_inline_add"),
