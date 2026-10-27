@@ -65,8 +65,12 @@ def instrument_inline_add(request):
         data["direction"] = "IN"
     if not data.get("status"):
         data["status"] = "PORTFOLIO" if data.get("direction") == "IN" else "ISSUED"
+    customer_id = data.get("customer", "")
+    customer = Musteri.objects.filter(pk=customer_id, aktif=True).first() if customer_id.isdigit() else None
+    if customer:
+        data["issuer_name"] = customer.ad
     form = InstrumentForm(data)
-    if data.get("direction") == "IN" and not data.get("customer"):
+    if not customer:
         form.add_error("customer", "Müşteri seçilmelidir.")
     if not form.is_valid():
         messages.error(request, "Satır kaydedilemedi: " + "; ".join(
@@ -79,6 +83,7 @@ def instrument_inline_add(request):
         record.created_by = request.user
         if record.customer_id:
             record.received_from = record.customer.ad
+            record.issuer_name = record.customer.ad
         record.save()
         InstrumentMovement.objects.create(
             instrument=record, actor=request.user, action="CREATED",
@@ -93,35 +98,36 @@ def instrument_inline_add(request):
 def instrument_inline_status_update(request, pk):
     if not _manager(request.user):
         return HttpResponseForbidden("Muhasebe yetkiniz yok.")
+    data = request.POST.copy()
     with transaction.atomic():
         record = get_object_or_404(NegotiableInstrument.objects.select_for_update(), pk=pk)
-        status = (request.POST.get("status") or "").strip()
-        given_date = (request.POST.get("given_date") or "").strip()
-        given_to = (request.POST.get("given_to") or "").strip()
-        if status not in dict(NegotiableInstrument.STATUS):
-            messages.error(request, "Geçersiz durum.")
+        customer_id = data.get("customer")
+        customer = Musteri.objects.filter(pk=customer_id).first() if customer_id and customer_id.isdigit() else None
+        if not customer:
+            messages.error(request, "Müşteri listeden seçilmelidir; kayıtlı olmayan müşteri kaydedilemez.")
             return redirect("instrument_list")
-        from datetime import date
-        try:
-            parsed_date = date.fromisoformat(given_date) if given_date else None
-        except ValueError:
-            messages.error(request, "Verilen tarih geçersiz.")
+        if not customer.aktif and record.customer_id != customer.pk:
+            messages.error(request, "Pasif müşteri yeni kayıt olarak seçilemez.")
             return redirect("instrument_list")
-        if len(given_to) > 250:
-            messages.error(request, "Verilen firma adı çok uzun.")
+        data["issuer_name"] = customer.ad
+        data["received_from"] = customer.ad
+        form = InstrumentForm(data, instance=record)
+        if not form.is_valid():
+            messages.error(request, "Satır kaydedilemedi: " + "; ".join(
+                f"{field}: {', '.join(str(e) for e in errors)}"
+                for field, errors in form.errors.items()
+            ))
             return redirect("instrument_list")
-        if status in ("ENDORSED", "BANK", "ISSUED") and (not parsed_date or not given_to):
-            messages.error(request, "Ciro/bankaya verme işlemi için tarih ve verilen firma/banka gerekli.")
-            return redirect("instrument_list")
-        old = (record.status, record.given_date, record.given_to)
-        record.status, record.given_date, record.given_to = status, parsed_date, given_to
-        if old != (record.status, record.given_date, record.given_to):
-            record.save(update_fields=["status", "given_date", "given_to", "updated_at"])
+        updated = form.save(commit=False)
+        changed = list(form.changed_data)
+        updated.received_from = customer.ad
+        if changed or record.received_from != updated.received_from:
+            updated.save()
             InstrumentMovement.objects.create(
-                instrument=record, actor=request.user, action="STATUS_UPDATED",
-                description=f"Durum: {record.get_status_display()}; Tarih: {parsed_date or '-'}; Firma/Banka: {given_to or '-'}"
+                instrument=updated, actor=request.user, action="UPDATED",
+                description="Liste üzerinden güncellendi: " + ", ".join(changed or ["müşteri"])
             )
-    messages.success(request, "Çek/senet hareketi kaydedildi.")
+    messages.success(request, "Çek/senet satırı kaydedildi.")
     return redirect("instrument_list")
 
 
