@@ -6,6 +6,7 @@ from django.contrib.auth import logout
 from django.shortcuts import redirect
 from core import views
 from core.instrument_views import instrument_list, instrument_edit, instrument_detail, instrument_endorser_add, instrument_mapping_save, instrument_inline_add, instrument_inline_status_update
+from core.instrument_attachment_views import attachment_upload, attachment_view, attachment_delete
 from core.print_tracking_views import mark_order_print
 from core.order_video_views import order_video_upload, order_video_delete
 from core.consignment_views import consignment_list, consignment_add, consignment_use, consignment_send_order, consignment_return_order
@@ -46,6 +47,9 @@ urlpatterns = [
     path("muhasebe/cek-senet/<int:pk>/hareket-kaydet/", instrument_inline_status_update, name="instrument_inline_status_update"),
     path("muhasebe/cek-senet/satir-kaydet/", instrument_inline_add, name="instrument_inline_add"),
     path("muhasebe/cek-senet/yeni/", instrument_edit, name="instrument_new"),
+    path("muhasebe/cek-senet/<int:pk>/fotograflar/yukle/", attachment_upload, name="instrument_attachment_upload"),
+    path("muhasebe/cek-senet/<int:pk>/fotograflar/<int:attachment_id>/", attachment_view, name="instrument_attachment_view"),
+    path("muhasebe/cek-senet/<int:pk>/fotograflar/<int:attachment_id>/sil/", attachment_delete, name="instrument_attachment_delete"),
     path("muhasebe/cek-senet/<int:pk>/", instrument_detail, name="instrument_detail"),
     path("muhasebe/cek-senet/<int:pk>/duzenle/", instrument_edit, name="instrument_edit"),
     path("muhasebe/cek-senet/<int:pk>/ciranta-ekle/", instrument_endorser_add, name="instrument_endorser_add"),
