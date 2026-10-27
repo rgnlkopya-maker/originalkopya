@@ -510,6 +510,16 @@ def order_create(request):
                     order.maliyet_uygulanan = None
 
             order.save()                 # 1️⃣ Siparişi kaydet
+            if request.FILES.get("video") and request.user.groups.filter(name__in=["patron", "mudur"]).exists():
+                from .order_video_views import save_order_video
+                try:
+                    save_order_video(order, request.FILES["video"])
+                    messages.success(request, "Video siparişe eklendi.")
+                except ValueError as exc:
+                    messages.error(request, str(exc))
+                except Exception:
+                    messages.error(request, "Sipariş kaydedildi ancak video yüklenemedi.")
+
             cache.clear()                # 3️⃣ Cache temizle
 
             return redirect(
