@@ -1,5 +1,6 @@
 """Build BizimHesap AddInvoice JSON locally. This module performs no HTTP writes."""
 from decimal import Decimal, ROUND_HALF_UP
+from .external_invoice_line_label import external_invoice_item_label
 
 CURRENCIES = {"TRY": "TL", "TL": "TL", "USD": "USD", "EUR": "EUR", "GBP": "GBP", "CHF": "CHF"}
 
@@ -15,11 +16,6 @@ def build_invoice_payload(invoice, lines, mapping, firm_id):
         blockers.append("Cari eşleştirmesi eksik.")
     if not firm_id:
         blockers.append("FirmId tanımlı değil.")
-    detail = getattr(invoice.customer, "customer_detail", None)
-    address = ((getattr(detail, "fatura_adresi", "") or "").strip()
-               or (getattr(detail, "adres", "") or "").strip())
-    if not address:
-        blockers.append("Müşteri kartında fatura adresi veya adres bilgisi eksik.")
     due_date = invoice.due_date or invoice.invoice_date
     if due_date < invoice.invoice_date:
         blockers.append("Vade tarihi fatura tarihinden önce.")
@@ -47,7 +43,7 @@ def build_invoice_payload(invoice, lines, mapping, firm_id):
         tax = money(price * rate / Decimal("100"))
         details.append({
             "productId": product_name,
-            "productName": (" / ".join(str(v) for v in (order.renk, order.beden) if v) or "Ürün") if order else product_name,
+            "productName": external_invoice_item_label(line),
             "note": "",
             "taxRate": str(rate),
             "quantity": str(line.quantity) if order is None else 1,
@@ -73,8 +69,6 @@ def build_invoice_payload(invoice, lines, mapping, firm_id):
         },
         "customer": {
             "customerId": mapping.external_customer_id,
-            "title": invoice.customer.ad,
-            "address": address,
         },
         "details": details,
         "amounts": {
