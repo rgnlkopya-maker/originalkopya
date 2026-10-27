@@ -15,6 +15,31 @@
 .instrument-cell-popover .customer-picker{min-width:270px}
 .instrument-table td:has(.instrument-cell-editor){overflow:visible}
 .instrument-table .instrument-cell-editor>summary:focus-visible{outline:2px solid #6c8cff}
+/* Compact desktop accounting ledger: keep the right-hand actions visible. */
+.instrument-table{min-width:0!important;width:100%;table-layout:fixed}
+.instrument-table th,.instrument-table td{min-width:0!important;padding:7px 3px!important;vertical-align:middle}
+.instrument-table th{font-size:10px!important;white-space:normal;line-height:1.2}
+.instrument-table td{font-size:11px}
+.instrument-table th:nth-child(1){width:4%}
+.instrument-table th:nth-child(2){width:5%}
+.instrument-table th:nth-child(3){width:8%}
+.instrument-table th:nth-child(4){width:7%}
+.instrument-table th:nth-child(5){width:6%}
+.instrument-table th:nth-child(6){width:8%}
+.instrument-table th:nth-child(7){width:17%}
+.instrument-table th:nth-child(8){width:9%}
+.instrument-table th:nth-child(9){width:7%}
+.instrument-table th:nth-child(10){width:9%}
+.instrument-table th:nth-child(11){width:7%}
+.instrument-table th:nth-child(12){width:8%}
+.instrument-table th:nth-child(13){width:5%}
+.instrument-table .instrument-cell-editor{min-width:0!important;width:100%}
+.instrument-cell-editor>summary{min-height:28px!important;font-size:11px!important;padding:3px 2px!important;max-width:100%!important;display:block!important;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.instrument-table td.text-nowrap{white-space:normal!important}
+.instrument-table td.text-nowrap .btn{font-size:10px;padding:3px 5px;margin:1px 0;line-height:1.2}
+.instrument-table .customer-picker{min-width:190px}
+.instrument-cell-popover{min-width:190px}
+@media(max-width:1050px){.instrument-table{min-width:1050px!important}}
 </style>
 <div class="table-responsive"><table class="table table-hover align-middle instrument-table">
 <thead><tr><th>Sıra No</th><th>Tür</th><th>Banka</th><th>Çek No</th><th>İşlem</th><th>İşlem Tarihi</th><th>Müşteri</th><th>Tutar</th><th>Vade</th><th>Durum</th><th>Verilen Tarih</th><th>Verilen Firma / Banka</th><th>İşlemler</th></tr></thead><tbody>
