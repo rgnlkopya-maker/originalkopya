@@ -35,6 +35,16 @@ class InvoiceLine(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
 
+class InvoiceManualLine(models.Model):
+    """Siparişe bağlı olmayan ve yalnızca normal FT'ye ait ek satır."""
+    invoice = models.ForeignKey(InvoiceDraft, on_delete=models.CASCADE, related_name="manual_lines")
+    description = models.CharField(max_length=300)
+    quantity = models.DecimalField(max_digits=12, decimal_places=3, default=1)
+    unit_price = models.DecimalField(max_digits=14, decimal_places=2)
+    vat_rate = models.DecimalField(max_digits=7, decimal_places=2, default=10)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+
 class BizimHesapCustomerMapping(models.Model):
     customer = models.OneToOneField("core.Musteri", on_delete=models.CASCADE, related_name="bizimhesap_mapping")
     external_customer_id = models.CharField(max_length=100)
