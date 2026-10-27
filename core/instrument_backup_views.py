@@ -18,7 +18,7 @@ from .instrument_attachment_views import storage
 from .instrument_drive_oauth import drive_service, connected
 
 logger = logging.getLogger(__name__)
-ROOT_ID = "1Q-KUwSudqqsvu72Eigsrx7Y7foTUp3mu"
+ROOT_ID = "1DGz7uvoeydXbuzze9HVFZbUwcaV8oW7p"
 
 
 def _check_parent(drive):
@@ -85,7 +85,7 @@ def instrument_backup(request):
             return redirect("instrument_list")
         drive=drive_service()
         _check_parent(drive)
-        root=_folder(drive, ROOT_ID, "Cek Senet Yedekleri")
+        root=ROOT_ID
         photos_dir=_folder(drive, root, "Fotograflar")
         excel_dir=_folder(drive, root, "Excel Yedekleri")
         data_dir=_folder(drive, root, "Veri Yedekleri")
