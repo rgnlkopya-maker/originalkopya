@@ -7,6 +7,7 @@ from django.shortcuts import redirect
 from core import views
 from core.instrument_views import instrument_list, instrument_edit, instrument_detail, instrument_endorser_add, instrument_mapping_save, instrument_inline_add, instrument_inline_status_update
 from core.instrument_attachment_views import attachment_upload, attachment_view, attachment_delete
+from core.instrument_backup_views import instrument_backup
 from core.print_tracking_views import mark_order_print
 from core.order_video_views import order_video_upload, order_video_delete
 from core.consignment_views import consignment_list, consignment_add, consignment_use, consignment_send_order, consignment_return_order
@@ -44,6 +45,7 @@ from core.cad_lab_views import cad_lab
 
 urlpatterns = [
     path("muhasebe/cek-senet/", instrument_list, name="instrument_list"),
+    path("muhasebe/cek-senet/yedekle/", instrument_backup, name="instrument_backup"),
     path("muhasebe/cek-senet/<int:pk>/hareket-kaydet/", instrument_inline_status_update, name="instrument_inline_status_update"),
     path("muhasebe/cek-senet/satir-kaydet/", instrument_inline_add, name="instrument_inline_add"),
     path("muhasebe/cek-senet/yeni/", instrument_edit, name="instrument_new"),
