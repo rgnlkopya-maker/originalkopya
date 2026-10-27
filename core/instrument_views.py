@@ -51,7 +51,46 @@ def instrument_list(request):
     if term:
         from django.db.models import Q
         records = records.filter(Q(issuer_name__icontains=term)|Q(given_to__icontains=term)|Q(document_number__icontains=term)|Q(customer__ad__icontains=term))
-    return render(request, "core/instrument_list.html", {"records": records[:300], "kinds":NegotiableInstrument.KIND, "statuses":NegotiableInstrument.STATUS})
+    return render(request, "core/instrument_list.html", {"records": records[:300], "kinds":NegotiableInstrument.KIND, "statuses":NegotiableInstrument.STATUS, "customers":Musteri.objects.filter(aktif=True).order_by("ad")})
+
+
+@login_required
+@require_POST
+def instrument_inline_add(request):
+    if not _manager(request.user):
+        return HttpResponseForbidden("Muhasebe yetkiniz yok.")
+    data = request.POST.copy()
+    # The inline table uses the same validated model fields as the detail form.
+    if data.get("direction") not in ("IN", "OUT"):
+        data["direction"] = "IN"
+    if data.get("direction") == "IN":
+        data["status"] = "PORTFOLIO"
+        data["given_to"] = ""
+    elif not data.get("status"):
+        data["status"] = "ISSUED"
+    form = InstrumentForm(data)
+    if data.get("direction") == "IN" and not data.get("customer"):
+        form.add_error("customer", "Müşteri seçilmelidir.")
+    if data.get("direction") == "OUT" and not data.get("given_to", "").strip():
+        form.add_error("given_to", "Kime verildiğini yazın.")
+    if not form.is_valid():
+        messages.error(request, "Satır kaydedilemedi: " + "; ".join(
+            f"{field}: {', '.join(str(e) for e in errors)}"
+            for field, errors in form.errors.items()
+        ))
+        return redirect("instrument_list")
+    with transaction.atomic():
+        record = form.save(commit=False)
+        record.created_by = request.user
+        if record.direction == "IN" and record.customer_id:
+            record.received_from = record.customer.ad
+        record.save()
+        InstrumentMovement.objects.create(
+            instrument=record, actor=request.user, action="CREATED",
+            description="Çek/senet liste üzerinden kaydedildi."
+        )
+    messages.success(request, "Yeni çek/senet satırı kaydedildi.")
+    return redirect("instrument_list")
 
 
 @login_required
