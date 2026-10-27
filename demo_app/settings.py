@@ -57,6 +57,7 @@ MIDDLEWARE = [
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "core.frozen_access_middleware.FrozenUserAccessMiddleware",
     "attendance.salary_security.SalaryPasswordGateMiddleware",
     "attendance.attendance_security.AttendancePasswordGateMiddleware",
     "core.audit_middleware.UserActionAuditMiddleware",
