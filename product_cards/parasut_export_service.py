@@ -76,15 +76,15 @@ def send_sales_record(invoice_id):
         previous = ParasutInvoiceTransfer.objects.select_for_update().filter(invoice=invoice).first()
         if previous and previous.status != "NOT_SENT":
             raise ParasutExportError("Önceki aktarım var veya sonucu belirsiz; mükerrer kayıt engellendi.")
-        lines = list(invoice.lines.select_related("order").order_by("id"))
+        lines = list(invoice.lines.select_related("order").order_by("id")) + list(invoice.manual_lines.order_by("id"))
         from decimal import Decimal
         if not lines or any(line.vat_rate is None or Decimal(str(line.vat_rate)) != Decimal("10") for line in lines):
             raise ParasutExportError("Paraşüt aktarımı engellendi: tüm ürünlerde KDV %10 olmalıdır.")
-        if not lines or any(not str(line.order.urun_kodu or "").strip() for line in lines):
+        if not lines or any(not str((line.order.urun_kodu if hasattr(line, "order_id") else line.description) or "").strip() for line in lines):
             raise ParasutExportError("Ürün kodu eksik veya fatura boş.")
         from .parasut_payload import build_parasut_sales_invoice
         # Existing mappings alone are sufficient for initial validation; no API writes yet.
-        temporary_ids = {str(line.order.urun_kodu).strip(): "CHECK" for line in lines}
+        temporary_ids = {str(line.order.urun_kodu if hasattr(line, "order_id") else line.description).strip(): "CHECK" for line in lines}
         _, blockers = build_parasut_sales_invoice(invoice, temporary_ids)
         if blockers:
             raise ParasutExportError("; ".join(blockers))
@@ -98,7 +98,7 @@ def send_sales_record(invoice_id):
         token = valid_access_token(company)
         codes = {}
         for line in lines:
-            code = str(line.order.urun_kodu).strip()
+            code = str(line.order.urun_kodu if hasattr(line, "order_id") else line.description).strip()
             if code not in codes:
                 codes[code] = _product(company, token, code, line.vat_rate)
         payload, errors = build_parasut_sales_invoice(invoice, codes)
@@ -168,10 +168,10 @@ def update_sales_record(invoice_id):
             raise ParasutExportError("Paraşüt faturasında tahsilat var; güncelleme yapılmadı.")
         if attrs.get("item_type") != "invoice":
             raise ParasutExportError("Paraşüt kayıt tipi uyumsuz.")
-        lines = list(inv.lines.select_related("order").order_by("id"))
+        lines = list(inv.lines.select_related("order").order_by("id")) + list(inv.manual_lines.order_by("id"))
         product_ids = {}
         for line in lines:
-            code = str(line.order.urun_kodu or "").strip()
+            code = str((line.order.urun_kodu if hasattr(line, "order_id") else line.description) or "").strip()
             if code not in product_ids:
                 product_ids[code] = _product(company, token, code, line.vat_rate)
         payload, errors = build_parasut_sales_invoice(inv, product_ids)
