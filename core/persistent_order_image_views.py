@@ -31,6 +31,19 @@ def order_edit_persistent(request, pk):
         except Exception as exc:
             messages.error(request, f"Sipariş görseli kalıcı depoya yüklenemedi: {exc}")
 
+    video = request.FILES.get("video") if request.method == "POST" else None
+    if video and getattr(response, "status_code", 200) in (301, 302) and (
+        request.user.is_superuser or request.user.groups.filter(name__in=["patron", "mudur"]).exists()
+    ):
+        from .order_video_views import save_order_video
+        order = get_object_or_404(Order, pk=pk)
+        try:
+            save_order_video(order, video)
+            messages.success(request, "Video siparişe eklendi.")
+        except ValueError as exc:
+            messages.error(request, str(exc))
+        except Exception:
+            messages.error(request, "Sipariş kaydedildi ancak video yüklenemedi.")
     return response
 
 
