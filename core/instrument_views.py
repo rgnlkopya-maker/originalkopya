@@ -8,6 +8,7 @@ from django.views.decorators.http import require_POST
 
 from core.models import Musteri
 from .instrument_models import NegotiableInstrument, InstrumentEndorser, InstrumentMovement
+from .instrument_drive_oauth import connected as drive_is_connected
 from product_cards.invoice_models import BizimHesapCustomerMapping
 
 
@@ -51,7 +52,7 @@ def instrument_list(request):
     if term:
         from django.db.models import Q
         records = records.filter(Q(issuer_name__icontains=term)|Q(given_to__icontains=term)|Q(document_number__icontains=term)|Q(customer__ad__icontains=term))
-    return render(request, "core/instrument_list.html", {"records": records[:300], "kinds":NegotiableInstrument.KIND, "statuses":NegotiableInstrument.STATUS, "customers":Musteri.objects.all().order_by("ad"), "currencies":NegotiableInstrument._meta.get_field("currency").choices, "drive_connected": __import__("core.instrument_drive_oauth", fromlist=["connected"]).connected()})
+    return render(request, "core/instrument_list.html", {"records": records[:300], "kinds":NegotiableInstrument.KIND, "statuses":NegotiableInstrument.STATUS, "customers":Musteri.objects.all().order_by("ad"), "currencies":NegotiableInstrument._meta.get_field("currency").choices, "drive_connected": drive_is_connected()})
 
 
 @login_required
