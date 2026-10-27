@@ -17,8 +17,9 @@
 .instrument-table .instrument-cell-editor>summary:focus-visible{outline:2px solid #6c8cff}
 </style>
 <div class="table-responsive"><table class="table table-hover align-middle instrument-table">
-<thead><tr><th>Tür</th><th>İşlem</th><th>İşlem Tarihi</th><th>Müşteri</th><th>Tutar</th><th>Vade</th><th>Durum</th><th>Verilen Tarih</th><th>Verilen Firma / Banka</th><th>İşlemler</th></tr></thead><tbody>
+<thead><tr><th>Sıra No</th><th>Tür</th><th>İşlem</th><th>İşlem Tarihi</th><th>Müşteri</th><th>Tutar</th><th>Vade</th><th>Durum</th><th>Verilen Tarih</th><th>Verilen Firma / Banka</th><th>İşlemler</th></tr></thead><tbody>
 <tr id="newInstrumentRow" style="display:none;background:#f3f6ff">
+<td class="text-muted text-center">Yeni</td>
 <td><select name="kind" form="inlineInstrumentForm" class="form-select form-select-sm"><option value="CHECK">Çek</option><option value="NOTE">Senet</option></select></td>
 <td><select name="direction" form="inlineInstrumentForm" class="form-select form-select-sm"><option value="IN">Alınan</option><option value="OUT">Verilen</option></select></td>
 <td><input name="transaction_date" form="inlineInstrumentForm" type="date" class="form-control form-control-sm"></td>
@@ -32,6 +33,7 @@
 </tr>
 {% for record in records %}
 <tr>
+<td class="text-center fw-semibold">{{ forloop.counter }}</td>
 <td><details class="instrument-cell-editor"><summary title="Düzenlemek için tıklayın">{{ record.get_kind_display }}</summary><div class="instrument-cell-popover"><select name="kind" form="movement{{ record.pk }}" class="form-select form-select-sm"><option value="CHECK" {% if record.kind == 'CHECK' %}selected{% endif %}>Çek</option><option value="NOTE" {% if record.kind == 'NOTE' %}selected{% endif %}>Senet</option></select></div></details></td>
 <td><details class="instrument-cell-editor"><summary title="Düzenlemek için tıklayın">{{ record.get_direction_display }}</summary><div class="instrument-cell-popover"><select name="direction" form="movement{{ record.pk }}" class="form-select form-select-sm"><option value="IN" {% if record.direction == 'IN' %}selected{% endif %}>Alınan</option><option value="OUT" {% if record.direction == 'OUT' %}selected{% endif %}>Verilen</option></select></div></details></td>
 <td><details class="instrument-cell-editor"><summary title="Düzenlemek için tıklayın">{{ record.transaction_date|date:'d.m.Y'|default:'—' }}</summary><div class="instrument-cell-popover"><input name="transaction_date" form="movement{{ record.pk }}" type="date" value="{{ record.transaction_date|date:'Y-m-d' }}" class="form-control form-control-sm"></div></details></td>
@@ -43,7 +45,7 @@
 <td><details class="instrument-cell-editor"><summary title="Düzenlemek için tıklayın">{{ record.given_to|default:'—' }}</summary><div class="instrument-cell-popover"><input name="given_to" form="movement{{ record.pk }}" value="{{ record.given_to }}" maxlength="250" class="form-control form-control-sm" placeholder="Firma / banka"></div></details></td>
 <td class="text-nowrap"><form id="movement{{ record.pk }}" method="post" action="{% url 'instrument_inline_status_update' record.pk %}">{% csrf_token %}</form><button type="submit" form="movement{{ record.pk }}" class="btn btn-sm btn-primary">Kaydet</button> <a href="{% url 'instrument_detail' record.pk %}" class="btn btn-sm btn-outline-primary">Detay</a></td>
 </tr>
-{% empty %}<tr><td colspan="10" class="text-center text-muted py-4">Henüz çek/senet kaydı yok.</td></tr>{% endfor %}
+{% empty %}<tr><td colspan="11" class="text-center text-muted py-4">Henüz çek/senet kaydı yok.</td></tr>{% endfor %}
 </tbody></table></div><form id="inlineInstrumentForm" method="post" action="{% url 'instrument_inline_add' %}">{% csrf_token %}</form>
 <div hidden id="customerSource">{% for customer in customers %}<span data-id="{{ customer.id }}" data-name="{{ customer.ad }}"></span>{% endfor %}</div>
 </div>
