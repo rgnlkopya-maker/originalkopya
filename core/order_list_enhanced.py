@@ -245,6 +245,19 @@ def order_list(request):
             order_id__in=page_order_ids,
         ).values_list("order_id", flat=True).distinct()
     )
+    from core.models import OrderImage
+    from django.db.models import Count
+    image_counts = {
+        row["order_id"]: (row["total"], row["printed"])
+        for row in OrderImage.objects.filter(order_id__in=page_order_ids)
+            .filter(image_url__isnull=False).exclude(image_url="")
+            .values("order_id")
+            .annotate(total=Count("id"), printed=Count("id", filter=Q(printed=True)))
+    }
+    for order in page_obj:
+        total, printed = image_counts.get(order.id, (0, 0))
+        order.print_image_total = total + int(bool(order.resim))
+        order.print_image_count = printed + int(bool(order.resim) and order.main_image_printed)
     for order in page_obj:
         order.has_visible_flag = order.id in visible_flag_order_ids
         if not order.latest_stage or not order.latest_value: order.formatted_status="-"; continue
