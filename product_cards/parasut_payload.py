@@ -1,6 +1,7 @@
 """Pure Paraşüt sales invoice preparation. No HTTP or e-document functions."""
 from decimal import Decimal
 from .invoice_models import ParasutCustomerMapping, ParasutProductMapping
+from .external_invoice_line_label import external_invoice_item_label
 
 CURRENCY = {"TRY": "TRL", "TL": "TRL", "USD": "USD", "EUR": "EUR", "GBP": "GBP"}
 
@@ -16,11 +17,6 @@ def build_parasut_sales_invoice(invoice, product_ids=None, lines_override=None):
     currency = CURRENCY.get(invoice.currency)
     if not currency:
         problems.append("Para birimi Paraşüt'te desteklenmiyor.")
-    detail = getattr(invoice.customer, "customer_detail", None)
-    address = ((getattr(detail, "fatura_adresi", "") or "").strip() or
-               (getattr(detail, "adres", "") or "").strip())
-    if not address:
-        problems.append("Müşteri kartında fatura adresi eksik.")
     lines = list(lines_override) if lines_override is not None else list(invoice.lines.select_related("order").order_by("id")) + list(invoice.manual_lines.order_by("id"))
     if not lines:
         problems.append("Faturada ürün yok.")
@@ -43,18 +39,13 @@ def build_parasut_sales_invoice(invoice, product_ids=None, lines_override=None):
             continue
         if order and (order.para_birimi or "TRY") != invoice.currency:
             problems.append("Sipariş ve fatura para birimleri farklı; aktarım engellendi.")
-        parts = []
-        if order and order.renk:
-            parts.append("Renk: " + str(order.renk))
-        if order and order.beden:
-            parts.append("Beden: " + str(order.beden))
         items.append({
             "type": "sales_invoice_details",
             "attributes": {
                 "quantity": float(line.quantity) if order is None else 1,
                 "unit_price": str(price),
                 "vat_rate": str(rate),
-                "description": " / ".join(parts) or (code if order is None else "Ürün"),
+                "description": external_invoice_item_label(line),
             },
             "relationships": {"product": {"data": {"id": product_id, "type": "products"}}},
         })
@@ -68,7 +59,6 @@ def build_parasut_sales_invoice(invoice, product_ids=None, lines_override=None):
             "issue_date": invoice.invoice_date.isoformat(),
             "due_date": (invoice.due_date or invoice.invoice_date).isoformat(),
             "currency": currency,
-            "billing_address": address,
         },
         "relationships": {
             "contact": {"data": {"id": contact.external_contact_id, "type": "contacts"}},
