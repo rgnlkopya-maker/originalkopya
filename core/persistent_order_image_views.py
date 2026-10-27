@@ -100,34 +100,6 @@ def order_detail_persistent(request, pk):
     ):
         html = response.content.decode(response.charset or "utf-8")
 
-        inline_open = (
-            "onclick=\"var v=document.getElementById('image-viewer');"
-            "var i=document.getElementById('image-viewer-img');"
-            "if(v&&i){i.src=this.getAttribute('data-full-image')||this.src;"
-            "v.classList.add('open');v.setAttribute('aria-hidden','false');"
-            "document.body.style.overflow='hidden';}return false;\" "
-            "role=\"button\" tabindex=\"0\" style=\"pointer-events:auto;touch-action:manipulation;cursor:zoom-in;\" "
-        )
-        html = html.replace(
-            'class="img-thumbnail preview-img"',
-            f'class="img-thumbnail preview-img" {inline_open}'
-        )
-
-        html = html.replace(
-            '<div id="image-viewer" class="image-viewer no-print" aria-hidden="true">',
-            '<div id="image-viewer" class="image-viewer no-print" aria-hidden="true" '
-            'onclick="if(event.target===this){this.classList.remove(\'open\');this.setAttribute(\'aria-hidden\',\'true\');'
-            'var i=document.getElementById(\'image-viewer-img\');if(i)i.src=\'\';document.body.style.overflow=\'\';}">'
-        )
-
-        html = html.replace(
-            '<button type="button" id="image-close-btn" class="image-viewer-btn">✕</button>',
-            '<button type="button" id="image-close-btn" class="image-viewer-btn" '
-            'onclick="event.preventDefault();event.stopPropagation();var v=document.getElementById(\'image-viewer\');'
-            'var i=document.getElementById(\'image-viewer-img\');if(v){v.classList.remove(\'open\');v.setAttribute(\'aria-hidden\',\'true\');}'
-            'if(i)i.src=\'\';document.body.style.overflow=\'\';return false;">✕</button>'
-        )
-
         html = html.replace(
             '<button type="button" id="image-print-btn" class="image-viewer-btn">🖨️ Yazdır</button>',
             '<button type="button" id="image-print-btn" class="image-viewer-btn" '
