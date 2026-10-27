@@ -23,6 +23,7 @@ class UserProfile(models.Model):
 
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="userprofile")
     gorev = models.CharField(max_length=20, choices=GOREV_SECENEKLERI, default="yok")
+    system_frozen = models.BooleanField(default=False)
 
     # 👇 Bunu ekliyoruz!
     last_seen_orders = models.DateTimeField(default=timezone.now)
