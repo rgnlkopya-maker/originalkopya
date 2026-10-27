@@ -60,7 +60,7 @@
 </tr>
 {% for record in records %}
 <tr>
-<td class="text-center fw-semibold"><button type="button" class="btn btn-link btn-sm p-0 text-decoration-none instrument-photo-open" data-record-code="CS-{{ record.pk|stringformat:'06d' }}" data-upload-url="{% url 'instrument_photo_upload' record.pk %}" data-front-url="{% url 'instrument_photo_view' record.pk 'FRONT' %}" data-back-url="{% url 'instrument_photo_view' record.pk 'BACK' %}" data-front-delete-url="{% url 'instrument_photo_delete' record.pk 'FRONT' %}" data-back-delete-url="{% url 'instrument_photo_delete' record.pk 'BACK' %}" data-has-front="{% if record.has_front_photo %}1{% else %}0{% endif %}" data-has-back="{% if record.has_back_photo %}1{% else %}0{% endif %}" title="Ön / arka yüz fotoğrafları">{{ forloop.counter }} <i class="bi bi-paperclip" style="font-size:11px"></i></button></td>
+<td class="text-center fw-semibold">{{ forloop.counter }}</td>
 <td><details class="instrument-cell-editor"><summary title="Düzenlemek için tıklayın">{{ record.get_kind_display }}</summary><div class="instrument-cell-popover"><select name="kind" form="movement{{ record.pk }}" class="form-select form-select-sm"><option value="CHECK" {% if record.kind == 'CHECK' %}selected{% endif %}>Çek</option><option value="NOTE" {% if record.kind == 'NOTE' %}selected{% endif %}>Senet</option></select></div></details></td>
 <td><details class="instrument-cell-editor"><summary title="Düzenlemek için tıklayın">{{ record.bank|default:'—' }}</summary><div class="instrument-cell-popover"><input name="bank" form="movement{{ record.pk }}" value="{{ record.bank }}" maxlength="200" class="form-control form-control-sm" placeholder="Banka"></div></details></td>
 <td><details class="instrument-cell-editor"><summary title="Düzenlemek için tıklayın">{{ record.document_number|default:'—' }}</summary><div class="instrument-cell-popover"><input name="document_number" form="movement{{ record.pk }}" value="{{ record.document_number }}" maxlength="120" class="form-control form-control-sm" placeholder="Çek No"></div></details></td>
@@ -76,30 +76,7 @@
 </tr>
 {% empty %}<tr><td colspan="13" class="text-center text-muted py-4">Henüz çek/senet kaydı yok.</td></tr>{% endfor %}
 </tbody></table></div><form id="inlineInstrumentForm" method="post" action="{% url 'instrument_inline_add' %}">{% csrf_token %}</form>
-<div class="modal fade" id="instrumentPhotoModal" tabindex="-1" aria-hidden="true"><div class="modal-dialog modal-dialog-centered modal-lg"><div class="modal-content" style="border-radius:16px"><div class="modal-header"><h5 class="modal-title">Çek / Senet Fotoğrafları · <span id="instrumentPhotoCode"></span></h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><div class="row g-3"><div class="col-md-6"><div class="fw-semibold mb-2">Ön Yüz</div><a id="instrumentFrontLink" href="#" data-side="FRONT" class="d-none btn btn-outline-primary btn-sm mb-2">Fotoğrafı Gör</a><div id="instrumentFrontEmpty" class="text-muted small mb-2">Henüz fotoğraf yok</div><form method="post" enctype="multipart/form-data" class="instrument-photo-form">{% csrf_token %}<input type="hidden" name="side" value="FRONT"><input type="file" accept="image/jpeg,image/png,image/webp" name="photo" class="form-control form-control-sm mb-2" required><button class="btn btn-sm btn-primary">Ön Yüzü Kaydet</button></form></div><div class="col-md-6"><div class="fw-semibold mb-2">Arka Yüz</div><a id="instrumentBackLink" href="#" data-side="BACK" class="d-none btn btn-outline-primary btn-sm mb-2">Fotoğrafı Gör</a><div id="instrumentBackEmpty" class="text-muted small mb-2">Henüz fotoğraf yok</div><form method="post" enctype="multipart/form-data" class="instrument-photo-form">{% csrf_token %}<input type="hidden" name="side" value="BACK"><input type="file" accept="image/jpeg,image/png,image/webp" name="photo" class="form-control form-control-sm mb-2" required><button class="btn btn-sm btn-primary">Arka Yüzü Kaydet</button></form></div></div><div class="small text-muted mt-3">Fotoğraflar özel Supabase depolamasına kaydedilir. Kalıcı belge numarası kullanılır; liste sırası değişse de bağlantı korunur.</div></div></div></div></div>
 
-<style>
-.instrument-photo-viewer{position:fixed;inset:0;z-index:10580;background:rgba(10,15,25,.91);display:none;align-items:center;justify-content:center;padding:75px 18px 20px}
-.instrument-photo-viewer.is-open{display:flex}
-.instrument-photo-viewer img{max-width:100%;max-height:calc(100vh - 105px);object-fit:contain;border-radius:8px}
-.instrument-photo-viewer-actions{position:fixed;right:20px;top:18px;z-index:10581;display:flex;gap:8px}
-.instrument-photo-viewer-actions .btn{font-weight:600;box-shadow:0 3px 12px #0005}
-@media print{
- body.instrument-print-mode *{visibility:hidden!important}
- body.instrument-print-mode #instrumentPhotoViewer,body.instrument-print-mode #instrumentPhotoViewer img{visibility:visible!important}
- body.instrument-print-mode #instrumentPhotoViewer{display:flex!important;position:fixed!important;inset:0!important;padding:0!important;background:#fff!important}
- body.instrument-print-mode #instrumentPhotoViewer img{max-width:100%!important;max-height:100%!important}
- body.instrument-print-mode .instrument-photo-viewer-actions{display:none!important}
-}
-</style>
-<div id="instrumentPhotoViewer" class="instrument-photo-viewer" role="dialog" aria-modal="true" aria-label="Çek senet fotoğrafı" aria-hidden="true">
- <div class="instrument-photo-viewer-actions">
-  <button type="button" class="btn btn-light btn-sm" id="instrumentViewerPrint"><i class="bi bi-printer me-1"></i>Yazdır</button>
-  <form method="post" id="instrumentViewerDeleteForm">{% csrf_token %}<button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Yalnızca bu fotoğraf silinsin mi?')"><i class="bi bi-trash me-1"></i>Sil</button></form>
-  <button type="button" class="btn btn-light btn-sm" id="instrumentViewerClose"><i class="bi bi-x-lg me-1"></i>Kapat</button>
- </div>
- <img id="instrumentViewerImage" alt="Çek / senet fotoğrafı">
-</div>
 <div hidden id="customerSource">{% for customer in customers %}<span data-id="{{ customer.id }}" data-name="{{ customer.ad }}"></span>{% endfor %}</div>
 </div>
 <script>
@@ -148,46 +125,6 @@ document.addEventListener('click',e=>{
   document.querySelectorAll('.instrument-cell-editor[open]').forEach(d=>{if(!d.contains(e.target))d.open=false;});
 });
 
-document.querySelectorAll('.instrument-photo-open').forEach(button=>{
-button.addEventListener('click',()=>{
- const modal=document.getElementById('instrumentPhotoModal');
- document.getElementById('instrumentPhotoCode').textContent=button.dataset.recordCode;
- modal.querySelectorAll('.instrument-photo-form').forEach(form=>{form.action=button.dataset.uploadUrl;});
- for(const [kind,has] of [['Front','front'],['Back','back']]){
-  const link=document.getElementById('instrument'+kind+'Link'), empty=document.getElementById('instrument'+kind+'Empty');
-  const present=button.dataset['has'+kind]==='1';
-  link.classList.toggle('d-none',!present);empty.classList.toggle('d-none',present);
-  if(present)link.href=button.dataset[has+'Url'];else link.removeAttribute('href');
- }
- bootstrap.Modal.getOrCreateInstance(modal).show();
-});
-});
-const instrumentViewer=document.getElementById('instrumentPhotoViewer');
-const instrumentViewerImg=document.getElementById('instrumentViewerImage');
-const instrumentViewerDelete=document.getElementById('instrumentViewerDeleteForm');
-function closeInstrumentViewer(){
- instrumentViewer.classList.remove('is-open');instrumentViewer.setAttribute('aria-hidden','true');
- instrumentViewerImg.removeAttribute('src');document.body.style.overflow='';
-}
-document.getElementById('instrumentViewerClose').addEventListener('click',closeInstrumentViewer);
-instrumentViewer.addEventListener('click',function(e){if(e.target===instrumentViewer)closeInstrumentViewer();});
-document.addEventListener('keydown',function(e){if(e.key==='Escape'&&instrumentViewer.classList.contains('is-open'))closeInstrumentViewer();});
-document.querySelectorAll('#instrumentFrontLink,#instrumentBackLink').forEach(function(link){
- link.addEventListener('click',function(e){
-  e.preventDefault();if(!link.href||link.classList.contains('d-none'))return;
-  const photoButton=document.querySelector('.instrument-photo-open[data-record-code="'+document.getElementById('instrumentPhotoCode').textContent+'"]');
-  if(!photoButton)return;
-  instrumentViewerDelete.action=link.dataset.side==='FRONT'?photoButton.dataset.frontDeleteUrl:photoButton.dataset.backDeleteUrl;
-  instrumentViewerImg.src=link.href;instrumentViewer.classList.add('is-open');
-  instrumentViewer.setAttribute('aria-hidden','false');
-  document.body.style.overflow='hidden';
- });
-});
-document.getElementById('instrumentViewerPrint').addEventListener('click',function(){
- if(!instrumentViewerImg.complete||!instrumentViewerImg.naturalWidth){alert('Fotoğraf henüz yüklenmedi.');return;}
- document.body.classList.add('instrument-print-mode');window.print();
-});
-window.addEventListener('afterprint',function(){document.body.classList.remove('instrument-print-mode');});
 const customers=[...document.querySelectorAll('#customerSource span')].map(e=>({id:e.dataset.id,name:e.dataset.name}));
 for(const picker of document.querySelectorAll('.customer-picker')){
  const input=picker.querySelector('.customer-search'), hidden=picker.querySelector('.customer-id'),menu=picker.querySelector('.customer-options');
