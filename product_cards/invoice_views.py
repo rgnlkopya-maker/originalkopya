@@ -108,7 +108,12 @@ def invoice_list_live_totals(request):
     from django.db.models import Sum, F, DecimalField, ExpressionWrapper
     line_amount = ExpressionWrapper(F("price") * (1 + F("vat_rate") / 100), output_field=DecimalField(max_digits=20, decimal_places=4))
     rows = InvoiceLine.objects.values("invoice_id").annotate(total=Sum(line_amount))
-    return JsonResponse({"totals": {str(row["invoice_id"]): str(row["total"] or 0) for row in rows}})
+    totals = {str(row["invoice_id"]): Decimal(str(row["total"] or 0)) for row in rows}
+    extra_amount = ExpressionWrapper(F("quantity") * F("unit_price") * (1 + F("vat_rate") / 100), output_field=DecimalField(max_digits=23, decimal_places=4))
+    for row in InvoiceManualLine.objects.values("invoice_id").annotate(total=Sum(extra_amount)):
+        key = str(row["invoice_id"])
+        totals[key] = totals.get(key, Decimal("0")) + Decimal(str(row["total"] or 0))
+    return JsonResponse({"totals": {key: str(value) for key, value in totals.items()}})
 
 
 @login_required
@@ -340,7 +345,7 @@ def invoice_delete_empty(request, invoice_id):
         return HttpResponseForbidden("Yetkiniz yok.")
     with transaction.atomic():
         invoice = get_object_or_404(InvoiceDraft.objects.select_for_update(), pk=invoice_id)
-        if invoice.status != "DRAFT" or invoice.lines.exists():
+        if invoice.status != "DRAFT" or invoice.lines.exists() or invoice.manual_lines.exists():
             messages.error(request, "Yalnızca boş taslak faturalar silinebilir.")
             return redirect("invoice_list")
         if (_transfer_locked(invoice) or invoice.bizimhesap_manual_recorded or
@@ -529,6 +534,15 @@ def invoice_bizimhesap_preview(request, invoice_id):
             "net": net,
             "tax": tax,
             "total": net + tax,
+        })
+    for item in invoice.manual_lines.order_by("id"):
+        net = item.quantity * item.unit_price
+        tax = (net * item.vat_rate / Decimal("100")).quantize(Decimal("0.01"))
+        details.append({
+            "product": item.description, "order_number": "",
+            "description": item.description, "reference": "", "note": "",
+            "quantity": item.quantity, "unit_price": item.unit_price,
+            "vat_rate": item.vat_rate, "net": net, "tax": tax, "total": net + tax,
         })
     net_total = sum((item["net"] for item in details), Decimal("0"))
     tax_total = sum((item["tax"] for item in details), Decimal("0"))
@@ -855,7 +869,7 @@ def invoice_parasut_preview(request, invoice_id):
         return HttpResponseForbidden("Yetkiniz yok.")
     from .parasut_payload import build_parasut_sales_invoice
     invoice = get_object_or_404(InvoiceDraft.objects.select_related("customer"), pk=invoice_id)
-    product_codes = list(invoice.lines.select_related("order").values_list("order__urun_kodu", flat=True))
+    product_codes = list(invoice.lines.select_related("order").values_list("order__urun_kodu", flat=True)) + list(invoice.manual_lines.values_list("description", flat=True))
     preview_ids = {str(code).strip(): "PREVIEW" for code in product_codes if str(code or "").strip()}
     payload, problems = build_parasut_sales_invoice(invoice, preview_ids)
     transfer = ParasutInvoiceTransfer.objects.filter(invoice=invoice).first()
@@ -874,7 +888,7 @@ def invoice_parasut_preview(request, invoice_id):
         "invoice": invoice, "problems": problems,
         "prepared": payload is not None,
         "transfer": transfer,
-        "line_count": invoice.lines.count(),
+        "line_count": invoice.lines.count() + invoice.manual_lines.count(),
         "mapping": mapping, "export_enabled": export_enabled,
     })
 
