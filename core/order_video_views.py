@@ -11,7 +11,7 @@ from supabase import create_client
 
 from .models import Order, OrderVideo
 from .persistent_order_image_views import _delete_supabase_object
-from .services.order_access import order_scope_allows
+from app_settings.access import order_scope_allows
 
 
 def _can_edit(user):
