@@ -130,6 +130,16 @@ def employee_detail(request,user_id):
     employee=get_object_or_404(User,pk=user_id);profile,_=EmployeeHRProfile.objects.get_or_create(user=employee);user_profile,_=UserProfile.objects.get_or_create(user=employee);access,_=UserAccess.objects.get_or_create(user=employee)
     if request.method=="POST":
         action=request.POST.get("action","edit_employee").strip()
+        if action == "toggle_system_freeze":
+            if not (request.user.is_superuser or request.user.groups.filter(name__in=["patron", "mudur"]).exists()):
+                return HttpResponseForbidden("Yalnızca patron veya müdür sistemi dondurabilir.")
+            if employee.pk == request.user.pk or employee.is_superuser:
+                messages.error(request, "Kendi hesabınız veya sistem yöneticisi hesabı dondurulamaz.")
+            else:
+                user_profile.system_frozen = not user_profile.system_frozen
+                user_profile.save(update_fields=["system_frozen"])
+                messages.success(request, "Sistem erişimi donduruldu." if user_profile.system_frozen else "Sistem erişimi yeniden açıldı.")
+            return redirect("employee_detail", user_id=employee.pk)
         if action=="update_permissions":
             if not has_feature_access(request.user, "critical.manage_permissions"):
                 return HttpResponseForbidden("Kullanıcı yetkilerini değiştirme yetkiniz yok.")
