@@ -60,6 +60,14 @@ class MoliAccessMiddleware:
             else:
                 request.session.pop("moli_preview_user_id", None)
 
+        # Kullanici onizlemesinde request.user sonradan degisir. Dondurmayi burada
+        # tekrar kontrol et; yonetici oturumu dondurulmus personeli asamaz.
+        if request.is_user_preview:
+            from core.models import UserProfile
+            from core.frozen_access_middleware import frozen_access_response
+            if UserProfile.objects.filter(user_id=request.user.pk, system_frozen=True).exists():
+                return frozen_access_response()
+
         # Normal personelde mesai kapısı uygulanır; Patron/Müdür önizleme modunda bu kapı atlanır.
         if not request.is_user_preview and not has_full_access(request.user):
             from attendance.models import AttendanceRecord
