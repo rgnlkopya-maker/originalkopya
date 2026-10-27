@@ -60,7 +60,7 @@
 </tr>
 {% for record in records %}
 <tr>
-<td class="text-center fw-semibold">{{ record.pk }}</td>
+<td class="text-center fw-semibold"><button type="button" class="btn btn-link btn-sm p-0 text-decoration-none check-gallery-open" data-id="{{ record.pk }}" title="Çek görsellerini aç">{{ record.pk }}</button></td>
 <td><details class="instrument-cell-editor"><summary title="Düzenlemek için tıklayın">{{ record.get_kind_display }}</summary><div class="instrument-cell-popover"><select name="kind" form="movement{{ record.pk }}" class="form-select form-select-sm"><option value="CHECK" {% if record.kind == 'CHECK' %}selected{% endif %}>Çek</option><option value="NOTE" {% if record.kind == 'NOTE' %}selected{% endif %}>Senet</option></select></div></details></td>
 <td><details class="instrument-cell-editor"><summary title="Düzenlemek için tıklayın">{{ record.bank|default:'—' }}</summary><div class="instrument-cell-popover"><input name="bank" form="movement{{ record.pk }}" value="{{ record.bank }}" maxlength="200" class="form-control form-control-sm" placeholder="Banka"></div></details></td>
 <td><details class="instrument-cell-editor"><summary title="Düzenlemek için tıklayın">{{ record.document_number|default:'—' }}</summary><div class="instrument-cell-popover"><input name="document_number" form="movement{{ record.pk }}" value="{{ record.document_number }}" maxlength="120" class="form-control form-control-sm" placeholder="Çek No"></div></details></td>
@@ -77,6 +77,41 @@
 {% empty %}<tr><td colspan="13" class="text-center text-muted py-4">Henüz çek/senet kaydı yok.</td></tr>{% endfor %}
 </tbody></table></div><form id="inlineInstrumentForm" method="post" action="{% url 'instrument_inline_add' %}">{% csrf_token %}</form>
 
+
+<div hidden id="checkGallerySource">
+{% for record in records %}
+ <div data-record-id="{{ record.pk }}">
+ {% for photo in record.attachments.all %}
+ <button type="button" class="check-gallery-photo border rounded-3 p-2 bg-white" data-src="{% url 'instrument_attachment_view' record.pk photo.id %}" data-delete="{% url 'instrument_attachment_delete' record.pk photo.id %}" data-label="{{ record.pk }}-{{ photo.sequence }}">
+ <img src="{% url 'instrument_attachment_view' record.pk photo.id %}" loading="lazy" alt="{{ record.pk }}-{{ photo.sequence }}" style="width:110px;height:100px;object-fit:contain;display:block">
+ <span class="small fw-semibold">{{ record.pk }}-{{ photo.sequence }}</span>
+ </button>
+ {% endfor %}
+ </div>
+{% endfor %}
+</div>
+<style>
+#checkGalleryModal .check-gallery-preview{background:#131c2b;border-radius:12px;min-height:180px;display:flex;align-items:center;justify-content:center;padding:12px}
+#checkGalleryModal .check-gallery-preview img{max-width:100%;max-height:58vh;object-fit:contain}
+#checkGalleryModal .check-gallery-photo{cursor:pointer}
+@media print{body.check-gallery-print *{visibility:hidden!important}body.check-gallery-print #checkGalleryModal,body.check-gallery-print #checkGalleryModal #checkGalleryPrintImage{visibility:visible!important}body.check-gallery-print #checkGalleryModal{display:flex!important;position:fixed!important;inset:0!important;background:#fff!important}body.check-gallery-print #checkGalleryModal .modal-dialog,body.check-gallery-print #checkGalleryModal .modal-content,body.check-gallery-print #checkGalleryModal .modal-body,body.check-gallery-print #checkGalleryModal .check-gallery-preview{display:flex!important;width:100%!important;max-width:100%!important;height:100%!important;max-height:none!important;margin:0!important;padding:0!important;border:0!important;box-shadow:none!important;background:#fff!important;align-items:center!important;justify-content:center!important}body.check-gallery-print #checkGalleryPrintImage{max-width:100%!important;max-height:100%!important;object-fit:contain!important}body.check-gallery-print #checkGalleryModal .modal-header,body.check-gallery-print #checkGalleryModal .check-gallery-thumbnails,body.check-gallery-print #checkGalleryModal .check-gallery-actions{display:none!important}}
+</style>
+<div class="modal fade" id="checkGalleryModal" tabindex="-1" aria-hidden="true">
+ <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+  <div class="modal-content" style="border-radius:15px">
+   <div class="modal-header"><h5 class="modal-title">Çek <span id="checkGalleryNumber"></span> · Görseller</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Kapat"></button></div>
+   <div class="modal-body">
+    <div id="checkGalleryThumbnails" class="check-gallery-thumbnails d-flex flex-wrap gap-2 mb-3"></div>
+    <div id="checkGalleryPreview" class="check-gallery-preview d-none"><img id="checkGalleryPrintImage" alt="Çek fotoğrafı"></div>
+    <div id="checkGalleryActions" class="check-gallery-actions d-none justify-content-end gap-2 mt-2">
+      <button type="button" id="checkGalleryPrint" class="btn btn-outline-primary btn-sm"><i class="bi bi-printer"></i> Yazdır</button>
+      <form id="checkGalleryDelete" method="post">{% csrf_token %}<button type="submit" class="btn btn-outline-danger btn-sm" onclick="return confirm('Bu fotoğraf silinsin mi?')"><i class="bi bi-trash"></i> Sil</button></form>
+      <button type="button" id="checkGalleryHidePreview" class="btn btn-outline-secondary btn-sm"><i class="bi bi-x-lg"></i> Kapat</button>
+    </div>
+   </div>
+  </div>
+ </div>
+</div>
 <div hidden id="customerSource">{% for customer in customers %}<span data-id="{{ customer.id }}" data-name="{{ customer.ad }}"></span>{% endfor %}</div>
 </div>
 <script>
@@ -125,6 +160,51 @@ document.addEventListener('click',e=>{
   document.querySelectorAll('.instrument-cell-editor[open]').forEach(d=>{if(!d.contains(e.target))d.open=false;});
 });
 
+
+const checkGalleryModal=document.getElementById('checkGalleryModal');
+const checkGalleryThumbs=document.getElementById('checkGalleryThumbnails');
+const checkGalleryPreview=document.getElementById('checkGalleryPreview');
+const checkGalleryActions=document.getElementById('checkGalleryActions');
+const checkGalleryImg=document.getElementById('checkGalleryPrintImage');
+const checkGalleryDelete=document.getElementById('checkGalleryDelete');
+function hideCheckGalleryPreview(){
+ checkGalleryPreview.classList.add('d-none');
+ checkGalleryActions.classList.add('d-none');checkGalleryActions.classList.remove('d-flex');
+ checkGalleryImg.removeAttribute('src');
+}
+document.querySelectorAll('.check-gallery-open').forEach(button=>button.addEventListener('click',()=>{
+ const id=button.dataset.id;
+ document.getElementById('checkGalleryNumber').textContent=id;
+ const source=document.querySelector('#checkGallerySource [data-record-id="'+id+'"]');
+ checkGalleryThumbs.replaceChildren();
+ hideCheckGalleryPreview();
+ if(source&&source.children.length){
+  [...source.children].forEach(original=>{
+   const thumb=original.cloneNode(true);
+   thumb.addEventListener('click',()=>{
+    checkGalleryImg.src=thumb.dataset.src;
+    checkGalleryDelete.action=thumb.dataset.delete;
+    checkGalleryPreview.classList.remove('d-none');
+    checkGalleryActions.classList.remove('d-none');checkGalleryActions.classList.add('d-flex');
+   });
+   checkGalleryThumbs.appendChild(thumb);
+  });
+ }else{
+  const notice=document.createElement('div');
+  notice.className='text-muted small';
+  notice.textContent='Bu çeke henüz fotoğraf yüklenmedi. Detay sayfasından fotoğraf ekleyebilirsiniz.';
+  checkGalleryThumbs.appendChild(notice);
+ }
+ bootstrap.Modal.getOrCreateInstance(checkGalleryModal).show();
+}));
+document.getElementById('checkGalleryHidePreview').addEventListener('click',hideCheckGalleryPreview);
+checkGalleryModal.addEventListener('hidden.bs.modal',hideCheckGalleryPreview);
+checkGalleryModal.addEventListener('click',e=>{if(e.target===checkGalleryPreview)hideCheckGalleryPreview();});
+document.getElementById('checkGalleryPrint').addEventListener('click',()=>{
+ if(!checkGalleryImg.complete||!checkGalleryImg.naturalWidth){alert('Fotoğraf henüz yüklenmedi.');return;}
+ document.body.classList.add('check-gallery-print');window.print();
+});
+window.addEventListener('afterprint',()=>document.body.classList.remove('check-gallery-print'));
 const customers=[...document.querySelectorAll('#customerSource span')].map(e=>({id:e.dataset.id,name:e.dataset.name}));
 for(const picker of document.querySelectorAll('.customer-picker')){
  const input=picker.querySelector('.customer-search'), hidden=picker.querySelector('.customer-id'),menu=picker.querySelector('.customer-options');
