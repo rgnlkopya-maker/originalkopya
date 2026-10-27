@@ -11,7 +11,7 @@
 .instrument-cell-editor>summary::-webkit-details-marker{display:none}
 .instrument-cell-editor>summary:hover{background:#eef3ff;color:#3954b8}
 .instrument-cell-editor[open]>summary{background:#edf2ff;color:#3954b8}
-.instrument-cell-popover{position:absolute;top:100%;left:0;z-index:1100;padding:10px;min-width:185px;width:max-content;max-width:min(350px,90vw);background:#fff;border:1px solid #dce4ef;box-shadow:0 12px 28px rgba(25,42,70,.16);border-radius:10px}
+.instrument-cell-popover{position:fixed;top:0;left:0;z-index:2147480000;padding:10px;min-width:185px;width:max-content;max-width:min(350px,90vw);background:#fff;border:1px solid #dce4ef;box-shadow:0 12px 28px rgba(25,42,70,.16);border-radius:10px}
 .instrument-cell-popover .customer-picker{min-width:270px}
 .instrument-table td:has(.instrument-cell-editor){overflow:visible}
 .instrument-table .instrument-cell-editor>summary:focus-visible{outline:2px solid #6c8cff}
@@ -53,13 +53,23 @@
 // Keep the list looking like plain text; edit controls open only when a cell is clicked.
 document.querySelectorAll('.instrument-cell-editor').forEach(function(details){
   const summary=details.querySelector('summary');
+  function positionEditor(){
+    if(!details.open)return;
+    const panel=details.querySelector('.instrument-cell-popover');
+    const rect=summary.getBoundingClientRect();
+    const width=panel.offsetWidth||260;
+    const height=panel.offsetHeight||80;
+    panel.style.left=Math.max(8,Math.min(rect.left,window.innerWidth-width-12))+'px';
+    panel.style.top=(rect.bottom+height+8<=window.innerHeight?rect.bottom+4:Math.max(8,rect.top-height-4))+'px';
+  }
   details.addEventListener('toggle',function(){
     if(details.open){
       document.querySelectorAll('.instrument-cell-editor[open]').forEach(other=>{if(other!==details)other.open=false;});
-      const field=details.querySelector('.instrument-cell-popover input:not([type=hidden]),.instrument-cell-popover select');
-      if(field)field.focus({preventScroll:true});
+      positionEditor();
     }
   });
+  window.addEventListener('resize',positionEditor);
+  window.addEventListener('scroll',positionEditor,true);
   details.querySelectorAll('input,select').forEach(function(field){
     field.addEventListener('change',function(){
       if(field.classList.contains('customer-search'))return;
