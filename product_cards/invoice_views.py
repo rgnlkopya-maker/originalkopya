@@ -12,7 +12,7 @@ from django.urls import reverse
 from django.utils import timezone
 from django.views.decorators.http import require_POST
 from core.models import Order, Musteri
-from .invoice_models import InvoiceDraft, InvoiceLine, InvoiceStatusHistory, BizimHesapCustomerMapping, BizimHesapInvoiceTransfer, ParasutInvoiceTransfer
+from .invoice_models import InvoiceDraft, InvoiceLine, InvoiceManualLine, InvoiceStatusHistory, BizimHesapCustomerMapping, BizimHesapInvoiceTransfer, ParasutInvoiceTransfer
 from planning.models import ShipmentPlan
 from core.services.order_status import latest_status_event, status_label, FINANCIAL_STAGES
 
@@ -71,7 +71,7 @@ def invoice_list(request):
 def _invoice_list_impl(request):
     if not _allowed(request.user):
         return HttpResponseForbidden("Yetkiniz yok.")
-    invoices = list(InvoiceDraft.objects.select_related("customer").prefetch_related("lines", "bizimhesap_transfer", "parasut_transfer").order_by("-invoice_date", "-id"))
+    invoices = list(InvoiceDraft.objects.select_related("customer").prefetch_related("lines", "manual_lines", "bizimhesap_transfer", "parasut_transfer").order_by("-invoice_date", "-id"))
     pending = _pending_shipments_by_invoice()
     for invoice in invoices:
         invoice.has_pending_shipment = pending.get(invoice.id, False)
@@ -82,7 +82,7 @@ def _invoice_list_impl(request):
         invoice.parasut_transfer_status = parasut_transfer.status if parasut_transfer else ""
         invoice.bh_display = invoice.bizimhesap_display_status or ("api" if invoice.bh_transfer_status == "SENT" else ("yes" if invoice.bizimhesap_manual_recorded else "no"))
         invoice.parasut_display = "api" if invoice.parasut_transfer_status == "SENT" else (invoice.parasut_display_status or ("yes" if invoice.parasut_manual_recorded else "no"))
-        invoice.list_total = sum((line.price * (Decimal("1") + line.vat_rate / Decimal("100")) for line in invoice.lines.all()), Decimal("0"))
+        invoice.list_total = sum((line.price * (Decimal("1") + line.vat_rate / Decimal("100")) for line in invoice.lines.all()), Decimal("0")) + sum((line.quantity * line.unit_price * (Decimal("1") + line.vat_rate / Decimal("100")) for line in invoice.manual_lines.all()), Decimal("0"))
         invoice.visible_official_number = invoice.official_number
     from .invoice_models import StandaloneInvoice
     standalone_invoices = list(StandaloneInvoice.objects.filter(is_proforma=False).select_related("customer").prefetch_related("lines").order_by("-invoice_date", "-id")[:200])
@@ -375,9 +375,13 @@ def invoice_detail(request, invoice_id):
     for line in lines:
         line.current_status = status_label(latest_status_event(line.order))
         line.total_with_vat = (line.price * (Decimal("1") + line.vat_rate / Decimal("100"))).quantize(Decimal("0.01"))
-    parasut_vat_ready = bool(lines) and all(line.vat_rate is not None and Decimal(str(line.vat_rate)) == Decimal("10") for line in lines)
+    manual_lines = list(invoice.manual_lines.order_by("id"))
+    for item in manual_lines:
+        item.total_with_vat = (item.quantity * item.unit_price * (Decimal("1") + item.vat_rate / Decimal("100"))).quantize(Decimal("0.01"))
+    parasut_vat_ready = bool(lines or manual_lines) and all(Decimal(str(line.vat_rate)) == Decimal("10") for line in lines + manual_lines)
     subtotal = sum((line.price for line in lines), Decimal("0"))
-    tax = sum((line.price * line.vat_rate / Decimal("100") for line in lines), Decimal("0"))
+    subtotal += sum((item.quantity * item.unit_price for item in manual_lines), Decimal("0"))
+    tax = sum((line.price * line.vat_rate / Decimal("100") for line in lines), Decimal("0")) + sum((item.quantity * item.unit_price * item.vat_rate / Decimal("100") for item in manual_lines), Decimal("0"))
     bh_transfer = BizimHesapInvoiceTransfer.objects.filter(invoice=invoice).first()
     ps_transfer = ParasutInvoiceTransfer.objects.filter(invoice=invoice).first()
     bh_status = invoice.bizimhesap_display_status or ("api" if bh_transfer and bh_transfer.status == "SENT" else ("yes" if invoice.bizimhesap_manual_recorded else "no"))
@@ -388,7 +392,47 @@ def invoice_detail(request, invoice_id):
         ps_status = "pending"
     from .invoice_models import CompanyInvoiceProfile
     company_profile = CompanyInvoiceProfile.objects.order_by("pk").first()
-    return render(request, "product_cards/invoice_detail.html", {"company_profile": company_profile, "bh_status": bh_status, "ps_status": ps_status, "invoice": invoice, "lines": lines, "subtotal": subtotal, "tax": tax, "total": subtotal + tax, "parasut_vat_ready": parasut_vat_ready, "status_history": invoice.status_history.select_related("changed_by").order_by("-changed_at")[:10]})
+    return render(request, "product_cards/invoice_detail.html", {"company_profile": company_profile, "bh_status": bh_status, "ps_status": ps_status, "invoice": invoice, "lines": lines, "manual_lines": manual_lines, "subtotal": subtotal, "tax": tax, "total": subtotal + tax, "parasut_vat_ready": parasut_vat_ready, "status_history": invoice.status_history.select_related("changed_by").order_by("-changed_at")[:10]})
+
+
+@login_required
+@require_POST
+def invoice_manual_line_add(request, invoice_id):
+    if not _allowed(request.user):
+        return HttpResponseForbidden("Yetkiniz yok.")
+    invoice = get_object_or_404(InvoiceDraft, pk=invoice_id)
+    if invoice.status != "DRAFT":
+        messages.error(request, "Sadece taslak FT'ye satır eklenebilir.")
+        return redirect("invoice_detail", invoice_id=invoice_id)
+    if BizimHesapInvoiceTransfer.objects.filter(invoice=invoice).exclude(status="NOT_SENT").exists() or ParasutInvoiceTransfer.objects.filter(invoice=invoice).exclude(status="NOT_SENT").exists():
+        messages.error(request, "Aktarılmış veya aktarımı belirsiz faturaya satır eklenemez.")
+        return redirect("invoice_detail", invoice_id=invoice_id)
+    try:
+        description = (request.POST.get("description") or "").strip()
+        quantity = Decimal((request.POST.get("quantity") or "").replace(",", "."))
+        unit_price = Decimal((request.POST.get("unit_price") or "").replace(",", "."))
+        vat_rate = Decimal((request.POST.get("vat_rate") or "10").replace(",", "."))
+        if not description or len(description) > 300 or not all(x.is_finite() for x in (quantity, unit_price, vat_rate)) or quantity <= 0 or quantity > 999999 or unit_price < 0 or vat_rate != 10:
+            raise ValueError()
+        InvoiceManualLine.objects.create(invoice=invoice, description=description, quantity=quantity, unit_price=unit_price, vat_rate=vat_rate)
+        messages.success(request, "Manuel satır eklendi.")
+    except (ValueError, InvalidOperation, OverflowError):
+        messages.error(request, "Geçerli açıklama, miktar, fiyat ve %10 KDV girin.")
+    return redirect("invoice_detail", invoice_id=invoice_id)
+
+
+@login_required
+@require_POST
+def invoice_manual_line_remove(request, invoice_id, line_id):
+    if not _allowed(request.user):
+        return HttpResponseForbidden("Yetkiniz yok.")
+    invoice = get_object_or_404(InvoiceDraft, pk=invoice_id)
+    if invoice.status != "DRAFT" or BizimHesapInvoiceTransfer.objects.filter(invoice=invoice).exclude(status="NOT_SENT").exists() or ParasutInvoiceTransfer.objects.filter(invoice=invoice).exclude(status="NOT_SENT").exists():
+        messages.error(request, "Bu faturanın satırları değiştirilemez.")
+    else:
+        InvoiceManualLine.objects.filter(invoice=invoice, pk=line_id).delete()
+        messages.success(request, "Manuel satır çıkarıldı.")
+    return redirect("invoice_detail", invoice_id=invoice_id)
 
 
 @login_required
