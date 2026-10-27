@@ -85,9 +85,8 @@
                     {{ form.aciklama }}
                 </div>
 
-                {% if edit_mode %}
                 <div class="col-12 mb-3">
-                    <label class="form-label fw-semibold">📸 Sipariş Görseli</label>
+                    <label class="form-label fw-semibold">📸 Sipariş Görseli ve Videosu</label>
 
                     {% if order.resim %}
                     <div class="mb-2">
@@ -98,12 +97,13 @@
                     </div>
                     {% endif %}
 
-                    {{ form.resim }}
-                    <div class="form-text">
-                        Görsel eklemek veya mevcut görseli değiştirmek için buradan dosya seçebilirsiniz.
-                    </div>
+                    <div class="mb-3">{{ form.resim }}<div class="form-text">Sipariş fotoğrafını buradan ekleyebilirsiniz.</div></div>
+                    {% if is_manager %}
+                    <label for="orderVideoFile" class="form-label fw-semibold">🎬 Sipariş Videosu</label>
+                    <input type="file" id="orderVideoFile" name="video" accept=".mp4,.mov,video/mp4,video/quicktime" class="form-control">
+                    <div class="form-text">MP4 veya MOV, en fazla 100 MB. Siparişi kaydettiğinizde video da yüklenir.</div>
+                    {% endif %}
                 </div>
-                {% endif %}
 
                 
 
