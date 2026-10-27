@@ -136,6 +136,7 @@
     {% if user|can:'can_view_costs' %}<li><a href="{% url 'product_cost_list' %}" class="dropdown-item {% if request.resolver_match.url_name == 'product_cost_list' %}active{% endif %}"><i class="bi bi-coin"></i>Maliyetler</a></li>{% endif %}
     {% if user|can:'can_manage_users' %}<li><a href="{% url 'user_management' %}" class="dropdown-item {% if request.resolver_match.url_name == 'user_management' %}active{% endif %}"><i class="bi bi-people"></i>Ekipler</a></li>{% endif %}
     {% if user.is_superuser or user.moli_access.can_view_attendance %}<li><a href="{% url 'attendance_dashboard' %}" class="dropdown-item {% if request.resolver_match.url_name == 'attendance_dashboard' %}active{% endif %}"><i class="bi bi-clock-history"></i>Puantaj &amp; Mesai</a></li>{% endif %}
+    <li><a href="{% url 'privacy_policy' %}" class="dropdown-item {% if request.resolver_match.url_name == 'privacy_policy' %}active{% endif %}"><i class="bi bi-shield-check"></i>Gizlilik Politikası</a></li>
   </ul>
 </div>
 {% endif %}
