@@ -73,3 +73,10 @@ class InstrumentAttachment(models.Model):
     class Meta:
         ordering = ["sequence"]
         constraints = [models.UniqueConstraint(fields=["instrument", "sequence"], name="unique_instrument_attachment_sequence")]
+
+
+class InstrumentDriveAuthorization(models.Model):
+    """Single encrypted OAuth refresh credential for manual accounting backups."""
+    key = models.PositiveSmallIntegerField(primary_key=True, default=1, editable=False)
+    encrypted_refresh_token = models.TextField()
+    connected_at = models.DateTimeField(auto_now=True)
