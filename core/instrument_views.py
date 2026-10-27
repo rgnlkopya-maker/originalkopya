@@ -40,7 +40,7 @@ class InstrumentForm(forms.ModelForm):
 def instrument_list(request):
     if not _manager(request.user):
         return HttpResponseForbidden("Muhasebe yetkiniz yok.")
-    records = NegotiableInstrument.objects.select_related("customer", "customer__bizimhesap_mapping")
+    records = NegotiableInstrument.objects.select_related("customer", "customer__bizimhesap_mapping").prefetch_related("attachments")
     direction = request.GET.get("direction")
     kind = request.GET.get("kind")
     status = request.GET.get("status")
