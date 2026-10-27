@@ -1,25 +1,65 @@
-{% extends "base.html" %}{% block content %}<div class="container-fluid py-4"><div class="d-flex justify-content-between align-items-center mb-3"><h3>Çek ve Senetler</h3><button type="button" id="addInstrumentRow" class="btn btn-primary">+ Yeni Satır Ekle</button></div><form method="get" class="row g-2 mb-3"><div class="col-md-3"><input class="form-control" name="q" value="{{ request.GET.q }}" placeholder="Kişi, cari, belge no ara"></div><div class="col-md-2"><select class="form-select" name="kind"><option value="">Tüm Belgeler</option>{% for k,v in kinds %}<option value="{{ k }}" {% if request.GET.kind == k %}selected{% endif %}>{{ v }}</option>{% endfor %}</select></div><div class="col-md-2"><select class="form-select" name="direction"><option value="">Alınan / Verilen</option><option value="IN" {% if request.GET.direction == 'IN' %}selected{% endif %}>Alınan</option><option value="OUT" {% if request.GET.direction == 'OUT' %}selected{% endif %}>Verilen</option></select></div><div class="col-md-2"><select class="form-select" name="status"><option value="">Tüm Durumlar</option>{% for k,v in statuses %}<option value="{{ k }}" {% if request.GET.status == k %}selected{% endif %}>{{ v }}</option>{% endfor %}</select></div><div class="col-md-2"><button class="btn btn-outline-primary">Filtrele</button></div></form><div class="table-responsive"><table class="table table-hover align-middle" style="min-width:1470px">
-<thead><tr><th>Tür</th><th>İşlem</th><th>İşlem Tarihi</th><th>Keşideci / Borçlu</th><th>Müşteri (Cari)</th><th>Tutar</th><th>Vade</th><th>Durum</th><th>Verilen Tarih</th><th>Verilen Firma / Banka</th><th>İşlemler</th></tr></thead>
-<tbody>
+{% extends "base.html" %}{% block content %}<div class="container-fluid py-4"><div class="d-flex justify-content-between align-items-center mb-3"><h3>Çek ve Senetler</h3><button type="button" id="addInstrumentRow" class="btn btn-primary">+ Yeni Satır Ekle</button></div><form method="get" class="row g-2 mb-3"><div class="col-md-3"><input class="form-control" name="q" value="{{ request.GET.q }}" placeholder="Kişi, cari, belge no ara"></div><div class="col-md-2"><select class="form-select" name="kind"><option value="">Tüm Belgeler</option>{% for k,v in kinds %}<option value="{{ k }}" {% if request.GET.kind == k %}selected{% endif %}>{{ v }}</option>{% endfor %}</select></div><div class="col-md-2"><select class="form-select" name="direction"><option value="">Alınan / Verilen</option><option value="IN" {% if request.GET.direction == 'IN' %}selected{% endif %}>Alınan</option><option value="OUT" {% if request.GET.direction == 'OUT' %}selected{% endif %}>Verilen</option></select></div><div class="col-md-2"><select class="form-select" name="status"><option value="">Tüm Durumlar</option>{% for k,v in statuses %}<option value="{{ k }}" {% if request.GET.status == k %}selected{% endif %}>{{ v }}</option>{% endfor %}</select></div><div class="col-md-2"><button class="btn btn-outline-primary">Filtrele</button></div></form>
+<style>
+.instrument-table{min-width:1510px;table-layout:auto}.instrument-table th{white-space:nowrap;font-size:12px;color:#57709c}
+.instrument-table td{min-width:85px;vertical-align:middle}.instrument-table .form-control,.instrument-table .form-select{font-size:12px;min-height:34px}
+.instrument-table .customer-picker{position:relative;min-width:220px}
+.customer-options{display:none;position:absolute;z-index:2000;background:#fff;border:1px solid #d8e0ed;box-shadow:0 12px 25px #15224324;border-radius:9px;width:100%;max-height:230px;overflow-y:auto}
+.customer-options.open{display:block}.customer-options button{display:block;width:100%;text-align:left;border:0;background:white;padding:8px 11px;font-size:12px}
+.customer-options button:hover{background:#eaf0ff}.customer-picker input.invalid{border-color:#dc3545}
+</style>
+<div class="table-responsive"><table class="table table-hover align-middle instrument-table">
+<thead><tr><th>Tür</th><th>İşlem</th><th>İşlem Tarihi</th><th>Müşteri</th><th>Tutar</th><th>Vade</th><th>Durum</th><th>Verilen Tarih</th><th>Verilen Firma / Banka</th><th>İşlemler</th></tr></thead><tbody>
 <tr id="newInstrumentRow" style="display:none;background:#f3f6ff">
 <td><select name="kind" form="inlineInstrumentForm" class="form-select form-select-sm"><option value="CHECK">Çek</option><option value="NOTE">Senet</option></select></td>
-<td><select name="direction" id="inlineDirection" form="inlineInstrumentForm" class="form-select form-select-sm"><option value="IN">Alınan</option><option value="OUT">Verilen</option></select></td>
+<td><select name="direction" form="inlineInstrumentForm" class="form-select form-select-sm"><option value="IN">Alınan</option><option value="OUT">Verilen</option></select></td>
 <td><input name="transaction_date" form="inlineInstrumentForm" type="date" class="form-control form-control-sm"></td>
-<td><input name="issuer_name" form="inlineInstrumentForm" class="form-control form-control-sm" required maxlength="250" placeholder="Keşideci / borçlu"></td>
-<td><select id="inlineCustomer" name="customer" form="inlineInstrumentForm" class="form-select form-select-sm"><option value="">Müşteri seç</option>{% for customer in customers %}<option value="{{ customer.pk }}">{{ customer.ad }}</option>{% endfor %}</select></td>
-<td><div class="d-flex gap-1"><input name="amount" form="inlineInstrumentForm" type="number" min="0.01" step="0.01" class="form-control form-control-sm" style="min-width:95px" required placeholder="Tutar"><select name="currency" form="inlineInstrumentForm" class="form-select form-select-sm" style="width:75px"><option value="TRY">TL</option><option value="USD">USD</option><option value="EUR">EUR</option><option value="GBP">GBP</option></select></div></td>
-<td><input name="due_date" form="inlineInstrumentForm" type="date" required class="form-control form-control-sm"></td>
-<td><select name="status" form="inlineInstrumentForm" id="newInstrumentStatus" class="form-select form-select-sm">{% for key,label in statuses %}<option value="{{ key }}">{{ label }}</option>{% endfor %}</select></td>
+<td><div class="customer-picker"><input class="form-control form-control-sm customer-search" placeholder="Müşteri ara / seç" autocomplete="off" required><input class="customer-id" type="hidden" name="customer" form="inlineInstrumentForm"><div class="customer-options"></div></div></td>
+<td><div class="d-flex gap-1"><input name="amount" form="inlineInstrumentForm" type="number" step="0.01" min="0.01" class="form-control form-control-sm" required style="width:118px"><select name="currency" form="inlineInstrumentForm" class="form-select form-select-sm" style="width:68px"><option value="TRY">TL</option><option value="USD">USD</option><option value="EUR">EUR</option><option value="GBP">GBP</option></select></div></td>
+<td><input name="due_date" form="inlineInstrumentForm" type="date" class="form-control form-control-sm" required></td>
+<td><select name="status" form="inlineInstrumentForm" class="form-select form-select-sm">{% for key,label in statuses %}<option value="{{ key }}">{{ label }}</option>{% endfor %}</select></td>
 <td><input name="given_date" form="inlineInstrumentForm" type="date" class="form-control form-control-sm"></td>
-<td><input name="given_to" form="inlineInstrumentForm" class="form-control form-control-sm" maxlength="250" placeholder="Firma / banka"></td>
-<td><button type="submit" form="inlineInstrumentForm" class="btn btn-sm btn-primary">Kaydet</button> <button type="button" id="cancelInstrumentRow" class="btn btn-sm btn-light">İptal</button></td>
+<td><input name="given_to" form="inlineInstrumentForm" maxlength="250" class="form-control form-control-sm" placeholder="Firma / banka"></td>
+<td class="text-nowrap"><button class="btn btn-sm btn-primary" type="submit" form="inlineInstrumentForm">Kaydet</button> <button class="btn btn-sm btn-light" type="button" id="cancelInstrumentRow">İptal</button></td>
 </tr>
 {% for record in records %}
-<tr><td>{{ record.get_kind_display }}</td><td>{{ record.get_direction_display }}</td><td>{{ record.transaction_date|date:'d.m.Y'|default:"—" }}</td><td>{{ record.issuer_name }}</td><td>{{ record.customer|default:"—" }}</td><td>{{ record.amount }} {{ record.currency }}</td><td>{{ record.due_date|date:'d.m.Y' }}</td>
+<tr>
+<td><select name="kind" form="movement{{ record.pk }}" class="form-select form-select-sm"><option value="CHECK" {% if record.kind == 'CHECK' %}selected{% endif %}>Çek</option><option value="NOTE" {% if record.kind == 'NOTE' %}selected{% endif %}>Senet</option></select></td>
+<td><select name="direction" form="movement{{ record.pk }}" class="form-select form-select-sm"><option value="IN" {% if record.direction == 'IN' %}selected{% endif %}>Alınan</option><option value="OUT" {% if record.direction == 'OUT' %}selected{% endif %}>Verilen</option></select></td>
+<td><input name="transaction_date" form="movement{{ record.pk }}" type="date" value="{{ record.transaction_date|date:'Y-m-d' }}" class="form-control form-control-sm"></td>
+<td><div class="customer-picker"><input class="form-control form-control-sm customer-search" autocomplete="off" required placeholder="Müşteri ara / seç" value="{{ record.customer.ad|default:'' }}"><input type="hidden" class="customer-id" name="customer" form="movement{{ record.pk }}" value="{{ record.customer_id|default:'' }}"><div class="customer-options"></div></div></td>
+<td><div class="d-flex gap-1"><input name="amount" form="movement{{ record.pk }}" type="number" min="0.01" step="0.01" required value="{{ record.amount|stringformat:'.2f' }}" class="form-control form-control-sm" style="width:118px"><select name="currency" form="movement{{ record.pk }}" class="form-select form-select-sm" style="width:68px">{% for currency in currencies %}<option value="{{ currency.0 }}" {% if record.currency == currency.0 %}selected{% endif %}>{{ currency.1 }}</option>{% endfor %}</select></div></td>
+<td><input name="due_date" form="movement{{ record.pk }}" type="date" required value="{{ record.due_date|date:'Y-m-d' }}" class="form-control form-control-sm"></td>
 <td><select name="status" form="movement{{ record.pk }}" class="form-select form-select-sm">{% for key,label in statuses %}<option value="{{ key }}" {% if record.status == key %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></td>
 <td><input name="given_date" form="movement{{ record.pk }}" type="date" value="{{ record.given_date|date:'Y-m-d' }}" class="form-control form-control-sm"></td>
 <td><input name="given_to" form="movement{{ record.pk }}" value="{{ record.given_to }}" maxlength="250" class="form-control form-control-sm" placeholder="Firma / banka"></td>
-<td><form id="movement{{ record.pk }}" method="post" action="{% url 'instrument_inline_status_update' record.pk %}">{% csrf_token %}</form><div class="d-flex gap-1"><button type="submit" form="movement{{ record.pk }}" class="btn btn-sm btn-primary">Kaydet</button><a class="btn btn-sm btn-outline-primary" href="{% url 'instrument_detail' record.pk %}">Detay</a></div></td></tr>
-{% empty %}<tr><td colspan="11" class="text-center text-muted py-4">Henüz çek/senet kaydı yok.</td></tr>{% endfor %}
-</tbody></table></div><form id="inlineInstrumentForm" method="post" action="{% url 'instrument_inline_add' %}">{% csrf_token %}</form></div>
-<script>(function(){const row=document.getElementById('newInstrumentRow'),add=document.getElementById('addInstrumentRow'),cancel=document.getElementById('cancelInstrumentRow'),direction=document.getElementById('inlineDirection'),customer=document.getElementById('inlineCustomer'),status=document.getElementById('newInstrumentStatus');function sync(){customer.required=direction.value==='IN';if(status.value==='PORTFOLIO'||status.value==='ISSUED')status.value=direction.value==='IN'?'PORTFOLIO':'ISSUED';}direction.addEventListener('change',sync);add.addEventListener('click',function(){row.style.display='';add.disabled=true;row.scrollIntoView({behavior:'smooth',block:'nearest'});});cancel.addEventListener('click',function(){row.style.display='none';add.disabled=false;document.getElementById('inlineInstrumentForm').reset();sync();});sync();})();</script>{% endblock %}
+<td class="text-nowrap"><form id="movement{{ record.pk }}" method="post" action="{% url 'instrument_inline_status_update' record.pk %}">{% csrf_token %}</form><button type="submit" form="movement{{ record.pk }}" class="btn btn-sm btn-primary">Kaydet</button> <a href="{% url 'instrument_detail' record.pk %}" class="btn btn-sm btn-outline-primary">Detay</a></td>
+</tr>
+{% empty %}<tr><td colspan="10" class="text-center text-muted py-4">Henüz çek/senet kaydı yok.</td></tr>{% endfor %}
+</tbody></table></div><form id="inlineInstrumentForm" method="post" action="{% url 'instrument_inline_add' %}">{% csrf_token %}</form>
+<div hidden id="customerSource">{% for customer in customers %}<span data-id="{{ customer.id }}" data-name="{{ customer.ad }}"></span>{% endfor %}</div>
+</div>
+<script>
+(function(){
+const customers=[...document.querySelectorAll('#customerSource span')].map(e=>({id:e.dataset.id,name:e.dataset.name}));
+for(const picker of document.querySelectorAll('.customer-picker')){
+ const input=picker.querySelector('.customer-search'), hidden=picker.querySelector('.customer-id'),menu=picker.querySelector('.customer-options');
+ function show(){
+  const q=input.value.trim().toLocaleLowerCase('tr-TR');menu.replaceChildren();
+  let count=0;for(const c of customers){if(q&&!c.name.toLocaleLowerCase('tr-TR').includes(q))continue;
+    const b=document.createElement('button');b.type='button';b.textContent=c.name;
+    b.addEventListener('click',()=>{input.value=c.name;hidden.value=c.id;input.classList.remove('invalid');menu.classList.remove('open');});
+    menu.appendChild(b);if(++count>=35)break;}
+  if(!count){const no=document.createElement('div');no.className='p-2 text-muted small';no.textContent='Kayıtlı müşteri bulunamadı';menu.appendChild(no);}
+  menu.classList.add('open');
+ }
+ input.addEventListener('focus',show);
+ input.addEventListener('input',()=>{hidden.value='';input.classList.add('invalid');show();});
+ document.addEventListener('click',e=>{if(!picker.contains(e.target))menu.classList.remove('open');});
+ const form=document.getElementById(hidden.getAttribute('form'));
+ form.addEventListener('submit',e=>{if(!hidden.value){e.preventDefault();input.classList.add('invalid');input.focus();show();}});
+}
+const row=document.getElementById('newInstrumentRow'),add=document.getElementById('addInstrumentRow'),cancel=document.getElementById('cancelInstrumentRow');
+add.addEventListener('click',()=>{row.style.display='';add.disabled=true;row.scrollIntoView({behavior:'smooth',block:'nearest'});});
+cancel.addEventListener('click',()=>{row.style.display='none';add.disabled=false;document.getElementById('inlineInstrumentForm').reset();const picker=row.querySelector('.customer-picker');picker.querySelector('.customer-search').value='';picker.querySelector('.customer-id').value='';});
+})();
+</script>{% endblock %}
