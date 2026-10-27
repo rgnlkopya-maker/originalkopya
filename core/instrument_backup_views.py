@@ -15,7 +15,7 @@ from openpyxl import Workbook
 
 from .instrument_models import NegotiableInstrument, InstrumentAttachment
 from .instrument_attachment_views import storage
-from product_cards.drive_folio_backup import _drive_service
+from .instrument_drive_oauth import drive_service, connected
 
 logger = logging.getLogger(__name__)
 ROOT_ID = "1Q-KUwSudqqsvu72Eigsrx7Y7foTUp3mu"
@@ -80,7 +80,10 @@ def instrument_backup(request):
         from django.http import HttpResponseForbidden
         return HttpResponseForbidden("Muhasebe yetkiniz yok.")
     try:
-        drive=_drive_service()
+        if not connected():
+            messages.error(request, "Once Google Drive hesabini baglayin.")
+            return redirect("instrument_list")
+        drive=drive_service()
         _check_parent(drive)
         root=_folder(drive, ROOT_ID, "Cek Senet Yedekleri")
         photos_dir=_folder(drive, root, "Fotograflar")
@@ -128,5 +131,5 @@ def instrument_backup(request):
         messages.success(request,f"Drive yedekleme tamamlandı: {len(records)} çek/senet, {photos_new} yeni fotoğraf, Excel ve JSON kaydedildi.")
     except Exception as exc:
         logger.exception("Manual check backup failed")
-        messages.error(request,"Google Drive yedekleme tamamlanamadı. Drive klasör erişimini ve servis hesabı yetkisini kontrol edin. Fotoğraflar ve kayıtlar silinmedi.")
+        messages.error(request,"Google Drive yedekleme tamamlanamadı. Google Drive bağlantısını ve klasör yetkisini kontrol edin. Fotoğraflar ve kayıtlar silinmedi.")
     return redirect("instrument_list")
