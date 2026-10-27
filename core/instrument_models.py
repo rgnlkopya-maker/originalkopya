@@ -18,6 +18,8 @@ class NegotiableInstrument(models.Model):
     amount = models.DecimalField(max_digits=18, decimal_places=2)
     currency = models.CharField(max_length=3, choices=[("TRY","TL"),("USD","USD"),("EUR","EUR"),("GBP","GBP")], default="TRY")
     issue_date = models.DateField(null=True, blank=True)
+    transaction_date = models.DateField(null=True, blank=True)
+    given_date = models.DateField(null=True, blank=True)
     due_date = models.DateField()
     status = models.CharField(max_length=16, choices=STATUS, default="PORTFOLIO")
     note = models.TextField(blank=True, default="")
