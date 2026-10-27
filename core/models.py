@@ -843,3 +843,7 @@ class AssistantConversation(models.Model):
 
     class Meta:
         ordering = ["-updated_at", "-id"]
+
+
+# Register accounting instruments with the core Django app.
+from .instrument_models import NegotiableInstrument, InstrumentEndorser, InstrumentMovement
