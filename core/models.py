@@ -215,6 +215,8 @@ class Order(models.Model):
     sevkiyat_yapan = models.CharField(max_length=100, blank=True, null=True)
     sevkiyat_tarihi = models.DateTimeField(blank=True, null=True)
     cikti_alindi = models.BooleanField(default=False)
+    detail_printed = models.BooleanField(default=False)
+    main_image_printed = models.BooleanField(default=False)
 
     DURUM_SECENEKLERI = [
         ('bekliyor', 'Bekliyor'),
@@ -401,6 +403,7 @@ class OrderImage(models.Model):
     image = models.ImageField(upload_to='temp_uploads/', blank=True, null=True)
     uploaded_at = models.DateTimeField(auto_now_add=True)
     image_url = models.URLField(blank=True, null=True)
+    printed = models.BooleanField(default=False)
 
     def save(self, *args, **kwargs):
         super().save(*args, **kwargs)
