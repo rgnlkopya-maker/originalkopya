@@ -60,7 +60,7 @@
 </tr>
 {% for record in records %}
 <tr>
-<td class="text-center fw-semibold">{{ forloop.counter }}</td>
+<td class="text-center fw-semibold">{{ record.pk }}</td>
 <td><details class="instrument-cell-editor"><summary title="Düzenlemek için tıklayın">{{ record.get_kind_display }}</summary><div class="instrument-cell-popover"><select name="kind" form="movement{{ record.pk }}" class="form-select form-select-sm"><option value="CHECK" {% if record.kind == 'CHECK' %}selected{% endif %}>Çek</option><option value="NOTE" {% if record.kind == 'NOTE' %}selected{% endif %}>Senet</option></select></div></details></td>
 <td><details class="instrument-cell-editor"><summary title="Düzenlemek için tıklayın">{{ record.bank|default:'—' }}</summary><div class="instrument-cell-popover"><input name="bank" form="movement{{ record.pk }}" value="{{ record.bank }}" maxlength="200" class="form-control form-control-sm" placeholder="Banka"></div></details></td>
 <td><details class="instrument-cell-editor"><summary title="Düzenlemek için tıklayın">{{ record.document_number|default:'—' }}</summary><div class="instrument-cell-popover"><input name="document_number" form="movement{{ record.pk }}" value="{{ record.document_number }}" maxlength="120" class="form-control form-control-sm" placeholder="Çek No"></div></details></td>
