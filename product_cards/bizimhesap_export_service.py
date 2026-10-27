@@ -24,7 +24,7 @@ def prepare_transfer(invoice_id):
         if invoice.bizimhesap_manual_recorded:
             raise TransferBlocked("Fatura BizimHesap için elle işlendi olarak işaretlenmiş. Mükerrer gönderim engellendi.")
         mapping = BizimHesapCustomerMapping.objects.filter(customer=invoice.customer).first()
-        lines = list(invoice.lines.select_related("order").order_by("id"))
+        lines = list(invoice.lines.select_related("order").order_by("id")) + list(invoice.manual_lines.order_by("id"))
         firm_id = (os.environ.get("BIZIMHESAP_FIRM_ID") or os.environ.get("BIZIMHESAP_API_TOKEN") or "").strip()
         payload, problems = build_invoice_payload(invoice, lines, mapping, firm_id)
         if problems or payload is None:
