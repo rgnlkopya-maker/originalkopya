@@ -28,7 +28,7 @@
 <div class="uninv-page">
  <div class="uninv-head"><div><h2>Faturaya Aktarılmayanlar</h2><p>Sevk edilmiş ve normal / manuel FT’ye alınmamış siparişlerin kontrolü. Proformalar hariçtir.</p></div><a href="{% url 'invoice_list' %}"><i class="bi bi-arrow-left"></i> Faturalar Listesi</a></div>
  <div class="uninv-tabs"><a class="{% if tab == 'pending' %}active{% endif %}" href="{% url 'uninvoiced_shipped_orders' %}">Fatura Bekleyenler</a><a class="{% if tab == 'delivered' %}active{% endif %}" href="{% url 'uninvoiced_shipped_orders' %}?tab=delivered">Faturasız Teslim Edilenler</a></div>
- {% if messages %}{% for message in messages %}<div class="alert {% if 'error' in message.tags %}alert-danger{% else %}alert-success{% endif %}">{{ message }}</div>{% endfor %}{% endif %}
+ {% if messages %}{% for message in messages %}{% if "invoice_notice" in message.tags %}<div class="alert {% if 'error' in message.tags %}alert-danger{% else %}alert-success{% endif %}">{{ message }}</div>{% endif %}{% endfor %}{% endif %}
  <div class="uninv-stats">
   <div class="uninv-stat"><div class="uninv-stat-label">Faturasız sevk edilmiş sipariş</div><div class="uninv-stat-value">{{ order_count }}</div></div>
   <div class="uninv-stat"><div class="uninv-stat-label">Toplam ürün adedi</div><div class="uninv-stat-value">{{ total_qty }}</div></div>
