@@ -80,7 +80,7 @@ def instrument_inline_add(request):
     if not form.is_valid():
         messages.error(request, "Satır kaydedilemedi: " + "; ".join(
             f"{field}: {', '.join(str(e) for e in errors)}"
-            for field, errors in form.errors.items()
+            for field, errors in form.errors.items(, extra_tags="instrument_notice")
         ))
         return redirect("instrument_list")
     with transaction.atomic():
@@ -94,7 +94,7 @@ def instrument_inline_add(request):
             instrument=record, actor=request.user, action="CREATED",
             description="Çek/senet liste üzerinden kaydedildi."
         )
-    messages.success(request, "Yeni çek/senet satırı kaydedildi.")
+    messages.success(request, "Yeni çek/senet satırı kaydedildi.", extra_tags="instrument_notice")
     return redirect("instrument_list")
 
 
@@ -109,10 +109,10 @@ def instrument_inline_status_update(request, pk):
         customer_id = data.get("customer")
         customer = Musteri.objects.filter(pk=customer_id).first() if customer_id and customer_id.isdigit() else None
         if not customer:
-            messages.error(request, "Müşteri listeden seçilmelidir; kayıtlı olmayan müşteri kaydedilemez.")
+            messages.error(request, "Müşteri listeden seçilmelidir; kayıtlı olmayan müşteri kaydedilemez.", extra_tags="instrument_notice")
             return redirect("instrument_list")
         if not customer.aktif and record.customer_id != customer.pk:
-            messages.error(request, "Pasif müşteri yeni kayıt olarak seçilemez.")
+            messages.error(request, "Pasif müşteri yeni kayıt olarak seçilemez.", extra_tags="instrument_notice")
             return redirect("instrument_list")
         data["issuer_name"] = customer.ad
         data["received_from"] = customer.ad
@@ -125,7 +125,7 @@ def instrument_inline_status_update(request, pk):
         if not form.is_valid():
             messages.error(request, "Satır kaydedilemedi: " + "; ".join(
                 f"{field}: {', '.join(str(e) for e in errors)}"
-                for field, errors in form.errors.items()
+                for field, errors in form.errors.items(, extra_tags="instrument_notice")
             ))
             return redirect("instrument_list")
         updated = form.save(commit=False)
@@ -137,7 +137,7 @@ def instrument_inline_status_update(request, pk):
                 instrument=updated, actor=request.user, action="UPDATED",
                 description="Liste üzerinden güncellendi: " + ", ".join(changed or ["müşteri"])
             )
-    messages.success(request, "Çek/senet satırı kaydedildi.")
+    messages.success(request, "Çek/senet satırı kaydedildi.", extra_tags="instrument_notice")
     return redirect("instrument_list")
 
 
@@ -161,7 +161,7 @@ def instrument_edit(request, pk=None):
                 record.received_from = record.customer.ad if record.customer_id else ""
                 record.save()
                 InstrumentMovement.objects.create(instrument=record, actor=request.user, action="CREATED" if was_new else "UPDATED", description="Çek/senet kaydı oluşturuldu." if was_new else "Çek/senet bilgileri güncellendi.")
-            messages.success(request, "Çek/senet kaydedildi.")
+            messages.success(request, "Çek/senet kaydedildi.", extra_tags="instrument_notice")
             return redirect("instrument_detail", pk=record.pk)
     else:
         form = InstrumentForm(instance=instrument)
@@ -185,14 +185,14 @@ def instrument_endorser_add(request, pk):
     record = get_object_or_404(NegotiableInstrument, pk=pk)
     name = request.POST.get("name", "").strip()
     if not name or len(name)>250:
-        messages.error(request, "Geçerli ciranta adı girin.")
+        messages.error(request, "Geçerli ciranta adı girin.", extra_tags="instrument_notice")
     else:
         with transaction.atomic():
             from django.db.models import Max
             seq = (InstrumentEndorser.objects.filter(instrument=record).aggregate(n=Max("sequence"))["n"] or 0)+1
             InstrumentEndorser.objects.create(instrument=record, sequence=seq, name=name, note=request.POST.get("note","")[:300])
             InstrumentMovement.objects.create(instrument=record,actor=request.user,action="ENDORSEMENT_ADDED",description=f"{seq}. ciranta: {name}")
-        messages.success(request, "Ciranta kaydedildi.")
+        messages.success(request, "Ciranta kaydedildi.", extra_tags="instrument_notice")
     return redirect("instrument_detail", pk=pk)
 
 
@@ -203,20 +203,20 @@ def instrument_mapping_save(request, pk):
         return HttpResponseForbidden("Muhasebe yetkiniz yok.")
     record = get_object_or_404(NegotiableInstrument, pk=pk)
     if not record.customer_id:
-        messages.error(request, "Önce cari hesabına işlenecek müşteriyi seçin.")
+        messages.error(request, "Önce cari hesabına işlenecek müşteriyi seçin.", extra_tags="instrument_notice")
         return redirect("instrument_detail", pk=pk)
     code = request.POST.get("external_customer_id", "").strip()
     if not code or len(code)>100 or any(ord(ch)<32 for ch in code):
-        messages.error(request, "Geçerli BizimHesap cari kodu girin.")
+        messages.error(request, "Geçerli BizimHesap cari kodu girin.", extra_tags="instrument_notice")
         return redirect("instrument_detail", pk=pk)
     try:
         with transaction.atomic():
             if BizimHesapCustomerMapping.objects.filter(external_customer_id=code).exclude(customer_id=record.customer_id).exists():
-                messages.error(request, "Bu BizimHesap cari kodu başka bir müşteriye eşleştirilmiş.")
+                messages.error(request, "Bu BizimHesap cari kodu başka bir müşteriye eşleştirilmiş.", extra_tags="instrument_notice")
                 return redirect("instrument_detail", pk=pk)
             BizimHesapCustomerMapping.objects.update_or_create(customer_id=record.customer_id,defaults={"external_customer_id":code,"confirmed_by":request.user})
     except IntegrityError:
-        messages.error(request, "Cari eşleştirmesi çakıştı.")
+        messages.error(request, "Cari eşleştirmesi çakıştı.", extra_tags="instrument_notice")
     else:
-        messages.success(request, "Ortak cari eşleştirmesi kaydedildi. Faturalar da aynı kaydı kullanacak.")
+        messages.success(request, "Ortak cari eşleştirmesi kaydedildi. Faturalar da aynı kaydı kullanacak.", extra_tags="instrument_notice")
     return redirect("instrument_detail", pk=pk)
