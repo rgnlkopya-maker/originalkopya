@@ -846,4 +846,4 @@ class AssistantConversation(models.Model):
 
 
 # Register accounting instruments with the core Django app.
-from .instrument_models import NegotiableInstrument, InstrumentEndorser, InstrumentMovement, InstrumentPhoto, InstrumentAttachment, InstrumentDriveAuthorization
+from .instrument_models import NegotiableInstrument, InstrumentEndorser, InstrumentMovement, InstrumentPhoto, InstrumentAttachment, InstrumentDriveAuthorization, InstrumentBackupRun
