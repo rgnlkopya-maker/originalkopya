@@ -3,6 +3,7 @@ import hashlib
 import io
 import json
 import logging
+import re
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
@@ -17,13 +18,24 @@ from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.pdfgen import canvas
 
-from core.instrument_backup_views import ROOT_ID, _check_parent, _folder, _existing_file, _upload
+from core.instrument_backup_views import _folder, _existing_file, _upload
 from core.instrument_drive_oauth import drive_service, connected
 from .models import ShowroomDraft
 from .showroom_photo_views import storage
 from .showroom_views import _effective_serialized_items, _draft_summary
 
 logger = logging.getLogger(__name__)
+ROOT_ID = "1Ao-9uebg2eVb9hb1tCf5cwEPGLUE0MYf"
+
+def _safe_name(value):
+    cleaned = re.sub(r"[^\\w -]", "", str(value or ""), flags=re.UNICODE)
+    return re.sub(r"\\s+", " ", cleaned).strip()[:65] or "Musteri Yok"
+
+def check_folio_root(drive):
+    root = drive.files().get(fileId=ROOT_ID, fields="id,name,mimeType,capabilities(canAddChildren)", supportsAllDrives=True).execute()
+    if root.get("mimeType") != "application/vnd.google-apps.folder" or not root.get("capabilities", {}).get("canAddChildren", False):
+        raise PermissionError("Sipariş Föyleri Drive klasörüne erişim veya yazma izni yok.")
+
 
 
 def _font():
@@ -111,8 +123,10 @@ def backup(request):
         return redirect("showroom_drafts_page")
     try:
         drive = drive_service()
-        _check_parent(drive)
-        root = _folder(drive, ROOT_ID, "Siparis Foyleri")
+        check_folio_root(drive)
+        photo_root = _folder(drive, ROOT_ID, "Orijinal Föyler")
+        data_root = _folder(drive, ROOT_ID, "Veri Yedekleri")
+        pdf_root = _folder(drive, ROOT_ID, "MoliApp Föyleri")
         drafts = list(
             ShowroomDraft.objects.filter(status__in=["PENDING", "APPROVED", "TRANSFERRED"])
             .select_related("customer")
@@ -122,7 +136,7 @@ def backup(request):
         uploaded_folios = 0
         uploaded_photos = 0
         for draft in drafts:
-            folder = _folder(drive, root, f"Foy-{draft.pk}")
+            label = f"Foy-{draft.pk} - {_safe_name(draft.customer.ad if draft.customer else None)}"
             archive = _snapshot(draft)
             contents = json.dumps(archive, ensure_ascii=False, sort_keys=True, indent=2, default=str).encode("utf-8")
             # Hash only source content, not the backup run timestamp.
@@ -132,14 +146,15 @@ def backup(request):
                 ("pdf", _pdf(archive), "application/pdf"),
             ]:
                 digest = hashlib.sha256(binary).hexdigest()[:16]
-                name = f"Foy-{draft.pk}-{digest}.{extension}"
-                if not _existing_file(drive, folder, name):
-                    _upload(drive, folder, name, binary, mime)
+                name = f"{label} - {digest}.{extension}"
+                target = data_root if extension == "json" else pdf_root
+                if not _existing_file(drive, target, name):
+                    _upload(drive, target, name, binary, mime)
                     uploaded_folios += 1
             if archive["photos"]:
-                photo_folder = _folder(drive, folder, "Fotograflar")
+                photo_folder = _folder(drive, photo_root, label)
                 for photo in draft.source_photos.all():
-                    name = photo.storage_path.rsplit("/", 1)[-1]
+                    name = f"Foy-{draft.pk} - Foto-{photo.pk} - " + photo.storage_path.rsplit("/", 1)[-1]
                     existing = _existing_file(drive, photo_folder, name)
                     if existing and int(existing.get("size") or 0) > 0:
                         continue
