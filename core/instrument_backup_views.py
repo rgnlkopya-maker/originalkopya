@@ -85,7 +85,7 @@ def instrument_backup(request):
             run.error_code = "NOT_CONNECTED"
             run.completed_at = timezone.now()
             run.save(update_fields=["error_code", "completed_at"])
-            messages.error(request, "Once Google Drive hesabini baglayin.")
+            messages.error(request, "Once Google Drive hesabini baglayin.", extra_tags="instrument_notice")
             return redirect("instrument_list")
         drive=drive_service()
         _check_parent(drive)
@@ -137,11 +137,11 @@ def instrument_backup(request):
         run.record_count = len(records)
         run.new_photo_count = photos_new
         run.save(update_fields=["success","completed_at","record_count","new_photo_count"])
-        messages.success(request,f"Drive yedekleme tamamlandı: {len(records)} çek/senet, {photos_new} yeni fotoğraf, Excel ve JSON kaydedildi.")
+        messages.success(request, f"Drive yedekleme tamamlandı: {len(records)} çek/senet, {photos_new} yeni fotoğraf, Excel ve JSON kaydedildi.", extra_tags="instrument_notice")
     except Exception as exc:
         run.error_code = "BACKUP_FAILED"
         run.completed_at = timezone.now()
         run.save(update_fields=["error_code","completed_at"])
         logger.exception("Manual check backup failed")
-        messages.error(request,"Google Drive yedekleme tamamlanamadı. Google Drive bağlantısını ve klasör yetkisini kontrol edin. Fotoğraflar ve kayıtlar silinmedi.")
+        messages.error(request, "Google Drive yedekleme tamamlanamadı. Google Drive bağlantısını ve klasör yetkisini kontrol edin. Fotoğraflar ve kayıtlar silinmedi.", extra_tags="instrument_notice")
     return redirect("instrument_list")
