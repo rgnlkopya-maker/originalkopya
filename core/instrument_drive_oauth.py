@@ -85,7 +85,7 @@ def connect(request):
         }
         return redirect(AUTH_ENDPOINT + "?" + urlencode(params))
     except Exception:
-        messages.error(request, "Google baglanti ayarlari eksik. Render OAuth ayarlarini kontrol edin.")
+        messages.error(request, "Google baglanti ayarlari eksik. Render OAuth ayarlarini kontrol edin.", extra_tags="instrument_notice")
         return redirect("instrument_list")
 
 
@@ -96,10 +96,10 @@ def callback(request):
     state = request.session.pop("instrument_drive_oauth_state", None)
     user_id = request.session.pop("instrument_drive_oauth_user", None)
     if not state or not secrets.compare_digest(str(state), str(request.GET.get("state", ""))) or user_id != request.user.pk:
-        messages.error(request, "Google baglantisi dogrulanamadi. Tekrar deneyin.")
+        messages.error(request, "Google baglantisi dogrulanamadi. Tekrar deneyin.", extra_tags="instrument_notice")
         return redirect("instrument_list")
     if request.GET.get("error") or not request.GET.get("code"):
-        messages.error(request, "Google Drive erisim izni verilmedi.")
+        messages.error(request, "Google Drive erisim izni verilmedi.", extra_tags="instrument_notice")
         return redirect("instrument_list")
     try:
         client_id, client_secret = _config()
@@ -123,9 +123,9 @@ def callback(request):
         InstrumentDriveAuthorization.objects.update_or_create(
             key=1, defaults={"encrypted_refresh_token": encrypted}
         )
-        messages.success(request, "Google Drive hesabi baglandi. Simdi Yedekle butonunu kullanabilirsiniz.")
+        messages.success(request, "Google Drive hesabi baglandi. Simdi Yedekle butonunu kullanabilirsiniz.", extra_tags="instrument_notice")
     except Exception:
-        messages.error(request, "Google baglantisi tamamlanamadi. OAuth ayarlarini ve yonlendirme adresini kontrol edin.")
+        messages.error(request, "Google baglantisi tamamlanamadi. OAuth ayarlarini ve yonlendirme adresini kontrol edin.", extra_tags="instrument_notice")
     return redirect("instrument_list")
 
 
@@ -135,5 +135,5 @@ def disconnect(request):
     if not _allowed(request.user):
         return HttpResponseForbidden("Muhasebe yetkiniz yok.")
     InstrumentDriveAuthorization.objects.filter(key=1).delete()
-    messages.success(request, "Google Drive baglantisi kaldirildi.")
+    messages.success(request, "Google Drive baglantisi kaldirildi.", extra_tags="instrument_notice")
     return redirect("instrument_list")
