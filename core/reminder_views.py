@@ -151,4 +151,11 @@ def reminder_tick(request):
     if not configured or supplied != configured:
         return HttpResponseForbidden("Forbidden")
     result = process_due_reminders()
+    # Existing scheduled tick also performs a daily, persistent Drive access check.
+    try:
+        from .instrument_drive_health import check_drive_health
+        check_drive_health()
+    except Exception:
+        import logging
+        logging.getLogger(__name__).exception("Scheduled Drive health check failed")
     return JsonResponse({"ok": True, **result})
