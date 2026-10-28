@@ -1,5 +1,5 @@
 from django.urls import path
-from . import views, status_views, finance_views, price_list_views, showroom_views, showroom_print_views, showroom_transfer_views, public_product_views, public_qr_views, invoice_views, smart_pattern_views
+from . import views, status_views, finance_views, price_list_views, showroom_views, showroom_print_views, showroom_transfer_views, public_product_views, public_qr_views, invoice_views, smart_pattern_views, showroom_photo_views, showroom_backup_views
 
 urlpatterns = [
     path("akilli-kalip/", smart_pattern_views.smart_pattern_home, name="smart_pattern_home"),
@@ -66,6 +66,10 @@ urlpatterns = [
     path("showroom-foyu/musteri/<int:customer_id>/veri/", showroom_views.showroom_customer_folios_data, name="showroom_customer_folios_data"),
     path("showroom-foyu/baz-fiyat/", showroom_views.showroom_customer_product_base_price, name="showroom_customer_product_base_price"),
     path("showroom-foyu/kayit/<int:draft_id>/", showroom_views.showroom_detail_page, name="showroom_detail_page"),
+    path("showroom-foyu/kayit/<int:draft_id>/fotograf-yukle/", showroom_photo_views.upload, name="showroom_photo_upload"),
+    path("showroom-foyu/kayit/<int:draft_id>/fotograf/<int:photo_id>/", showroom_photo_views.view, name="showroom_photo_view"),
+    path("showroom-foyu/kayit/<int:draft_id>/fotograf/<int:photo_id>/sil/", showroom_photo_views.delete, name="showroom_photo_delete"),
+    path("showroom-foyu/yedekle/", showroom_backup_views.backup, name="showroom_backup"),
     path("showroom-foyu/kayit/<int:draft_id>/durum-degistir/", showroom_views.showroom_toggle_approval, name="showroom_toggle_approval"),
     path("showroom-foyu/kayit/<int:draft_id>/yazdir/", showroom_print_views.showroom_print_page, name="showroom_print_page"),
     path("showroom-foyu/kayit/<int:draft_id>/duzenle/", showroom_views.showroom_edit_page, name="showroom_edit_page"),
