@@ -80,3 +80,16 @@ class InstrumentDriveAuthorization(models.Model):
     key = models.PositiveSmallIntegerField(primary_key=True, default=1, editable=False)
     encrypted_refresh_token = models.TextField()
     connected_at = models.DateTimeField(auto_now=True)
+
+
+class InstrumentBackupRun(models.Model):
+    """Audit of manual Drive backup attempts without storing personal document data."""
+    started_at = models.DateTimeField(auto_now_add=True)
+    completed_at = models.DateTimeField(null=True, blank=True)
+    success = models.BooleanField(default=False)
+    record_count = models.PositiveIntegerField(default=0)
+    new_photo_count = models.PositiveIntegerField(default=0)
+    error_code = models.CharField(max_length=40, blank=True, default="")
+
+    class Meta:
+        ordering = ["-started_at", "-id"]
