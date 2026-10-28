@@ -13,7 +13,7 @@ from django.utils import timezone
 from googleapiclient.http import MediaIoBaseUpload
 from openpyxl import Workbook
 
-from .instrument_models import NegotiableInstrument, InstrumentAttachment
+from .instrument_models import NegotiableInstrument, InstrumentAttachment, InstrumentBackupRun
 from .instrument_attachment_views import storage
 from .instrument_drive_oauth import drive_service, connected
 
@@ -79,8 +79,12 @@ def instrument_backup(request):
     if not (user.is_superuser or user.groups.filter(name__in=["patron","mudur"]).exists()):
         from django.http import HttpResponseForbidden
         return HttpResponseForbidden("Muhasebe yetkiniz yok.")
+    run = InstrumentBackupRun.objects.create()
     try:
         if not connected():
+            run.error_code = "NOT_CONNECTED"
+            run.completed_at = timezone.now()
+            run.save(update_fields=["error_code", "completed_at"])
             messages.error(request, "Once Google Drive hesabini baglayin.")
             return redirect("instrument_list")
         drive=drive_service()
@@ -128,8 +132,16 @@ def instrument_backup(request):
         _upload(drive,excel_dir,base+".xlsx",binary.getvalue(),"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
         payload={"backup_schema":1,"created_at":timezone.now().isoformat(),"records":rows}
         _upload(drive,data_dir,"Cek_Verileri_"+stamp+".json",json.dumps(payload,ensure_ascii=False,indent=2).encode("utf-8"),"application/json")
+        run.success = True
+        run.completed_at = timezone.now()
+        run.record_count = len(records)
+        run.new_photo_count = photos_new
+        run.save(update_fields=["success","completed_at","record_count","new_photo_count"])
         messages.success(request,f"Drive yedekleme tamamlandı: {len(records)} çek/senet, {photos_new} yeni fotoğraf, Excel ve JSON kaydedildi.")
     except Exception as exc:
+        run.error_code = "BACKUP_FAILED"
+        run.completed_at = timezone.now()
+        run.save(update_fields=["error_code","completed_at"])
         logger.exception("Manual check backup failed")
         messages.error(request,"Google Drive yedekleme tamamlanamadı. Google Drive bağlantısını ve klasör yetkisini kontrol edin. Fotoğraflar ve kayıtlar silinmedi.")
     return redirect("instrument_list")
