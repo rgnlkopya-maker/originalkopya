@@ -32,6 +32,47 @@
     </div>
   </section>
 
+  <div class="section-head"><div><h2>Yedekleme ve Bağlantı Sağlığı</h2><small>Google Drive erişimi 15 dakika önbellekle kontrol edilir · Yedekleme manuel başlatılır</small></div></div>
+  <div class="row g-3 mb-3">
+    <div class="col-lg-6">
+      <div class="cardx h-100">
+        <div class="d-flex justify-content-between align-items-start gap-2">
+          <div><div class="text-muted small fw-semibold mb-2"><i class="bi bi-hdd-network me-1"></i> Google Drive Bağlantısı</div>
+          {% if drive_health.connection.status == 'connected' %}
+            <div class="fw-bold text-success"><i class="bi bi-check-circle-fill me-2"></i>Bağlı ve doğrulandı</div>
+          {% elif drive_health.connection.status == 'disconnected' %}
+            <div class="fw-bold text-danger"><i class="bi bi-x-circle-fill me-2"></i>Bağlı değil</div>
+          {% else %}
+            <div class="fw-bold text-danger"><i class="bi bi-exclamation-triangle-fill me-2"></i>Bağlantı sorunu</div>
+          {% endif %}
+          <div class="small text-muted mt-2">{{ drive_health.connection.message }}</div>
+          {% if drive_health.connection.checked_at %}<div class="small text-muted mt-1">Son kontrol: {{ drive_health.connection.checked_at|date:"d.m.Y H:i" }}</div>{% endif %}</div>
+          <a href="{% url 'instrument_list' %}" class="btn btn-sm btn-outline-primary">Çek/Senet</a>
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-6">
+      <div class="cardx h-100">
+        <div class="text-muted small fw-semibold mb-2"><i class="bi bi-cloud-arrow-up me-1"></i> Çek/Senet Yedeklemesi</div>
+        {% if drive_health.latest %}
+          {% if drive_health.latest.success %}
+            <div class="fw-bold text-success"><i class="bi bi-check-circle-fill me-2"></i>Son işlem başarılı</div>
+            <div class="small mt-2">{{ drive_health.latest.record_count }} kayıt · {{ drive_health.latest.new_photo_count }} yeni fotoğraf</div>
+          {% elif drive_health.latest.completed_at %}
+            <div class="fw-bold text-danger"><i class="bi bi-exclamation-circle-fill me-2"></i>Son yedekleme başarısız</div>
+          {% else %}
+            <div class="fw-bold text-warning"><i class="bi bi-hourglass-split me-2"></i>İşlem başladı, tamamlandığı doğrulanmadı</div>
+          {% endif %}
+          <div class="small text-muted mt-1">Son deneme: {{ drive_health.latest.started_at|date:"d.m.Y H:i" }}</div>
+          {% if drive_health.last_ok %}<div class="small text-muted mt-1">Son başarılı: {{ drive_health.last_ok.completed_at|date:"d.m.Y H:i" }}</div>{% endif %}
+        {% else %}
+          <div class="fw-bold text-muted">Henüz izleme kaydı yok</div>
+          <div class="small text-muted mt-2">Önceki yedeklemeler bu yeni takip tablosunda bulunmuyor.</div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
   <div class="section-head"><div><h2>Dikkat Gerektirenler</h2><small>Bugün müdahale gerektiren operasyon kayıtları</small></div></div>
   <div class="cardx">
     <div class="attention-flow">
