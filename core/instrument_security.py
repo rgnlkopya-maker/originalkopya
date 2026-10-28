@@ -54,7 +54,7 @@ class InstrumentPasswordGateMiddleware:
         from_gate = handoff == request.get_full_path()
         fresh_list = request.method == "GET" and path == reverse("instrument_list") and not from_gate
 
-        if not verified or fresh_list or (request.method == "GET" and not internal and not from_gate):
+        if not verified or fresh_list or (not internal and not from_gate):
             request.session.pop(self.VERIFIED, None)
             if request.method != "GET":
                 return self._uncached(HttpResponseRedirect(gate_path))
