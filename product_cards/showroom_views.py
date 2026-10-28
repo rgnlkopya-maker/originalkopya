@@ -446,12 +446,16 @@ def showroom_draft_action(request):
 @login_required
 def showroom_drafts_page(request):
     if not _can_manage(request.user): return HttpResponseForbidden("Bu sayfaya erişim yetkiniz yok.")
-    return render(request,"product_cards/showroom_archive.html",{"archive_kind":"draft","archive_title":"Taslak Föyler"})
+    from core.instrument_drive_health import check_drive_health
+    drive_state = check_drive_health(force=True)
+    return render(request,"product_cards/showroom_archive.html",{"archive_kind":"draft","archive_title":"Taslak Föyler","drive_state":drive_state})
 
 @login_required
 def showroom_approved_page(request):
     if not _can_manage(request.user): return HttpResponseForbidden("Bu sayfaya erişim yetkiniz yok.")
-    return render(request,"product_cards/showroom_archive.html",{"archive_kind":"approved","archive_title":"Onaylanan Föyler"})
+    from core.instrument_drive_health import check_drive_health
+    drive_state = check_drive_health(force=True)
+    return render(request,"product_cards/showroom_archive.html",{"archive_kind":"approved","archive_title":"Onaylanan Föyler","drive_state":drive_state})
 
 
 @login_required
