@@ -62,7 +62,11 @@ def instrument_inline_add(request):
         return HttpResponseForbidden("Muhasebe yetkiniz yok.")
     data = request.POST.copy()
     # The inline table uses the same validated model fields as the detail form.
-    if data.get("direction") not in ("IN", "OUT"):
+    if data.get("kind") in ("CK_OWN", "NT_OWN"):
+        data["direction"] = "OUT"
+    elif data.get("kind") in ("CK_CUST", "CK_END", "NT_CUST", "NT_END"):
+        data["direction"] = "IN"
+    elif data.get("direction") not in ("IN", "OUT"):
         data["direction"] = "IN"
     if not data.get("status"):
         data["status"] = "PORTFOLIO" if data.get("direction") == "IN" else "ISSUED"
