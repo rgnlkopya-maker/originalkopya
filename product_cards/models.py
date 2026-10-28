@@ -269,3 +269,13 @@ from .invoice_models import InvoiceDraft, InvoiceLine, InvoiceManualLine, BizimH
 
 # Smart pattern master model registered with Django.
 from .smart_pattern_models import SmartPatternMaster
+
+
+class ShowroomFolioPhoto(models.Model):
+    draft = models.ForeignKey(ShowroomDraft, on_delete=models.CASCADE, related_name="source_photos")
+    storage_path = models.CharField(max_length=500, unique=True)
+    original_name = models.CharField(max_length=255)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["id"]
