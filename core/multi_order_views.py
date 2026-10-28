@@ -73,7 +73,7 @@ def order_multi_create(request):
         maliyet_indirimi = _to_decimal(request.POST.get("maliyet_indirimi")) or Decimal("0")
         para_birimi = request.POST.get("para_birimi") or "TRY"
         maliyet_para_birimi = request.POST.get("maliyet_para_birimi") or "TRY"
-        pricing_rule = CustomerPricingRule.objects.filter(customer=musteri, active=True).first() if musteri else None
+        pricing_rule = CustomerPricingRule.objects.filter(customer=musteri, active=True).first() if musteri and siparis_tipi == "OZEL" else None
 
         if pricing_rule and satis_fiyati <= 0:
             messages.error(request, "MODAZEHRADA siparişinde baz anlaşılan fiyat girilmelidir.")
