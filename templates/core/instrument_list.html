@@ -57,7 +57,7 @@
 <td><select name="kind" form="inlineInstrumentForm" class="form-select form-select-sm">{% for key,label in kinds %}<option value="{{ key }}">{{ label }}</option>{% endfor %}</select></td>
 <td><input name="bank" form="inlineInstrumentForm" maxlength="200" class="form-control form-control-sm" placeholder="Banka"></td>
 <td><input name="document_number" form="inlineInstrumentForm" maxlength="120" class="form-control form-control-sm" placeholder="Çek No"></td>
-<input type="hidden" name="direction" form="inlineInstrumentForm" value="IN">
+
 <td><input name="transaction_date" form="inlineInstrumentForm" type="date" class="form-control form-control-sm"></td>
 <td><div class="customer-picker"><input class="form-control form-control-sm customer-search" placeholder="Müşteri ara / seç" autocomplete="off" required><input class="customer-id" type="hidden" name="customer" form="inlineInstrumentForm"><div class="customer-options"></div></div></td>
 <td><div class="d-flex gap-1"><input name="amount" form="inlineInstrumentForm" type="number" step="0.01" min="0.01" class="form-control form-control-sm" required style="width:118px"><select name="currency" form="inlineInstrumentForm" class="form-select form-select-sm" style="width:68px"><option value="TRY">TL</option><option value="USD">USD</option><option value="EUR">EUR</option><option value="GBP">GBP</option></select></div></td>
@@ -84,7 +84,7 @@
 <td class="text-nowrap"><form id="movement{{ record.pk }}" method="post" action="{% url 'instrument_inline_status_update' record.pk %}">{% csrf_token %}</form><button type="submit" form="movement{{ record.pk }}" class="btn btn-sm btn-primary">Kaydet</button> <a href="{% url 'instrument_detail' record.pk %}" class="btn btn-sm btn-outline-primary">Detay</a></td>
 </tr>
 {% empty %}<tr><td colspan="12" class="text-center text-muted py-4">Henüz çek/senet kaydı yok.</td></tr>{% endfor %}
-</tbody></table></div><form id="inlineInstrumentForm" method="post" action="{% url 'instrument_inline_add' %}">{% csrf_token %}</form>
+</tbody></table></div><form id="inlineInstrumentForm" method="post" action="{% url 'instrument_inline_add' %}">{% csrf_token %}<input type="hidden" name="direction" value="IN"></form>
 
 
 <div hidden id="checkGallerySource">
@@ -233,6 +233,13 @@ for(const picker of document.querySelectorAll('.customer-picker')){
  form.addEventListener('submit',e=>{if(!hidden.value){e.preventDefault();input.classList.add('invalid');input.focus();show();}});
 }
 const row=document.getElementById('newInstrumentRow'),add=document.getElementById('addInstrumentRow'),cancel=document.getElementById('cancelInstrumentRow');
+const inlineForm=document.getElementById('inlineInstrumentForm');
+const kindSelect=row.querySelector('select[name="kind"]');
+const directionField=inlineForm.querySelector('input[name="direction"]');
+function syncDirection(){directionField.value=['CK_OWN','NT_OWN'].includes(kindSelect.value)?'OUT':'IN';}
+kindSelect.addEventListener('change',syncDirection);
+inlineForm.addEventListener('submit',syncDirection);
+syncDirection();
 add.addEventListener('click',()=>{row.style.display='';add.disabled=true;row.scrollIntoView({behavior:'smooth',block:'nearest'});});
 cancel.addEventListener('click',()=>{row.style.display='none';add.disabled=false;document.getElementById('inlineInstrumentForm').reset();const picker=row.querySelector('.customer-picker');picker.querySelector('.customer-search').value='';picker.querySelector('.customer-id').value='';});
 })();
