@@ -60,6 +60,7 @@ MIDDLEWARE = [
     "core.frozen_access_middleware.FrozenUserAccessMiddleware",
     "attendance.salary_security.SalaryPasswordGateMiddleware",
     "attendance.attendance_security.AttendancePasswordGateMiddleware",
+    "core.instrument_security.InstrumentPasswordGateMiddleware",
     "core.audit_middleware.UserActionAuditMiddleware",
     "core.performance_middleware.PerformanceMonitorMiddleware",
     "app_settings.middleware.MoliAccessMiddleware",
