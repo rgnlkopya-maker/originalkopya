@@ -6,6 +6,7 @@ $(document).ready(function () {
     let folioBasePriceRequest = 0;
 
     function activeCustomerPricingRule() {
+        if ($("#siparis_tipi_select").val() !== "OZEL") return null;
         return customerPricingRules[String($("#musteri_select").val() || "")] || null;
     }
 
@@ -462,6 +463,8 @@ $(document).ready(function () {
         } else {
             musteriDiv.show();
         }
+        applyCustomerPricingMode();
+        refreshFolioBasePrice();
     }).trigger("change");
 
     const form = document.querySelector("form[method='POST']");
