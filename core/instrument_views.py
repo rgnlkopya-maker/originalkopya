@@ -80,8 +80,8 @@ def instrument_inline_add(request):
     if not form.is_valid():
         messages.error(request, "Satır kaydedilemedi: " + "; ".join(
             f"{field}: {', '.join(str(e) for e in errors)}"
-            for field, errors in form.errors.items(, extra_tags="instrument_notice")
-        ))
+            for field, errors in form.errors.items()
+        ), extra_tags="instrument_notice")
         return redirect("instrument_list")
     with transaction.atomic():
         record = form.save(commit=False)
@@ -125,8 +125,8 @@ def instrument_inline_status_update(request, pk):
         if not form.is_valid():
             messages.error(request, "Satır kaydedilemedi: " + "; ".join(
                 f"{field}: {', '.join(str(e) for e in errors)}"
-                for field, errors in form.errors.items(, extra_tags="instrument_notice")
-            ))
+                for field, errors in form.errors.items()
+            ), extra_tags="instrument_notice")
             return redirect("instrument_list")
         updated = form.save(commit=False)
         changed = list(form.changed_data)
