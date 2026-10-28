@@ -93,3 +93,11 @@ class InstrumentBackupRun(models.Model):
 
     class Meta:
         ordering = ["-started_at", "-id"]
+
+
+class InstrumentDriveHealth(models.Model):
+    key = models.PositiveSmallIntegerField(primary_key=True, default=1, editable=False)
+    status = models.CharField(max_length=16, default="unchecked")
+    message = models.CharField(max_length=250, blank=True, default="")
+    checked_at = models.DateTimeField(null=True, blank=True)
+    last_success_at = models.DateTimeField(null=True, blank=True)
