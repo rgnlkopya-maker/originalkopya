@@ -3,7 +3,8 @@ from django.db import models
 
 
 class NegotiableInstrument(models.Model):
-    KIND = [("CHECK", "Çek"), ("NOTE", "Senet")]
+    KIND = [("CHECK", "Çek"), ("NOTE", "Senet"), ("CK_CUST", "Müşteri Çeki"), ("CK_END", "Cirolu Müşteri Çeki"), ("CK_OWN", "Kendi Çekimiz"), ("NT_CUST", "Müşteri Senedi"), ("NT_END", "Cirolu Müşteri Senedi"), ("NT_OWN", "Kendi Senedimiz")]
+    KIND_OPTIONS = KIND[2:]
     DIRECTION = [("IN", "Alınan"), ("OUT", "Verilen")]
     STATUS = [("PORTFOLIO", "Portföyde"), ("ISSUED", "Ödeme bekliyor"), ("ENDORSED", "Ciro edildi"), ("BANK", "Bankada"), ("COLLECTED", "Tahsil edildi"), ("PAID", "Ödendi"), ("RETURNED", "İade"), ("BOUNCED", "Karşılıksız"), ("CANCELLED", "İptal")]
     kind = models.CharField(max_length=8, choices=KIND)
