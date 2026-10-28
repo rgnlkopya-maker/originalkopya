@@ -17,7 +17,7 @@ POLICY = """<!doctype html>
 <p>Drive yedeklemesi için gerekli veriler Google Drive hizmetine aktarılır. MoliApp ayrıca uygulamanın işletilmesi için barındırma ve dosya depolama hizmetlerinden yararlanır. Bu yedekleme özelliği Google kullanıcı verilerini reklam hedefleme amacıyla kullanmaz veya satmaz.</p>
 <h2>5. Süre, silme ve talepler</h2>
 <p>Google Drive'a gönderilmiş yedekler, Google Drive'da hesap sahibi tarafından silinene veya ilgili saklama politikası uygulanana kadar kalabilir. MoliApp bağlantısını kaldırmak, daha önce oluşturulmuş Drive yedeklerini otomatik olarak silmez. Verilerin incelenmesi, silinmesi veya uygulamayla ilgili gizlilik soruları için aşağıdaki adresten iletişime geçilebilir.</p>
-<h2>6. İletişim</h2><p>Moli Tekstil<br>E-posta: <a href="mailto:tekstilmoil@gmail.com">tekstilmoil@gmail.com</a></p>
+<h2>6. İletişim</h2><p>Moli Tekstil<br>E-posta: <a href="mailto:molitekstil@hotmail.com">molitekstil@hotmail.com</a></p>
 <p>Bu politika, MoliApp'in Google Drive entegrasyonunda açıklanan işlevler değişirse güncellenebilir.</p>
 </main></body></html>"""
 
