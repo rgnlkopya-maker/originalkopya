@@ -54,7 +54,7 @@
 <thead><tr><th>Sıra No</th><th>Tür</th><th>Banka</th><th>Çek No</th><th>Alınan Tarih</th><th>Müşteri</th><th>Tutar</th><th>Vade</th><th>Durum</th><th>Verilen Tarih</th><th>Verilen Firma / Banka</th><th>İşlemler</th></tr></thead><tbody>
 <tr id="newInstrumentRow" style="display:none;background:#f3f6ff">
 <td class="text-muted text-center">Yeni</td>
-<td><select name="kind" form="inlineInstrumentForm" class="form-select form-select-sm"><option value="CHECK">Çek</option><option value="NOTE">Senet</option></select></td>
+<td><select name="kind" form="inlineInstrumentForm" class="form-select form-select-sm">{% for key,label in kinds %}<option value="{{ key }}">{{ label }}</option>{% endfor %}</select></td>
 <td><input name="bank" form="inlineInstrumentForm" maxlength="200" class="form-control form-control-sm" placeholder="Banka"></td>
 <td><input name="document_number" form="inlineInstrumentForm" maxlength="120" class="form-control form-control-sm" placeholder="Çek No"></td>
 <input type="hidden" name="direction" form="inlineInstrumentForm" value="IN">
@@ -70,7 +70,7 @@
 {% for record in records %}
 <tr>
 <td class="text-center fw-semibold"><button type="button" class="btn btn-link btn-sm p-0 text-decoration-none check-gallery-open" data-id="{{ record.pk }}" title="Çek görsellerini aç">{{ record.pk }}</button></td>
-<td><details class="instrument-cell-editor"><summary title="Düzenlemek için tıklayın">{{ record.get_kind_display }}</summary><div class="instrument-cell-popover"><select name="kind" form="movement{{ record.pk }}" class="form-select form-select-sm"><option value="CHECK" {% if record.kind == 'CHECK' %}selected{% endif %}>Çek</option><option value="NOTE" {% if record.kind == 'NOTE' %}selected{% endif %}>Senet</option></select></div></details></td>
+<td><details class="instrument-cell-editor"><summary title="Düzenlemek için tıklayın">{{ record.get_kind_display }}</summary><div class="instrument-cell-popover"><select name="kind" form="movement{{ record.pk }}" class="form-select form-select-sm">{% if record.kind == "CHECK" %}<option value="CHECK" selected>Çek (eski kayıt)</option>{% elif record.kind == "NOTE" %}<option value="NOTE" selected>Senet (eski kayıt)</option>{% endif %}{% for key,label in kinds %}<option value="{{ key }}" {% if record.kind == key %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></div></details></td>
 <td><details class="instrument-cell-editor"><summary title="Düzenlemek için tıklayın">{{ record.bank|default:'—' }}</summary><div class="instrument-cell-popover"><input name="bank" form="movement{{ record.pk }}" value="{{ record.bank }}" maxlength="200" class="form-control form-control-sm" placeholder="Banka"></div></details></td>
 <td><details class="instrument-cell-editor"><summary title="Düzenlemek için tıklayın">{{ record.document_number|default:'—' }}</summary><div class="instrument-cell-popover"><input name="document_number" form="movement{{ record.pk }}" value="{{ record.document_number }}" maxlength="120" class="form-control form-control-sm" placeholder="Çek No"></div></details></td>
 
