@@ -24,26 +24,14 @@ from .production_stage_control_views import get_unshipped_inactive_orders
 
 
 def _drive_health_summary():
-    """Live Drive folder authorization check, cached for 15 minutes."""
+    """Persist unhealthy status until a successful, verified subsequent check."""
     from .instrument_models import InstrumentBackupRun
-    from .instrument_drive_oauth import connected, drive_service
-    from .instrument_backup_views import _check_parent
+    from .instrument_drive_health import check_drive_health
+    state = check_drive_health()
     latest = InstrumentBackupRun.objects.order_by("-started_at", "-id").first()
     last_ok = InstrumentBackupRun.objects.filter(success=True).order_by("-completed_at", "-id").first()
-    state = cache.get("patron:instrument-drive-health:v1")
-    if state is None:
-        checked_at = timezone.now()
-        if not connected():
-            status, message = "disconnected", "Google hesabı bağlı değil."
-        else:
-            try:
-                _check_parent(drive_service())
-                status, message = "connected", "Google Drive yedek klasörüne erişim doğrulandı."
-            except Exception:
-                status, message = "error", "Google Drive bağlantısı veya klasör erişimi doğrulanamadı."
-        state = {"status": status, "message": message, "checked_at": checked_at}
-        cache.set("patron:instrument-drive-health:v1", state, 15 * 60)
     return {"connection": state, "latest": latest, "last_ok": last_ok}
+
 
 def _izmir_weather():
     """İzmir için günün hava özetini kısa süreli cache ile getir."""
