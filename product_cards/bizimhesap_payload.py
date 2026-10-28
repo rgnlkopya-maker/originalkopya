@@ -22,6 +22,17 @@ def build_invoice_payload(invoice, lines, mapping, firm_id):
     currency = CURRENCIES.get(invoice.currency)
     if not currency:
         blockers.append("Para birimi desteklenmiyor.")
+    # AddInvoice requires the invoice address even when customerId is mapped.
+    # Do not update the remote customer's master record separately.
+    detail = getattr(invoice.customer, "customer_detail", None) if invoice.customer_id else None
+    invoice_address = (
+        (getattr(detail, "fatura_adresi", "") or "").strip()
+        or (getattr(detail, "adres", "") or "").strip()
+    )
+    if not invoice_address:
+        blockers.append("Müşteri fatura adresi ve genel adresi boş; BizimHesap'a gönderim engellendi.")
+    customer_title = ((getattr(detail, "resmi_unvan", "") or "").strip()
+                      or (invoice.customer.ad or "").strip())
     if not lines:
         blockers.append("Fatura satırı yok.")
     if getattr(invoice, "status", "DRAFT") not in ("DRAFT", "FINAL"):
@@ -69,6 +80,10 @@ def build_invoice_payload(invoice, lines, mapping, firm_id):
         },
         "customer": {
             "customerId": mapping.external_customer_id,
+            "title": customer_title,
+            "address": invoice_address,
+            "taxOffice": (getattr(detail, "vergi_dairesi", "") or "").strip(),
+            "taxNo": (getattr(detail, "vergi_numarasi", "") or "").strip(),
         },
         "details": details,
         "amounts": {
