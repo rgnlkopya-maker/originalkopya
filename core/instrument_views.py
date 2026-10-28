@@ -46,13 +46,13 @@ def instrument_list(request):
     kind = request.GET.get("kind")
     status = request.GET.get("status")
     if direction in ("IN", "OUT"): records = records.filter(direction=direction)
-    if kind in ("CHECK", "NOTE"): records = records.filter(kind=kind)
+    if kind in dict(NegotiableInstrument.KIND): records = records.filter(kind=kind)
     if status in dict(NegotiableInstrument.STATUS): records = records.filter(status=status)
     term = request.GET.get("q", "").strip()
     if term:
         from django.db.models import Q
         records = records.filter(Q(issuer_name__icontains=term)|Q(given_to__icontains=term)|Q(document_number__icontains=term)|Q(customer__ad__icontains=term))
-    return render(request, "core/instrument_list.html", {"records": records[:300], "kinds":NegotiableInstrument.KIND, "statuses":NegotiableInstrument.STATUS, "customers":Musteri.objects.all().order_by("ad"), "currencies":NegotiableInstrument._meta.get_field("currency").choices, "drive_connected": drive_is_connected()})
+    return render(request, "core/instrument_list.html", {"records": records[:300], "kinds":NegotiableInstrument.KIND_OPTIONS, "statuses":NegotiableInstrument.STATUS, "customers":Musteri.objects.all().order_by("ad"), "currencies":NegotiableInstrument._meta.get_field("currency").choices, "drive_connected": drive_is_connected()})
 
 
 @login_required
