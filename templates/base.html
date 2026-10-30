@@ -406,6 +406,27 @@ document.addEventListener('DOMContentLoaded',function(){
 });
 </script>
 {% endif %}
+<script>
+(function(){
+  const path=window.location.pathname;
+  const prefix=path.startsWith('/attendance/maaslar/')?'/attendance/maaslar/':(path.startsWith('/muhasebe/cek-senet/')?'/muhasebe/cek-senet/':null);
+  if(!prefix||path===prefix+'sifre/'||path===prefix+'_activity/')return;
+  const csrf=document.querySelector('input[name="csrfmiddlewaretoken"]')?.value;
+  if(!csrf)return;
+  let lastSent=Date.now(), pending=false;
+  function activity(){
+    if(document.hidden||pending||Date.now()-lastSent<30000)return;
+    pending=true;lastSent=Date.now();
+    fetch(prefix+'_activity/',{method:'POST',credentials:'same-origin',headers:{'X-CSRFToken':csrf,'X-Requested-With':'XMLHttpRequest'}})
+      .then(r=>{if(!r.ok)window.location.assign(prefix+'sifre/');})
+      .catch(()=>{})
+      .finally(()=>{pending=false;});
+  }
+  ['pointerdown','keydown','scroll','touchstart'].forEach(type=>document.addEventListener(type,activity,{passive:true}));
+  // Continuous mouse motion counts as activity too, without automatic polling.
+  document.addEventListener('pointermove',activity,{passive:true});
+})();
+</script>
 {% block extra_js %}{% endblock %}<input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}"><script>
 window.addEventListener('pageshow', function(event) {
   if (event.persisted && window.location.pathname.startsWith('/muhasebe/cek-senet/')) {
