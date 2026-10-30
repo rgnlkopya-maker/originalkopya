@@ -37,7 +37,7 @@ def _prepare_photo(file):
             image.verify()
         file.seek(0)
         with Image.open(file) as image:
-            if image.format not in ("HEIF", "HEIC", "TIFF", "BMP", "GIF", "AVIF"):
+            if image.format not in ("JPEG", "PNG", "WEBP", "HEIF", "HEIC", "TIFF", "BMP", "GIF", "AVIF"):
                 raise ValidationError("Desteklenmeyen fotoğraf biçimi.")
             image.seek(0)
             converted = ImageOps.exif_transpose(image)
