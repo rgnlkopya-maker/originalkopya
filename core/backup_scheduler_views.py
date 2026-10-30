@@ -48,7 +48,11 @@ def scheduler_tick(request):
             with transaction.atomic():
                 run = BackupExecution.objects.select_for_update().filter(module=module, started_at__date=now.date()).order_by("-id").first()
                 if run and run.completed_at:
-                    continue
+                    # An updated schedule is a new instruction, even if an
+                    # earlier schedule already completed on the same day.
+                    if run.started_at >= policy.updated_at:
+                        continue
+                    run = None
                 if not run:
                     run = BackupExecution.objects.create(module=module, message="Yedekleme sürüyor")
             if module == "folios":
