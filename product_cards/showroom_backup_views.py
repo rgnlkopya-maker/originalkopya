@@ -7,7 +7,7 @@ import re
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.http import HttpResponseForbidden
+from django.http import HttpResponseForbidden, JsonResponse
 from django.shortcuts import redirect
 from django.utils import timezone
 from django.views.decorators.http import require_POST
@@ -121,14 +121,19 @@ def backup(request):
     if not connected():
         messages.error(request, "Google Drive hesabini once baglayin.", extra_tags="folio_backup")
         return redirect("showroom_drafts_page")
+    incremental = request.POST.get("incremental") == "1"
     try:
+        draft_id = int(request.POST.get("draft_id") or 0) if incremental else 0
         drive = drive_service()
         check_folio_root(drive)
         photo_root = _folder(drive, ROOT_ID, "Orijinal Föyler")
         data_root = _folder(drive, ROOT_ID, "Veri Yedekleri")
         pdf_root = _folder(drive, ROOT_ID, "MoliApp Föyleri")
+        base_drafts = ShowroomDraft.objects.filter(status__in=["PENDING", "APPROVED", "TRANSFERRED"])
+        if incremental:
+            base_drafts = base_drafts.filter(pk__gt=draft_id)[:1]
         drafts = list(
-            ShowroomDraft.objects.filter(status__in=["PENDING", "APPROVED", "TRANSFERRED"])
+            base_drafts
             .select_related("customer")
             .prefetch_related("items__product_card__urun", "payments", "source_photos")
             .order_by("pk")
@@ -167,8 +172,15 @@ def backup(request):
                     mime = {"jpg": "image/jpeg", "jpeg": "image/jpeg", "png": "image/png", "webp": "image/webp"}.get(ext, "application/octet-stream")
                     _upload(drive, photo_folder, name, binary, mime)
                     uploaded_photos += 1
+        if incremental:
+            next_id = drafts[-1].pk if drafts else draft_id
+            remaining = ShowroomDraft.objects.filter(status__in=["PENDING", "APPROVED", "TRANSFERRED"], pk__gt=next_id).exists()
+            return JsonResponse({"ok": True, "done": not remaining, "next_id": next_id,
+                                 "folios": len(drafts), "files": uploaded_folios, "photos": uploaded_photos})
         messages.success(request, f"Föy yedeği tamamlandı: {len(drafts)} föy tarandı, {uploaded_folios} yeni/değişen PDF veya veri dosyası, {uploaded_photos} yeni fotoğraf yüklendi.", extra_tags="folio_backup")
     except Exception:
         logger.exception("Showroom folio backup failed")
+        if incremental:
+            return JsonResponse({"ok": False, "message": "Bu föy yedeklenemedi. Mevcut Drive dosyaları korundu."}, status=500)
         messages.error(request, "Föy yedeklemesi tamamlanamadı. Mevcut Drive dosyaları korunuyor; yeniden deneyebilirsiniz.", extra_tags="folio_backup")
     return redirect("showroom_drafts_page")
