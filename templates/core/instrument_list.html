@@ -306,16 +306,28 @@ for(const picker of document.querySelectorAll('.customer-picker')){
  input.addEventListener('input',()=>{hidden.value='';input.classList.add('invalid');show();});
  document.addEventListener('click',e=>{if(!picker.contains(e.target))menu.classList.remove('open');});
  const form=document.getElementById(hidden.getAttribute('form'));
- form.addEventListener('submit',e=>{if(!hidden.value){e.preventDefault();input.classList.add('invalid');input.focus();show();}});
+ form.addEventListener('submit',e=>{
+   const kind=document.querySelector('select[name="kind"][form="'+form.id+'"]');
+   if(kind&&['CK_OWN','NT_OWN'].includes(kind.value)){hidden.value='';input.value='';return;}
+   if(!hidden.value){e.preventDefault();input.classList.add('invalid');input.focus();show();}});
 }
 const row=document.getElementById('newInstrumentRow'),add=document.getElementById('addInstrumentRow'),cancel=document.getElementById('cancelInstrumentRow');
 const inlineForm=document.getElementById('inlineInstrumentForm');
 const kindSelect=row.querySelector('select[name="kind"]');
 const directionField=inlineForm.querySelector('input[name="direction"]');
 function syncDirection(){directionField.value=['CK_OWN','NT_OWN'].includes(kindSelect.value)?'OUT':'IN';}
-kindSelect.addEventListener('change',syncDirection);
+kindSelect.addEventListener('change',()=>{
+ syncDirection();
+ const picker=row.querySelector('.customer-picker');
+ const own=['CK_OWN','NT_OWN'].includes(kindSelect.value);
+ picker.querySelector('.customer-search').required=!own;
+ picker.querySelector('.customer-search').disabled=own;
+ picker.querySelector('.customer-search').placeholder=own?'Kendi evrakımız — müşteri gerekmez':'Müşteri ara / seç';
+ if(own){picker.querySelector('.customer-search').value='';picker.querySelector('.customer-id').value='';}
+});
 inlineForm.addEventListener('submit',syncDirection);
 syncDirection();
+kindSelect.dispatchEvent(new Event('change'));
 add.addEventListener('click',()=>{row.style.display='';add.disabled=true;row.scrollIntoView({behavior:'smooth',block:'nearest'});});
 cancel.addEventListener('click',()=>{row.style.display='none';add.disabled=false;document.getElementById('inlineInstrumentForm').reset();const picker=row.querySelector('.customer-picker');picker.querySelector('.customer-search').value='';picker.querySelector('.customer-id').value='';});
 })();
