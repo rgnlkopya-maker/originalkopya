@@ -30,6 +30,8 @@
 .instrument-page .instrument-table th:nth-child(2),.instrument-page .instrument-table td:nth-child(2){min-width:138px;width:138px;max-width:162px}
 .instrument-page .instrument-table td:nth-child(2) .instrument-cell-editor>summary{white-space:normal!important;overflow:visible!important;text-overflow:clip!important;display:-webkit-box!important;-webkit-box-orient:vertical;-webkit-line-clamp:2;line-clamp:2;line-height:1.45!important;overflow-wrap:break-word}
 
+.instrument-live-empty{padding:23px;text-align:center;color:#72819b;background:#fff;border:1px solid #e1e8f4;border-radius:12px;margin-top:10px;font-size:13px}
+.instrument-live-empty[hidden]{display:none!important}
 /* Header and ledger controls in one balanced card. */
 .instrument-page .instrument-hero{display:flex;align-items:center;flex-wrap:wrap;column-gap:15px;row-gap:10px;padding:15px 20px!important;margin-bottom:18px!important}
 .instrument-page .instrument-heading{flex:0 1 auto;min-width:225px}
@@ -122,7 +124,37 @@ document.addEventListener('DOMContentLoaded',function(){
  }
  form.addEventListener('submit',()=>{for(const el of form.querySelectorAll('input[type="date"]'))if(!el.value)el.disabled=true;});
  const quick=document.getElementById('instrumentQuickSearch');
- quick.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();const url=new URL(location.href);url.searchParams.set('q',quick.value);location.assign(url.toString());}});
+ const ledger=document.querySelector('.instrument-table');
+ const tbody=ledger?.tBodies[0];
+ const normalize=value=>(value||'').toLocaleLowerCase('tr-TR').normalize('NFD').replace(/[\\u0300-\\u036f]/g,'').replace(/ı/g,'i').trim();
+ const emptyNotice=document.createElement('div');
+ emptyNotice.className='instrument-live-empty';
+ emptyNotice.textContent='Aramanızla eşleşen çek veya senet bulunamadı.';
+ emptyNotice.hidden=true;
+ ledger?.closest('.instrument-table-wrap')?.insertAdjacentElement('afterend',emptyNotice);
+ function updateQuickResults(){
+   if(!tbody)return;
+   const words=normalize(quick.value).split(/\\s+/).filter(Boolean);
+   let visible=0;
+   for(const row of tbody.rows){
+     if(row.id==='newInstrumentRow'||row.cells.length!==12)continue;
+     // Search visible values and the saved inline editor inputs together.
+     const text=normalize([...row.cells].slice(0,11).map(cell=>{
+       const summary=cell.querySelector('summary');
+       const input=cell.querySelector('input:not([type="hidden"])');
+       return [summary?.textContent,input?.value,cell.textContent].filter(Boolean).join(' ');
+     }).join(' '));
+     const matches=words.every(word=>text.includes(word));
+     row.hidden=!matches;
+     row.style.display=matches?'':'none';
+     if(matches)visible++;
+   }
+   emptyNotice.hidden=visible!==0;
+ }
+ quick.addEventListener('input',updateQuickResults);
+ quick.addEventListener('search',updateQuickResults);
+ quick.addEventListener('keydown',e=>{if(e.key==='Enter')e.preventDefault();});
+ updateQuickResults();
 });
 </script>
 <style>
