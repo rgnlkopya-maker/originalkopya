@@ -117,11 +117,25 @@ def instrument_backup(request):
         rows=list(_rows(records))
         wb=Workbook()
         ws=wb.active
-        ws.title="Cek Senet Listesi"
-        headings=["Sira No","Tur","Islem","Musteri","Banka","Cek No","Tutar","Para Birimi","Alinan Tarih","Vade","Durum","Verilen Tarih","Verilen Firma / Banka","Aciklama"]
+        ws.title="Çek Senet Listesi"
+        headings=["Sıra No","Tür","İşlem","Müşteri","Banka","Evrak No","Tutar","Para Birimi","Alınan Tarih","Vade","Durum","Verilen Tarih","Verilen Firma / Banka","Açıklama"]
         ws.append(headings)
+        # Excel is human-readable; JSON retains the raw codes for recovery.
+        kind_labels = dict(NegotiableInstrument.KIND)
+        direction_labels = dict(NegotiableInstrument.DIRECTION)
+        status_labels = dict(NegotiableInstrument.STATUS)
         for x in rows:
-            ws.append([x[k] for k in ("sira_no","tur","islem","musteri","banka","cek_no","tutar","para_birimi","alinan_tarih","vade","durum","verilen_tarih","verilen_firma_banka","aciklama")])
+            ws.append([
+                x["sira_no"],
+                kind_labels.get(x["tur"], x["tur"]),
+                direction_labels.get(x["islem"], x["islem"]),
+                x["musteri"], x["banka"], x["cek_no"],
+                float(x["tutar"]), "TL" if x["para_birimi"] == "TRY" else x["para_birimi"],
+                x["alinan_tarih"], x["vade"],
+                status_labels.get(x["durum"], x["durum"]),
+                x["verilen_tarih"], x["verilen_firma_banka"], x["aciklama"],
+            ])
+            ws.cell(ws.max_row, 7).number_format = "#,##0.00"
         for col in ws.columns:
             letter=col[0].column_letter
             ws.column_dimensions[letter].width=min(50,max(14,max(len(str(cell.value or "")) for cell in col[:200])+2))
