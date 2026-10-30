@@ -10,6 +10,7 @@ from core.instrument_attachment_views import attachment_upload, attachment_view,
 from core.instrument_backup_views import instrument_backup
 from core.instrument_views import instrument_list as instrument_password_gate_view
 from core.privacy_policy_views import privacy_policy
+from core.backup_center_views import backup_center, backup_policy_update
 from core.instrument_drive_oauth import connect as instrument_drive_connect, callback as instrument_drive_callback, disconnect as instrument_drive_disconnect
 from core.print_tracking_views import mark_order_print
 from core.order_video_views import order_video_upload, order_video_delete
@@ -47,6 +48,8 @@ def logout_view(request):
 from core.cad_lab_views import cad_lab
 
 urlpatterns = [
+    path("yonetim/yedekleme-merkezi/", backup_center, name="backup_center"),
+    path("yonetim/yedekleme-merkezi/ayar/", backup_policy_update, name="backup_policy_update"),
     path("gizlilik-politikasi/", privacy_policy, name="privacy_policy"),
     path("muhasebe/cek-senet/", instrument_list, name="instrument_list"),
     path("muhasebe/cek-senet/sifre/", instrument_password_gate_view, name="instrument_password_gate"),
