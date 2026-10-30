@@ -22,6 +22,7 @@ class BackupExecution(models.Model):
     files = models.PositiveIntegerField(default=0)
     photos = models.PositiveIntegerField(default=0)
     records = models.PositiveIntegerField(default=0)
+    cursor = models.PositiveIntegerField(default=0)
     message = models.CharField(max_length=255, blank=True)
 
     class Meta:
