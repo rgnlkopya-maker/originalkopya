@@ -1,10 +1,10 @@
 # MoliApp — Yedekleme Merkezi Geliştirme Çalışma Dosyası
 
-**Sürüm:** 1.0 · **Başlangıç:** 30.10.2026 · **Durum:** PLAN / AŞAMA 1 BEKLİYOR  
+**Sürüm:** 1.1 · **Başlangıç:** 30.10.2026 · **Durum:** PLAN / AŞAMA 1 BEKLİYOR  
 **Ana depo:** rgnlkopya-maker/originalkopya · **Dal:** main  
 **Canlı uygulama:** https://originalkopya.onrender.com/yonetim/yedekleme-merkezi/
 
-> **DEVAM NOKTASI (güncel):** AŞAMA 1 — Mevcut yedeklerin sağlık denetimi, işleyiş ve geri yükleme test planı. Henüz yeni modüllerin yedeklemesi kurulmadı. Her oturumun sonunda bu dosyadaki durum, kanıt, commit ve bir sonraki adım güncellenecek.
+> **DEVAM NOKTASI (güncel):** AŞAMA 1 — Mevcut Drive yedeklerinin okunabilirliğini kontrol et; ardından **AŞAMA 2: şifreli, bağımsız tam PostgreSQL yedeği + izole ortamda geri yükleme** önceliğine geç. Modül bazlı yeni yedeklemeleri bu temelden sonra geliştir. Her oturum sonunda test kanıtını, commit'i ve sonraki adımı bu dosyaya işle.
 
 ## 0. Şu anda var olan sistem — değiştirmeden koru
 - **Sipariş Föyleri:** Her föy için PDF, yazdırma HTML'si, JSON, orijinal görseller; mevcutları karşılaştırarak yükleme. Otomatik zamanlama ve parça parça ilerleme altyapısı oluşturuldu. Son gözlenen çalışma 30.10.2026 16.50'de devam ediyordu; **tamamlandığı doğrulanmadı**.
@@ -13,6 +13,28 @@
 - **Render Cron:** moli-backup-scheduler, mevcut MoliApp web servisinin korumalı uç noktasına çağrı yapıyor. Yedekleme saati Avrupa/İstanbul.
 - **ÖNEMLİ:** Çek/Senet her çalışmada yeni Excel+JSON çıkarmaya devam etmeli. Kullanıcının onayı olmadan bu davranış değiştirilmez.
 - **Not:** Mevcut geçmiş ekranı ağırlıkla otomatik çalışmaları gösterir. Eski manuel çalışmaları tek geçmişe birleştirme geliştirmesi henüz yapılmadı.
+
+## TEMEL HEDEF — Sistem tamamen çökerse MoliApp'i yeniden ayağa kaldırabilmek
+
+**Hedef senaryo:** Mevcut Render web servisi ve üretim veritabanı kullanılamaz hale gelirse, GitHub'daki uygulama kodu yeni bir servise dağıtılacak; yeni PostgreSQL veritabanına **doğrulanmış tam DB yedeği** geri yüklenecek; harici fotoğraf/video ve diğer dosyalar ayrı yedeklerden yeniden bağlanacak; uygulama kontrollerden sonra açılacak. Bu süreç önce **canlıya dokunmayan test ortamında** ispatlanmalıdır.
+
+### Mevcut Drive JSON'ları tam kurtarma için yeterli mi?
+- **Çek/Senet:** Excel ve JSON, mevcut 16 kayıt gibi verilerin kurtarılmasına yardımcı olur; kaynak fotoğraflar ayrıca tutulur. Fakat **JSON'dan MoliApp tablolarına otomatik geri yükleme aracı henüz yapılmadı**. Kayıt ve ilişki alanlarının eksiksiz olduğu ayrıca test edilmelidir.
+- **Sipariş Föyleri:** JSON, PDF, HTML ve orijinal görseller değerli kurtarma kaynaklarıdır; **tek tıkla geri yükleme yoktur**, ilişkili müşteri/ürün kayıtlarının ayrıca bulunması gerekir.
+- **Diğer modüller:** Siparişlerin tamamı, üretim hareketleri, faturalar, maaşlar, stoklar ve yetkiler için modül JSON'ları henüz kapsamlı bir kurtarma kanıtı değildir.
+- **GitHub:** Kod ve şema değişikliklerini saklar; **işletmenin canlı verilerini ve harici medya dosyalarını kendiliğinden içermez**.
+- **Gizli ayarlar:** OAuth/API anahtarları ve çevresel değişkenler JSON arşivlerine katılmamalı; yeni servis için ayrı, güvenli bir kurulum prosedürü oluşturulmalı.
+
+### Kurtarma sırasında hedef sıra
+1. GitHub'dan doğru sürüm/commit seç; yeni uygulama servisi kur; gerekli bağımlılıkları yükle.
+2. Boş ve **izole** yeni PostgreSQL oluştur; tam yedeği doğrula ve bu veritabanına geri yükle.
+3. Şema/migration uyumluluğunu, kullanıcı yetkilerini, sipariş–üretim ve fatura ilişkilerini test et.
+4. Fotoğraf, video, folyo görselleri ve çek/senet eklerini yedek depodan uygun ortama geri getir veya erişilebilir bağlantılarını doğrula.
+5. Gizli yapılandırmaları yetkili kasadan yeniden tanımla; Drive, Supabase ve diğer servis bağlantılarını sınayarak aç.
+6. Sayım ve mutabakat yap: müşteri/sipariş/üretim/fatura/maaş/çek-senet/stok kayıtları, görsel varlığı, birkaç örnek rapor.
+7. **Canlıya geçiş yalnızca açık kullanıcı onayıyla**; sonrasında hata, veri kaybı ve servis sürekliliği kontrolü.
+
+**Kabul ilkesi:** “Yedeklendi” başka, “geri yüklenebildi” başkadır. Sistem kurtarma testini geçmeden “felakete hazır” olarak işaretlenmez.
 
 ## 1. Değişmez kurallar
 1. Canlı kayıt silinmez, düzenlenmez; yedekleme yalnızca okuma/harici kopyalama yapar.
@@ -30,7 +52,7 @@
 |---|---|---|---|
 | 0 | Mevcut sistem envanteri ve kurallar | KISMEN TAMAMLANDI | Kodlar incelendi, 2 modül var; folyo son işlemi netleşmeli |
 | 1 | Yedekleme sağlamlık kontrolü ve geri yükleme stratejisi | SIRADAKİ | Çek/Senet ve Föy gerçek dosya doğrulama, hata senaryoları, dokümante kurtarma |
-| 2 | Tam PostgreSQL veritabanı yedeği | BEKLİYOR | Şifreli, ayrı depoda yedek; test veritabanına geri yükleme kanıtı |
+| 2 | **Öncelikli: tam PostgreSQL yedeği + izole geri yükleme testi** | BEKLİYOR | Şifreli ve ayrı depoda kopya; yeni test DB'sine başarılı geri yükleme |
 | 3 | Siparişler + üretim ve QR hareketleri | BEKLİYOR | Sipariş, olay, aşama, görüntü sayısı ve eşleşen JSON/Excel |
 | 4 | Fatura, proforma ve finans | BEKLİYOR | Fatura/satır/aktarım/finans ilişkileri tutarlı dışa aktarılır |
 | 5 | Müşteri, ürün, fiyat ve ürün resimleri | BEKLİYOR | İlişkiler korunur, resimlerin erişilebilirliği kontrol edilir |
@@ -57,6 +79,9 @@
 - [ ] Şifreli saklama, ayrı lokasyon, döndürme politikası (örnek: 7 günlük + 4 haftalık + 3 aylık) belirle.
 - [ ] Yedek doğrulama: bütünlük, geri açılabilirlik, tablo ve satır sayısı karşılaştırması.
 - [ ] **Canlıya geri yükleme yapmadan** izole test DB'sine geri yükleme tatbikatı.
+- [ ] Boş bir yeni Render servisi/DB üzerinde GitHub kodları + kurtarılan veritabanıyla uygulama açılış testini yap.
+- [ ] Harici medya ve entegrasyon yapılandırmasının ayrı yedeği/yeniden bağlama prosedürünü tasarla.
+- [ ] Test sonunda geri yüklenebilir tablo ve kayıt sayıları ile olası veri kaybını raporla.
 **Kabul:** Yedek otomatik oluşur, şifreli/erişim kontrollüdür ve test DB'de açılır.
 
 ### AŞAMA 3 — Sipariş ve üretim
@@ -107,6 +132,7 @@
 |---|---|---|---|---|
 | 30.10.2026 | 0 | Mevcut Föy ve Çek/Senet yedekleme sistemi, zamanlayıcı ve Yedekleme Merkezi geliştirildi. | Çek/Senet 16.25 ve 16.46 işlemleri DB'de başarılı. | Aşama 1: mevcut yedeklerin sağlık denetimi |
 | 30.10.2026 | PLAN | Modül bazlı uzun vadeli yedekleme yol haritası hazırlandı. | Bu çalışma dosyası | Önce Aşama 1'i uygula |
+| 30.10.2026 | PLAN 1.1 | Sistem çökmesi senaryosu ve JSON sınırları eklendi; tam DB yedeği + yeni serviste kurtarma testine öncelik verildi. | Bu dosyanın v1.1 güncellemesi | Aşama 1'i tamamla, sonra Aşama 2'ye geç |
 
 ## 5. Bir sonraki görüşmede kullanılacak devam komutu
 **“MoliApp yedekleme çalışma dosyasını GitHub'daki `docs/MOLIAPP_YEDEKLEME_YOL_HARITASI.md` konumundan oku. Güncel devam noktasına bak, yalnızca sıradaki aşamayı uygula. Testleri tamamlayınca durum, commit ve sonraki adımı aynı dosyaya kaydet.”**
