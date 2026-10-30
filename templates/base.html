@@ -413,8 +413,10 @@ document.addEventListener('DOMContentLoaded',function(){
   if(!prefix||path===prefix+'sifre/'||path===prefix+'_activity/')return;
   const csrf=document.querySelector('input[name="csrfmiddlewaretoken"]')?.value;
   if(!csrf)return;
-  let lastSent=Date.now(), pending=false;
+  let lastSent=Date.now(), lastInteraction=Date.now(), pending=false;
   function activity(){
+    if(Date.now()-lastInteraction>=300000){window.location.replace(prefix+'sifre/');return;}
+    lastInteraction=Date.now();
     if(document.hidden||pending||Date.now()-lastSent<30000)return;
     pending=true;lastSent=Date.now();
     fetch(prefix+'_activity/',{method:'POST',credentials:'same-origin',headers:{'X-CSRFToken':csrf,'X-Requested-With':'XMLHttpRequest'}})
@@ -425,6 +427,7 @@ document.addEventListener('DOMContentLoaded',function(){
   ['pointerdown','keydown','scroll','touchstart'].forEach(type=>document.addEventListener(type,activity,{passive:true}));
   // Continuous mouse motion counts as activity too, without automatic polling.
   document.addEventListener('pointermove',activity,{passive:true});
+  setInterval(()=>{if(Date.now()-lastInteraction>=300000)window.location.replace(prefix+'sifre/');},10000);
 })();
 </script>
 {% block extra_js %}{% endblock %}<input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}"><script>
