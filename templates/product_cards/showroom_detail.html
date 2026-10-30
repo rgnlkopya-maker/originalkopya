@@ -40,7 +40,7 @@
  
  {% if messages %}{% for message in messages %}{% if 'folio_photo' in message.tags %}<div class="alert {% if 'error' in message.tags %}alert-danger{% else %}alert-success{% endif %} py-2">{{ message }}</div>{% endif %}{% endfor %}{% endif %}
  <form method="post" enctype="multipart/form-data" action="{% url 'showroom_photo_upload' draft.id %}" class="foy-photo-upload">
- {% csrf_token %}<input type="file" accept="image/jpeg,image/png,image/webp" name="photos" multiple required class="form-control foy-photo-input">
+ {% csrf_token %}<input type="file" accept="image/*,.heic,.heif,.tif,.tiff,.bmp,.gif,.avif" name="photos" multiple required class="form-control foy-photo-input">
  <button type="submit" class="btn btn-primary">Fotoğrafları Yükle</button></form>
  <div class="foy-photo-list">
  {% for photo in draft.source_photos.all %}
