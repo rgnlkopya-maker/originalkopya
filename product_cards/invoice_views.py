@@ -686,7 +686,20 @@ def invoice_add(request, order_id):
             messages.warning(request, "Bu sipariş zaten faturaya aktarılmış.")
             return redirect("order_detail", pk=order.pk)
         currency = order.para_birimi or "TRY"
-        invoice, _ = InvoiceDraft.objects.get_or_create(customer=order.musteri, invoice_date=planned_date, currency=currency, status="DRAFT", defaults={"created_by": request.user})
+        invoice = (InvoiceDraft.objects.select_for_update().filter(
+            customer=order.musteri, invoice_date=planned_date, currency=currency, status="DRAFT"
+        ).first())
+        if invoice and (_transfer_locked(invoice) or invoice.bizimhesap_manual_recorded or invoice.parasut_manual_recorded
+                        or invoice.official_number and (invoice.bizimhesap_display_status in ("yes", "api") or invoice.parasut_display_status in ("yes", "api"))):
+            # A sent invoice must never accept a newly produced order.
+            invoice.status = "FINAL"
+            invoice.save(update_fields=["status", "updated_at"])
+            invoice = None
+        if invoice is None:
+            invoice = InvoiceDraft.objects.create(
+                customer=order.musteri, invoice_date=planned_date, currency=currency,
+                status="DRAFT", created_by=request.user,
+            )
         _assign_shared_ft_number(draft=invoice)
         InvoiceLine.objects.create(invoice=invoice, order=order, price=order.satis_fiyati or 0, vat_rate=order.vat_rate or 0)
         ShipmentPlan.objects.create(order=order, planned_date=planned_date, created_by=request.user)
