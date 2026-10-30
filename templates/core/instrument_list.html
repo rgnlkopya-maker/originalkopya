@@ -79,10 +79,34 @@
 .instrument-table td.text-nowrap .btn{font-size:10px;padding:3px 5px;margin:1px 0;line-height:1.2}
 .instrument-table .customer-picker{min-width:190px}
 .instrument-cell-popover{min-width:190px}
-@media(max-width:1050px){.instrument-table{min-width:1050px!important}}
+/* Telefon/tablette tabloyu 12 dar sütuna sıkıştırma: kendi içinde kaydır. */
+@media(max-width:1200px){
+  .instrument-page .instrument-table-wrap{width:100%;max-width:100%;overflow-x:auto!important;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior-x:contain}
+  .instrument-page .instrument-table{width:1690px!important;min-width:1690px!important;max-width:none!important;table-layout:fixed!important}
+  .instrument-page .instrument-table th,.instrument-page .instrument-table td{box-sizing:border-box;min-width:0!important;padding:12px 9px!important}
+  .instrument-page .instrument-table th{white-space:nowrap!important;font-size:11px!important}
+  .instrument-page .instrument-table th:nth-child(1){width:80px}
+  .instrument-page .instrument-table th:nth-child(2){width:160px}
+  .instrument-page .instrument-table th:nth-child(3){width:130px}
+  .instrument-page .instrument-table th:nth-child(4){width:135px}
+  .instrument-page .instrument-table th:nth-child(5){width:140px}
+  .instrument-page .instrument-table th:nth-child(6){width:215px}
+  .instrument-page .instrument-table th:nth-child(7){width:170px}
+  .instrument-page .instrument-table th:nth-child(8){width:145px}
+  .instrument-page .instrument-table th:nth-child(9){width:160px}
+  .instrument-page .instrument-table th:nth-child(10){width:145px}
+  .instrument-page .instrument-table th:nth-child(11){width:135px}
+  .instrument-page .instrument-table th:nth-child(12){width:75px}
+  .instrument-page .instrument-table td:nth-child(2){min-width:0!important;max-width:none;width:auto}
+  .instrument-page .instrument-table .instrument-cell-editor>summary{font-size:12px!important}
+  .instrument-page .instrument-table td:nth-child(2) .instrument-cell-editor>summary{white-space:normal!important}
+  .instrument-page .instrument-table .instrument-sort-btn{gap:5px;white-space:nowrap}
+  .instrument-page .instrument-table .sort-icon{font-family:Arial,sans-serif;font-size:12px;min-width:12px}
+  .instrument-page .instrument-filters{row-gap:10px}
+}
 </style>
 <div class="table-responsive instrument-table-wrap"><table class="table table-hover align-middle instrument-table">
-<thead><tr><th><button type="button" class="instrument-sort-btn" data-col="0" aria-label="Sıra No sütununa göre sırala" title="Sıra No sütununa göre sırala">Sıra No <span class="sort-icon" aria-hidden="true">↕</span></button></th><th><button type="button" class="instrument-sort-btn" data-col="1" aria-label="Tür sütununa göre sırala" title="Tür sütununa göre sırala">Tür <span class="sort-icon" aria-hidden="true">↕</span></button></th><th><button type="button" class="instrument-sort-btn" data-col="2" aria-label="Banka sütununa göre sırala" title="Banka sütununa göre sırala">Banka <span class="sort-icon" aria-hidden="true">↕</span></button></th><th><button type="button" class="instrument-sort-btn" data-col="3" aria-label="Evrak No sütununa göre sırala" title="Evrak No sütununa göre sırala">Evrak No <span class="sort-icon" aria-hidden="true">↕</span></button></th><th><button type="button" class="instrument-sort-btn" data-col="4" aria-label="Alınan Tarih sütununa göre sırala" title="Alınan Tarih sütununa göre sırala">Alınan Tarih <span class="sort-icon" aria-hidden="true">↕</span></button></th><th><button type="button" class="instrument-sort-btn" data-col="5" aria-label="Müşteri sütununa göre sırala" title="Müşteri sütununa göre sırala">Müşteri <span class="sort-icon" aria-hidden="true">↕</span></button></th><th><button type="button" class="instrument-sort-btn" data-col="6" aria-label="Tutar sütununa göre sırala" title="Tutar sütununa göre sırala">Tutar <span class="sort-icon" aria-hidden="true">↕</span></button></th><th><button type="button" class="instrument-sort-btn" data-col="7" aria-label="Vade sütununa göre sırala" title="Vade sütununa göre sırala">Vade <span class="sort-icon" aria-hidden="true">↕</span></button></th><th><button type="button" class="instrument-sort-btn" data-col="8" aria-label="Durum sütununa göre sırala" title="Durum sütununa göre sırala">Durum <span class="sort-icon" aria-hidden="true">↕</span></button></th><th><button type="button" class="instrument-sort-btn" data-col="9" aria-label="Verilen Tarih sütununa göre sırala" title="Verilen Tarih sütununa göre sırala">Verilen Tarih <span class="sort-icon" aria-hidden="true">↕</span></button></th><th><button type="button" class="instrument-sort-btn" data-col="10" aria-label="Verilen Firma / Banka sütununa göre sırala" title="Verilen Firma / Banka sütununa göre sırala">Verilen Firma / Banka <span class="sort-icon" aria-hidden="true">↕</span></button></th><th>İşlemler</th></tr></thead><tbody>
+<thead><tr><th><button type="button" class="instrument-sort-btn" data-col="0" aria-label="Sıra No sütununa göre sırala" title="Sıra No sütununa göre sırala">Sıra No <span class="sort-icon" aria-hidden="true">↕&#xFE0E;</span></button></th><th><button type="button" class="instrument-sort-btn" data-col="1" aria-label="Tür sütununa göre sırala" title="Tür sütununa göre sırala">Tür <span class="sort-icon" aria-hidden="true">↕&#xFE0E;</span></button></th><th><button type="button" class="instrument-sort-btn" data-col="2" aria-label="Banka sütununa göre sırala" title="Banka sütununa göre sırala">Banka <span class="sort-icon" aria-hidden="true">↕&#xFE0E;</span></button></th><th><button type="button" class="instrument-sort-btn" data-col="3" aria-label="Evrak No sütununa göre sırala" title="Evrak No sütununa göre sırala">Evrak No <span class="sort-icon" aria-hidden="true">↕&#xFE0E;</span></button></th><th><button type="button" class="instrument-sort-btn" data-col="4" aria-label="Alınan Tarih sütununa göre sırala" title="Alınan Tarih sütununa göre sırala">Alınan Tarih <span class="sort-icon" aria-hidden="true">↕&#xFE0E;</span></button></th><th><button type="button" class="instrument-sort-btn" data-col="5" aria-label="Müşteri sütununa göre sırala" title="Müşteri sütununa göre sırala">Müşteri <span class="sort-icon" aria-hidden="true">↕&#xFE0E;</span></button></th><th><button type="button" class="instrument-sort-btn" data-col="6" aria-label="Tutar sütununa göre sırala" title="Tutar sütununa göre sırala">Tutar <span class="sort-icon" aria-hidden="true">↕&#xFE0E;</span></button></th><th><button type="button" class="instrument-sort-btn" data-col="7" aria-label="Vade sütununa göre sırala" title="Vade sütununa göre sırala">Vade <span class="sort-icon" aria-hidden="true">↕&#xFE0E;</span></button></th><th><button type="button" class="instrument-sort-btn" data-col="8" aria-label="Durum sütununa göre sırala" title="Durum sütununa göre sırala">Durum <span class="sort-icon" aria-hidden="true">↕&#xFE0E;</span></button></th><th><button type="button" class="instrument-sort-btn" data-col="9" aria-label="Verilen Tarih sütununa göre sırala" title="Verilen Tarih sütununa göre sırala">Verilen Tarih <span class="sort-icon" aria-hidden="true">↕&#xFE0E;</span></button></th><th><button type="button" class="instrument-sort-btn" data-col="10" aria-label="Verilen Firma / Banka sütununa göre sırala" title="Verilen Firma / Banka sütununa göre sırala">Verilen Firma / Banka <span class="sort-icon" aria-hidden="true">↕&#xFE0E;</span></button></th><th>İşlemler</th></tr></thead><tbody>
 <tr id="newInstrumentRow" style="display:none;background:#f3f6ff">
 <td class="text-muted text-center">Yeni</td>
 <td><select name="kind" form="inlineInstrumentForm" class="form-select form-select-sm">{% for key,label in kinds %}<option value="{{ key }}">{{ label }}</option>{% endfor %}</select></td>
@@ -367,7 +391,7 @@ cancel.addEventListener('click',()=>{row.style.display='none';add.disabled=false
    });
    // Moving complete TR elements keeps all inputs, customer fields and form bindings together.
    ordered.forEach(item=>body.appendChild(item.row));
-   buttons.forEach(b=>{b.removeAttribute('aria-sort');b.querySelector('.sort-icon').textContent='↕';});
+   buttons.forEach(b=>{b.removeAttribute('aria-sort');b.querySelector('.sort-icon').textContent='↕︎';});
    button.setAttribute('aria-sort',ascending?'ascending':'descending');
    button.querySelector('.sort-icon').textContent=ascending?'↑':'↓';
  }));
