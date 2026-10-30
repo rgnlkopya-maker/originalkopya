@@ -34,7 +34,7 @@
     <h2>Yedekleme Geçmişi</h2>
     <p class="backup-muted">Otomatik yedeklemelerin çalışma kayıtları aşağıda listelenir. Eski manuel Çek/Senet yedekleri ayrıca gösterilir.</p>
     <div class="table-responsive"><table class="table align-middle"><thead><tr><th>Başlangıç</th><th>Modül</th><th>Sonuç</th><th>Dosya</th><th>Fotoğraf</th></tr></thead><tbody>
-      {% for run in history %}<tr><td>{{ run.started_at|date:"d.m.Y H:i" }}</td><td>{{ run.get_module_display }}</td><td>{% if run.success %}Başarılı{% else %}Hata veya devam ediyor{% endif %}</td><td>{{ run.files }}</td><td>{{ run.photos }}</td></tr>{% empty %}<tr><td colspan="5" class="text-muted">Yeni sistemde henüz yedekleme kaydı bulunmuyor.</td></tr>{% endfor %}
+      {% for run in history %}<tr><td>{{ run.started_at|date:"d.m.Y H:i" }}</td><td>{{ run.get_module_display }}</td><td>{% if run.success %}Başarılı{% elif run.completed_at %}Hata{% else %}Devam ediyor{% endif %}</td><td>{{ run.files }}</td><td>{{ run.photos }}</td></tr>{% empty %}<tr><td colspan="5" class="text-muted">Yeni sistemde henüz yedekleme kaydı bulunmuyor.</td></tr>{% endfor %}
     </tbody></table></div>
     <h2 class="mt-3" style="font-size:14px">Önceki Çek/Senet yedeklemeleri</h2>
     <div class="table-responsive"><table class="table align-middle"><thead><tr><th>Tarih</th><th>Durum</th><th>Kayıt</th><th>Fotoğraf</th></tr></thead><tbody>
