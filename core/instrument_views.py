@@ -15,6 +15,75 @@ from product_cards.invoice_models import BizimHesapCustomerMapping
 def _manager(user):
     return user.is_authenticated and (user.is_superuser or user.groups.filter(name__in=["patron", "mudur"]).exists())
 
+BANK_NAMES = [
+    "Akbank",
+    "Alternatif Bank",
+    "Anadolubank",
+    "Arap Türk Bankası",
+    "Bank of China Turkey",
+    "Burgan Bank",
+    "Citibank",
+    "Colendi Bank",
+    "DenizBank",
+    "Deutsche Bank",
+    "Enpara Bank",
+    "Fibabanka",
+    "Freedom Bank",
+    "FUPS Bank",
+    "Hepsi Bank",
+    "HSBC",
+    "ICBC Turkey Bank",
+    "ING Bank",
+    "Intesa Sanpaolo",
+    "JPMorgan Chase Bank",
+    "MUFG Bank Turkey",
+    "Odeabank",
+    "QNB Bank",
+    "Société Générale",
+    "Şekerbank",
+    "Ziraat Bankası",
+    "Turkland Bank",
+    "Türk Ekonomi Bankası (TEB)",
+    "Türk Ticaret Bankası",
+    "Garanti BBVA",
+    "Halkbank",
+    "İş Bankası",
+    "VakıfBank",
+    "Yapı Kredi",
+    "Ziraat Dinamik Banka",
+    "Aktif Yatırım Bankası",
+    "Aytemiz Yatırım Bankası",
+    "Bank of America Yatırım Bank",
+    "Bankpozitif",
+    "D Yatırım Bankası",
+    "Destek Yatırım Bankası",
+    "Diler Yatırım Bankası",
+    "Golden Global Yatırım Bankası",
+    "GSD Yatırım Bankası",
+    "Hedef Yatırım Bankası",
+    "İller Bankası",
+    "Takasbank",
+    "Misyon Yatırım Bankası",
+    "Nurol Yatırım Bankası",
+    "Pasha Yatırım Bankası",
+    "Q Yatırım Bankası",
+    "Standard Chartered Yatırım Bankası",
+    "Tera Yatırım Bankası",
+    "Türk Eximbank",
+    "Türkiye Kalkınma ve Yatırım Bankası",
+    "Türkiye Sınai Kalkınma Bankası",
+    "Adil Katılım Bankası",
+    "Albaraka Türk Katılım Bankası",
+    "Dünya Katılım Bankası",
+    "Hayat Finans Katılım Bankası",
+    "Kuveyt Türk Katılım Bankası",
+    "T.O.M. Katılım Bankası",
+    "Türkiye Emlak Katılım Bankası",
+    "Türkiye Finans Katılım Bankası",
+    "Vakıf Katılım Bankası",
+    "Ziraat Katılım Bankası",
+    "Birleşik Fon Bankası"
+]
 
 class InstrumentForm(forms.ModelForm):
     class Meta:
@@ -61,7 +130,7 @@ def instrument_list(request):
     if term:
         from django.db.models import Q
         records = records.filter(Q(issuer_name__icontains=term)|Q(given_to__icontains=term)|Q(document_number__icontains=term)|Q(customer__ad__icontains=term))
-    return render(request, "core/instrument_list.html", {"records": records[:300], "kinds":NegotiableInstrument.KIND_OPTIONS, "statuses":NegotiableInstrument.STATUS, "customers":Musteri.objects.all().order_by("ad"), "currencies":NegotiableInstrument._meta.get_field("currency").choices, "drive_connected": drive_is_connected()})
+    return render(request, "core/instrument_list.html", {"records": records[:300], "kinds":NegotiableInstrument.KIND_OPTIONS, "statuses":NegotiableInstrument.STATUS, "customers":Musteri.objects.all().order_by("ad"), "currencies":NegotiableInstrument._meta.get_field("currency").choices, "drive_connected": drive_is_connected(), "banks": BANK_NAMES})
 
 
 @login_required
