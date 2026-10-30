@@ -189,6 +189,7 @@ def backup(request):
             for extension, binary, mime in [
                 ("json", contents, "application/json"),
                 ("html", _print_html(draft), "text/html; charset=utf-8"),
+                ("pdf", _pdf(archive), "application/pdf"),
             ]:
                 digest = hashlib.sha256(binary).hexdigest()[:16]
                 name = f"{label} - {digest}.{extension}"
