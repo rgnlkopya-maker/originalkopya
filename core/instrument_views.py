@@ -30,6 +30,15 @@ class InstrumentForm(forms.ModelForm):
         }
         widgets = {"issue_date":forms.DateInput(attrs={"type":"date"}), "transaction_date":forms.DateInput(attrs={"type":"date"}), "given_date":forms.DateInput(attrs={"type":"date"}), "due_date":forms.DateInput(attrs={"type":"date"}), "note":forms.Textarea(attrs={"rows":3})}
 
+    def clean(self):
+        cleaned = super().clean()
+        if cleaned.get("status") == "ENDORSED":
+            if not (cleaned.get("given_to") or "").strip():
+                self.add_error("given_to", "Ciro edilen firma / banka zorunludur.")
+            if not cleaned.get("given_date"):
+                self.add_error("given_date", "Ciro edildiğinde verilen tarih zorunludur.")
+        return cleaned
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields["customer"].queryset = Musteri.objects.all().order_by("ad")
