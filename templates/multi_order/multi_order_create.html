@@ -239,12 +239,50 @@ hr {
 @media(max-width:991px){.order-create-shell .section-title.d-flex{align-items:flex-start!important;flex-direction:column;gap:12px}.order-create-shell .section-title .d-flex{flex-wrap:wrap}.order-create-shell>.create-card{padding:22px}}
 @media(max-width:767px){.order-create-shell{padding:14px 9px 38px}.order-create-heading{gap:11px}.order-create-icon{width:44px;height:44px}.order-create-heading h1{font-size:22px}.order-create-shell>.create-card{padding:15px 12px;border-radius:15px}.order-create-shell form>.row:first-of-type{padding:15px 12px 5px}.order-create-shell .renk-beden-card,.order-create-shell .sub-card,.order-create-shell .cost-card{padding:15px}.order-create-shell form>.text-center:last-of-type .btn-primary{width:100%}}
 
+/* Yeniden tasarlanan sipariş giriş akışı */
+.order-create-shell{max-width:1320px}
+.order-create-shell>.create-card{padding:0;background:transparent;border:0;box-shadow:none}
+.order-create-shell .order-step{background:#fff;border:1px solid #e2e8f0;border-radius:18px;padding:25px 27px;margin-bottom:18px;box-shadow:0 4px 18px rgba(24,41,70,.04)}
+.order-create-shell .order-step-head{display:flex;align-items:center;gap:13px;margin-bottom:21px}
+.order-create-shell .order-step-number{flex:0 0 36px;width:36px;height:36px;border-radius:11px;background:#edf2fc;color:#304a83;display:grid;place-items:center;font-size:15px;font-weight:850}
+.order-create-shell .order-step-title{font-size:17px;font-weight:850;letter-spacing:-.3px;color:#243653;margin:0}
+.order-create-shell .order-step-description{font-size:12px;color:#78869b;margin:3px 0 0}
+.order-create-shell .order-step--items{border-color:#cfdaeb}
+.order-create-shell .order-step--items #rows-container{margin-top:8px}
+.order-create-shell .order-step--items .section-title{font-size:13px;margin:0 0 10px!important;color:#55657d}
+.order-create-shell .order-step--items .section-title>span:first-child{display:none}
+.order-create-shell .order-step--items .section-title>span:last-child{display:flex;gap:7px!important;flex-wrap:wrap}
+.order-create-shell .order-step--items .manage-btn{min-height:32px;padding:6px 10px;font-size:11px;background:#f5f7fb}
+.order-create-shell .order-step--items .renk-beden-card{position:relative;border:1px solid #e2e9f3;background:#fbfcff;border-radius:12px;padding:14px 16px 10px;margin-bottom:10px}
+.order-create-shell .order-step--items .renk-beden-card>.row{--bs-gutter-x:12px;--bs-gutter-y:8px;align-items:end}
+.order-create-shell .order-step--items .renk-beden-card .form-label{margin-bottom:4px}
+.order-create-shell .order-step--items .renk-beden-card .form-control,.order-create-shell .order-step--items .renk-beden-card .form-select{min-height:40px}
+.order-create-shell .order-step--items .renk-beden-card .text-end.mt-3{margin-top:7px!important}
+.order-create-shell .order-step--items .remove-row{width:auto;min-width:67px;height:30px;font-size:12px;line-height:1.2;border-radius:8px}
+.order-create-shell .order-step--items #add-row{margin-top:4px!important;background:#eaf0fb!important;border:1px solid #cedcf3!important;color:#244477!important}
+.order-create-shell .order-step .sub-card,.order-create-shell .order-step .cost-card{border:0;box-shadow:none;padding:0;background:transparent;margin:0!important}
+.order-create-shell .order-step .sub-card .section-title,.order-create-shell .order-step .cost-card>.section-title{display:none}
+.order-create-shell .order-step--basic>.row:first-of-type{background:none;border:0;padding:0;margin:0!important}
+.order-create-shell .order-step--basic>.row:first-of-type>div{margin-bottom:11px}
+.order-create-shell .order-step--basic>.row:first-of-type>div.mt-3{margin-top:0!important}
+.order-create-shell .order-step--basic .form-text{margin-top:6px}
+.order-create-shell .order-step--images .sub-card{min-height:100px}
+.order-create-shell .order-step--images .sub-card h5{display:none}
+.order-create-shell .order-step--images label[for="order-images"]{background:#f4f7fd}
+.order-create-shell .order-step--finance{background:#f9fbff}
+.order-create-shell .order-submit-bar{display:flex;justify-content:flex-end;align-items:center;gap:14px;padding:7px 0 12px}
+.order-create-shell .order-submit-bar .btn{min-height:49px;padding:11px 28px!important}
+.order-create-shell .order-section-label{font-size:11px;font-weight:800;color:#8794a8;letter-spacing:.8px;text-transform:uppercase;margin-bottom:5px}
+.order-create-shell .order-step--basic .form-label{font-size:13px}
+@media(min-width:992px){.order-create-shell .order-step--items .renk-beden-card>.row>.col-md-3:last-child{max-width:22%}}
+@media(max-width:767px){.order-create-shell .order-step{padding:18px 14px;border-radius:14px;margin-bottom:12px}.order-create-shell .order-step-head{margin-bottom:16px}.order-create-shell .order-step-title{font-size:15px}.order-create-shell .order-submit-bar .btn{width:100%}}
+
 </style>
 {% endblock %}
 
 {% block content %}
 <div class="order-create-shell">
-    <div class="order-create-heading"><div class="order-create-icon">▤</div><div><h1>Yeni Sipariş Oluştur</h1><p>Sipariş, ürün ve fiyat bilgilerini tek ekrandan yönetin.</p></div></div>
+    <div class="order-create-heading"><div class="order-create-icon">▤</div><div><h1>Yeni Sipariş Oluştur</h1><p>5 anlaşılır bölümde yeni sipariş oluşturun.</p></div></div>
     <div class="create-card">
         {% include "multi_order/_form_content.html" %}
     </div>
@@ -257,4 +295,41 @@ hr {
 {% block extra_js %}
     {% include "multi_order/_form_js.html" %}
     {% include "multi_order/_ajax_handlers.html" %}
+
+<script>
+/* Yalnız yeni sipariş sayfası için görsel gruplama; input adları ve form gönderimi değişmez. */
+document.addEventListener('DOMContentLoaded',function(){
+  const form=document.querySelector('.order-create-shell .create-card > form');
+  if(!form || form.querySelector('.order-step')) return;
+  const find=(selector)=>form.querySelector(selector);
+  const make=(num,title,desc,kind)=>{
+    const el=document.createElement('section');el.className='order-step order-step--'+kind;
+    const head=document.createElement('div');head.className='order-step-head';
+    head.innerHTML='<span class="order-step-number">'+num+'</span><div><h2 class="order-step-title">'+title+'</h2><p class="order-step-description">'+desc+'</p></div>';
+    el.appendChild(head);return el;
+  };
+  const basic=find('#siparis_tipi_select')?.closest('.row.mb-4');
+  const itemsTitle=Array.from(form.querySelectorAll('h5.section-title')).find(n=>n.textContent.includes('Renk - Beden'));
+  const pricingNote=find('#customer-pricing-note'),rows=find('#rows-container'),add=find('#add-row');
+  const delivery=find('input[name="teslim_tarihi"]')?.closest('.sub-card');
+  const photos=find('#order-images')?.closest('.sub-card');
+  const finance=find('.cost-card');
+  const submit=form.querySelector('.text-center.mt-4');
+  if(!basic||!itemsTitle||!rows||!add||!delivery||!photos||!submit)return;
+  const parts=[
+    [make('01','Sipariş bilgileri','Önce sipariş türünü, müşteriyi ve ürünü seçin.','basic'),[basic]],
+    [make('02','Renk, beden ve adetler','Her renk için bedenleri ve adetleri belirleyin. Birden fazla renk ekleyebilirsiniz.','items'),[itemsTitle,pricingNote,rows,add]],
+    [make('03','Teslimat ve açıklama','Teslim tarihini ve üretimle ilgili notlarınızı girin.','delivery'),[delivery]],
+    [make('04','Sipariş fotoğrafları','Varsa modele ait görselleri ekleyin.','images'),[photos]]
+  ];
+  if(finance)parts.push([make('05','Fiyat ve maliyet','Satış fiyatı, para birimi, KDV ve maliyet bilgileri.','finance'),[finance]]);
+  for(const [section,nodes] of parts){nodes.filter(Boolean).forEach(n=>section.appendChild(n));form.insertBefore(section,submit);}
+  submit.classList.add('order-submit-bar');
+  form.querySelectorAll(':scope > hr').forEach(n=>n.remove());
+  form.querySelectorAll('.renk-beden-card .remove-row').forEach(n=>{n.textContent='Sil';});
+  const observer=new MutationObserver(()=>form.querySelectorAll('.renk-beden-card .remove-row').forEach(n=>{if(n.textContent.trim()==='×')n.textContent='Sil';}));
+  observer.observe(rows,{childList:true,subtree:true});
+});
+</script>
+
 {% endblock %}
