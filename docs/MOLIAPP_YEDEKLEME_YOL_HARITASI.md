@@ -126,6 +126,13 @@
 - [ ] Hedef kurtarma veri kaybı ve süre metriklerini (RPO/RTO) ölç, değerlendir.
 **Kabul:** Kurtarma senaryosu tekrarlanabilir ve yazılıdır.
 
+### Aşama 1 - Gerçek dosya kontrolü (30.10.2026)
+- Çek/Senet 17.03 JSON örneği indirildi; geçerli JSON, 16 kayıt.
+- Föy #96 JSON örneği indirildi; geçerli JSON, 9 satır.
+- Föy #96 PDF ve Çek/Senet Excel okunabilir bulundu.
+- Föy #98 orijinal fotoğrafı Drive'da JPEG olarak mevcut, 2.336.032 bayt. Görsel açma testi ve tüm arşivin karşılaştırılması bekliyor.
+- Tam PostgreSQL geri yükleme henüz yapılmadı.
+
 ## 4. Her oturumda güncellenecek ilerleme günlüğü
 
 | Tarih | Aşama | Yapılan işlem | Commit / dağıtım / test kanıtı | Sonraki adım |
