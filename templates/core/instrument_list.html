@@ -151,6 +151,29 @@
 <div hidden id="customerSource">{% for customer in customers %}<span data-id="{{ customer.id }}" data-name="{{ customer.ad }}"></span>{% endfor %}</div>
 </div>
 <script>
+document.addEventListener('DOMContentLoaded', function(){
+  document.querySelectorAll('form[id^="movement"]').forEach(function(form){
+    form.addEventListener('submit', function(event){
+      const status=document.querySelector('select[name="status"][form="'+form.id+'"]');
+      const recipient=document.querySelector('input[name="given_to"][form="'+form.id+'"]');
+      const date=document.querySelector('input[name="given_date"][form="'+form.id+'"]');
+      if(!status || status.value!=='ENDORSED') return;
+      if(recipient && !recipient.value.trim()){
+        event.preventDefault();
+        alert('Ciro edildi durumunda Verilen Firma / Banka alanını doldurun.');
+        recipient.closest('details')?.setAttribute('open','');
+        recipient.focus();
+      } else if(date && !date.value){
+        event.preventDefault();
+        alert('Ciro edildi durumunda Verilen Tarih alanını doldurun.');
+        date.closest('details')?.setAttribute('open','');
+        date.focus();
+      }
+    });
+  });
+});
+</script>
+<script>
 (function(){
 
 // Keep the list looking like plain text; edit controls open only when a cell is clicked.
