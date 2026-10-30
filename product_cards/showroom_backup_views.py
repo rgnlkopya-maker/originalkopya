@@ -171,13 +171,16 @@ def backup(request):
         pdf_root = _folder(drive, ROOT_ID, "MoliApp Föyleri")
         base_drafts = ShowroomDraft.objects.filter(status__in=["PENDING", "APPROVED", "TRANSFERRED"])
         if incremental:
-            base_drafts = base_drafts.filter(pk__gt=draft_id)[:1]
-        drafts = list(
+            base_drafts = base_drafts.filter(pk__gt=draft_id)
+        base_drafts = (
             base_drafts
             .select_related("customer")
             .prefetch_related("items__product_card__urun", "payments", "source_photos")
             .order_by("pk")
         )
+        if incremental:
+            base_drafts = base_drafts[:1]
+        drafts = list(base_drafts)
         uploaded_folios = 0
         uploaded_photos = 0
         for draft in drafts:
