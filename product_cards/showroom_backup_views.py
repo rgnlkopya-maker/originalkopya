@@ -30,8 +30,8 @@ logger = logging.getLogger(__name__)
 ROOT_ID = "1Ao-9uebg2eVb9hb1tCf5cwEPGLUE0MYf"
 
 def _safe_name(value):
-    cleaned = re.sub(r"[^\\w -]", "", str(value or ""), flags=re.UNICODE)
-    return re.sub(r"\\s+", " ", cleaned).strip()[:65] or "Musteri Yok"
+    cleaned = re.sub(r"[^\w -]", "", str(value or ""), flags=re.UNICODE)
+    return re.sub(r"\s+", " ", cleaned).strip()[:65] or "Musteri Yok"
 
 def check_folio_root(drive):
     root = drive.files().get(fileId=ROOT_ID, fields="id,name,mimeType,capabilities(canAddChildren)", supportsAllDrives=True).execute()
@@ -52,38 +52,9 @@ def _font():
     return "FolioArchiveFont"
 
 
-def _pdf(data):
-    """Readable folio archive PDF. Original 'Yazdır' screen remains unchanged."""
-    stream = io.BytesIO()
-    pdf = canvas.Canvas(stream, pagesize=A4)
-    font = _font()
-    width, height = A4
-    y = height - 45
-
-    def line(value, size=9):
-        nonlocal y
-        value = str(value or "").replace("\n", " ")
-        parts = simpleSplit(value, font, size, width - 85) or [""]
-        for part in parts:
-            if y < 57:
-                pdf.showPage()
-                y = height - 45
-            pdf.setFont(font, size)
-            pdf.drawString(43, y, part)
-            y -= size + 6
-
-    line(f"SIPARIS FOYU #{data['id']}", 16)
-    line(f"Musteri: {data['customer']} | Durum: {data['status']} | Tarih: {data['created_at']}")
-    line(f"Para birimi: {data['currency']} | Siparis tipi: {data['order_type']}")
-    line("-------------------------------------------------------")
-    for idx, item in enumerate(data["items"], 1):
-        line(f"{idx}. {item.get('urun_kodu','')} | Birim fiyat: {item.get('anlasilan_fiyat','')}", 11)
-        for row in item.get("satirlar", []):
-            line(f"  Renk: {row.get('renk','')} | Beden: {', '.join(str(v) for v in (row.get('bedenler') or []))} | Adet: {row.get('adet','')} | Not: {row.get('aciklama','')}")
-    line("-------------------------------------------------------")
-    line("Veri arsivi - MoliApp yazdirma ekranindan bagimsiz PDF.")
-    pdf.save()
-    return stream.getvalue()
+def _pdf_from_print(html):
+    from weasyprint import HTML
+    return HTML(string=html.decode("utf-8")).write_pdf()
 
 
 def _print_html(draft):
@@ -169,6 +140,7 @@ def backup(request):
         photo_root = _folder(drive, ROOT_ID, "Orijinal Föyler")
         data_root = _folder(drive, ROOT_ID, "Veri Yedekleri")
         pdf_root = _folder(drive, ROOT_ID, "MoliApp Föyleri")
+        html_root = _folder(drive, ROOT_ID, "Yazdırma HTML Kopyaları")
         base_drafts = ShowroomDraft.objects.filter(status__in=["PENDING", "APPROVED", "TRANSFERRED"])
         if incremental:
             base_drafts = base_drafts.filter(pk__gt=draft_id)
@@ -189,14 +161,15 @@ def backup(request):
             contents = json.dumps(archive, ensure_ascii=False, sort_keys=True, indent=2, default=str).encode("utf-8")
             # Hash only source content, not the backup run timestamp.
             # Store versions by digest; same input is never uploaded twice.
+            print_html = _print_html(draft)
             for extension, binary, mime in [
                 ("json", contents, "application/json"),
-                ("html", _print_html(draft), "text/html; charset=utf-8"),
-                ("pdf", _pdf(archive), "application/pdf"),
+                ("html", print_html, "text/html; charset=utf-8"),
+                ("pdf", _pdf_from_print(print_html), "application/pdf"),
             ]:
                 digest = hashlib.sha256(binary).hexdigest()[:16]
                 name = f"{label} - {digest}.{extension}"
-                target = data_root if extension == "json" else pdf_root
+                target = {"json": data_root, "html": html_root, "pdf": pdf_root}[extension]
                 if not _existing_file(drive, target, name):
                     _upload(drive, target, name, binary, mime)
                     uploaded_folios += 1
