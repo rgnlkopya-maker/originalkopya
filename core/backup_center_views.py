@@ -48,5 +48,5 @@ def backup_policy_update(request):
         messages.error(request, "Saat aralığı geçersiz.")
         return redirect("backup_center")
     BackupPolicy.objects.update_or_create(module=module, defaults={"frequency": frequency, "hour": hour, "minute": minute})
-    messages.success(request, "Yedekleme tercihi kaydedildi. Otomatik zamanlayıcı henüz etkinleştirilmedi.")
+    messages.success(request, "Yedekleme tercihi kaydedildi. Yeni ayar otomatik zamanlayıcı tarafından uygulanacak.")
     return redirect("backup_center")
