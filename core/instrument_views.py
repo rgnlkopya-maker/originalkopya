@@ -132,17 +132,34 @@ def instrument_list(request):
     if not _manager(request.user):
         return HttpResponseForbidden("Muhasebe yetkiniz yok.")
     records = NegotiableInstrument.objects.select_related("customer", "customer__bizimhesap_mapping").prefetch_related("attachments")
-    direction = request.GET.get("direction")
-    kind = request.GET.get("kind")
-    status = request.GET.get("status")
-    if direction in ("IN", "OUT"): records = records.filter(direction=direction)
-    if kind in dict(NegotiableInstrument.KIND): records = records.filter(kind=kind)
-    if status in dict(NegotiableInstrument.STATUS): records = records.filter(status=status)
+    from django.db.models import Q
+    directions = [v for v in request.GET.getlist("direction") if v in ("IN", "OUT")]
+    kinds = [v for v in request.GET.getlist("kind") if v in dict(NegotiableInstrument.KIND)]
+    statuses = [v for v in request.GET.getlist("status") if v in dict(NegotiableInstrument.STATUS)]
+    banks = [v for v in request.GET.getlist("bank") if v in BANK_CHOICES]
+    customers = [v for v in request.GET.getlist("customer") if v.isdigit()]
+    currencies = [v for v in request.GET.getlist("currency") if v in ("TRY", "USD", "EUR", "GBP")]
+    if directions: records = records.filter(direction__in=directions)
+    if kinds: records = records.filter(kind__in=kinds)
+    if statuses: records = records.filter(status__in=statuses)
+    if banks: records = records.filter(bank__in=banks)
+    if customers: records = records.filter(customer_id__in=customers)
+    if currencies: records = records.filter(currency__in=currencies)
+    for field, param in (("transaction_date", "received"), ("due_date", "due"), ("given_date", "given")):
+        for suffix, lookup in (("from", "gte"), ("to", "lte")):
+            value = request.GET.get(param + "_" + suffix, "")
+            if value:
+                from datetime import date
+                try:
+                    date.fromisoformat(value)
+                except ValueError:
+                    continue
+                records = records.filter(**{field + "__" + lookup: value})
     term = request.GET.get("q", "").strip()
     if term:
-        from django.db.models import Q
-        records = records.filter(Q(issuer_name__icontains=term)|Q(given_to__icontains=term)|Q(document_number__icontains=term)|Q(customer__ad__icontains=term))
-    return render(request, "core/instrument_list.html", {"records": records[:300], "kinds":NegotiableInstrument.KIND_OPTIONS, "statuses":NegotiableInstrument.STATUS, "customers":Musteri.objects.all().order_by("ad"), "currencies":NegotiableInstrument._meta.get_field("currency").choices, "drive_connected": drive_is_connected(), "banks": BANK_CHOICES})
+        records = records.filter(Q(issuer_name__icontains=term) | Q(given_to__icontains=term) | Q(document_number__icontains=term) | Q(customer__ad__icontains=term) | Q(bank__icontains=term))
+    return render(request, "core/instrument_list.html", {"records": records[:300], "kinds":NegotiableInstrument.KIND_OPTIONS, "statuses":NegotiableInstrument.STATUS, "customers":Musteri.objects.all().order_by("ad"), "currencies":NegotiableInstrument._meta.get_field("currency").choices, "drive_connected": drive_is_connected(), "banks": BANK_CHOICES, "filter_count": len(directions)+len(kinds)+len(statuses)+len(banks)+len(customers)+len(currencies)+sum(bool(request.GET.get(k)) for k in ("received_from","received_to","due_from","due_to","given_from","given_to"))})
+
 
 
 @login_required
