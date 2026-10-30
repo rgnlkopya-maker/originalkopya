@@ -1,20 +1,34 @@
 {% extends "base.html" %}
 {% block content %}
 <style>
-.backup-center{max-width:1150px;margin:22px auto;padding:0 16px 45px;color:#253753}.backup-center h1{font-size:25px;font-weight:850;margin:0 0 4px}.backup-muted{font-size:12px;color:#75849a}.backup-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin-top:22px}.backup-card{background:#fff;border:1px solid #e4eaf3;border-radius:17px;padding:20px;box-shadow:0 6px 20px rgba(15,40,75,.035)}.backup-card h2{font-size:18px;font-weight:800;margin:0 0 6px}.backup-card .form-label{font-size:12px;font-weight:700;color:#536782}.backup-card .form-control,.backup-card .form-select{font-size:13px;border-radius:10px}.backup-rule{font-size:12px;color:#4d607d;padding:5px 0}.backup-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:16px}.backup-center table{font-size:12px}.backup-center .btn{border-radius:10px;font-size:12px;font-weight:700}.backup-notice{border:1px solid #e3e9f3;background:#f7f9fd;border-radius:12px;padding:12px 15px;color:#5d6c81;font-size:12px;margin-top:16px}@media(max-width:700px){.backup-grid{grid-template-columns:1fr}.backup-center h1{font-size:21px}}
+.backup-center{max-width:1150px;margin:22px auto;padding:0 16px 45px;color:#253753}.backup-center h1{font-size:25px;font-weight:850;margin:0 0 4px}.backup-muted{font-size:12px;color:#75849a}.backup-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin-top:22px}.backup-card{background:#fff;border:1px solid #e4eaf3;border-radius:17px;padding:20px;box-shadow:0 6px 20px rgba(15,40,75,.035)}.backup-card h2{font-size:18px;font-weight:800;margin:0 0 6px}.backup-card .form-label{font-size:12px;font-weight:700;color:#536782}.backup-card .form-control,.backup-card .form-select{font-size:13px;border-radius:10px}.backup-rule{font-size:12px;color:#4d607d;padding:5px 0}.backup-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:16px}.backup-center table{font-size:12px}.backup-center .btn{border-radius:10px;font-size:12px;font-weight:700}.backup-steps{padding:7px 0 0 10px;border-left:2px solid #e7edf6;margin-top:9px}.backup-steps p{font-size:12px;line-height:1.65;color:#536782;margin:0 0 10px}.backup-steps strong{color:#304664}.backup-help{margin-top:10px;font-size:12px;color:#75849a}.backup-help summary{cursor:pointer;display:inline-block;font-size:12px;color:#78869a}.backup-help p{margin:8px 0 0;max-width:850px;line-height:1.6}.backup-notice{border:1px solid #e3e9f3;background:#f7f9fd;border-radius:12px;padding:12px 15px;color:#5d6c81;font-size:12px;margin-top:16px}@media(max-width:700px){.backup-grid{grid-template-columns:1fr}.backup-center h1{font-size:21px}}
 </style>
 <main class="backup-center">
   <h1><i class="bi bi-cloud-arrow-up me-2"></i>Yedekleme Merkezi</h1>
-  <div class="backup-muted">Modül kuralları, kayıtlı zamanlama tercihleri ve yedekleme geçmişi</div>
+  <div class="backup-muted">Otomatik yedekleme ayarları ve işlem geçmişi</div>
   {% for message in messages %}<div class="alert alert-info mt-3 py-2">{{ message }}</div>{% endfor %}
-  <div class="backup-notice"><i class="bi bi-info-circle me-1"></i>Zamanlama tercihleri kaydedilir. Otomatik görev, kayıtlı ayarları Türkiye saatine göre kontrol eder. Manuel yedekleme butonları çalışmaya devam eder.</div>
+  <details class="backup-help"><summary><i class="bi bi-info-circle me-1"></i>Otomatik yedekleme nasıl çalışır?</summary><p>Her modül için seçtiğiniz sıklık ve saat ayrı ayrı kaydedilir. Sistem Türkiye saatine göre yedeklemeyi başlatır ve sonucu aşağıdaki geçmişe işler. Manuel yedeklemeyi de istediğiniz zaman kullanabilirsiniz.</p></details>
   <div class="backup-grid">
   {% for item in policies %}
     <section class="backup-card">
       <h2>{{ item.name }}</h2>
-      <div class="backup-muted">Kendine özgü yedekleme kuralları</div>
+      <div class="backup-muted">Zamanlamayı düzenleyin; ayrıntılar için kuralları açın.</div>
       <details class="mt-2"><summary class="backup-rule" style="cursor:pointer;font-weight:700">Yedekleme kurallarını görüntüle</summary>
-        <ul class="mt-2 mb-1">{% for rule in item.rules %}<li class="backup-rule">{{ rule }}</li>{% endfor %}</ul>
+        <div class="backup-steps">
+{% if item.key == 'folios' %}
+<p><strong>1. Föyler kontrol edilir.</strong> Sistem kayıtlı sipariş föylerini sırayla inceler ve mevcut Drive yedekleriyle karşılaştırır.</p>
+<p><strong>2. Föy belgeleri hazırlanır.</strong> Her föyün yazdırma görünümü PDF ve HTML olarak, kayıt bilgileri ise JSON olarak hazırlanır.</p>
+<p><strong>3. Dosyalar ayrı klasörlere aktarılır.</strong> PDF'ler “MoliApp Föyleri”, HTML kopyaları “Yazdırma HTML Kopyaları”, JSON dosyaları “Veri Yedekleri”, kaynak görseller “Orijinal Föyler” klasörlerinde saklanır.</p>
+<p><strong>4. Gereksiz tekrarlar önlenir.</strong> Değişmeyen belgeler ve daha önce yüklenmiş orijinal fotoğraflar yeniden yüklenmez; yeni veya değişen dosyalar eklenir.</p>
+<p><strong>5. Sonuç kaydedilir.</strong> İşlenen föy ve yeni dosya sayıları Yedekleme Geçmişi'nde gösterilir; hata olursa kayıt tutulur.</p>
+{% else %}
+<p><strong>1. Güncel kayıtlar okunur.</strong> Sistemdeki çek ve senetlerin tamamı alınır.</p>
+<p><strong>2. Excel ve JSON hazırlanır.</strong> Okunabilir çek/senet listesi Excel olarak, kayıtların veri kopyası JSON olarak oluşturulur. Her yedekleme işleminde bu iki dosyanın yeni tarihli kopyası saklanır.</p>
+<p><strong>3. Fotoğraflar kontrol edilir.</strong> Çek/senet görselleri Drive'daki dosyalarla karşılaştırılır. Yalnızca eksik fotoğraflar yüklenir.</p>
+<p><strong>4. Mevcut yedekler korunur.</strong> Eski Excel, JSON ve fotoğraflar silinmez; yeni yedekler ilgili klasörlere eklenir.</p>
+<p><strong>5. Sonuç kaydedilir.</strong> İşlenen kayıt sayısı, yeni fotoğraf sayısı ve işlem sonucu Yedekleme Geçmişi'ne yazılır.</p>
+{% endif %}
+</div>
       </details>
       <form method="post" action="{% url 'backup_policy_update' %}" class="mt-3">
         {% csrf_token %}<input type="hidden" name="module" value="{{ item.key }}">
