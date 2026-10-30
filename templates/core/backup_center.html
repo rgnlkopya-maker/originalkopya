@@ -7,7 +7,7 @@
   <h1><i class="bi bi-cloud-arrow-up me-2"></i>Yedekleme Merkezi</h1>
   <div class="backup-muted">Modül kuralları, kayıtlı zamanlama tercihleri ve yedekleme geçmişi</div>
   {% for message in messages %}<div class="alert alert-info mt-3 py-2">{{ message }}</div>{% endfor %}
-  <div class="backup-notice"><i class="bi bi-info-circle me-1"></i>Zamanlama tercihleri kaydedilir. Otomatik çalıştırıcı henüz bağlanmadığı için bu ayarlar şu aşamada kendiliğinden yedek başlatmaz. Manuel yedekleme butonları çalışmaya devam eder.</div>
+  <div class="backup-notice"><i class="bi bi-info-circle me-1"></i>Zamanlama tercihleri kaydedilir. Otomatik görev, kayıtlı ayarları Türkiye saatine göre kontrol eder. Manuel yedekleme butonları çalışmaya devam eder.</div>
   <div class="backup-grid">
   {% for item in policies %}
     <section class="backup-card">
@@ -32,9 +32,9 @@
   </div>
   <section class="backup-card mt-4">
     <h2>Yedekleme Geçmişi</h2>
-    <p class="backup-muted">Yeni takip altyapısına bağlanacak çalışma kayıtları aşağıda listelenir. Eski manuel Çek/Senet yedekleri ayrıca gösterilir.</p>
+    <p class="backup-muted">Otomatik yedeklemelerin çalışma kayıtları aşağıda listelenir. Eski manuel Çek/Senet yedekleri ayrıca gösterilir.</p>
     <div class="table-responsive"><table class="table align-middle"><thead><tr><th>Başlangıç</th><th>Modül</th><th>Sonuç</th><th>Dosya</th><th>Fotoğraf</th></tr></thead><tbody>
-      {% for run in history %}<tr><td>{{ run.started_at|date:"d.m.Y H:i" }}</td><td>{{ run.get_module_display }}</td><td>{% if run.success %}Başarılı{% else %}Hata / Devam ediyor{% endif %}</td><td>{{ run.files }}</td><td>{{ run.photos }}</td></tr>{% empty %}<tr><td colspan="5" class="text-muted">Yeni sistemde henüz yedekleme kaydı bulunmuyor.</td></tr>{% endfor %}
+      {% for run in history %}<tr><td>{{ run.started_at|date:"d.m.Y H:i" }}</td><td>{{ run.get_module_display }}</td><td>{% if run.success %}Başarılı{% else %}Hata veya devam ediyor{% endif %}</td><td>{{ run.files }}</td><td>{{ run.photos }}</td></tr>{% empty %}<tr><td colspan="5" class="text-muted">Yeni sistemde henüz yedekleme kaydı bulunmuyor.</td></tr>{% endfor %}
     </tbody></table></div>
     <h2 class="mt-3" style="font-size:14px">Önceki Çek/Senet yedeklemeleri</h2>
     <div class="table-responsive"><table class="table align-middle"><thead><tr><th>Tarih</th><th>Durum</th><th>Kayıt</th><th>Fotoğraf</th></tr></thead><tbody>
