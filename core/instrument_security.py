@@ -1,5 +1,6 @@
 """Require current signed-in account password for each entry to cheque/senet pages."""
 from urllib.parse import urlsplit
+from django.utils import timezone
 
 from django.contrib.auth import authenticate
 from django.http import HttpResponseForbidden, HttpResponseRedirect
@@ -12,6 +13,8 @@ class InstrumentPasswordGateMiddleware:
     PREFIX = "/muhasebe/cek-senet/"
     VERIFIED = "_instrument_password_verified_user"
     HANDOFF = "_instrument_password_handoff"
+    ACTIVITY = "_instrument_last_activity"
+    IDLE_SECONDS = 300
     NEXT = "_instrument_password_next"
 
     def __init__(self, get_response):
@@ -27,6 +30,7 @@ class InstrumentPasswordGateMiddleware:
             ):
                 request.session.pop(self.VERIFIED, None)
                 request.session.pop(self.HANDOFF, None)
+                request.session.pop(self.ACTIVITY, None)
             return self.get_response(request)
 
         user = request.user
@@ -50,17 +54,24 @@ class InstrumentPasswordGateMiddleware:
         ))
         internal = trusted and urlsplit(referrer).path.startswith(self.PREFIX)
         verified = request.session.get(self.VERIFIED) == user.pk
+        now = timezone.now().timestamp()
+        last_activity = request.session.get(self.ACTIVITY)
+        if not isinstance(last_activity, (int, float)) or now - last_activity >= self.IDLE_SECONDS:
+            verified = False
         handoff = request.session.pop(self.HANDOFF, None)
         from_gate = handoff == request.get_full_path()
-        fresh_list = request.method == "GET" and path == reverse("instrument_list") and not from_gate
 
-        if not verified or fresh_list or (not internal and not from_gate):
+        if not verified or (not internal and not from_gate):
             request.session.pop(self.VERIFIED, None)
+            request.session.pop(self.ACTIVITY, None)
             if request.method != "GET":
                 return self._uncached(HttpResponseRedirect(gate_path))
             request.session[self.NEXT] = request.get_full_path()
             return self._uncached(HttpResponseRedirect(gate_path))
 
+        # Ignore background polling for the five-minute inactivity clock.
+        if request.method != "GET" or "text/html" in request.META.get("HTTP_ACCEPT", "") and request.META.get("HTTP_X_REQUESTED_WITH") != "XMLHttpRequest":
+            request.session[self.ACTIVITY] = now
         return self._uncached(self.get_response(request))
 
     def _gate(self, request):
@@ -70,6 +81,7 @@ class InstrumentPasswordGateMiddleware:
             user = authenticate(request, username=request.user.get_username(), password=password)
             if user is not None and user.pk == request.user.pk:
                 request.session[self.VERIFIED] = user.pk
+                request.session[self.ACTIVITY] = timezone.now().timestamp()
                 destination = request.session.pop(self.NEXT, None) or reverse("instrument_list")
                 if not destination.startswith(self.PREFIX) or destination == reverse("instrument_password_gate"):
                     destination = reverse("instrument_list")
