@@ -29,7 +29,79 @@
 /* Tür hücresinde tam çek/senet adını iki satırda göster. */
 .instrument-page .instrument-table th:nth-child(2),.instrument-page .instrument-table td:nth-child(2){min-width:138px;width:138px;max-width:162px}
 .instrument-page .instrument-table td:nth-child(2) .instrument-cell-editor>summary{white-space:normal!important;overflow:visible!important;text-overflow:clip!important;display:-webkit-box!important;-webkit-box-orient:vertical;-webkit-line-clamp:2;line-clamp:2;line-height:1.45!important;overflow-wrap:break-word}
-</style>{% if messages %}<div class="mb-3" role="status" aria-live="polite">{% for message in messages %}{% if "instrument_notice" in message.tags %}<div class="alert {% if "error" in message.tags %}alert-danger{% elif "success" in message.tags %}alert-success{% elif "warning" in message.tags %}alert-warning{% else %}alert-info{% endif %} py-2 mb-2">{{ message }}</div>{% endif %}{% endfor %}</div>{% endif %}<div class="d-flex justify-content-between align-items-center mb-3 instrument-hero"><div class="instrument-heading"><span class="instrument-heading-icon"><i class="bi bi-wallet2"></i></span><div><h3>Çek ve Senetler</h3><p class="instrument-subtitle">Çek, senet ve vade takibi · Muhasebe kayıtları</p></div></div><div class="d-flex align-items-center gap-2 flex-wrap instrument-drive-tools">{% if drive_connected %}<span class="instrument-drive-state" title="Google Drive bağlantısı aktif"><svg width="19" height="19" viewBox="0 0 24 24" aria-hidden="true" style="flex:none"><path fill="#00875A" d="M8.1 2h5.2l8.4 14.5h-5.2z"/><path fill="#2684FC" d="m5.8 16.5-2.6 4.5h16.6l2.6-4.5z"/><path fill="#FFBA00" d="M8.1 2 0 16.5 2.6 21l8.1-14.5z"/></svg><span>Drive'a bağlı</span><i class="bi bi-check-circle-fill text-success" aria-hidden="true"></i></span>{% else %}<a href="{% url 'instrument_drive_connect' %}" class="btn instrument-drive-connect"><svg width="19" height="19" viewBox="0 0 24 24" aria-hidden="true" style="flex:none"><path fill="#00875A" d="M8.1 2h5.2l8.4 14.5h-5.2z"/><path fill="#2684FC" d="m5.8 16.5-2.6 4.5h16.6l2.6-4.5z"/><path fill="#FFBA00" d="M8.1 2 0 16.5 2.6 21l8.1-14.5z"/></svg><span>Drive'a Bağlan</span></a>{% endif %}<form method="post" action="{% url 'instrument_backup' %}" class="m-0" onsubmit="const b=this.querySelector('button');b.disabled=true;b.innerText='Yedekleniyor...';">{% csrf_token %}<button type="submit" class="btn instrument-drive-backup" {% if not drive_connected %}disabled title="Önce Google Drive hesabını bağlayın"{% endif %}><svg width="19" height="19" viewBox="0 0 24 24" aria-hidden="true" style="flex:none"><path fill="#00875A" d="M8.1 2h5.2l8.4 14.5h-5.2z"/><path fill="#2684FC" d="m5.8 16.5-2.6 4.5h16.6l2.6-4.5z"/><path fill="#FFBA00" d="M8.1 2 0 16.5 2.6 21l8.1-14.5z"/></svg><span>Google Drive'a Yedekle</span></button></form></div></div><form method="get" class="row g-2 mb-3 instrument-filters"><div class="col-md-3"><input class="form-control" name="q" value="{{ request.GET.q }}" placeholder="Kişi, cari, belge no ara"></div><div class="col-md-2"><select class="form-select" name="kind"><option value="">Tüm Belgeler</option>{% for k,v in kinds %}<option value="{{ k }}" {% if request.GET.kind == k %}selected{% endif %}>{{ v }}</option>{% endfor %}</select></div><div class="col-md-2"><select class="form-select" name="direction"><option value="">Alınan / Verilen</option><option value="IN" {% if request.GET.direction == 'IN' %}selected{% endif %}>Alınan</option><option value="OUT" {% if request.GET.direction == 'OUT' %}selected{% endif %}>Verilen</option></select></div><div class="col-md-2"><select class="form-select" name="status"><option value="">Tüm Durumlar</option>{% for k,v in statuses %}<option value="{{ k }}" {% if request.GET.status == k %}selected{% endif %}>{{ v }}</option>{% endfor %}</select></div><div class="col-md-3 d-flex align-items-center gap-2 flex-wrap"><button type="submit" class="btn btn-outline-primary"><i class="bi bi-funnel me-1"></i>Filtrele</button><button type="button" id="addInstrumentRow" class="btn btn-primary"><i class="bi bi-plus-circle me-1"></i>Yeni Satır Ekle</button></div></form>
+</style>{% if messages %}<div class="mb-3" role="status" aria-live="polite">{% for message in messages %}{% if "instrument_notice" in message.tags %}<div class="alert {% if "error" in message.tags %}alert-danger{% elif "success" in message.tags %}alert-success{% elif "warning" in message.tags %}alert-warning{% else %}alert-info{% endif %} py-2 mb-2">{{ message }}</div>{% endif %}{% endfor %}</div>{% endif %}<div class="d-flex justify-content-between align-items-center mb-3 instrument-hero"><div class="instrument-heading"><span class="instrument-heading-icon"><i class="bi bi-wallet2"></i></span><div><h3>Çek ve Senetler</h3><p class="instrument-subtitle">Çek, senet ve vade takibi · Muhasebe kayıtları</p></div></div><div class="d-flex align-items-center gap-2 flex-wrap instrument-drive-tools">{% if drive_connected %}<span class="instrument-drive-state" title="Google Drive bağlantısı aktif"><svg width="19" height="19" viewBox="0 0 24 24" aria-hidden="true" style="flex:none"><path fill="#00875A" d="M8.1 2h5.2l8.4 14.5h-5.2z"/><path fill="#2684FC" d="m5.8 16.5-2.6 4.5h16.6l2.6-4.5z"/><path fill="#FFBA00" d="M8.1 2 0 16.5 2.6 21l8.1-14.5z"/></svg><span>Drive'a bağlı</span><i class="bi bi-check-circle-fill text-success" aria-hidden="true"></i></span>{% else %}<a href="{% url 'instrument_drive_connect' %}" class="btn instrument-drive-connect"><svg width="19" height="19" viewBox="0 0 24 24" aria-hidden="true" style="flex:none"><path fill="#00875A" d="M8.1 2h5.2l8.4 14.5h-5.2z"/><path fill="#2684FC" d="m5.8 16.5-2.6 4.5h16.6l2.6-4.5z"/><path fill="#FFBA00" d="M8.1 2 0 16.5 2.6 21l8.1-14.5z"/></svg><span>Drive'a Bağlan</span></a>{% endif %}<form method="post" action="{% url 'instrument_backup' %}" class="m-0" onsubmit="const b=this.querySelector('button');b.disabled=true;b.innerText='Yedekleniyor...';">{% csrf_token %}<button type="submit" class="btn instrument-drive-backup" {% if not drive_connected %}disabled title="Önce Google Drive hesabını bağlayın"{% endif %}><svg width="19" height="19" viewBox="0 0 24 24" aria-hidden="true" style="flex:none"><path fill="#00875A" d="M8.1 2h5.2l8.4 14.5h-5.2z"/><path fill="#2684FC" d="m5.8 16.5-2.6 4.5h16.6l2.6-4.5z"/><path fill="#FFBA00" d="M8.1 2 0 16.5 2.6 21l8.1-14.5z"/></svg><span>Google Drive'a Yedekle</span></button></form></div></div><div class="instrument-filter-toolbar">
+ <div class="instrument-filter-search"><i class="bi bi-search"></i><input id="instrumentQuickSearch" type="search" placeholder="Kişi, banka, evrak no ara" value="{{ request.GET.q }}"></div>
+ <button type="button" class="btn instrument-open-filters" id="instrumentOpenFilters"><i class="bi bi-funnel"></i> Gelişmiş Filtreler {% if filter_count %}<span class="instrument-filter-count">{{ filter_count }}</span>{% endif %}</button>
+ {% if request.GET %}<a class="btn btn-outline-secondary" href="{% url 'instrument_list' %}" title="Filtreleri temizle"><i class="bi bi-x-circle"></i> Temizle</a>{% endif %}
+ <button type="button" id="addInstrumentRow" class="btn btn-primary"><i class="bi bi-plus-circle me-1"></i>Yeni Satır Ekle</button>
+</div>
+<div id="instrumentFilterOverlay" class="instrument-filter-overlay" hidden>
+ <div class="instrument-filter-dialog" role="dialog" aria-modal="true" aria-labelledby="instrumentFilterTitle">
+  <div class="instrument-filter-head"><div><h3 id="instrumentFilterTitle">Gelişmiş Filtreleme</h3><p>Birden çok seçenek seçerek kayıtları daraltabilirsiniz.</p></div><button type="button" id="instrumentFilterClose" class="instrument-filter-close" aria-label="Kapat">×</button></div>
+  <form method="get" id="instrumentAdvancedForm">
+    <div class="instrument-filter-grid">
+      <label>Arama<input name="q" class="form-control" placeholder="Müşteri, evrak no, firma" value="{{ request.GET.q }}"></label>
+      <label>Evrak Türü<select name="kind" multiple class="form-select">{% for key,label in kinds %}<option value="{{ key }}">{{ label }}</option>{% endfor %}</select><small>Birden fazla seçilebilir</small></label>
+      <label>Alınan / Verilen<select name="direction" multiple class="form-select"><option value="IN">Alınan</option><option value="OUT">Verilen</option></select></label>
+      <label>Durum<select name="status" multiple class="form-select">{% for key,label in statuses %}<option value="{{ key }}">{{ label }}</option>{% endfor %}</select></label>
+      <label>Banka<select name="bank" multiple class="form-select">{% for bank in banks %}<option value="{{ bank }}">{{ bank }}</option>{% endfor %}</select></label>
+      <label>Müşteri<select name="customer" multiple class="form-select">{% for c in customers %}<option value="{{ c.id }}">{{ c.ad }}</option>{% endfor %}</select></label>
+      <label>Para Birimi<select name="currency" multiple class="form-select">{% for code,title in currencies %}<option value="{{ code }}">{{ title }}</option>{% endfor %}</select></label>
+      <label>Alınan Tarih<div class="instrument-date-pair"><input type="date" name="received_from" class="form-control"><input type="date" name="received_to" class="form-control"></div></label>
+      <label>Vade Tarihi<div class="instrument-date-pair"><input type="date" name="due_from" class="form-control"><input type="date" name="due_to" class="form-control"></div></label>
+      <label>Verilen Tarih<div class="instrument-date-pair"><input type="date" name="given_from" class="form-control"><input type="date" name="given_to" class="form-control"></div></label>
+    </div>
+    <div class="instrument-filter-actions"><a href="{% url 'instrument_list' %}" class="btn btn-outline-secondary">Tümünü Temizle</a><button type="submit" class="btn btn-primary">Filtreleri Uygula <i class="bi bi-arrow-right ms-1"></i></button></div>
+  </form>
+ </div>
+</div>
+<style>
+.instrument-filter-toolbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;background:white;border:1px solid #e0e8f4;border-radius:16px;padding:15px;margin-bottom:18px}
+.instrument-filter-search{display:flex;align-items:center;gap:10px;flex:1 1 260px;background:#f9fbff;border:1px solid #dbe4f3;border-radius:11px;padding:0 12px;height:44px}
+.instrument-filter-search input{border:0;background:transparent;outline:0;min-width:0;flex:1;font-size:13px}
+.instrument-filter-toolbar .btn{min-height:43px;border-radius:11px;font-weight:700}
+.instrument-open-filters{background:#f3f6ff;color:#234ba0;border:1px solid #bdd0fa}
+.instrument-filter-count{background:#3759ba;color:white;border-radius:20px;padding:2px 7px;font-size:11px}
+.instrument-filter-overlay[hidden]{display:none!important}
+.instrument-filter-overlay{position:fixed;inset:0;background:rgba(17,27,48,.42);backdrop-filter:blur(3px);z-index:200000;display:flex;justify-content:center;align-items:center;padding:15px}
+.instrument-filter-dialog{background:#fff;border-radius:21px;box-shadow:0 24px 75px #0b1d3b38;width:min(800px,96vw);max-height:92vh;display:flex;flex-direction:column;overflow:hidden}
+.instrument-filter-head{display:flex;justify-content:space-between;align-items:center;padding:22px 25px 14px;border-bottom:1px solid #e7ecf5}
+.instrument-filter-head h3{font-size:20px;font-weight:800;margin:0;color:#192d50}
+.instrument-filter-head p{font-size:12px;color:#7988a3;margin:5px 0 0}
+.instrument-filter-close{width:35px;height:35px;background:#f3f6fc;border:1px solid #e2e9f5;border-radius:50%;font-size:23px;color:#6c7c97}
+#instrumentAdvancedForm{overflow-y:auto;padding:20px 25px 24px}
+.instrument-filter-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+.instrument-filter-grid>label{font-size:12px;font-weight:750;color:#536785;display:block;min-width:0}
+.instrument-filter-grid .form-control,.instrument-filter-grid .form-select{margin-top:7px;min-height:42px;border-radius:11px;border:1px solid #dfe7f3;background:#fbfcff;font-size:13px;color:#213b5f}
+.instrument-filter-grid select[multiple]{height:95px;padding:6px}
+.instrument-filter-grid small{font-size:10px;color:#8694aa}
+.instrument-date-pair{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.instrument-filter-actions{display:flex;justify-content:space-between;gap:10px;align-items:center;margin-top:23px;padding-top:15px;border-top:1px solid #e7ecf5}
+.instrument-filter-actions .btn{border-radius:11px;font-size:13px;font-weight:700;padding:10px 18px}
+@media(max-width:650px){.instrument-filter-grid{grid-template-columns:1fr}.instrument-filter-dialog{max-height:93dvh}.instrument-filter-head{padding:16px}.instrument-filter-head h3{font-size:17px}#instrumentAdvancedForm{padding:15px}.instrument-filter-toolbar{gap:8px}.instrument-filter-toolbar .btn{font-size:12px}}
+</style>
+<script>
+document.addEventListener('DOMContentLoaded',function(){
+ const overlay=document.getElementById('instrumentFilterOverlay'),form=document.getElementById('instrumentAdvancedForm');
+ const open=document.getElementById('instrumentOpenFilters'),close=document.getElementById('instrumentFilterClose');
+ const show=()=>{overlay.hidden=false;document.body.style.overflow='hidden';};
+ const hide=()=>{overlay.hidden=true;document.body.style.overflow='';};
+ open.addEventListener('click',show);close.addEventListener('click',hide);
+ overlay.addEventListener('click',e=>{if(e.target===overlay)hide();});
+ document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!overlay.hidden)hide();});
+ const params=new URLSearchParams(location.search);
+ for(const control of form.elements){
+   if(!control.name)continue;
+   if(control.tagName==='SELECT'){
+     const selected=params.getAll(control.name);
+     for(const option of control.options)option.selected=selected.includes(option.value);
+   }else if(params.has(control.name))control.value=params.get(control.name);
+ }
+ form.addEventListener('submit',()=>{for(const el of form.querySelectorAll('input[type="date"]'))if(!el.value)el.disabled=true;});
+ const quick=document.getElementById('instrumentQuickSearch');
+ quick.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();const url=new URL(location.href);url.searchParams.set('q',quick.value);location.assign(url.toString());}});
+});
+</script>
 <style>
 .instrument-drive-tools{gap:10px!important}
 .instrument-drive-state,.instrument-drive-backup,.instrument-drive-connect{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:39px;border-radius:9px;font-size:13px;font-weight:600;white-space:nowrap}
