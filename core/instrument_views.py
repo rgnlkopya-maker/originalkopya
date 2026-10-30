@@ -162,10 +162,14 @@ def instrument_inline_add(request):
         data["status"] = "PORTFOLIO" if data.get("direction") == "IN" else "ISSUED"
     customer_id = data.get("customer", "")
     customer = Musteri.objects.filter(pk=customer_id, aktif=True).first() if customer_id.isdigit() else None
-    if customer:
+    own = data.get("kind") in ("CK_OWN", "NT_OWN")
+    if own:
+        data["customer"] = ""
+        data["issuer_name"] = "Kendi Çekimiz" if data.get("kind") == "CK_OWN" else "Kendi Senedimiz"
+    elif customer:
         data["issuer_name"] = customer.ad
     form = InstrumentForm(data)
-    if not customer:
+    if not own and not customer:
         form.add_error("customer", "Müşteri seçilmelidir.")
     if not form.is_valid():
         messages.error(request, "Satır kaydedilemedi: " + "; ".join(
@@ -196,18 +200,24 @@ def instrument_inline_status_update(request, pk):
     data = request.POST.copy()
     with transaction.atomic():
         record = get_object_or_404(NegotiableInstrument.objects.select_for_update(), pk=pk)
+        own = data.get("kind") in ("CK_OWN", "NT_OWN")
         customer_id = data.get("customer")
         customer = Musteri.objects.filter(pk=customer_id).first() if customer_id and customer_id.isdigit() else None
-        if not customer:
+        if not own and not customer:
             messages.error(request, "Müşteri listeden seçilmelidir; kayıtlı olmayan müşteri kaydedilemez.", extra_tags="instrument_notice")
             return redirect("instrument_list")
-        if not customer.aktif and record.customer_id != customer.pk:
+        if not own and not customer.aktif and record.customer_id != customer.pk:
             messages.error(request, "Pasif müşteri yeni kayıt olarak seçilemez.", extra_tags="instrument_notice")
             return redirect("instrument_list")
-        data["issuer_name"] = customer.ad
-        data["received_from"] = customer.ad
+        if own:
+            data["customer"] = ""
+            data["issuer_name"] = record.issuer_name if record.kind in ("CK_OWN", "NT_OWN") else ("Kendi Çekimiz" if data.get("kind") == "CK_OWN" else "Kendi Senedimiz")
+            data["received_from"] = ""
+        else:
+            data["issuer_name"] = customer.ad
+            data["received_from"] = customer.ad
         # Direction is not editable in the inline list: preserve the existing value.
-        data["direction"] = record.direction
+        data["direction"] = "OUT" if own else ("IN" if data.get("kind") in ("CK_CUST", "CK_END", "NT_CUST", "NT_END") else record.direction)
         # Keep detail-only fields unchanged when saving a table row.
         for key in ("bank", "branch", "document_number", "issue_date", "note"):
             if key not in data:
@@ -222,7 +232,7 @@ def instrument_inline_status_update(request, pk):
             return redirect("instrument_list")
         updated = form.save(commit=False)
         changed = list(form.changed_data)
-        updated.received_from = customer.ad
+        updated.received_from = "" if own else customer.ad
         if changed or record.received_from != updated.received_from:
             updated.save()
             InstrumentMovement.objects.create(
