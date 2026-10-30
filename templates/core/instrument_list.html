@@ -82,7 +82,7 @@
 <tr id="newInstrumentRow" style="display:none;background:#f3f6ff">
 <td class="text-muted text-center">Yeni</td>
 <td><select name="kind" form="inlineInstrumentForm" class="form-select form-select-sm">{% for key,label in kinds %}<option value="{{ key }}">{{ label }}</option>{% endfor %}</select></td>
-<td><input name="bank" form="inlineInstrumentForm" maxlength="200" class="form-control form-control-sm" placeholder="Banka"></td>
+<td><input name="bank" form="inlineInstrumentForm" list="instrumentBankChoices" autocomplete="off" maxlength="200" class="form-control form-control-sm" placeholder="Banka ara / seç"></td>
 <td><input name="document_number" form="inlineInstrumentForm" maxlength="120" class="form-control form-control-sm" placeholder="Çek No"></td>
 
 <td><input name="transaction_date" form="inlineInstrumentForm" type="date" class="form-control form-control-sm"></td>
@@ -98,7 +98,7 @@
 <tr>
 <td class="text-center fw-semibold"><button type="button" class="btn btn-link btn-sm p-0 text-decoration-none check-gallery-open" data-id="{{ record.pk }}" title="Çek görsellerini aç">{{ record.pk }}</button></td>
 <td><details class="instrument-cell-editor"><summary title="Düzenlemek için tıklayın">{{ record.get_kind_display }}</summary><div class="instrument-cell-popover"><select name="kind" form="movement{{ record.pk }}" class="form-select form-select-sm">{% if record.kind == "CHECK" %}<option value="CHECK" selected>Çek (eski kayıt)</option>{% elif record.kind == "NOTE" %}<option value="NOTE" selected>Senet (eski kayıt)</option>{% endif %}{% for key,label in kinds %}<option value="{{ key }}" {% if record.kind == key %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></div></details></td>
-<td><details class="instrument-cell-editor"><summary title="Düzenlemek için tıklayın">{{ record.bank|default:'—' }}</summary><div class="instrument-cell-popover"><input name="bank" form="movement{{ record.pk }}" value="{{ record.bank }}" maxlength="200" class="form-control form-control-sm" placeholder="Banka"></div></details></td>
+<td><details class="instrument-cell-editor"><summary title="Düzenlemek için tıklayın">{{ record.bank|default:'—' }}</summary><div class="instrument-cell-popover"><input name="bank" form="movement{{ record.pk }}" list="instrumentBankChoices" autocomplete="off" value="{{ record.bank }}" maxlength="200" class="form-control form-control-sm" placeholder="Banka ara / seç"></div></details></td>
 <td><details class="instrument-cell-editor"><summary title="Düzenlemek için tıklayın">{{ record.document_number|default:'—' }}</summary><div class="instrument-cell-popover"><input name="document_number" form="movement{{ record.pk }}" value="{{ record.document_number }}" maxlength="120" class="form-control form-control-sm" placeholder="Çek No"></div></details></td>
 
 <td><details class="instrument-cell-editor"><summary title="Düzenlemek için tıklayın">{{ record.transaction_date|date:'d.m.Y'|default:'—' }}</summary><div class="instrument-cell-popover"><input name="transaction_date" form="movement{{ record.pk }}" type="date" value="{{ record.transaction_date|date:'Y-m-d' }}" class="form-control form-control-sm"></div></details></td>
@@ -148,6 +148,7 @@
   </div>
  </div>
 </div>
+<datalist id="instrumentBankChoices">{% for bank in banks %}<option value="{{ bank }}"></option>{% endfor %}</datalist>
 <div hidden id="customerSource">{% for customer in customers %}<span data-id="{{ customer.id }}" data-name="{{ customer.ad }}"></span>{% endfor %}</div>
 </div>
 <script>
