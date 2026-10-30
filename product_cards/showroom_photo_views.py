@@ -1,6 +1,9 @@
 """Private photos attached to saved showroom folios; printing remains separate."""
 import logging
 import os
+import io
+from PIL import Image, ImageOps, UnidentifiedImageError
+from django.core.exceptions import ValidationError
 from uuid import uuid4
 
 from django.conf import settings
@@ -17,6 +20,37 @@ from .models import ShowroomDraft, ShowroomFolioPhoto
 from .price_list_views import _can_manage
 
 logger = logging.getLogger(__name__)
+
+# iPhone HEIC/HEIF and common camera exports are converted to safe JPEG.
+def _prepare_photo(file):
+    if file.size > 20 * 1024 * 1024 or file.size < 50:
+        raise ValidationError("Fotoğraf 20 MB sınırını aşamaz.")
+    try:
+        file.seek(0)
+        try:
+            return validate_image_upload(file)[0:2] + (file.read(),)
+        except ValidationError:
+            file.seek(0)
+        from pillow_heif import register_heif_opener
+        register_heif_opener()
+        with Image.open(file) as image:
+            image.verify()
+        file.seek(0)
+        with Image.open(file) as image:
+            if image.format not in ("HEIF", "HEIC", "TIFF", "BMP", "GIF", "AVIF"):
+                raise ValidationError("Desteklenmeyen fotoğraf biçimi.")
+            image.seek(0)
+            converted = ImageOps.exif_transpose(image)
+            converted = converted.convert("RGB")
+            output = io.BytesIO()
+            converted.save(output, format="JPEG", quality=88, optimize=True)
+            return ".jpg", "image/jpeg", output.getvalue()
+    except (UnidentifiedImageError, OSError, ValueError) as exc:
+        raise ValidationError("Dosya geçerli bir fotoğraf değil.") from exc
+    finally:
+        file.seek(0)
+
+
 
 
 def _draft(request, pk):
@@ -61,14 +95,9 @@ def upload(request, draft_id):
     uploaded = 0
     for file in files:
         try:
-            if not 50 <= file.size <= 10 * 1024 * 1024:
-                raise ValueError("10 MB üstünde veya boş fotoğraf")
-            ext, mime = validate_image_upload(file)
-            if ext.lower() not in (".jpg", ".jpeg", ".png", ".webp"):
-                raise ValueError("Desteklenmeyen fotoğraf")
-            file.seek(0)
+            ext, mime, contents = _prepare_photo(file)
             path = f"folio-source-photos/{draft.pk}/{uuid4().hex}{ext.lower()}"
-            storage().upload(path, file.read(), file_options={"content-type": mime, "upsert": "false"})
+            storage().upload(path, contents, file_options={"content-type": mime, "upsert": "false"})
             try:
                 ShowroomFolioPhoto.objects.create(draft=draft, storage_path=path, original_name=file.name[:255])
             except Exception:
@@ -77,7 +106,7 @@ def upload(request, draft_id):
             uploaded += 1
         except Exception:
             logger.exception("Folio photo upload failed for folio %s", draft.pk)
-            messages.error(request, "Bir fotoğraf yüklenemedi. Dosya biçimini ve bağlantıyı kontrol edin.", extra_tags="folio_photo")
+            messages.error(request, f"{file.name}: Fotoğraf yüklenemedi. Desteklenen biçimler JPEG, PNG, WEBP, HEIC, HEIF, GIF, BMP, TIFF ve AVIF (en fazla 20 MB).", extra_tags="folio_photo")
     if uploaded:
         messages.success(request, f"{uploaded} fotoğraf kaydedildi.", extra_tags="folio_photo")
     return redirect("showroom_detail_page", draft_id=draft.pk)
