@@ -3,7 +3,7 @@ from django.utils import timezone
 
 from django.conf import settings
 from django.contrib.auth import authenticate
-from django.http import HttpResponseForbidden, HttpResponseRedirect
+from django.http import HttpResponse, HttpResponseForbidden, HttpResponseRedirect
 from django.shortcuts import render
 from django.urls import reverse
 from django.utils.http import url_has_allowed_host_and_scheme
@@ -76,6 +76,13 @@ class SalaryPasswordGateMiddleware:
                 return self._uncached(HttpResponseRedirect(gate_path))
             request.session["_salary_gate_next"] = request.get_full_path()
             return self._uncached(HttpResponseRedirect(gate_path))
+
+        # Explicit user-activity heartbeat; authenticated, same-section and CSRF checked.
+        if path == self.PREFIX + "_activity/":
+            if request.method != "POST":
+                return self._uncached(HttpResponse(status=405))
+            request.session[self.ACTIVITY_KEY] = now
+            return self._uncached(HttpResponse(status=204))
 
         # Ignore background polling for the five-minute inactivity clock.
         if request.method != "GET" or "text/html" in request.META.get("HTTP_ACCEPT", "") and request.META.get("HTTP_X_REQUESTED_WITH") != "XMLHttpRequest":
