@@ -15,7 +15,7 @@
 .folio-drive-backup:disabled{opacity:.5;cursor:not-allowed}
 @media(max-width:700px){.folio-drive-actions{justify-content:flex-start}.folio-drive-status,.folio-drive-backup{white-space:normal}}
 </style>
-<main class="foy-archive"><div class="foy-archive-head"><div><div class="text-muted small">SİPARİŞ FÖYÜ</div><h2>{{ archive_title }}</h2></div><div class="folio-drive-actions">{% if drive_state.status == 'connected' %}<span class="folio-drive-status is-connected" title="{{ drive_state.message }}"><svg width="19" height="19" viewBox="0 0 24 24" aria-hidden="true" style="flex:none"><path fill="#00875A" d="M8.1 2h5.2l8.4 14.5h-5.2z"/><path fill="#2684FC" d="m5.8 16.5-2.6 4.5h16.6l2.6-4.5z"/><path fill="#FFBA00" d="M8.1 2 0 16.5 2.6 21l8.1-14.5z"/></svg><span>Drive'a bağlı</span><i class="bi bi-check-circle-fill"></i></span>{% elif drive_state.status == 'error' %}<a class="folio-drive-status is-error" href="{% url 'instrument_drive_connect' %}" title="{{ drive_state.message }}"><svg width="19" height="19" viewBox="0 0 24 24" aria-hidden="true" style="flex:none"><path fill="#00875A" d="M8.1 2h5.2l8.4 14.5h-5.2z"/><path fill="#2684FC" d="m5.8 16.5-2.6 4.5h16.6l2.6-4.5z"/><path fill="#FFBA00" d="M8.1 2 0 16.5 2.6 21l8.1-14.5z"/></svg><span>Bağlantı sorunu · Yeniden bağlan</span><i class="bi bi-exclamation-triangle-fill"></i></a>{% else %}<a class="folio-drive-status is-disconnected" href="{% url 'instrument_drive_connect' %}" title="Google Drive hesabını bağla"><svg width="19" height="19" viewBox="0 0 24 24" aria-hidden="true" style="flex:none"><path fill="#00875A" d="M8.1 2h5.2l8.4 14.5h-5.2z"/><path fill="#2684FC" d="m5.8 16.5-2.6 4.5h16.6l2.6-4.5z"/><path fill="#FFBA00" d="M8.1 2 0 16.5 2.6 21l8.1-14.5z"/></svg><span>Drive'a bağlan</span></a>{% endif %}<form method="post" action="{% url 'showroom_backup' %}" onsubmit="this.querySelector('button').disabled=true">{% csrf_token %}<button type="submit" class="folio-drive-backup" {% if drive_state.status != 'connected' %}disabled title="Önce Google Drive bağlantısını doğrulayın"{% endif %}><svg width="19" height="19" viewBox="0 0 24 24" aria-hidden="true" style="flex:none"><path fill="#00875A" d="M8.1 2h5.2l8.4 14.5h-5.2z"/><path fill="#2684FC" d="m5.8 16.5-2.6 4.5h16.6l2.6-4.5z"/><path fill="#FFBA00" d="M8.1 2 0 16.5 2.6 21l8.1-14.5z"/></svg><span>Google Drive'a Yedekle</span></button></form><a class="foy-back" href="{% url 'showroom_page' %}">Sipariş Föyüne Dön</a></div></div>{% if messages %}{% for message in messages %}{% if 'folio_backup' in message.tags %}<div class="alert {% if 'error' in message.tags %}alert-danger{% else %}alert-success{% endif %}">{{ message }}</div>{% endif %}{% endfor %}{% endif %}<div class="foy-search-row"><div class="foy-search-group"><input id="foySearchInput" class="foy-search-box" type="search" autocomplete="off" placeholder="Müşteri, föy no veya ürün ara"><button id="foySearchClear" class="foy-search-clear" type="button" title="Aramayı temizle" aria-label="Aramayı temizle"><i class="bi bi-x-lg"></i></button></div></div><div id="foyArchiveList" class="foy-list"><div class="foy-empty">Yükleniyor…</div></div><div id="foySearchEmpty" class="foy-empty foy-search-empty">Aramaya uygun kayıt bulunamadı.</div></main>
+<main class="foy-archive"><div class="foy-archive-head"><div><div class="text-muted small">SİPARİŞ FÖYÜ</div><h2>{{ archive_title }}</h2></div><div class="folio-drive-actions">{% if drive_state.status == 'connected' %}<span class="folio-drive-status is-connected" title="{{ drive_state.message }}"><svg width="19" height="19" viewBox="0 0 24 24" aria-hidden="true" style="flex:none"><path fill="#00875A" d="M8.1 2h5.2l8.4 14.5h-5.2z"/><path fill="#2684FC" d="m5.8 16.5-2.6 4.5h16.6l2.6-4.5z"/><path fill="#FFBA00" d="M8.1 2 0 16.5 2.6 21l8.1-14.5z"/></svg><span>Drive'a bağlı</span><i class="bi bi-check-circle-fill"></i></span>{% elif drive_state.status == 'error' %}<a class="folio-drive-status is-error" href="{% url 'instrument_drive_connect' %}" title="{{ drive_state.message }}"><svg width="19" height="19" viewBox="0 0 24 24" aria-hidden="true" style="flex:none"><path fill="#00875A" d="M8.1 2h5.2l8.4 14.5h-5.2z"/><path fill="#2684FC" d="m5.8 16.5-2.6 4.5h16.6l2.6-4.5z"/><path fill="#FFBA00" d="M8.1 2 0 16.5 2.6 21l8.1-14.5z"/></svg><span>Bağlantı sorunu · Yeniden bağlan</span><i class="bi bi-exclamation-triangle-fill"></i></a>{% else %}<a class="folio-drive-status is-disconnected" href="{% url 'instrument_drive_connect' %}" title="Google Drive hesabını bağla"><svg width="19" height="19" viewBox="0 0 24 24" aria-hidden="true" style="flex:none"><path fill="#00875A" d="M8.1 2h5.2l8.4 14.5h-5.2z"/><path fill="#2684FC" d="m5.8 16.5-2.6 4.5h16.6l2.6-4.5z"/><path fill="#FFBA00" d="M8.1 2 0 16.5 2.6 21l8.1-14.5z"/></svg><span>Drive'a bağlan</span></a>{% endif %}<form method="post" action="{% url 'showroom_backup' %}" id="folioBackupForm">{% csrf_token %}<button type="submit" class="folio-drive-backup" {% if drive_state.status != 'connected' %}disabled title="Önce Google Drive bağlantısını doğrulayın"{% endif %}><svg width="19" height="19" viewBox="0 0 24 24" aria-hidden="true" style="flex:none"><path fill="#00875A" d="M8.1 2h5.2l8.4 14.5h-5.2z"/><path fill="#2684FC" d="m5.8 16.5-2.6 4.5h16.6l2.6-4.5z"/><path fill="#FFBA00" d="M8.1 2 0 16.5 2.6 21l8.1-14.5z"/></svg><span>Google Drive'a Yedekle</span></button></form><a class="foy-back" href="{% url 'showroom_page' %}">Sipariş Föyüne Dön</a></div></div>{% if messages %}{% for message in messages %}{% if 'folio_backup' in message.tags %}<div class="alert {% if 'error' in message.tags %}alert-danger{% else %}alert-success{% endif %}">{{ message }}</div>{% endif %}{% endfor %}{% endif %}<div class="foy-search-row"><div class="foy-search-group"><input id="foySearchInput" class="foy-search-box" type="search" autocomplete="off" placeholder="Müşteri, föy no veya ürün ara"><button id="foySearchClear" class="foy-search-clear" type="button" title="Aramayı temizle" aria-label="Aramayı temizle"><i class="bi bi-x-lg"></i></button></div></div><div id="foyArchiveList" class="foy-list"><div class="foy-empty">Yükleniyor…</div></div><div id="foySearchEmpty" class="foy-empty foy-search-empty">Aramaya uygun kayıt bulunamadı.</div></main>
 <script>
 document.addEventListener('DOMContentLoaded',async function(){
 const kind='{{ archive_kind|escapejs }}',list=document.getElementById('foyArchiveList'),search=document.getElementById('foySearchInput'),clear=document.getElementById('foySearchClear'),empty=document.getElementById('foySearchEmpty'),money=(v,currency)=>new Intl.NumberFormat('tr-TR',{minimumFractionDigits:2,maximumFractionDigits:2}).format(Number(v)||0)+' '+(['TRY','USD','EUR','GBP'].includes(currency)?(currency==='TRY'?'TL':currency):'TL'),esc=v=>String(v??'').replace(/[&<>\"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[c]));
@@ -37,6 +37,40 @@ try{
  items=data.items||[];
  render();
 }catch(e){list.innerHTML='<div class="foy-empty">'+esc(e.message)+'</div>'}
+});
+</script>
+<script>
+document.addEventListener('DOMContentLoaded',()=>{
+ const form=document.getElementById('folioBackupForm');
+ if(!form)return;
+ const button=form.querySelector('button[type="submit"]');
+ const info=document.createElement('span');
+ info.className='small text-muted ms-2';
+ info.setAttribute('role','status');
+ form.appendChild(info);
+ form.addEventListener('submit',async event=>{
+   event.preventDefault();
+   if(button.disabled)return;
+   button.disabled=true;
+   let nextId=0,done=false,count=0,files=0,photos=0;
+   const csrf=form.querySelector('input[name="csrfmiddlewaretoken"]').value;
+   try{
+     while(!done){
+       info.textContent=count+' föy kontrol edildi, yedekleme sürüyor...';
+       const payload=new FormData();
+       payload.append('csrfmiddlewaretoken',csrf);
+       payload.append('incremental','1');
+       payload.append('draft_id',String(nextId));
+       const response=await fetch(form.action,{method:'POST',body:payload,credentials:'same-origin',headers:{'X-Requested-With':'XMLHttpRequest'}});
+       const result=await response.json();
+       if(!response.ok||!result.ok)throw Error(result.message||'Yedekleme isteği tamamlanamadı.');
+       if(!result.done&&result.next_id<=nextId)throw Error('Yedekleme ilerlemedi.');
+       nextId=result.next_id;count+=result.folios;files+=result.files;photos+=result.photos;done=result.done;
+     }
+     info.textContent='Yedekleme tamamlandı: '+count+' föy, '+files+' yeni PDF/JSON, '+photos+' fotoğraf.';
+   }catch(e){info.textContent='Yedekleme durdu ('+count+' föy tamamlandı): '+e.message+' Tekrar deneyebilirsiniz.';}
+   finally{button.disabled=false;}
+ });
 });
 </script>
 {% endblock %}
