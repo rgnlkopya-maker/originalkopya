@@ -10,6 +10,8 @@ from django.contrib.auth.decorators import login_required
 from django.http import HttpResponseForbidden, JsonResponse
 from django.shortcuts import redirect
 from django.utils import timezone
+from django.template.loader import render_to_string
+from decimal import Decimal
 from django.views.decorators.http import require_POST
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4
@@ -84,6 +86,44 @@ def _pdf(data):
     return stream.getvalue()
 
 
+def _print_html(draft):
+    """Render the same template and data as the MoliApp print page."""
+    from core.customer_models import CustomerDetail
+    from .showroom_print_views import TRANSLATIONS, LANGUAGES, _to_decimal
+    customer_detail = CustomerDetail.objects.filter(customer_id=draft.customer_id).first() if draft.customer_id else None
+    print_items = []
+    for item in _effective_serialized_items(draft):
+        unit_price = _to_decimal(item.get("anlasilan_fiyat"))
+        lines = []
+        item_total = Decimal("0")
+        for row in item.get("satirlar", []):
+            try:
+                qty = max(1, int(row.get("adet") or 1))
+            except (TypeError, ValueError):
+                qty = 1
+            for size in row.get("bedenler") or [""]:
+                line_total = unit_price * qty
+                item_total += line_total
+                lines.append({"renk": row.get("renk") or "", "beden": size or "", "adet": qty,
+                              "aciklama": row.get("aciklama") or "", "unit_price": unit_price,
+                              "line_total": line_total})
+        print_items.append({"urun_kodu": item.get("urun_kodu") or "", "unit_price": unit_price,
+                            "item_total": item_total, "lines": lines})
+    payments = list(draft.payments.all())
+    collections = [p for p in payments if p.entry_type == "COLLECTION"]
+    promises = [p for p in payments if p.entry_type == "PROMISE"]
+    translations = TRANSLATIONS["tr"]
+    status_label = {"PENDING": translations["draft"], "APPROVED": translations["approved"],
+                    "TRANSFERRED": translations["transferred"]}[draft.status]
+    return render_to_string("product_cards/showroom_print.html", {
+        "draft": draft, "customer_detail": customer_detail, "items": print_items,
+        "collection_payments": sorted(collections, key=lambda p: (p.payment_date is None, str(p.payment_date or p.due_date or ""), p.id)),
+        "promise_payments": sorted(promises, key=lambda p: (p.due_date is None, str(p.due_date or p.payment_date or ""), p.id)),
+        "summary": _draft_summary(draft), "status_label": status_label,
+        "lang": "tr", "dir": "ltr", "languages": LANGUAGES, "t": translations,
+    }).encode("utf-8")
+
+
 def _snapshot(draft):
     data = {
         "id": draft.pk,
@@ -148,7 +188,7 @@ def backup(request):
             # Store versions by digest; same input is never uploaded twice.
             for extension, binary, mime in [
                 ("json", contents, "application/json"),
-                ("pdf", _pdf(archive), "application/pdf"),
+                ("html", _print_html(draft), "text/html; charset=utf-8"),
             ]:
                 digest = hashlib.sha256(binary).hexdigest()[:16]
                 name = f"{label} - {digest}.{extension}"
