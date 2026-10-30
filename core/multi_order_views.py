@@ -86,6 +86,19 @@ def order_multi_create(request):
                 maliyet_para_birimi = pc.para_birimi or "TRY"
 
         uploaded_images = request.FILES.getlist("order_images")
+        is_manager = request.user.is_superuser or request.user.groups.filter(name__in=["patron", "mudur"]).exists()
+        uploaded_video = request.FILES.get("video") if is_manager else None
+        if uploaded_video:
+            from pathlib import Path
+            ext = Path(uploaded_video.name).suffix.lower()
+            if ext not in (".mp4", ".mov") or not 12 <= uploaded_video.size <= 100 * 1024 * 1024:
+                messages.error(request, "Video MP4/MOV formatında ve en fazla 100 MB olmalıdır.")
+                return redirect("order_multi_create")
+            uploaded_video.seek(0)
+            if uploaded_video.read(16)[4:8] != b"ftyp":
+                messages.error(request, "Geçerli bir MP4 veya MOV dosyası seçin.")
+                return redirect("order_multi_create")
+            uploaded_video.seek(0)
         created_orders = []
         row_indices = {int(key.replace("renk_row_", "")) for key in request.POST.keys() if key.startswith("renk_row_") and key.replace("renk_row_", "").isdigit()}
         prepared_rows = []
@@ -144,10 +157,24 @@ def order_multi_create(request):
                     except Exception:
                         image_errors += 1
 
+        video_errors = 0
+        if uploaded_video and created_orders:
+            from .order_video_views import save_order_video
+            for order in created_orders:
+                try:
+                    uploaded_video.seek(0)
+                    save_order_video(order, uploaded_video)
+                except Exception:
+                    video_errors += 1
+
         if created_orders:
             text = f"{len(created_orders)} adet sipariş başarıyla oluşturuldu!"
             if uploaded_images and not image_errors:
                 text += f" {len(uploaded_images)} görsel kalıcı depoya eklendi."
+            if uploaded_video and not video_errors:
+                text += " Video siparişlere eklendi."
+            if video_errors:
+                messages.warning(request, f"Siparişler oluşturuldu ancak {video_errors} siparişe video yüklenemedi.")
             if image_errors:
                 messages.warning(request, f"Siparişler oluşturuldu ancak {image_errors} görsel kopyası yüklenemedi.")
             messages.success(request, text)
