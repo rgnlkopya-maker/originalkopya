@@ -1,4 +1,5 @@
 from urllib.parse import urlsplit
+from django.utils import timezone
 
 from django.conf import settings
 from django.contrib.auth import authenticate
@@ -19,6 +20,8 @@ class SalaryPasswordGateMiddleware:
     PREFIX = "/attendance/maaslar/"
     VERIFIED_SESSION_KEY = "_salary_password_verified_user"
     HANDOFF_KEY = "_salary_gate_handoff"
+    ACTIVITY_KEY = "_salary_last_activity"
+    IDLE_SECONDS = 300
 
     def __init__(self, get_response):
         self.get_response = get_response
@@ -33,12 +36,16 @@ class SalaryPasswordGateMiddleware:
             ):
                 request.session.pop(self.VERIFIED_SESSION_KEY, None)
                 request.session.pop(self.HANDOFF_KEY, None)
+                request.session.pop(self.ACTIVITY_KEY, None)
             return self.get_response(request)
 
         user = request.user
         if not user.is_authenticated:
             return self._uncached(self.get_response(request))
 
+        from app_settings.access import has_full_access
+        if not has_full_access(user):
+            return self._uncached(HttpResponseForbidden("Maaş Yönetimi erişim yetkiniz bulunmuyor."))
         gate_path = reverse("salary_password_gate")
         if path == gate_path:
             return self._uncached(self._gate(request))
@@ -52,20 +59,27 @@ class SalaryPasswordGateMiddleware:
         ))
         internal_navigation = trusted_referrer and ref_path.startswith(self.PREFIX)
         verified = request.session.get(self.VERIFIED_SESSION_KEY) == user.pk
+        now = timezone.now().timestamp()
+        last_activity = request.session.get(self.ACTIVITY_KEY)
+        if not isinstance(last_activity, (int, float)) or now - last_activity >= self.IDLE_SECONDS:
+            verified = False
 
         handoff = request.session.pop(self.HANDOFF_KEY, None)
         from_gate = handoff == request.get_full_path()
-        fresh_home = request.method == "GET" and path == reverse("salary_home") and not from_gate
         forced_reauth = request.GET.get("salary_reauth") == "1"
-        if not verified or forced_reauth or fresh_home or (
+        if not verified or forced_reauth or (
             request.method == "GET" and not internal_navigation and not from_gate
         ):
             request.session.pop(self.VERIFIED_SESSION_KEY, None)
+            request.session.pop(self.ACTIVITY_KEY, None)
             if request.method != "GET":
                 return self._uncached(HttpResponseRedirect(gate_path))
             request.session["_salary_gate_next"] = request.get_full_path()
             return self._uncached(HttpResponseRedirect(gate_path))
 
+        # Ignore background polling for the five-minute inactivity clock.
+        if request.method != "GET" or "text/html" in request.META.get("HTTP_ACCEPT", "") and request.META.get("HTTP_X_REQUESTED_WITH") != "XMLHttpRequest":
+            request.session[self.ACTIVITY_KEY] = now
         return self._uncached(self.get_response(request))
 
     def _gate(self, request):
@@ -80,6 +94,7 @@ class SalaryPasswordGateMiddleware:
             confirmed = authenticate(request, username=request.user.get_username(), password=password)
             if confirmed is not None and confirmed.pk == request.user.pk:
                 request.session[self.VERIFIED_SESSION_KEY] = request.user.pk
+                request.session[self.ACTIVITY_KEY] = timezone.now().timestamp()
                 destination = request.session.pop("_salary_gate_next", None) or reverse("salary_home")
                 if not destination.startswith(self.PREFIX) or destination == reverse("salary_password_gate"):
                     destination = reverse("salary_home")
