@@ -116,6 +116,8 @@ def instrument_inline_status_update(request, pk):
             return redirect("instrument_list")
         data["issuer_name"] = customer.ad
         data["received_from"] = customer.ad
+        # Direction is not editable in the inline list: preserve the existing value.
+        data["direction"] = record.direction
         # Keep detail-only fields unchanged when saving a table row.
         for key in ("bank", "branch", "document_number", "issue_date", "note"):
             if key not in data:
