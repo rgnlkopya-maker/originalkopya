@@ -719,6 +719,25 @@ def invoice_remove(request, invoice_id, line_id):
         return HttpResponseForbidden("Yetkiniz yok.")
     with transaction.atomic():
         invoice = get_object_or_404(InvoiceDraft.objects.select_for_update(), pk=invoice_id)
+        if request.POST.get("split_late_order") == "yes":
+            line = get_object_or_404(InvoiceLine.objects.select_for_update(), pk=line_id, invoice=invoice)
+            bh = BizimHesapInvoiceTransfer.objects.filter(invoice=invoice, status="SENT").first()
+            ps = ParasutInvoiceTransfer.objects.filter(invoice=invoice, status="SENT").first()
+            if not (invoice.status == "DRAFT" and bh and ps
+                    and line.created_at > bh.updated_at and line.created_at > ps.updated_at
+                    and invoice.lines.count() > 1):
+                return HttpResponseForbidden("Bu satırın dış muhasebede bulunmadığı doğrulanamadı; taşıma reddedildi.")
+            invoice.status = "FINAL"
+            invoice.save(update_fields=["status", "updated_at"])
+            separate = InvoiceDraft.objects.create(
+                customer=invoice.customer, invoice_date=invoice.invoice_date,
+                currency=invoice.currency, status="DRAFT", created_by=request.user,
+            )
+            _assign_shared_ft_number(draft=separate)
+            line.invoice = separate
+            line.save(update_fields=["invoice"])
+            messages.success(request, "Sonradan eklenen sipariş ayrı faturaya taşındı. Önceki aktarımlar değiştirilmedi.")
+            return redirect("invoice_detail", invoice_id=separate.pk)
         if BizimHesapInvoiceTransfer.objects.filter(invoice=invoice, status__in=("SENDING","SENT","UNKNOWN")).exists() or ParasutInvoiceTransfer.objects.filter(invoice=invoice, status__in=("SENDING","UNKNOWN")).exists():
             return HttpResponseForbidden("Kesinleşmiş BizimHesap kaydı veya süren aktarım nedeniyle düzenleme kapalı.")
         if invoice.status != "DRAFT":
