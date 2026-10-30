@@ -85,6 +85,11 @@ BANK_NAMES = [
     "Birleşik Fon Bankası"
 ]
 
+def bank_caps(name):
+    return (name or "").strip().replace("i", "İ").replace("ı", "I").upper()
+
+BANK_CHOICES = sorted({bank_caps(name) for name in BANK_NAMES})
+
 class InstrumentForm(forms.ModelForm):
     class Meta:
         model = NegotiableInstrument
@@ -98,6 +103,13 @@ class InstrumentForm(forms.ModelForm):
             "due_date": "Vade Tarihi", "status": "Durum", "note": "Açıklama",
         }
         widgets = {"issue_date":forms.DateInput(attrs={"type":"date"}), "transaction_date":forms.DateInput(attrs={"type":"date"}), "given_date":forms.DateInput(attrs={"type":"date"}), "due_date":forms.DateInput(attrs={"type":"date"}), "note":forms.Textarea(attrs={"rows":3})}
+
+    def clean_bank(self):
+        submitted = bank_caps(self.cleaned_data.get("bank"))
+        previous = bank_caps(self.instance.bank) if self.instance.pk else ""
+        if submitted and submitted not in BANK_CHOICES and submitted != previous:
+            raise forms.ValidationError("Bankayı listeden seçmelisiniz.")
+        return submitted
 
     def clean(self):
         cleaned = super().clean()
@@ -130,7 +142,7 @@ def instrument_list(request):
     if term:
         from django.db.models import Q
         records = records.filter(Q(issuer_name__icontains=term)|Q(given_to__icontains=term)|Q(document_number__icontains=term)|Q(customer__ad__icontains=term))
-    return render(request, "core/instrument_list.html", {"records": records[:300], "kinds":NegotiableInstrument.KIND_OPTIONS, "statuses":NegotiableInstrument.STATUS, "customers":Musteri.objects.all().order_by("ad"), "currencies":NegotiableInstrument._meta.get_field("currency").choices, "drive_connected": drive_is_connected(), "banks": BANK_NAMES})
+    return render(request, "core/instrument_list.html", {"records": records[:300], "kinds":NegotiableInstrument.KIND_OPTIONS, "statuses":NegotiableInstrument.STATUS, "customers":Musteri.objects.all().order_by("ad"), "currencies":NegotiableInstrument._meta.get_field("currency").choices, "drive_connected": drive_is_connected(), "banks": BANK_CHOICES})
 
 
 @login_required
