@@ -47,8 +47,25 @@
   <section class="backup-card mt-4">
     <h2>Yedekleme Geçmişi</h2>
     <p class="backup-muted">Otomatik yedeklemelerin sonuçları burada gösterilir.</p>
-    <div class="table-responsive"><table class="table align-middle"><thead><tr><th>Başlangıç</th><th>Modül</th><th>Sonuç</th><th>Dosya</th><th>Fotoğraf</th></tr></thead><tbody>
-      {% for run in history %}<tr><td>{{ run.started_at|date:"d.m.Y H:i" }}</td><td>{{ run.get_module_display }}</td><td>{% if run.success %}Başarılı{% elif run.completed_at %}Hata{% else %}Devam ediyor{% endif %}</td><td>{{ run.files }}</td><td>{{ run.photos }}</td></tr>{% empty %}<tr><td colspan="5" class="text-muted">Yeni sistemde henüz yedekleme kaydı bulunmuyor.</td></tr>{% endfor %}
+    <div class="table-responsive"><table class="table align-middle"><thead><tr><th>Başlangıç</th><th>Modül</th><th>Sonuç</th><th>Tarandı</th><th>Yeni/değişen dosya</th><th>Yeni fotoğraf</th><th>İncele</th></tr></thead><tbody>
+      {% for run in history %}<tr><td>{{ run.started_at|date:"d.m.Y H:i" }}</td><td>{{ run.get_module_display }}</td><td>{% if run.success %}Başarılı{% elif run.completed_at %}Hata{% else %}Devam ediyor{% endif %}</td><td>{{ run.records }}</td><td>{{ run.files }}</td><td>{{ run.photos }}</td><td><button type="button" class="btn btn-outline-primary btn-sm" data-bs-toggle="collapse" data-bs-target="#backup-run-{{ run.id }}" aria-expanded="false">Detay</button></td></tr>
+      <tr><td colspan="7" class="p-0 border-0"><div class="collapse" id="backup-run-{{ run.id }}"><div class="p-3 mb-2 rounded" style="background:#f7f9fd;border:1px solid #e4eaf3">
+      <div class="fw-bold mb-2">{{ run.get_module_display }} · {{ run.started_at|date:"d.m.Y H:i" }}</div>
+      <div class="backup-muted mb-2">Bitiş: {{ run.completed_at|date:"d.m.Y H:i"|default:"Sürüyor" }} · {{ run.message|default:"Durum kaydı yok" }}</div>
+      {% for item in run.details %}
+        {% if run.module == 'folios' %}
+          <details class="mb-2"><summary style="cursor:pointer;font-weight:650">Föy #{{ item.folio }} — {{ item.customer }} ({{ item.files|length }} belge kontrolü, {{ item.photos|length }} fotoğraf)</summary>
+            <div class="ps-3 mt-2">
+            {% for file in item.files %}<div class="small py-1"><strong>{{ file.type }}</strong>: {{ file.status }} <span class="text-muted">· {{ file.name }}</span></div>{% endfor %}
+            {% for photo in item.photos %}<div class="small py-1"><strong>Fotoğraf</strong>: {{ photo.status }} <span class="text-muted">· {{ photo.name }}</span></div>{% endfor %}
+            </div>
+          </details>
+        {% else %}
+          <div class="small mb-1">{{ item.summary }}</div><div class="small mb-1">Kayıt: {{ item.records }} · Yeni fotoğraf: {{ item.new_photos }}</div><div class="backup-muted">{{ item.comparison }}</div>
+        {% endif %}
+      {% empty %}<div class="backup-muted">Bu eski işlem için dosya bazında detay kaydı tutulmamış. Yeni çalışmalarda ayrıntılar burada görünecek.</div>{% endfor %}
+      </div></div></td></tr>
+      {% empty %}<tr><td colspan="7" class="text-muted">Yeni sistemde henüz yedekleme kaydı bulunmuyor.</td></tr>{% endfor %}
     </tbody></table></div>
   </section>
 </main>
