@@ -62,6 +62,7 @@ def scheduler_tick(request):
                 payload = json.loads(response.content)
                 if not payload.get("ok") or (not payload["done"] and payload["next_id"] <= run.cursor):
                     raise RuntimeError("Föy yedekleme ilerleyemedi.")
+                run.details = (run.details or []) + payload.get("details", [])
                 run.records += payload["folios"]
                 run.files += payload["files"]
                 run.photos += payload["photos"]
@@ -79,6 +80,7 @@ def scheduler_tick(request):
                 run.records = source.record_count
                 run.photos = source.new_photo_count
                 run.files = 2
+                run.details = [{"summary": "Her çalışmada yeni Excel ve JSON dosyası oluşturuldu.", "records": source.record_count, "new_photos": source.new_photo_count, "comparison": "Kayıt bazında önceki yedekle karşılaştırma henüz yapılmıyor."}]
                 run.success = True
                 run.completed_at = timezone.now()
                 run.message = "Tamamlandı"
