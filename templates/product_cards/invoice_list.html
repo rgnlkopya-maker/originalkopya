@@ -163,7 +163,7 @@
  </section>
  <div class="invoice-list-card">
  <table class="table invoice-table align-middle">
-  <thead><tr><th>Tarih</th><th>MoliApp FT No</th><th>Paraşüt Resmî FT No</th><th>Müşteri</th><th>Ürün</th><th>Toplam Tutar</th><th>BizimHesap</th><th>Paraşüt</th><th>İşlem</th></tr></thead>
+  <thead><tr><th>Tarih</th><th title="MoliApp Fatura Numarası" style="white-space:nowrap;min-width:62px">FT No</th><th>Paraşüt Resmî FT No</th><th>Müşteri</th><th>Ürün</th><th>Toplam Tutar</th><th>BizimHesap</th><th>Paraşüt</th><th>İşlem</th></tr></thead>
   <tbody>
 {% for f in combined_invoices %}{% if f.is_manual %}
 <tr data-invoice-row data-customer-id="{{ f.customer_id }}" data-date="{{ f.invoice_date|date:'Y-m-d' }}" data-bh-status="{{ f.bh_display }}" data-parasut-status="{{ f.parasut_display }}" data-status="DRAFT">
