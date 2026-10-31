@@ -24,6 +24,7 @@ class BackupExecution(models.Model):
     records = models.PositiveIntegerField(default=0)
     cursor = models.PositiveIntegerField(default=0)
     message = models.CharField(max_length=255, blank=True)
+    details = models.JSONField(default=list, blank=True)
 
     class Meta:
         ordering = ["-started_at"]
