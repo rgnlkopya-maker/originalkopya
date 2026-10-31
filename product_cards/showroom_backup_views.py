@@ -155,7 +155,9 @@ def backup(request):
         drafts = list(base_drafts)
         uploaded_folios = 0
         uploaded_photos = 0
+        changes = []
         for draft in drafts:
+            item_change = {'folio': draft.pk, 'customer': (draft.customer.ad if draft.customer else ''), 'files': [], 'photos': []}
             label = f"Foy-{draft.pk} - {_safe_name(draft.customer.ad if draft.customer else None)}"
             archive = _snapshot(draft)
             contents = json.dumps(archive, ensure_ascii=False, sort_keys=True, indent=2, default=str).encode("utf-8")
@@ -173,12 +175,16 @@ def backup(request):
                 if not _existing_file(drive, target, name):
                     _upload(drive, target, name, binary, mime)
                     uploaded_folios += 1
+                    item_change["files"].append({"type": extension.upper(), "status": "Yüklendi", "name": name})
+                else:
+                    item_change["files"].append({"type": extension.upper(), "status": "Değişmedi", "name": name})
             if archive["photos"]:
                 photo_folder = _folder(drive, photo_root, label)
                 for photo in draft.source_photos.all():
                     name = f"Foy-{draft.pk} - Foto-{photo.pk} - " + photo.storage_path.rsplit("/", 1)[-1]
                     existing = _existing_file(drive, photo_folder, name)
                     if existing and int(existing.get("size") or 0) > 0:
+                        item_change["photos"].append({"name": name, "status": "Değişmedi"})
                         continue
                     if existing:
                         raise RuntimeError("Bos Drive fotografi: " + name)
@@ -189,11 +195,13 @@ def backup(request):
                     mime = {"jpg": "image/jpeg", "jpeg": "image/jpeg", "png": "image/png", "webp": "image/webp"}.get(ext, "application/octet-stream")
                     _upload(drive, photo_folder, name, binary, mime)
                     uploaded_photos += 1
+                    item_change["photos"].append({"name": name, "status": "Yüklendi"})
+            changes.append(item_change)
         if incremental:
             next_id = drafts[-1].pk if drafts else draft_id
             remaining = ShowroomDraft.objects.filter(status__in=["PENDING", "APPROVED", "TRANSFERRED"], pk__gt=next_id).exists()
             return JsonResponse({"ok": True, "done": not remaining, "next_id": next_id,
-                                 "folios": len(drafts), "files": uploaded_folios, "photos": uploaded_photos})
+                                 "folios": len(drafts), "files": uploaded_folios, "photos": uploaded_photos, "details": changes})
         messages.success(request, f"Föy yedeği tamamlandı: {len(drafts)} föy tarandı, {uploaded_folios} yeni/değişen PDF veya veri dosyası, {uploaded_photos} yeni fotoğraf yüklendi.", extra_tags="folio_backup")
     except Exception:
         logger.exception("Showroom folio backup failed")
