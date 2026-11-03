@@ -62,6 +62,7 @@ MIDDLEWARE = [
     "attendance.attendance_security.AttendancePasswordGateMiddleware",
     "core.instrument_security.InstrumentPasswordGateMiddleware",
     "core.audit_middleware.UserActionAuditMiddleware",
+    "core.notification_read_middleware.NotificationDestinationReadMiddleware",
     "core.performance_middleware.PerformanceMonitorMiddleware",
     "app_settings.middleware.MoliAccessMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
