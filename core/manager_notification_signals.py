@@ -28,19 +28,20 @@ def notify_management(title, message, url, *, order=None, exclude_user_ids=()):
     for recipient in management_users():
         if recipient.pk in excluded:
             continue
-        Notification.objects.create(
+        notification = Notification.objects.create(
             user=recipient, order=order, title=title, message=message
         )
         recipient_id = recipient.pk
+        notification_id = notification.pk
 
-        def deliver(uid=recipient_id):
+        def deliver(uid=recipient_id, nid=notification_id):
             try:
                 from .push_views import send_push_to_user
                 user = get_user_model().objects.filter(pk=uid, is_active=True).first()
                 if user:
                     send_push_to_user(
                         user, title, message, url=url,
-                        tag=f"moli-manager-{order.pk if order else 'system'}-{title[:20]}"
+                        tag=f"moli-manager-{nid}"
                     )
             except Exception:
                 logger.exception("Management push failed for user %s", uid)
