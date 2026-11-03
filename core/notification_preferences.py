@@ -6,7 +6,6 @@ each device/account and remains subject to browser permission.
 from .models import NotificationPreference
 
 EVENTS = (
-    ("order_update", "Sipariş bilgisi güncellendi", False, False),
     ("uninvoiced_shipment", "Faturaya aktarılmayan sevkiyat", False, True),
     ("invoice_failure", "Fatura aktarım hatası", True, True),
     ("material_missing", "Malzeme eksikliği", False, True),
