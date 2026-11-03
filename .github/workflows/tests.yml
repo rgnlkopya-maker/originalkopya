@@ -35,6 +35,11 @@ jobs:
         env:
           DEBUG: 'False'
           BASE_URL: 'http://127.0.0.1:8000'
+      - name: Verify centralized notification publishing (no database)
+        run: python manage.py test core.test_notification_service --verbosity 2
+        env:
+          DEBUG: 'False'
+          BASE_URL: 'http://127.0.0.1:8000'
       - name: Run tests
         run: python manage.py test --verbosity 2
         env:
