@@ -3,11 +3,15 @@
 Order updates use this service; other notification flows will be migrated
 separately without altering their existing behaviour.
 """
+import logging
+
 from django.contrib.auth import get_user_model
 from django.db.models import Q
 from django.db import transaction
 
 from .models import Notification
+
+logger = logging.getLogger(__name__)
 
 ORDER_FIELD_LABELS = {
     "musteri": "Müşteri",
@@ -70,9 +74,12 @@ def publish_order_update(*, order, changed_fields, actor):
                 pk__in=push_recipients, is_active=True
             )
             for user in users:
-                send_push_to_user(
-                    user, title, message, url=f"/order/{order.pk}/",
-                    tag=f"moli-order-edit-{order.pk}-{uuid4().hex}",
-                )
+                try:
+                    send_push_to_user(
+                        user, title, message, url=f"/order/{order.pk}/",
+                        tag=f"moli-order-edit-{order.pk}-{uuid4().hex}",
+                    )
+                except Exception:
+                    logger.exception("Order update Push failed for user %s", user.pk)
         transaction.on_commit(deliver)
     return len(enabled)
