@@ -61,7 +61,8 @@ def notify_management_once(kind, identifier, title, message, url, *, timeout=600
         notify_management(title, message, url, order=order)
     except Exception:
         cache.delete(f"manager-alert:{digest}")
-        raise
+        logger.exception("Management alert dispatch failed: %s", kind)
+        return False
     return True
 
 
