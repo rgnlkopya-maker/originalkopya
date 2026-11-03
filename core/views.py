@@ -1308,15 +1308,8 @@ def order_edit(request, pk):
                         new_value=str(new_value),
                     )
 
-            # ------------------------------------------------------------
-            # Bildirimleri merkezi servisten oluştur; sipariş düzenleme mantığı değişmez.
-            if changed_fields:
-                from .notification_service import publish_order_update
-                publish_order_update(
-                    order=updated_order,
-                    changed_fields=changed_fields,
-                    actor=request.user,
-                )
+            # Sipariş değişiklikleri OrderEvent geçmişine kaydedilir;
+            # normal sipariş düzenlemeleri artık bildirim üretmez.
 
             # ------------------------------------------------------------
             # ------------------------------------------------------------
