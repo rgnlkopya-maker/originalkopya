@@ -498,14 +498,20 @@ def invoice_bizimhesap_send(request, invoice_id):
         transfer_id, payload = prepare_transfer(invoice_id)
         status = deliver_prepared_invoice(transfer_id, payload)
     except TransferBlocked as exc:
+        from core.manager_notification_signals import invoice_transfer_failure
+        invoice_transfer_failure("bizimhesap", invoice_id)
         messages.error(request, str(exc))
     except Exception:
+        from core.manager_notification_signals import invoice_transfer_failure
+        invoice_transfer_failure("bizimhesap", invoice_id)
         logging.getLogger(__name__).exception("BizimHesap export failed for invoice id=%s", invoice_id)
         messages.error(request, "Aktarım kesildi; dış sistem kontrol edilmeden tekrar denenmemeli.")
     else:
         if status == "SENT":
             messages.success(request, "Fatura BizimHesap'a aktarıldı.")
         else:
+            from core.manager_notification_signals import invoice_transfer_failure
+            invoice_transfer_failure("bizimhesap", invoice_id)
             messages.warning(request, "Aktarım sonucu belirsiz; tekrar gönderim kapalı.")
     return redirect("invoice_detail", invoice_id=invoice_id)
 
@@ -999,8 +1005,12 @@ def invoice_parasut_send(request, invoice_id):
     try:
         remote_id = send_sales_record(invoice_id)
     except ParasutExportError as exc:
+        from core.manager_notification_signals import invoice_transfer_failure
+        invoice_transfer_failure("parasut", invoice_id)
         messages.error(request, str(exc))
     except Exception:
+        from core.manager_notification_signals import invoice_transfer_failure
+        invoice_transfer_failure("parasut", invoice_id)
         logging.getLogger(__name__).exception("Paraşüt export failed, invoice=%s", invoice_id)
         messages.error(request, "Aktarımın sonucu belirsiz; Paraşüt kontrol edilmeden tekrar denemeyin.")
     else:
@@ -1215,8 +1225,12 @@ def standalone_invoice_send(request, invoice_id, platform):
     try:
         send_manual_invoice(invoice_id, platform)
     except ManualTransferError as exc:
+        from core.manager_notification_signals import invoice_transfer_failure
+        invoice_transfer_failure(platform, invoice_id, manual=True)
         messages.error(request, str(exc))
     except Exception:
+        from core.manager_notification_signals import invoice_transfer_failure
+        invoice_transfer_failure(platform, invoice_id, manual=True)
         logging.getLogger(__name__).exception("manual_invoice_transfer_failed id=%s platform=%s", invoice_id, platform)
         messages.error(request, "Aktarım tamamlanamadı. Dış muhasebe kaydını kontrol edin.")
     else:
