@@ -1,7 +1,28 @@
 {% extends "base.html" %}
 {% block content %}
 <style>
-.backup-center{max-width:1150px;margin:22px auto;padding:0 16px 45px;color:#253753}.backup-center h1{font-size:25px;font-weight:850;margin:0 0 4px}.backup-muted{font-size:12px;color:#75849a}.backup-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin-top:22px}.backup-card{background:#fff;border:1px solid #e4eaf3;border-radius:17px;padding:20px;box-shadow:0 6px 20px rgba(15,40,75,.035)}.backup-card h2{font-size:18px;font-weight:800;margin:0 0 6px}.backup-card .form-label{font-size:12px;font-weight:700;color:#536782}.backup-card .form-control,.backup-card .form-select{font-size:13px;border-radius:10px}.backup-rule{font-size:12px;color:#4d607d;padding:5px 0}.backup-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:16px}.backup-center table{font-size:12px}.backup-center .btn{border-radius:10px;font-size:12px;font-weight:700}.backup-steps{padding:7px 0 0 10px;border-left:2px solid #e7edf6;margin-top:9px}.backup-steps p{font-size:12px;line-height:1.65;color:#536782;margin:0 0 10px}.backup-steps strong{color:#304664}.backup-help{margin-top:10px;font-size:12px;color:#75849a}.backup-help summary{cursor:pointer;display:inline-block;font-size:12px;color:#78869a}.backup-help p{margin:8px 0 0;max-width:850px;line-height:1.6}.backup-notice{border:1px solid #e3e9f3;background:#f7f9fd;border-radius:12px;padding:12px 15px;color:#5d6c81;font-size:12px;margin-top:16px}@media(max-width:700px){.backup-grid{grid-template-columns:1fr}.backup-center h1{font-size:21px}}
+.backup-center{max-width:1150px;margin:16px auto;padding:0 16px 34px;color:#253753}
+.backup-center h1{font-size:24px;font-weight:850;margin:0 0 3px}
+.backup-muted{font-size:12px;color:#75849a}
+.backup-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:14px;align-items:start}
+.backup-card{background:#fff;border:1px solid #e4eaf3;border-radius:14px;padding:15px 17px;box-shadow:0 4px 13px rgba(15,40,75,.025)}
+.backup-card h2{font-size:16px;font-weight:800;margin:0 0 3px}
+.backup-card .form-label{font-size:11px;font-weight:700;color:#536782;margin-bottom:4px}
+.backup-card .form-control,.backup-card .form-select{font-size:13px;border-radius:9px;min-height:34px;padding:5px 10px}
+.backup-card .row{--bs-gutter-y:6px}
+.backup-rule{font-size:11px;color:#4d607d;padding:3px 0}
+.backup-actions{display:flex;gap:8px;align-items:center;margin-top:10px}
+.backup-center table{font-size:12px}
+.backup-center .btn{border-radius:9px;font-size:12px;font-weight:700;padding:6px 12px}
+.backup-steps{padding:6px 0 0 10px;border-left:2px solid #e7edf6;margin-top:7px}
+.backup-steps p{font-size:12px;line-height:1.5;color:#536782;margin:0 0 8px}
+.backup-steps strong{color:#304664}
+.backup-help{margin-top:7px;font-size:11px;color:#75849a}
+.backup-help summary{cursor:pointer;display:inline-block;color:#78869a}
+.backup-help p{margin:7px 0 0;max-width:850px;line-height:1.5}
+.backup-notice{border:1px solid #e3e9f3;background:#f7f9fd;border-radius:12px;padding:12px 15px;color:#5d6c81;font-size:12px;margin-top:16px}
+.backup-history{margin-top:16px!important}
+@media(max-width:700px){.backup-grid{grid-template-columns:1fr;gap:10px}.backup-center h1{font-size:21px}.backup-card{padding:14px}}
 </style>
 <main class="backup-center">
   <h1><i class="bi bi-cloud-arrow-up me-2"></i>Yedekleme Merkezi</h1>
@@ -12,8 +33,7 @@
   {% for item in policies %}
     <section class="backup-card">
       <h2>{{ item.name }}</h2>
-      <div class="backup-muted">Zamanlamayı düzenleyin; ayrıntılar için kuralları açın.</div>
-      <details class="mt-2"><summary class="backup-rule" style="cursor:pointer;font-weight:700">Yedekleme kurallarını görüntüle</summary>
+      <details class="mt-1"><summary class="backup-rule" style="cursor:pointer;font-weight:700">Yedekleme kurallarını görüntüle</summary>
         <div class="backup-steps">
 {% if item.key == 'folios' %}
 <p><strong>1. Föyler kontrol edilir.</strong> Sistem kayıtlı sipariş föylerini sırayla inceler ve mevcut Drive yedekleriyle karşılaştırır.</p>
@@ -30,21 +50,19 @@
 {% endif %}
 </div>
       </details>
-      <form method="post" action="{% url 'backup_policy_update' %}" class="mt-3">
+      <form method="post" action="{% url 'backup_policy_update' %}" class="mt-2">
         {% csrf_token %}<input type="hidden" name="module" value="{{ item.key }}">
         <div class="row g-2">
           <div class="col-sm-6"><label class="form-label">Sıklık</label><select name="frequency" class="form-select">{% for code,label in item.policy.FREQUENCIES %}<option value="{{ code }}" {% if code == item.policy.frequency %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></div>
           <div class="col-6 col-sm-3"><label class="form-label">Saat</label><input class="form-control" type="number" name="hour" min="0" max="23" value="{{ item.policy.hour }}" required></div>
           <div class="col-6 col-sm-3"><label class="form-label">Dakika</label><input class="form-control" type="number" name="minute" min="0" max="59" value="{{ item.policy.minute }}" required></div>
         </div>
-        <div class="backup-actions"><button class="btn btn-outline-primary" type="submit">Ayarı Kaydet</button>
-          {% if item.key == 'folios' %}<a class="btn btn-light" href="{% url 'showroom_drafts_page' %}">Föy Yedeklemeye Git</a>{% else %}<a class="btn btn-light" href="{% url 'instrument_list' %}">Çek/Senet Yedeklemeye Git</a>{% endif %}
-        </div>
+        <div class="backup-actions"><button class="btn btn-outline-primary" type="submit">Ayarı Kaydet</button></div>
       </form>
     </section>
   {% endfor %}
   </div>
-  <section class="backup-card mt-4">
+  <section class="backup-card backup-history">
     <h2>Yedekleme Geçmişi</h2>
     <p class="backup-muted">Otomatik yedeklemelerin sonuçları burada gösterilir.</p>
     <div class="table-responsive"><table class="table align-middle"><thead><tr><th>Başlangıç</th><th>Modül</th><th>Sonuç</th><th>Tarandı</th><th>Yeni/değişen dosya</th><th>Yeni fotoğraf</th><th>İncele</th></tr></thead><tbody>
