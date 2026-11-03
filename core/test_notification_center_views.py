@@ -14,11 +14,15 @@ from core.notification_center_views import notification_center
 
 
 class NotificationCenterTests(SimpleTestCase):
+
     def setUp(self):
         self.factory = RequestFactory()
         self.manager = SimpleNamespace(
             is_authenticated=True, is_active=True, pk=9,
         )
+        self.preference_patch = patch("core.notification_center_views.settings_for_user", return_value={})
+        self.preference_patch.start()
+        self.addCleanup(self.preference_patch.stop)
 
     def test_template_compiles_and_links_are_distinct(self):
         engines["django"].get_template("core/notification_center.html")
