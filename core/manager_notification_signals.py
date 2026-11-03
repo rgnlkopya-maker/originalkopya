@@ -4,6 +4,9 @@ Notifications are stored for authorized managers; browser push is sent only
 after the originating database transaction commits.
 """
 import logging
+import hashlib
+
+from django.core.cache import cache
 
 from django.contrib.auth import get_user_model
 from django.db import transaction
@@ -49,6 +52,31 @@ def notify_management(title, message, url, *, order=None, exclude_user_ids=()):
         transaction.on_commit(deliver)
 
 
+def notify_management_once(kind, identifier, title, message, url, *, timeout=600, order=None):
+    """One management alert per event key during the cooldown period."""
+    digest = hashlib.sha256(f"{kind}:{identifier}".encode("utf-8")).hexdigest()
+    if not cache.add(f"manager-alert:{digest}", "1", timeout=timeout):
+        return False
+    try:
+        notify_management(title, message, url, order=order)
+    except Exception:
+        cache.delete(f"manager-alert:{digest}")
+        raise
+    return True
+
+
+def invoice_transfer_failure(platform, invoice_id, *, manual=False):
+    """Critical alert without external API responses, tokens or customer PII."""
+    label = {"bizimhesap": "BizimHesap", "parasut": "Paraşüt"}.get(platform, "Muhasebe")
+    prefix = "Manuel fatura" if manual else "Fatura"
+    target = f"/urun-kartlari/faturalar/" if manual else f"/urun-kartlari/faturalar/{invoice_id}/"
+    return notify_management_once(
+        "invoice-export-failed", f"{platform}:{manual}:{invoice_id}",
+        "Fatura Aktarım Hatası", f"{prefix} #{invoice_id} | {label} aktarımı başarısız veya doğrulanamadı. Dış sistem kaydını kontrol edin.",
+        target, timeout=600,
+    )
+
+
 @receiver(post_save, sender=OrderEvent)
 def notify_management_on_order_event(sender, instance, created, **kwargs):
     if not created or instance.event_type != "stage":
@@ -73,6 +101,14 @@ def notify_management_on_order_event(sender, instance, created, **kwargs):
                 "/urun-kartlari/faturalar/aktarilmayan-sevkler/",
                 order=None,
             )
+
+    if instance.stage == "malzeme_durum" and instance.value == "eksik":
+        notify_management_once(
+            "material-missing", order.pk,
+            "Malzeme Eksikliği",
+            f"{summary} | Malzemesi eksik olarak işaretlendi.",
+            f"/order/{order.pk}/", timeout=3600, order=order,
+        )
 
     flags = list(OrderFlag.objects.filter(order=order, is_active=True).prefetch_related("notify_users"))
     if flags:
