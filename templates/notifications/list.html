@@ -13,10 +13,23 @@
 .notification-entry-info small{font-size:11px;color:#8290a4}
 .notification-unread-dot{width:9px;height:9px;border-radius:50%;background:#dc3545;flex-shrink:0}
 .notification-entry .bi-chevron-right{color:#9aa8bc}
+.notification-entry-wrap{position:relative;display:flex;align-items:stretch;gap:8px;margin-bottom:9px}
+.notification-entry-wrap .notification-entry{flex:1;min-width:0;margin-bottom:0}
+.notification-delete-form{display:flex;align-items:center;margin:0}
+.notification-delete-btn{height:38px;width:38px;border:1px solid #e3eaf5;border-radius:11px;background:#fff;color:#8a98ae;display:inline-flex;align-items:center;justify-content:center}
+.notification-delete-btn:hover{color:#b42332;border-color:#e5b8bf;background:#fff5f6}
+.notification-inbox-head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap}
+.notification-inbox-head h2{margin:0}
+.notification-clear-btn{border:1px solid #e5b8bf;border-radius:10px;padding:9px 13px;background:#fff;color:#a53c48;font-weight:700;font-size:12px}
+.notification-clear-btn:hover{background:#fff3f5}
 </style>
 <div class="notification-inbox">
+<div class="notification-inbox-head">
 <h2><i class="bi bi-bell me-2"></i>Bildirimler</h2>
+{% if notifications %}<form method="post" action="{% url 'notification_delete_all' %}" class="m-0" onsubmit="return confirm('Tüm bildirimlerinizi silmek istiyor musunuz? Bu işlem geri alınamaz.');">{% csrf_token %}<button type="submit" class="notification-clear-btn"><i class="bi bi-trash3 me-1"></i>Tümünü Sil</button></form>{% endif %}
+</div>
 {% for n in notifications %}
+<div class="notification-entry-wrap">
 {% if n.destination %}
 <a class="notification-entry {% if not n.is_read %}is-unread{% endif %}" href="{{ n.destination }}" aria-label="{{ n.title }} sayfasına git">
 {% else %}
@@ -26,6 +39,10 @@
 <div class="notification-entry-info"><strong>{{ n.title }}</strong><p>{{ n.message }}</p><small>{{ n.timestamp|date:"d.m.Y H:i" }}</small></div>
 {% if n.destination %}<i class="bi bi-chevron-right"></i>{% endif %}
 {% if n.destination %}</a>{% else %}</div>{% endif %}
+<form class="notification-delete-form" method="post" action="{% url 'notification_delete' n.id %}" onsubmit="return confirm('Bu bildirimi silmek istiyor musunuz?');">
+{% csrf_token %}<button class="notification-delete-btn" type="submit" title="Bildirimi sil" aria-label="{{ n.title }} bildirimini sil"><i class="bi bi-trash3"></i></button>
+</form>
+</div>
 {% empty %}
 <div class="text-muted">Henüz bildiriminiz yok.</div>
 {% endfor %}
