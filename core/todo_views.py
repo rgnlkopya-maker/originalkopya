@@ -2,6 +2,9 @@ from datetime import datetime, timedelta
 
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import get_object_or_404, redirect, render
+from django.http import JsonResponse
+from django.urls import reverse
+from django.views.decorators.http import require_GET
 from django.utils import timezone
 from django.views.decorators.http import require_POST
 
@@ -86,3 +89,28 @@ def todo_snooze(request, todo_id):
 def todo_delete(request, todo_id):
     get_object_or_404(TodoItem, pk=todo_id, user=request.user).delete()
     return redirect("todo_list")
+
+
+@login_required
+@require_GET
+def todo_pending_alarms(request):
+    """Due tasks for the signed-in user's in-app alarm popup."""
+    now = timezone.now()
+    items = TodoItem.objects.filter(
+        user=request.user, completed_at__isnull=True, alarm_enabled=True,
+        due_at__isnull=False, due_at__lte=now,
+    ).order_by("due_at", "id")[:50]
+    alarms = []
+    for item in items:
+        if item.snoozed_until and item.snoozed_until > now:
+            continue
+        alarms.append({
+            "id": item.pk,
+            "title": item.title,
+            "note": item.note,
+            "due_at": timezone.localtime(item.due_at).strftime("%d.%m.%Y %H:%M"),
+            "interval_minutes": max(5, int(item.alarm_interval_minutes or 15)),
+            "snooze_url": reverse("todo_snooze", args=[item.pk]),
+            "complete_url": reverse("todo_complete", args=[item.pk]),
+        })
+    return JsonResponse({"alarms": alarms})
