@@ -1,31 +1,33 @@
 {% extends "base.html" %}
 {% block title %}Bildirimler{% endblock %}
-
 {% block content %}
-<div class="container mt-4">
-    <h3>🔔 Bildirimler</h3>
-    <hr>
-
-    {% if notifications %}
-        <ul class="list-group">
-            {% for n in notifications %}
-                <li class="list-group-item d-flex justify-content-between align-items-start {% if not n.is_read %}bg-light{% endif %}">
-                    <div>
-                        <strong>{{ n.title }}</strong><br>
-                        <small class="text-muted">{{ n.message }}</small><br>
-                        <small class="text-muted">{{ n.timestamp|date:"d.m.Y H:i" }}</small>
-                    </div>
-
-                    <div>
-                        <a href="{% url 'mark_notification_read' n.id %}" class="btn btn-sm btn-primary">
-                            Gör
-                        </a>
-                    </div>
-                </li>
-            {% endfor %}
-        </ul>
-    {% else %}
-        <p class="text-muted">Hiç bildiriminiz yok.</p>
-    {% endif %}
+<style>
+.notification-inbox{max-width:1000px;margin:24px auto;padding:0 15px}
+.notification-inbox h2{font-size:24px;font-weight:800;margin-bottom:16px}
+.notification-entry{display:flex;align-items:center;gap:12px;padding:16px 18px;border:1px solid #e3eaf5;border-radius:13px;margin-bottom:9px;background:#fff;text-decoration:none!important;color:#253654!important;transition:background .15s,border-color .15s}
+.notification-entry:hover{background:#f3f7ff;border-color:#bdcff0}
+.notification-entry.is-unread{background:#f5f9ff;border-left:3px solid #4569bf}
+.notification-entry-info{min-width:0;flex:1}
+.notification-entry-info strong{font-size:13px}
+.notification-entry-info p{font-size:12px;color:#6b7b93;margin:5px 0}
+.notification-entry-info small{font-size:11px;color:#8290a4}
+.notification-unread-dot{width:9px;height:9px;border-radius:50%;background:#dc3545;flex-shrink:0}
+.notification-entry .bi-chevron-right{color:#9aa8bc}
+</style>
+<div class="notification-inbox">
+<h2><i class="bi bi-bell me-2"></i>Bildirimler</h2>
+{% for n in notifications %}
+{% if n.destination %}
+<a class="notification-entry {% if not n.is_read %}is-unread{% endif %}" href="{{ n.destination }}" aria-label="{{ n.title }} sayfasına git">
+{% else %}
+<div class="notification-entry {% if not n.is_read %}is-unread{% endif %}">
+{% endif %}
+{% if not n.is_read %}<span class="notification-unread-dot" aria-label="Okunmadı"></span>{% endif %}
+<div class="notification-entry-info"><strong>{{ n.title }}</strong><p>{{ n.message }}</p><small>{{ n.timestamp|date:"d.m.Y H:i" }}</small></div>
+{% if n.destination %}<i class="bi bi-chevron-right"></i>{% endif %}
+{% if n.destination %}</a>{% else %}</div>{% endif %}
+{% empty %}
+<div class="text-muted">Henüz bildiriminiz yok.</div>
+{% endfor %}
 </div>
 {% endblock %}
