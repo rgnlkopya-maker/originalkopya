@@ -29,3 +29,10 @@ Kod hazır ≠ canlı yedek oluştu ≠ yedekten geri yüklenebildi. Her aşamay
 - 5 birim test başarılı; sahte pg_dump uçtan uca testinde 1.500.005 bayt test girdisi şifrelenip çözülerek birebir karşılaştırıldı. Bunlar gerçek PostgreSQL yedekleme/restore kanıtı değildir.
 - Bağımsız depolama, otomatik yedekleme, gerçek pg_dump, izole pg_restore ve cron sırrı yenileme yapılmadı.
 - Sıradaki: PostgreSQL 18 istemci uyumluluğu, test DB/anahtar depolama, bağımsız saklama planı ve kontrollü cron sırrı rotasyonu.
+
+## 03.11 - read-only PostgreSQL recheck
+- Production DB: originalkopya; PostgreSQL 18.6, approx 33 MB, 118 public base tables (previously 117). Investigate schema change before final restore comparison.
+- Current DB login role is non-superuser and does not have replication role. No large objects; plpgsql is the only installed extension.
+- Latest stored backup executions: folios (25 records) and instruments (16 records), both successful at 03.11 Istanbul 00:24 / 00:11. These are application module exports, not a full database backup.
+- No database writes, restore, deployments, or secret changes performed.
+- Next: make an isolated backup runner capable of pg_dump 18; choose offsite encrypted destination and independent encryption-key escrow; test restoration on a new isolated PostgreSQL database. Confirm extra public table in schema inventory.
