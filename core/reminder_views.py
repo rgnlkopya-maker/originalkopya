@@ -151,6 +151,13 @@ def reminder_tick(request):
     if not configured or supplied != configured:
         return HttpResponseForbidden("Forbidden")
     result = process_due_reminders()
+    try:
+        from .todo_service import process_due_todos
+        result["todos"] = process_due_todos()
+    except Exception:
+        import logging
+        logging.getLogger(__name__).exception("Scheduled todo alarm delivery failed")
+        result["todos"] = {"error": "todo alarm delivery failed"}
     # Existing scheduled tick also performs a daily, persistent Drive access check.
     try:
         from .instrument_drive_health import check_drive_health
