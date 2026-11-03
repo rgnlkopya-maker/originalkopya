@@ -46,8 +46,13 @@ def publish_order_update(*, order, changed_fields, actor):
     recipients = list(management_recipients().values_list("pk", flat=True))
     if not recipients:
         return 0
-    Notification.objects.bulk_create([
-        Notification(user_id=uid, order=order, title=title, message=message)
-        for uid in recipients
-    ])
-    return len(recipients)
+    from .notification_preferences import event_delivery, settings_for_recipients
+    choices = settings_for_recipients(recipients)
+    enabled = [uid for uid in recipients
+               if event_delivery(choices.get(uid, {}), "order_update")[0]]
+    if enabled:
+        Notification.objects.bulk_create([
+            Notification(user_id=uid, order=order, title=title, message=message)
+            for uid in enabled
+        ])
+    return len(enabled)
