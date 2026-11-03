@@ -28,6 +28,10 @@
 .nc-pref-note{font-size:11px;color:#74849c;line-height:1.5}
 @media(max-width:820px){.nc-columns{grid-template-columns:1fr}.nc-grid{grid-template-columns:repeat(3,minmax(0,1fr))}.nc-stat{padding:13px}.nc-stat strong{font-size:20px}}
 @media(max-width:450px){.nc-grid{grid-template-columns:1fr 1fr}.nc-event{grid-template-columns:1fr}.nc-tag{justify-self:start}}
+.nc-pref-panel{margin-top:10px;border:1px solid #e4eaf3;border-radius:12px;padding:12px;background:#f9fbff}
+.nc-pref-panel summary{display:flex;align-items:center;cursor:pointer;list-style:none;font-size:13px;font-weight:800;color:#304a74}
+.nc-pref-panel summary::-webkit-details-marker{display:none}
+.nc-pref-panel[open] summary .bi-chevron-down{transform:rotate(180deg)}
 </style>
 <main class="nc-wrap">
   <header class="nc-head">
@@ -35,15 +39,10 @@
     <div class="nc-muted">Bildirim kaynakları, geçmiş ve zamanlı hatırlatmalar için yönetim paneli</div>
   </header>
   {% for message in messages %}<div class="alert alert-info mt-3 py-2">{{ message }}</div>{% endfor %}
-  <div class="nc-grid">
-    <div class="nc-stat"><strong>{{ unread_count }}</strong><span>Okunmamış bildirimim</span></div>
-    <div class="nc-stat"><strong>{{ notification_count }}</strong><span>Toplam bildirimim</span></div>
-    <div class="nc-stat"><strong>{{ active_reminders }}</strong><span>Aktif hatırlatma</span></div>
-  </div>
   <div class="nc-columns">
     <section class="nc-card">
       <h2>Hangi durumlarda bildirim geliyor?</h2>
-      <div class="nc-muted">Mevcut bildirim türleri ve kime ulaştıkları. Yönetici bildirim kanallarınızı aşağıdan değiştirebilirsiniz.</div>
+      <div class="nc-muted">Mevcut bildirim türleri ve kime ulaştıkları. Bildirim türleri ve alıcıları aşağıda gösterilir.</div>
       <div class="mt-2">
         {% for name,category,audience,channel,source in event_catalog %}
         <div class="nc-event">
@@ -53,8 +52,9 @@
         {% endfor %}
       </div>
       <hr class="my-3">
-      <h2>Benim bildirim tercihlerim</h2>
-      <div class="nc-pref-note">Bu ayarlar yalnız sizin hesabınız içindir. Kritik olayların uygulama içi kaydı zorunludur. Push gönderimi için ayrıca cihazınızda bildirim izni bulunmalıdır.</div>
+      <details class="nc-pref-panel">
+        <summary><i class="bi bi-sliders me-2"></i>Tüm kullanıcıların bildirim tercihleri <i class="bi bi-chevron-down ms-auto"></i></summary>
+        <div class="nc-pref-note mt-2">Burada kaydettiğiniz tercihler tüm aktif kullanıcılara uygulanır. Kritik uyarılar uygulama içinde kapatılamaz. Push bildirimi ayrıca her cihazın iznine bağlıdır.</div>
       <form method="post" action="{% url 'notification_center' %}">
         {% csrf_token %}
         <input type="hidden" name="action" value="save_preferences">
@@ -70,8 +70,9 @@
             {% endfor %}</tbody>
           </table>
         </div>
-        <button class="btn btn-outline-primary" type="submit"><i class="bi bi-check2-circle me-1"></i>Tercihleri Kaydet</button>
+        <button class="btn btn-outline-primary" type="submit"><i class="bi bi-check2-circle me-1"></i>Tüm Kullanıcılar İçin Kaydet</button>
       </form>
+      </details>
       <div class="nc-shortcuts">
         <a href="{% url 'notification_list' %}"><i class="bi bi-clock-history me-1"></i>Tüm bildirimlerim</a>
         <a href="{% url 'my_reminders' %}"><i class="bi bi-alarm me-1"></i>Hatırlatmalarım</a>
@@ -98,11 +99,6 @@
           <button type="submit" class="btn btn-outline-primary"><i class="bi bi-plus-circle me-1"></i>Hatırlatma Oluştur</button>
         </form>
         <div class="nc-shortcuts"><a href="{% url 'reminder_management' %}">Tüm hatırlatmaları yönet</a><a href="{% url 'todo_list' %}">Yapılacaklarımı aç</a></div>
-      </section>
-      <section class="nc-card mb-3">
-        <h2>Son bildirimlerim</h2>
-        <ul class="nc-list">{% for n in recent_notifications %}<li><strong>{{ n.title }}</strong><div class="nc-muted">{{ n.timestamp|date:"d.m.Y H:i" }} {% if not n.is_read %}· Okunmadı{% endif %}</div></li>{% empty %}<li class="nc-muted">Henüz bir bildirim yok.</li>{% endfor %}</ul>
-        <a class="nc-link" href="{% url 'notification_list' %}">Tümünü görüntüle</a>
       </section>
       <section class="nc-card">
         <h2>Hatırlatma planı</h2>
