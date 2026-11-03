@@ -25,6 +25,11 @@ jobs:
         run: python manage.py makemigrations --check --dry-run
         env:
           DEBUG: 'False'
+      - name: Verify BizimHesap invoice line labels (no database)
+        run: python manage.py test product_cards.test_bizimhesap_invoice_labels --verbosity 2
+        env:
+          DEBUG: 'False'
+          BASE_URL: 'http://127.0.0.1:8000'
       - name: Run tests
         run: python manage.py test --verbosity 2
         env:
