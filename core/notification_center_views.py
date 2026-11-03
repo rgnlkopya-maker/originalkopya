@@ -40,10 +40,11 @@ def notification_center(request):
 
     if request.method == "POST" and request.POST.get("action") == "save_preferences":
         choices = validated_choices(request.POST)
-        NotificationPreference.objects.update_or_create(
-            user=request.user, defaults={"choices": choices},
-        )
-        messages.success(request, "Bildirim tercihleriniz kaydedildi.")
+        for recipient in get_user_model().objects.filter(is_active=True).iterator():
+            NotificationPreference.objects.update_or_create(
+                user=recipient, defaults={"choices": choices},
+            )
+        messages.success(request, "Tercihler tüm aktif kullanıcılar için kaydedildi.")
         return redirect("notification_center")
 
     if request.method == "POST":
