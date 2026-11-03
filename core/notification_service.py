@@ -44,6 +44,8 @@ def publish_order_update(*, order, changed_fields, actor):
     title = f"{order.siparis_numarasi} güncellendi"
     message = f"Değişen alanlar: {', '.join(labels)}. Güncelleyen: {username}"
     recipients = list(management_recipients().values_list("pk", flat=True))
+    if not recipients:
+        return 0
     Notification.objects.bulk_create([
         Notification(user_id=uid, order=order, title=title, message=message)
         for uid in recipients
