@@ -27,29 +27,41 @@ def management_users():
 
 
 def notify_management(title, message, url, *, order=None, exclude_user_ids=()):
+    """Respect each manager's inbox and browser delivery choices."""
+    from uuid import uuid4
+    from .notification_preferences import (
+        EVENT_TITLE_KEYS, event_delivery, settings_for_recipients,
+    )
+
     excluded = set(exclude_user_ids)
-    for recipient in management_users():
-        if recipient.pk in excluded:
+    recipients = [u for u in management_users() if u.pk not in excluded]
+    choices = settings_for_recipients([u.pk for u in recipients])
+    event_key = EVENT_TITLE_KEYS.get(title)
+
+    for recipient in recipients:
+        in_app, push = event_delivery(choices.get(recipient.pk, {}), event_key)
+        if not in_app and not push:
             continue
-        notification = Notification.objects.create(
-            user=recipient, order=order, title=title, message=message
-        )
-        recipient_id = recipient.pk
-        notification_id = notification.pk
+        notice_id = None
+        if in_app:
+            notice_id = Notification.objects.create(
+                user=recipient, order=order, title=title, message=message
+            ).pk
 
-        def deliver(uid=recipient_id, nid=notification_id):
-            try:
-                from .push_views import send_push_to_user
-                user = get_user_model().objects.filter(pk=uid, is_active=True).first()
-                if user:
-                    send_push_to_user(
-                        user, title, message, url=url,
-                        tag=f"moli-manager-{nid}"
-                    )
-            except Exception:
-                logger.exception("Management push failed for user %s", uid)
+        if push:
+            recipient_id = recipient.pk
+            tag = f"moli-manager-{notice_id or uuid4().hex}"
 
-        transaction.on_commit(deliver)
+            def deliver(uid=recipient_id, push_tag=tag):
+                try:
+                    from .push_views import send_push_to_user
+                    user = get_user_model().objects.filter(pk=uid, is_active=True).first()
+                    if user:
+                        send_push_to_user(user, title, message, url=url, tag=push_tag)
+                except Exception:
+                    logger.exception("Management push failed for user %s", uid)
+
+            transaction.on_commit(deliver)
 
 
 def notify_management_once(kind, identifier, title, message, url, *, timeout=600, order=None):
