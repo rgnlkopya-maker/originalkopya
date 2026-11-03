@@ -5,6 +5,7 @@ separately without altering their existing behaviour.
 """
 from django.contrib.auth import get_user_model
 from django.db.models import Q
+from django.db import transaction
 
 from .models import Notification
 
@@ -46,13 +47,32 @@ def publish_order_update(*, order, changed_fields, actor):
     recipients = list(management_recipients().values_list("pk", flat=True))
     if not recipients:
         return 0
+    from uuid import uuid4
     from .notification_preferences import event_delivery, settings_for_recipients
     choices = settings_for_recipients(recipients)
-    enabled = [uid for uid in recipients
-               if event_delivery(choices.get(uid, {}), "order_update")[0]]
+    enabled = []
+    push_recipients = []
+    for uid in recipients:
+        in_app, push = event_delivery(choices.get(uid, {}), "order_update")
+        if in_app:
+            enabled.append(uid)
+        if push:
+            push_recipients.append(uid)
     if enabled:
         Notification.objects.bulk_create([
             Notification(user_id=uid, order=order, title=title, message=message)
             for uid in enabled
         ])
+    if push_recipients:
+        def deliver():
+            from .push_views import send_push_to_user
+            users = get_user_model().objects.filter(
+                pk__in=push_recipients, is_active=True
+            )
+            for user in users:
+                send_push_to_user(
+                    user, title, message, url=f"/order/{order.pk}/",
+                    tag=f"moli-order-edit-{order.pk}-{uuid4().hex}",
+                )
+        transaction.on_commit(deliver)
     return len(enabled)
