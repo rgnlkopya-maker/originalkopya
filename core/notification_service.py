@@ -40,7 +40,7 @@ def management_recipients():
 def publish_order_update(*, order, changed_fields, actor):
     """Persist one manager-only in-app notice per order edit.
 
-    Browser Push is deliberately unchanged: legacy edits only wrote notices.
+    Legacy edits remain inbox-only by default; Push requires explicit opt-in.
     """
     if not changed_fields:
         return 0
