@@ -51,10 +51,28 @@ def build_invoice_payload(invoice, lines, mapping, firm_id):
         if not product_name:
             blockers.append("Ürün kodu eksik.")
             continue
+        full_label = external_invoice_item_label(line)
+        if order:
+            # BizimHesap renders productId and productName side by side.
+            # Put the code in productId once; productName contains only the
+            # remaining invoice-line information (color, size, type, ref).
+            color = str(getattr(order, "renk", "") or "").strip()
+            size = str(getattr(order, "beden", "") or "").strip()
+            if not color or not size:
+                blockers.append(
+                    "Eksik ürün açıklaması (" + product_name +
+                    "): renk ve beden tamamlanmadan BizimHesap'a aktarılmaz."
+                )
+                continue
+            product_description = full_label[len(product_name):].strip() if full_label.startswith(product_name + " ") else full_label
+        else:
+            # Standalone/manual lines are free-text; keep their existing
+            # mapping until the external API's productId contract is verified.
+            product_description = full_label
         tax = money(price * rate / Decimal("100"))
         details.append({
             "productId": product_name,
-            "productName": external_invoice_item_label(line),
+            "productName": product_description,
             "note": "",
             "taxRate": str(rate),
             "quantity": str(line.quantity) if order is None else 1,
