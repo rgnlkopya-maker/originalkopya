@@ -78,7 +78,6 @@ class NotificationCenterTests(SimpleTestCase):
     def test_preferences_save_is_scoped_to_current_user(self, save, permitted):
         req = self.factory.post("/yonetim/bildirim-merkezi/", {
             "action": "save_preferences",
-            "order_update_in_app": "on",
             "material_missing_push": "on",
             "invoice_failure_push": "on",
         })
@@ -90,7 +89,7 @@ class NotificationCenterTests(SimpleTestCase):
         self.assertEqual(save.call_args.kwargs["user"], self.manager)
         choices = save.call_args.kwargs["defaults"]["choices"]
         self.assertTrue(choices["invoice_failure"]["in_app"])
-        self.assertFalse(choices["order_update"]["push"])
+        self.assertNotIn("order_update", choices)
         self.assertTrue(choices["material_missing"]["push"])
 
     def test_anonymous_user_is_redirected_to_login(self):

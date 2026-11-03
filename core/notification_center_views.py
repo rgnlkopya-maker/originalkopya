@@ -20,7 +20,6 @@ from .backup_center_views import manager as is_manager
 
 
 EVENT_CATALOG = (
-    ("Sipariş bilgisi güncellendi", "Sipariş", "Patron ve müdür", "Uygulama içi · Push isteğe bağlı", "core.notification_service"),
     ("Faturaya aktarılmayan yeni sevkiyat", "Fatura", "Patron ve müdür", "Uygulama içi + Push", "core.manager_notification_signals"),
     ("Fatura aktarım hatası", "Fatura", "Patron ve müdür", "Uygulama içi + Push", "core.manager_notification_signals"),
     ("Malzeme eksikliği", "Üretim", "Patron ve müdür", "Uygulama içi + Push", "core.manager_notification_signals"),
