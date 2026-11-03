@@ -13,13 +13,14 @@ from django.shortcuts import redirect, render
 from django.utils import timezone
 from django.views.decorators.http import require_http_methods
 
-from .models import Notification, UserProfile
+from .models import Notification, UserProfile, NotificationPreference
+from .notification_preferences import EVENTS, event_delivery, settings_for_user, validated_choices
 from .reminder_models import Reminder
 from .backup_center_views import manager as is_manager
 
 
 EVENT_CATALOG = (
-    ("Sipariş bilgisi güncellendi", "Sipariş", "Patron ve müdür", "Uygulama içi", "core.notification_service"),
+    ("Sipariş bilgisi güncellendi", "Sipariş", "Patron ve müdür", "Uygulama içi · Push isteğe bağlı", "core.notification_service"),
     ("Faturaya aktarılmayan yeni sevkiyat", "Fatura", "Patron ve müdür", "Uygulama içi + Push", "core.manager_notification_signals"),
     ("Fatura aktarım hatası", "Fatura", "Patron ve müdür", "Uygulama içi + Push", "core.manager_notification_signals"),
     ("Malzeme eksikliği", "Üretim", "Patron ve müdür", "Uygulama içi + Push", "core.manager_notification_signals"),
@@ -37,6 +38,14 @@ EVENT_CATALOG = (
 def notification_center(request):
     if not is_manager(request.user):
         return HttpResponseForbidden("Bildirim Merkezi yalnız patron ve müdür içindir.")
+
+    if request.method == "POST" and request.POST.get("action") == "save_preferences":
+        choices = validated_choices(request.POST)
+        NotificationPreference.objects.update_or_create(
+            user=request.user, defaults={"choices": choices},
+        )
+        messages.success(request, "Bildirim tercihleriniz kaydedildi.")
+        return redirect("notification_center")
 
     if request.method == "POST":
         title = (request.POST.get("title") or "").strip()[:160]
@@ -90,10 +99,20 @@ def notification_center(request):
         messages.success(request, "Hatırlatma oluşturuldu.")
         return redirect("notification_center")
 
+    current_choices = settings_for_user(request.user)
+    event_preferences = []
+    for key, name, critical, _ in EVENTS:
+        in_app, push = event_delivery(current_choices, key)
+        event_preferences.append({
+            "key": key, "name": name, "critical": critical,
+            "in_app": in_app, "push": push,
+        })
+
     my_notifications = Notification.objects.filter(user=request.user)
     reminders = list(Reminder.objects.select_related("target_user").order_by("-is_active", "due_at")[:8])
     return render(request, "core/notification_center.html", {
         "event_catalog": EVENT_CATALOG,
+        "event_preferences": event_preferences,
         "notification_count": my_notifications.count(),
         "unread_count": my_notifications.filter(is_read=False).count(),
         "recent_notifications": my_notifications.order_by("-timestamp")[:6],

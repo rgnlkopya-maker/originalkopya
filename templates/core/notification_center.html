@@ -17,6 +17,15 @@
 .nc-minitext{font-size:12px;color:#596d86}.nc-shortcuts{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}
 .nc-shortcuts a{font-size:12px;text-decoration:none;background:#f4f7fb;border:1px solid #e7edf6;color:#355276;padding:7px 11px;border-radius:9px;font-weight:700}
 .nc-list{list-style:none;margin:0;padding:0}.nc-list li{border-bottom:1px solid #edf1f6;padding:9px 0;font-size:12px}.nc-list li:last-child{border:0}
+.nc-pref-table{width:100%;border-collapse:collapse;font-size:12px;margin:12px 0}
+.nc-pref-table th{font-size:11px;color:#697b94;font-weight:700;text-align:center;padding:8px 4px;border-bottom:1px solid #e7edf6}
+.nc-pref-table th:first-child{text-align:left}
+.nc-pref-table td{padding:9px 5px;border-bottom:1px solid #edf1f6;vertical-align:middle}
+.nc-pref-table td:not(:first-child){text-align:center}
+.nc-pref-table input{width:16px;height:16px;accent-color:#2c5ec2;cursor:pointer}
+.nc-pref-table input[disabled]{cursor:not-allowed;opacity:.65}
+.nc-locked{font-size:10px;color:#8b6270;font-weight:650}
+.nc-pref-note{font-size:11px;color:#74849c;line-height:1.5}
 @media(max-width:820px){.nc-columns{grid-template-columns:1fr}.nc-grid{grid-template-columns:repeat(3,minmax(0,1fr))}.nc-stat{padding:13px}.nc-stat strong{font-size:20px}}
 @media(max-width:450px){.nc-grid{grid-template-columns:1fr 1fr}.nc-event{grid-template-columns:1fr}.nc-tag{justify-self:start}}
 </style>
@@ -34,7 +43,7 @@
   <div class="nc-columns">
     <section class="nc-card">
       <h2>Hangi durumlarda bildirim geliyor?</h2>
-      <div class="nc-muted">Mevcut MoliApp kuralları. Bu liste bilgilendirme amaçlıdır; aç/kapat ayarları henüz eklenmedi.</div>
+      <div class="nc-muted">Mevcut bildirim türleri ve kime ulaştıkları. Yönetici bildirim kanallarınızı aşağıdan değiştirebilirsiniz.</div>
       <div class="mt-2">
         {% for name,category,audience,channel,source in event_catalog %}
         <div class="nc-event">
@@ -43,6 +52,26 @@
         </div>
         {% endfor %}
       </div>
+      <hr class="my-3">
+      <h2>Benim bildirim tercihlerim</h2>
+      <div class="nc-pref-note">Bu ayarlar yalnız sizin hesabınız içindir. Kritik olayların uygulama içi kaydı zorunludur. Push gönderimi için ayrıca cihazınızda bildirim izni bulunmalıdır.</div>
+      <form method="post" action="{% url 'notification_center' %}">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="save_preferences">
+        <div class="table-responsive">
+          <table class="nc-pref-table">
+            <thead><tr><th>Bildirim</th><th>Uygulama</th><th>Push</th></tr></thead>
+            <tbody>{% for p in event_preferences %}
+            <tr>
+              <td><strong>{{ p.name }}</strong>{% if p.critical %}<div class="nc-locked"><i class="bi bi-shield-lock me-1"></i>Kritik · Uygulama içi zorunlu</div>{% endif %}</td>
+              <td><input type="checkbox" name="{{ p.key }}_in_app" aria-label="{{ p.name }} uygulama bildirimi" {% if p.in_app %}checked{% endif %} {% if p.critical %}disabled{% endif %}></td>
+              <td><input type="checkbox" name="{{ p.key }}_push" aria-label="{{ p.name }} push bildirimi" {% if p.push %}checked{% endif %}></td>
+            </tr>
+            {% endfor %}</tbody>
+          </table>
+        </div>
+        <button class="btn btn-outline-primary" type="submit"><i class="bi bi-check2-circle me-1"></i>Tercihleri Kaydet</button>
+      </form>
       <div class="nc-shortcuts">
         <a href="{% url 'notification_list' %}"><i class="bi bi-clock-history me-1"></i>Tüm bildirimlerim</a>
         <a href="{% url 'my_reminders' %}"><i class="bi bi-alarm me-1"></i>Hatırlatmalarım</a>

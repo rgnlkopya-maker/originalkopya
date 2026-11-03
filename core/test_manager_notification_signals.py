@@ -8,6 +8,12 @@ from core.manager_notification_signals import (notify_management, notify_managem
 
 
 class ManagerOperationNotificationTests(SimpleTestCase):
+
+    def setUp(self):
+        self.preference_patch = patch("core.notification_preferences.settings_for_recipients", return_value={})
+        self.preference_patch.start()
+        self.addCleanup(self.preference_patch.stop)
+
     @patch("core.manager_notification_signals.transaction.on_commit")
     @patch("core.manager_notification_signals.Notification.objects.create")
     @patch("core.manager_notification_signals.management_users")

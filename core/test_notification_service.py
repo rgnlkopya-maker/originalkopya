@@ -9,6 +9,12 @@ from core.models import Order
 
 
 class CentralNotificationServiceTests(SimpleTestCase):
+
+    def setUp(self):
+        self.preference_patch = patch("core.notification_preferences.settings_for_recipients", return_value={})
+        self.preference_patch.start()
+        self.addCleanup(self.preference_patch.stop)
+
     @patch("core.notification_service.Notification.objects.bulk_create")
     @patch("core.notification_service.management_recipients")
     def test_order_update_sends_only_to_unique_active_management_recipients(self, recipients, save):
