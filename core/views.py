@@ -882,6 +882,16 @@ def custom_login(request):
 
         failed_attempts = register_login_failure(request, username)
         if failed_attempts >= MAX_FAILED_ATTEMPTS:
+            from .manager_notification_signals import notify_management_once
+            from .login_security import _digest, _client_ip
+            notify_management_once(
+                "security-login-lock",
+                f"{_digest(username.strip().lower())}:{_digest(_client_ip(request))}",
+                "Güvenlik Uyarısı",
+                "Üst üste hatalı girişler nedeniyle 10 dakikalık giriş kilidi uygulandı. Güvenlik kayıtlarını kontrol edin.",
+                "/sistem-sagligi/",
+                timeout=600,
+            )
             return render(request, "registration/custom_login.html", {
                 "access_error": "5 hatalı giriş denemesi yapıldı. Giriş 10 dakika kilitlendi."
             }, status=429)
