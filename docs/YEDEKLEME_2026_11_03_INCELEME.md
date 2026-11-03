@@ -22,3 +22,10 @@ Bu dal yalnızca hazırlık, test ve dokümantasyon içindir. **Canlı main dal�
 
 ## Kabul ilkesi
 Kod hazır ≠ canlı yedek oluştu ≠ yedekten geri yüklenebildi. Her aşamaya gerçek test kanıtı eklenmeden tamamlandı işaretlenmeyecek.
+
+## 03.11 — Akış şifreleme prototipi doğrulaması
+- Yerel çalışma dosyaları: moliapp_pg_backup_stream.py ve test_moliapp_pg_backup_stream.py. Bu iki dosya henüz GitHub kaynak koduna aktarılmadı; main değiştirilmedi.
+- AES-256-GCM akış prototipi düz metin dump dosyası oluşturmaz; PostgreSQL bağlantı parolasını pg_dump komut argümanlarına geçirmez. Kaynak işlem başarısızsa çıktı yayımlanmaz.
+- 5 birim test başarılı; sahte pg_dump uçtan uca testinde 1.500.005 bayt test girdisi şifrelenip çözülerek birebir karşılaştırıldı. Bunlar gerçek PostgreSQL yedekleme/restore kanıtı değildir.
+- Bağımsız depolama, otomatik yedekleme, gerçek pg_dump, izole pg_restore ve cron sırrı yenileme yapılmadı.
+- Sıradaki: PostgreSQL 18 istemci uyumluluğu, test DB/anahtar depolama, bağımsız saklama planı ve kontrollü cron sırrı rotasyonu.
