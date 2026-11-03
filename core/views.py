@@ -2487,11 +2487,14 @@ def mark_notification_read(request, pk):
     notif.is_read = True
     notif.save()
 
-    # Eğer bildirim siparişe bağlıysa sipariş detayına yönlendir
+    # Operasyon bildirimleri ilgili yönetim ekranına yönlendirir.
+    # Bu sabit hedefler kullanıcıdan alınmadığından açık yönlendirme riski yoktur.
+    if notif.title == "Faturaya Aktarılmayan Yeni Sevkiyat":
+        return redirect("/urun-kartlari/faturalar/aktarilmayan-sevkler/")
+    if notif.title == "Otomatik Yedekleme Başarısız":
+        return redirect("/yonetim/yedekleme-merkezi/")
     if notif.order:
         return redirect("order_detail", pk=notif.order.id)
-
-    # Değilse bildirim listesine dön
     return redirect("notification_list")
 
 
