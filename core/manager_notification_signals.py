@@ -19,8 +19,7 @@ logger = logging.getLogger(__name__)
 
 def management_users():
     return get_user_model().objects.filter(is_active=True).filter(
-        Q(is_superuser=True) | Q(is_staff=True) |
-        Q(groups__name__in=["patron", "mudur"])
+        Q(is_superuser=True) | Q(groups__name__in=["patron", "mudur"])
     ).distinct()
 
 
