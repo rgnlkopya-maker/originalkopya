@@ -1309,45 +1309,16 @@ def order_edit(request, pk):
                     )
 
             # ------------------------------------------------------------
-            # 🔔 BİLDİRİM GÖNDER (eğer değişiklik varsa)
-            # ------------------------------------------------------------
+            # Bildirimleri merkezi servisten oluştur; sipariş düzenleme mantığı değişmez.
             if changed_fields:
-                from .models import Notification
+                from .notification_service import publish_order_update
+                publish_order_update(
+                    order=updated_order,
+                    changed_fields=changed_fields,
+                    actor=request.user,
+                )
 
-                alan_etiketleri = {
-                    "musteri": "Müşteri",
-                    "siparis_tipi": "Sipariş Tipi",
-                    "urun_kodu": "Ürün Kodu",
-                    "renk": "Renk",
-                    "beden": "Beden",
-                    "adet": "Adet",
-                    "aciklama": "Açıklama",
-                    "musteri_referans": "Müşteri Ref",
-                    "teslim_tarihi": "Teslim Tarihi",
-                    "satis_fiyati": "Satış Fiyatı",
-                    "vat_rate": "KDV Oranı",
-                    "ekstra_maliyet": "Ekstra Maliyet",
-                    "maliyet_override": "Manuel Maliyet",
-                }
-
-                okunur_alanlar = [alan_etiketleri.get(f, f) for f in changed_fields]
-                degisen_text = ", ".join(okunur_alanlar)
-
-                title = f"{updated_order.siparis_numarasi} güncellendi"
-                message = f"Değişen alanlar: {degisen_text}. Güncelleyen: {request.user.username}"
-
-                notif_list = [
-                    Notification(
-                        user=u,
-                        order=updated_order,
-                        title=title,
-                        message=message,
-                    )
-                    for u in User.objects.all()
-                ]
-
-                Notification.objects.bulk_create(notif_list)
-
+            # ------------------------------------------------------------
             # ------------------------------------------------------------
             # 🚀 CACHE TEMİZLE – KESİN GEREKİYOR!!!
             # ------------------------------------------------------------
