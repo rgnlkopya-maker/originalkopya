@@ -21,7 +21,7 @@ class NotificationPreferenceTests(SimpleTestCase):
             (False, True),
         )
         self.assertEqual(
-            event_delivery({"order_update": {"in_app": True, "push": False}}, "order_update"),
+            event_delivery({"flagged_stage": {"in_app": True, "push": False}}, "flagged_stage"),
             (True, False),
         )
 
