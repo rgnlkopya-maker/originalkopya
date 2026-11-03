@@ -849,3 +849,14 @@ class AssistantConversation(models.Model):
 from .instrument_models import NegotiableInstrument, InstrumentEndorser, InstrumentMovement, InstrumentPhoto, InstrumentAttachment, InstrumentDriveAuthorization, InstrumentBackupRun, InstrumentDriveHealth
 
 from .backup_center_models import BackupPolicy, BackupExecution
+
+
+class NotificationPreference(models.Model):
+    """Per-user delivery preferences for manager operation notifications."""
+
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="notification_preferences")
+    choices = models.JSONField(default=dict, blank=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"{self.user_id} bildirim tercihleri"
