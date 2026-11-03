@@ -62,8 +62,8 @@ class NotificationCenterTests(SimpleTestCase):
             "notify_interval_minutes": "15",
         })
         req.user = self.manager
-        req._messages = __import__("django.contrib.messages.storage.fallback", fromlist=["FallbackStorage"]).FallbackStorage(req)
         req.session = {}
+        req._messages = __import__("django.contrib.messages.storage.fallback", fromlist=["FallbackStorage"]).FallbackStorage(req)
         response = notification_center(req)
         self.assertEqual(response.status_code, 302)
         self.assertEqual(create.call_args.kwargs["title"], "Sevkiyat toplantısı")
