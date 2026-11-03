@@ -22,7 +22,7 @@ from .price_list_views import _can_manage
 logger = logging.getLogger(__name__)
 
 # Camera formats are detected from actual bytes, not client-supplied extensions.
-SUPPORTED_PHOTO_FORMATS = frozenset(("JPEG", "PNG", "WEBP", "HEIF", "HEIC", "TIFF", "BMP", "GIF", "AVIF"))
+SUPPORTED_PHOTO_FORMATS = frozenset(("JPEG", "PNG", "WEBP", "HEIF", "HEIC", "TIFF", "BMP", "GIF", "AVIF", "MPO"))
 
 
 def _photo_format(file):
