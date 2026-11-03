@@ -73,6 +73,26 @@ class NotificationCenterTests(SimpleTestCase):
         self.assertEqual(create.call_args.kwargs["title"], "Sevkiyat toplantısı")
         self.assertEqual(create.call_args.kwargs["repeat"], "weekly")
 
+    @patch("core.notification_center_views.is_manager", return_value=True)
+    @patch("core.notification_center_views.NotificationPreference.objects.update_or_create")
+    def test_preferences_save_is_scoped_to_current_user(self, save, permitted):
+        req = self.factory.post("/yonetim/bildirim-merkezi/", {
+            "action": "save_preferences",
+            "order_update_in_app": "on",
+            "material_missing_push": "on",
+            "invoice_failure_push": "on",
+        })
+        req.user = self.manager
+        req.session = {}
+        req._messages = __import__("django.contrib.messages.storage.fallback", fromlist=["FallbackStorage"]).FallbackStorage(req)
+        result = notification_center(req)
+        self.assertEqual(result.status_code, 302)
+        self.assertEqual(save.call_args.kwargs["user"], self.manager)
+        choices = save.call_args.kwargs["defaults"]["choices"]
+        self.assertTrue(choices["invoice_failure"]["in_app"])
+        self.assertFalse(choices["order_update"]["push"])
+        self.assertTrue(choices["material_missing"]["push"])
+
     def test_anonymous_user_is_redirected_to_login(self):
         req = self.factory.get("/yonetim/bildirim-merkezi/")
         req.user = AnonymousUser()
