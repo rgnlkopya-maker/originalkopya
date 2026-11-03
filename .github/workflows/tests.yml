@@ -10,6 +10,8 @@ jobs:
   test:
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    env:
+      SECRET_KEY: 'ci-only-not-for-production-do-not-reuse-2026'
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
