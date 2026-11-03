@@ -5,6 +5,7 @@ from unittest.mock import MagicMock, patch
 from django.test import SimpleTestCase
 
 from core.notification_service import publish_order_update
+from core.models import Order
 
 
 class CentralNotificationServiceTests(SimpleTestCase):
@@ -12,7 +13,7 @@ class CentralNotificationServiceTests(SimpleTestCase):
     @patch("core.notification_service.management_recipients")
     def test_order_update_sends_only_to_unique_active_management_recipients(self, recipients, save):
         recipients.return_value.values_list.return_value = [11, 19]
-        order = SimpleNamespace(pk=9, siparis_numarasi="SERI0368")
+        order = Order(siparis_numarasi="SERI0368")
         actor = SimpleNamespace(username="mehmet")
         count = publish_order_update(
             order=order, changed_fields=["aciklama", "teslim_tarihi"], actor=actor
