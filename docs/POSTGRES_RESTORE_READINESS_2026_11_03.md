@@ -26,3 +26,10 @@ Security: The backup scheduler currently risks exposing its credential in comman
 - Added five unit-test cases, but tests have not yet been executed on a Django runtime; code is NOT deployed to main.
 - Reminder: a pre-restore and post-restore comparison must use the same recovery snapshot. Running baseline against a live database at a different time would create false mismatches.
 - Outstanding: encrypted real PostgreSQL dump, independent storage and a successful isolated pg_restore test, plus credential rotation.
+
+## 2026-11-04 restore audit correction
+- Fixed a false-negative in the comparison: an isolated restore database can have a different database name from production. Database name is recorded for traceability, but is no longer required to match.
+- PostgreSQL major version now uses the numeric server_version_num convention, and malformed version metadata is reported.
+- Added two unit tests: isolated destination database name and malformed PostgreSQL version.
+- The code changes were committed to the isolated backup branch only. Full Django tests have not run: the local verification environment lacks Django and package installation was unavailable. Do not mark these tests passed.
+- No production dump, backup upload, restore, scheduled-task or secret changes occurred.
