@@ -59,3 +59,9 @@ Security: The backup scheduler currently risks exposing its credential in comman
 - Re-ran five separate encrypted-stream prototype tests successfully with Python unittest in /mnt/data. Those tests do not represent a real PostgreSQL dump or restore.
 - Existing live main branch, backup cron, database and secrets remain unchanged.
 - Next proof required: actual Django CI execution, encrypted PG18 dump with secure runner, and restore into dedicated isolated DB.
+
+## 2026-11-04 — manifest integrity hardening
+- Hardened the recovery comparator to reject missing/empty table inventories, negative and boolean row counts, invalid PostgreSQL version metadata, missing format version and non-object manifests. A legitimate isolated restore may still have a different database name.
+- Added seven regression cases on the separate recovery-preparation branch: missing/empty tables, negative/boolean counts, missing format/version, invalid manifest root. Total Django test cases on the branch: 16.
+- Test execution status: 16 Django test cases remain unverified in a real Django runtime. The local environment has no Django and package-index access failed; GitHub connector did not prove a successful CI run. Do not report these tests as passed.
+- Security/production: no deployment, backup job or live database data changes. No real full encrypted pg_dump or isolated restore completed.
