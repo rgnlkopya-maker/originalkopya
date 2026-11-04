@@ -39,3 +39,9 @@ Security: The backup scheduler currently risks exposing its credential in comman
 - This was not the Django test suite; Django is unavailable in the local runtime, and package installation failed. Full command integration remains unverified.
 - Adjusted the audit count collection to use a read-only REPEATABLE READ transaction so counts form a consistent snapshot. Code remains only in the isolated development branch.
 - No real pg_dump, encrypted upload or restore performed. Production and current scheduled backups unchanged.
+
+## 2026-11-04 Django CI test setup
+- Local runtime lacks Django and PostgreSQL client. Installing Django was blocked by network/DNS; no Django test result can be claimed locally.
+- Added isolated GitHub Actions workflow at .github/workflows/backup-recovery-tests.yml, pinned to the backup preparation branch and with read-only repository permissions. It installs Django 5.2.6 and runs the seven comparison tests without a production database or credentials.
+- Workflow outcome has not yet been verified. A successful run is required before marking the Django test stage complete.
+- Actual PostgreSQL dump and isolated restore remain pending. Main branch and live services unchanged.
