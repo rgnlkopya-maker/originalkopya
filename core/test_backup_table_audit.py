@@ -17,6 +17,14 @@ class BackupCountAuditTests(SimpleTestCase):
         actual = dict(self.expected, server_version_num=180007)
         self.assertEqual(differences(self.expected, actual), [])
 
+    def test_isolated_database_name_is_allowed(self):
+        actual = dict(self.expected, database="moliapp_restore_test")
+        self.assertEqual(differences(self.expected, actual), [])
+
+    def test_invalid_version_is_reported(self):
+        actual = dict(self.expected, server_version_num="invalid")
+        self.assertIn("PostgreSQL version metadata invalid", differences(self.expected, actual))
+
     def test_count_mismatch_fails(self):
         actual = dict(self.expected, tables={"public.core_order": 39, "public.core_orderevent": 90})
         self.assertTrue(any("core_order" in item for item in differences(self.expected, actual)))
