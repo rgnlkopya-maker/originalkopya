@@ -1,0 +1,46 @@
+name: Backup recovery audit tests
+
+on:
+  push:
+    branches:
+      - backup-recovery-prep-2026-11-03
+    paths:
+      - 'core/management/commands/backup_table_audit.py'
+      - 'core/test_backup_table_audit.py'
+      - '.github/workflows/backup-recovery-tests.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install minimal test dependencies
+        run: python -m pip install Django==5.2.6
+      - name: Run isolated Django tests
+        env:
+          PYTHONPATH: .
+        run: |
+          python - <<'PY'
+          import django
+          from django.conf import settings
+          settings.configure(
+              SECRET_KEY="isolated-unit-test-only",
+              INSTALLED_APPS=[],
+              DATABASES={"default": {"ENGINE": "django.db.backends.sqlite3", "NAME": ":memory:"}},
+          )
+          django.setup()
+          import unittest
+          from core.test_backup_table_audit import BackupCountAuditTests
+          result = unittest.TextTestRunner(verbosity=2).run(
+              unittest.defaultTestLoader.loadTestsFromTestCase(BackupCountAuditTests)
+          )
+          raise SystemExit(0 if result.wasSuccessful() else 1)
+          PY
