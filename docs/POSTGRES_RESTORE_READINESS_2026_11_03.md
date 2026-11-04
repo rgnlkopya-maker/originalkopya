@@ -45,3 +45,10 @@ Security: The backup scheduler currently risks exposing its credential in comman
 - Added isolated GitHub Actions workflow at .github/workflows/backup-recovery-tests.yml, pinned to the backup preparation branch and with read-only repository permissions. It installs Django 5.2.6 and runs the seven comparison tests without a production database or credentials.
 - Workflow outcome has not yet been verified. A successful run is required before marking the Django test stage complete.
 - Actual PostgreSQL dump and isolated restore remain pending. Main branch and live services unchanged.
+
+## 2026-11-04 — Test execution and implementation gate
+- Local encrypted-stream backup prototype was rerun via `python -m unittest -v test_moliapp_pg_backup_stream.py`: five tests passed (roundtrip, tamper rejection, failed dump rejection, absent/existing output, connection-secret environment handling). This does not use production data, a PostgreSQL client, or pg_restore.
+- GitHub Actions YAML exists on branch `backup-recovery-prep-2026-11-03`; the available GitHub connector returned no commit statuses or PR-triggered workflow runs. A successful Django CI run cannot be independently asserted.
+- This container has no Django or pg_dump; pip installation could not reach the package index (DNS failure). Do not mark real dump, restore, or Django integration as passed.
+- Security gate: rotate the exposed backup-scheduler credential in a coordinated cutover before deploying new background jobs. Do not commit secrets, connection strings, or a live database dump.
+- Next executable stage requires a secure PostgreSQL-18 client runner, encrypted offsite storage and separate key custody; restore must target a dedicated isolated DB. Current production database remains unchanged.
