@@ -40,3 +40,31 @@ class BackupCountAuditTests(SimpleTestCase):
     def test_major_version_change_fails(self):
         actual = dict(self.expected, server_version_num=190001)
         self.assertIn("PostgreSQL major version mismatch", differences(self.expected, actual))
+
+    def test_collection_uses_repeatable_read_only_snapshot(self):
+        from unittest.mock import MagicMock, patch
+        from contextlib import nullcontext
+        from core.management.commands import backup_table_audit as audit
+        fake_cursor = MagicMock()
+        fake_cursor.fetchone.side_effect = [
+            ("originalkopya", "180006"), (40,), (90,)
+        ]
+        fake_cursor.fetchall.return_value = [
+            ("public", "core_order"), ("public", "core_orderevent")
+        ]
+        fake_connection = MagicMock()
+        fake_connection.cursor.return_value.__enter__.return_value = fake_cursor
+        fake_connection.ops.quote_name.side_effect = lambda value: '"' + value + '"'
+        with patch.object(audit, "connection", fake_connection), patch.object(
+            audit.transaction, "atomic", return_value=nullcontext()
+        ):
+            result = audit.collect_counts()
+        self.assertEqual(result["tables"], self.expected["tables"])
+        statements = [args.args[0] for args in fake_cursor.execute.call_args_list]
+        self.assertEqual(statements[0], "SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY")
+        self.assertEqual(statements[1], "SELECT current_database(), current_setting('server_version_num')")
+        self.assertTrue(all(statement.startswith("SELECT ") for statement in statements[1:]))
+
+    def test_non_dictionary_manifest_is_rejected(self):
+        actual = dict(self.expected, tables=[])
+        self.assertIn("table count manifest invalid", differences(self.expected, actual))
