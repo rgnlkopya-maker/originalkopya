@@ -9,7 +9,84 @@
   <div class="notice mb-3"><strong>Kontrol:</strong> Föydeki adetler tek tek gerçek sipariş kaydına dönüşecek. Örneğin bir satırda adet 3 ise 3 ayrı sipariş oluşturulacak.</div>
   {% for warning in warnings %}<div class="notice warn mb-2"><strong>Dikkat:</strong> {{ warning }}</div>{% endfor %}
   <section class="cardx"><div class="d-flex justify-content-between align-items-center gap-2 mb-3"><div><strong>Oluşacak Siparişler</strong><div class="hint">Föyden okunarak hazırlanmış kontrol listesi</div></div><span class="tag">KONTROL</span></div><div class="rows"><table><thead><tr><th>Ürün Kodu</th><th>Ürün Tipi</th><th>Renk</th><th>Beden</th><th class="qty">Adet</th><th>Açıklama</th><th class="money">KDV Hariç Fiyat</th><th class="money">KDV</th><th class="money">Satır Toplamı</th></tr></thead><tbody>{% for row in rows %}<tr><td><strong>{{ row.urun_kodu }}</strong></td><td>{{ row.urun_tipi_label }}</td><td>{{ row.renk|default:"—" }}</td><td>{{ row.beden|default:"—" }}</td><td class="qty">{{ row.adet }}</td><td>{{ row.aciklama|default:"—" }}</td><td class="money">{{ row.birim_fiyat|floatformat:2 }} {{ draft.currency }}</td><td class="money">%{{ row.kdv_orani|floatformat:2 }}</td><td class="money">{{ row.satir_toplami|floatformat:2 }} {{ draft.currency }}</td></tr>{% empty %}<tr><td colspan="9" class="text-muted text-center py-4">Siparişe dönüştürülecek satır bulunamadı.</td></tr>{% endfor %}</tbody></table></div></section>
+  <section class="cardx" id="transferProgress" aria-live="polite">
+    <strong>Aktarım durumu</strong>
+    <div class="hint mb-2">Her işlemde en fazla {{ batch_size }} sipariş oluşturulur. Kesilirse kaldığınız yerden devam edebilirsiniz.</div>
+    <div id="transferStatus">Önceden aktarılan: {{ transferred_orders }} • Kalan: {{ total_orders }}</div>
+    <progress id="transferBar" value="0" max="{{ total_orders|default:1 }}" style="width:100%;height:16px;margin-top:9px"></progress>
+    <div id="qrStatus" class="hint mt-2">QR bekleyen: {{ missing_qr_count }}. Siparişler bittikten sonra QR görselleri ayrı olarak tamamlanır.</div>
+    <button type="button" id="retryQr" class="back-btn mt-2" {% if not missing_qr_count %}hidden{% endif %}>Eksik QR'ları tamamla</button>
+  </section>
   <section class="cardx preview-actions"><div class="hint">Bu ekran yalnızca henüz siparişe dönüşmemiş yeni ürün/adetleri gösterir. Daha önce oluşturulan siparişler tekrar oluşturulmaz.</div><form method="post" action="{% url 'showroom_transfer_create' draft.id %}" id="transferForm">{% csrf_token %}<button type="submit" class="create-btn" {% if not can_transfer %}disabled{% endif %}>Siparişleri Oluştur</button></form></section>
 </main>
-<script>document.addEventListener('DOMContentLoaded',function(){const form=document.getElementById('transferForm');if(!form)return;form.addEventListener('submit',function(e){const btn=form.querySelector('button');if(!confirm('{{ total_orders }} adet gerçek sipariş oluşturulsun mu?')){e.preventDefault();return;}btn.disabled=true;btn.textContent='Oluşturuluyor...';});});</script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  const form = document.getElementById('transferForm');
+  const btn = form.querySelector('button');
+  const bar = document.getElementById('transferBar');
+  const status = document.getElementById('transferStatus');
+  const qrStatus = document.getElementById('qrStatus');
+  const retryQr = document.getElementById('retryQr');
+  const total = Number('{{ total_orders }}');
+  const initialQr = Number('{{ missing_qr_count }}');
+  const csrf = form.querySelector('[name=csrfmiddlewaretoken]').value;
+  let running = false;
+  let qrRunning = false;
+  async function post(url) {
+    const response = await fetch(url, {
+      method: 'POST', credentials: 'same-origin',
+      headers: {'X-Requested-With': 'XMLHttpRequest', 'X-CSRFToken': csrf}
+    });
+    let result;
+    try { result = await response.json(); }
+    catch (_) { throw new Error('Sunucudan beklenmeyen yanıt alındı. Sayfayı yenileyin.'); }
+    if (!response.ok || !result.ok) throw new Error(result.error || 'İşlem başarısız.');
+    return result;
+  }
+  async function processQr() {
+    if (qrRunning) return;
+    qrRunning = true;
+    retryQr.disabled = true;
+    let remaining = initialQr + Number(bar.value);
+    try {
+      while (remaining > 0) {
+        qrStatus.textContent = 'QR görselleri hazırlanıyor. Kalan: ' + remaining;
+        const result = await post("{% url 'showroom_transfer_qr' draft.id %}");
+        if (result.remaining >= remaining) break;
+        remaining = result.remaining;
+      }
+      qrStatus.textContent = remaining ? 'Eksik QR: ' + remaining : 'QR görselleri tamamlandı.';
+      if (!remaining) retryQr.hidden = true;
+    } catch (err) {
+      qrStatus.textContent = 'QR yükleme bekliyor: ' + err.message;
+    } finally { qrRunning = false; retryQr.disabled = false; }
+  }
+  retryQr.addEventListener('click', processQr);
+  form.addEventListener('submit', async function (event) {
+    event.preventDefault();
+    if (running || !total || !confirm(total + ' yeni sipariş 20\'li gruplar halinde oluşturulsun mu?')) return;
+    running = true; btn.disabled = true;
+    let completed = 0;
+    try {
+      while (true) {
+        btn.textContent = 'Aktarılıyor...';
+        const result = await post(form.action);
+        completed += result.created;
+        bar.value = completed;
+        status.textContent = 'Bu işlemde ' + completed + ' aktarıldı • Kalan: ' + result.remaining;
+        if (!result.remaining) break;
+        if (!result.created) throw new Error('Aktarım ilerlemedi; güvenli şekilde durduruldu.');
+      }
+      btn.textContent = 'Aktarım tamamlandı';
+      status.textContent = completed + ' sipariş aktarıldı. QR hazırlığı ayrı devam ediyor.';
+      retryQr.hidden = false;
+      await processQr();
+    } catch (err) {
+      status.textContent = 'Aktarım durdu: ' + err.message + ' Kaydedilenler korunur. Sayfayı yenileyip devam edin.';
+      btn.textContent = 'Kaldığın Yerden Devam Et';
+      btn.disabled = false;
+    } finally { running = false; }
+  });
+});
+</script>
 {% endblock %}
