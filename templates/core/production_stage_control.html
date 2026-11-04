@@ -1,118 +1,349 @@
-{% extends "base.html" %}
-{% block extra_css %}<style>
-.stage-control{max-width:1450px;margin:0 auto;padding:24px 14px 50px}.control-head{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;margin-bottom:18px}.control-title{margin:0;font-size:27px;font-weight:850;color:#182033}.control-sub{margin-top:5px;color:#7b8597;font-size:13px}.count-pill{display:inline-flex;align-items:center;justify-content:center;min-width:42px;height:34px;padding:0 12px;border-radius:999px;background:#fff1f1;color:#c73535;font-weight:850;border:1px solid #f1d1d1}.section-tabs{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 18px}.section-tab{display:inline-flex;align-items:center;gap:7px;padding:9px 13px;border:1px solid #dde3ee;border-radius:11px;background:#fff;color:#566175;text-decoration:none;font-size:12px;font-weight:800}.section-tab.active{background:#4a63ff;color:#fff;border-color:#4a63ff}.section-tab .tab-count{display:inline-flex;min-width:21px;height:21px;padding:0 6px;align-items:center;justify-content:center;border-radius:999px;background:rgba(255,255,255,.18);font-size:10px}.section-tab:not(.active) .tab-count{background:#eef1ff;color:#4a63ff}.order-type-switch{display:inline-flex;gap:5px;flex-wrap:wrap;margin:0 0 14px}.order-type-btn{display:inline-flex;align-items:center;justify-content:center;height:34px;padding:0 13px;border-radius:10px;border:1px solid #dfe4ee;background:#fff;color:#566175;text-decoration:none;font-size:11px;font-weight:850}.order-type-btn.active{background:#4a63ff;color:#fff;border-color:#4a63ff}.control-card{background:#fff;border:1px solid #e8ebf2;border-radius:18px;overflow:hidden;box-shadow:0 6px 20px rgba(15,23,42,.05)}.control-table{width:100%;border-collapse:collapse}.control-table th{background:#f7f8fb;color:#7b8597;font-size:10.5px;font-weight:850;text-transform:uppercase;padding:11px 12px;border-bottom:1px solid #e8ebf2}.control-table td{padding:13px 12px;border-bottom:1px solid #eef0f5;vertical-align:middle;font-size:13px}.control-table tr:last-child td{border-bottom:0}.order-link{font-weight:850;color:#4058dd;text-decoration:none}.reason-list{display:flex;gap:5px;flex-wrap:wrap}.reason{display:inline-flex;padding:5px 8px;border-radius:8px;background:#fff2e8;color:#a85c12;border:1px solid #f2d4b7;font-size:10.5px;font-weight:850}.shipped{display:inline-flex;padding:4px 7px;border-radius:7px;background:#eef8f2;color:#238557;font-size:9px;font-weight:850;margin-top:5px}.empty{padding:50px 20px;text-align:center;color:#7d8798}.empty i{display:block;font-size:35px;color:#2b9362;margin-bottom:8px}.pager{display:flex;justify-content:center;gap:7px;margin-top:16px}.pager a,.pager span{height:36px;padding:0 12px;border:1px solid #e1e5ed;border-radius:10px;background:#fff;display:inline-flex;align-items:center;text-decoration:none;color:#526079;font-size:12px;font-weight:750}.pager .current{background:#4a63ff;color:#fff;border-color:#4a63ff}@media(max-width:800px){.stage-control{padding:15px 8px 35px}.control-title{font-size:21px}.control-head{align-items:center}.control-card{overflow-x:auto}.control-table{min-width:760px}.control-table td{padding:10px 8px}.control-sub{font-size:11px}}
-.control-summary{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin:0 0 24px}.summary-card{position:relative;display:flex;align-items:center;gap:15px;min-height:116px;padding:18px 20px;border-radius:18px;background:#fff;border:1px solid #e7eaf1;box-shadow:0 6px 20px rgba(15,23,42,.05);text-decoration:none;color:#182033;transition:.16s}.summary-card:hover{transform:translateY(-1px);box-shadow:0 9px 25px rgba(15,23,42,.08);color:#182033}.summary-card.active{border-color:#cfd6ff;box-shadow:0 0 0 2px #eef1ff,0 8px 24px rgba(15,23,42,.06)}.summary-icon{width:48px;height:48px;flex:0 0 48px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:21px}.summary-problem .summary-icon{background:#fff1eb;color:#b85a19}.summary-waiting .summary-icon{background:#eef2ff;color:#4058dd}.summary-copy{display:grid;min-width:0}.summary-number{font-size:27px;line-height:1;font-weight:900;letter-spacing:-.03em}.summary-title{margin-top:5px;font-size:14px;font-weight:850}.summary-desc{margin-top:3px;color:#7b8597;font-size:11.5px;line-height:1.35}.summary-arrow{margin-left:auto;color:#a1a9b8}.control-table tbody tr:hover{background:#fafbff}.control-table td:first-child{padding-left:16px}
-@media(max-width:800px){.control-summary{grid-template-columns:1fr;gap:9px;margin-bottom:18px}.summary-card{min-height:92px;padding:14px 15px;border-radius:15px}.summary-icon{width:42px;height:42px;flex-basis:42px;border-radius:12px}.summary-number{font-size:23px}.summary-desc{font-size:10.5px}.control-head{flex-wrap:wrap}.control-head>.d-flex{width:100%;justify-content:space-between}.control-card{border-radius:14px}.control-table{min-width:700px}.order-type-switch{flex-wrap:nowrap;overflow-x:auto;width:100%;padding-bottom:3px}.order-type-btn{flex:0 0 auto}}
-</style>{% endblock %}
-{% block content %}
-<main class="stage-control">
-  <div class="control-head">
-    <div><h1 class="control-title">Üretim Kontrol Merkezi</h1><div class="control-sub">Üretimde aksayan kayıtları ve uzun süredir hareket görmeyen siparişleri tek ekrandan takip edin.</div></div>
-  </div>
-  <div class="control-summary">
-    <a class="summary-card summary-problem {% if section == 'problems' %}active{% endif %}" href="?section=problems">
-      <span class="summary-icon"><i class="bi bi-exclamation-triangle"></i></span>
-      <span class="summary-copy"><span class="summary-number">{{ problem_count }}</span><span class="summary-title">Aşama Problemi</span><span class="summary-desc">Üretim aşama butonları eksik basılmış siparişler</span></span>
-      <i class="bi bi-chevron-right summary-arrow"></i>
-    </a>
-    <a class="summary-card summary-waiting {% if section == 'unshipped' %}active{% endif %}" href="?section=unshipped">
-      <span class="summary-icon"><i class="bi bi-clock-history"></i></span>
-      <span class="summary-copy"><span class="summary-number">{{ unshipped_count }}</span><span class="summary-title">Hareketsiz Sipariş</span><span class="summary-desc">3+ gündür üretim hareketi görülmeyen siparişler</span></span>
-      <i class="bi bi-chevron-right summary-arrow"></i>
-    </a>
-  </div>
+from collections import defaultdict
 
-  {% if section == "problems" %}
-  <div class="control-head">
-    <div><h2 class="control-title" style="font-size:21px">Aşama Problemleri</h2><div class="control-sub">Sonraki üretim aşamasına geçildiği halde önceki aşama kayıtları eksik kalan siparişler.</div></div>
-    <div class="d-flex gap-2 align-items-center"><a class="section-tab {% if show_excluded %}active{% endif %}" href="?section=problems&excluded=1">Bu Bölümden Çıkarılanlar <span class="tab-count">{{ excluded_count }}</span></a><span class="count-pill">{{ problem_count }}</span></div>
-  </div>
-  {% if not show_excluded %}
-  <div class="control-card">
-    {% if problems %}
-    <table class="control-table">
-      <thead><tr><th>Sipariş</th><th>Müşteri</th><th>Ürün</th><th>Renk / Beden</th><th>Tespit Edilen Eksik İşlem</th><th>Son Kayıt</th><th>İşlem</th></tr></thead>
-      <tbody>
-      {% for row in problems %}
-      <tr>
-        <td><a class="order-link" href="{% url 'order_detail' row.order.id %}?return_url={{ request.get_full_path|urlencode }}">{{ row.order.siparis_numarasi }}</a>{% if row.shipped %}<div><span class="shipped">SEVK EDİLMİŞ</span></div>{% endif %}</td>
-        <td>{{ row.order.musteri|default:"—" }}</td>
-        <td><strong>{{ row.order.urun_kodu|default:"—" }}</strong></td>
-        <td>{{ row.order.renk|default:"—" }} / {{ row.order.beden|default:"—" }}</td>
-        <td><div class="reason-list">{% for reason in row.reasons %}<span class="reason">{{ reason }} eksik</span>{% endfor %}</div></td>
-        <td>{{ row.last_event.timestamp|date:"d.m.Y H:i" }}<br><span class="text-muted">{{ row.last_event.user|default:"—" }}</span></td>
-        <td><form method="post" action="{% url 'exclude_from_production_stage_control' row.order.id %}">{% csrf_token %}<input type="hidden" name="control_type" value="stage_problem"><input type="hidden" name="next" value="{{ request.get_full_path }}"><button class="btn btn-sm btn-outline-secondary">Listeden Çıkar</button></form></td>
-      </tr>
-      {% endfor %}
-      </tbody>
-    </table>
-    {% else %}
-    <div class="empty"><i class="bi bi-check-circle"></i><strong>Üretim aşamalarında tutarsızlık bulunmadı.</strong></div>
-    {% endif %}
-  </div>
-  {% if problems.paginator.num_pages > 1 %}<div class="pager">{% if problems.has_previous %}<a href="?section=problems&page={{ problems.previous_page_number }}">← Önceki</a>{% endif %}<span class="current">{{ problems.number }} / {{ problems.paginator.num_pages }}</span>{% if problems.has_next %}<a href="?section=problems&page={{ problems.next_page_number }}">Sonraki →</a>{% endif %}</div>{% endif %}
-  {% else %}
-  <div class="control-card">
-    {% if excluded_rows %}
-    <table class="control-table"><thead><tr><th>Sipariş</th><th>Müşteri</th><th>Ürün</th><th>Çıkaran</th><th>Tarih</th><th>İşlem</th></tr></thead><tbody>
-    {% for row in excluded_rows %}<tr><td><a class="order-link" href="{% url 'order_detail' row.order.id %}?return_url={{ request.get_full_path|urlencode }}">{{ row.order.siparis_numarasi }}</a></td><td>{{ row.order.musteri|default:"—" }}</td><td><strong>{{ row.order.urun_kodu|default:"—" }}</strong></td><td>{{ row.excluded_by|default:"—" }}</td><td>{{ row.excluded_at|date:"d.m.Y H:i" }}</td><td><form method="post" action="{% url 'restore_to_production_stage_control' row.id %}">{% csrf_token %}<input type="hidden" name="next" value="?section=problems&excluded=1"><button class="btn btn-sm btn-outline-primary">Listeye Geri Al</button></form></td></tr>{% endfor %}
-    </tbody></table>
-    {% else %}<div class="empty"><i class="bi bi-inbox"></i><strong>Bu bölümden çıkarılmış sipariş yok.</strong></div>{% endif %}
-  </div>
-  {% endif %}
-  {% endif %}
-  
-  {% if section == "unshipped" %}
-  <div class="control-head" style="margin-top:6px">
-    <div><h2 class="control-title" style="font-size:21px">3 Gündür Hareket Görülmeyen Siparişler</h2><div class="control-sub">Son üretim/operasyon hareketinin üzerinden en az 3 gün geçmiş ve güncel olarak sevk edilmemiş siparişler.</div></div>
-    <div class="d-flex gap-2 align-items-center"><a class="section-tab {% if show_excluded %}active{% endif %}" href="?section=unshipped&excluded=1&order_type={{ order_type }}">Bu Bölümden Çıkarılanlar <span class="tab-count">{{ excluded_count }}</span></a><span class="count-pill">{{ unshipped_count }}</span></div>
-  </div>
-  {% if not show_excluded %}
-  <div class="order-type-switch" role="group" aria-label="Sipariş tipini hızlı filtrele">
-    <a class="order-type-btn {% if order_type == 'ALL' %}active{% endif %}" href="?section=unshipped&order_type=ALL">Hepsi</a>
-    <a class="order-type-btn {% if order_type == 'OZEL' %}active{% endif %}" href="?section=unshipped&order_type=OZEL">Özel</a>
-    <a class="order-type-btn {% if order_type == 'SERI' %}active{% endif %}" href="?section=unshipped&order_type=SERI">Seri</a>
-    <a class="order-type-btn {% if order_type == 'TEKLI' %}active{% endif %}" href="?section=unshipped&order_type=TEKLI">Tekli</a>
-    <a class="order-type-btn {% if order_type == 'STOK' %}active{% endif %}" href="?section=unshipped&order_type=STOK">Stok</a>
-    <a class="order-type-btn {% if order_type == 'KONSINYE' %}active{% endif %}" href="?section=unshipped&order_type=KONSINYE">Konsinye</a>
-  </div>
-  {% endif %}
-  {% if not show_excluded %}
-  <div class="control-card">
-    {% if unshipped_orders %}
-    <table class="control-table">
-      <thead><tr><th>Sipariş</th><th>Müşteri</th><th>Ürün</th><th>Renk / Beden</th><th>İlk Üretim Hareketi</th><th>Son Hareket</th><th>Süre</th><th>İşlem</th></tr></thead>
-      <tbody>
-      {% for row in unshipped_orders %}
-      <tr>
-        <td><a class="order-link" href="{% url 'order_detail' row.order.id %}?return_url={{ request.get_full_path|urlencode }}">{{ row.order.siparis_numarasi }}</a></td>
-        <td>{{ row.order.musteri|default:"—" }}</td>
-        <td><strong>{{ row.order.urun_kodu|default:"—" }}</strong></td>
-        <td>{{ row.order.renk|default:"—" }} / {{ row.order.beden|default:"—" }}</td>
-        <td>{{ row.first_event.timestamp|date:"d.m.Y H:i" }}<br><span class="text-muted">{{ row.first_event.user|default:"—" }}</span></td>
-        <td>{{ row.last_event.timestamp|date:"d.m.Y H:i" }}<br><span class="text-muted">{{ row.last_event.user|default:"—" }}</span></td>
-        <td><span class="reason">{{ row.days_open }} gün</span></td>
-        <td><div class="d-flex gap-2 flex-wrap"><form method="post" action="{% url 'exclude_from_production_stage_control' row.order.id %}">{% csrf_token %}<input type="hidden" name="control_type" value="unshipped_7d"><input type="hidden" name="hide_days" value="3"><input type="hidden" name="next" value="{{ request.get_full_path }}"><button class="btn btn-sm btn-outline-primary">3 Gün Gizle</button></form><form method="post" action="{% url 'exclude_from_production_stage_control' row.order.id %}">{% csrf_token %}<input type="hidden" name="control_type" value="unshipped_7d"><input type="hidden" name="next" value="{{ request.get_full_path }}"><button class="btn btn-sm btn-outline-secondary">Listeden Çıkar</button></form></div></td>
-      </tr>
-      {% endfor %}
-      </tbody>
-    </table>
-    {% else %}
-    <div class="empty"><i class="bi bi-check-circle"></i><strong>3 gündür hareketsiz kalan sevk edilmemiş sipariş bulunmadı.</strong></div>
-    {% endif %}
-  </div>
-  {% if unshipped_orders.paginator.num_pages > 1 %}<div class="pager">{% if unshipped_orders.has_previous %}<a href="?section=unshipped&order_type={{ order_type }}&unshipped_page={{ unshipped_orders.previous_page_number }}">← Önceki</a>{% endif %}<span class="current">{{ unshipped_orders.number }} / {{ unshipped_orders.paginator.num_pages }}</span>{% if unshipped_orders.has_next %}<a href="?section=unshipped&order_type={{ order_type }}&unshipped_page={{ unshipped_orders.next_page_number }}">Sonraki →</a>{% endif %}</div>{% endif %}
-  {% else %}
-  <div class="control-card">
-    {% if excluded_rows %}
-    <table class="control-table"><thead><tr><th>Sipariş</th><th>Müşteri</th><th>Ürün</th><th>Çıkaran</th><th>Tarih</th><th>İşlem</th></tr></thead><tbody>
-    {% for row in excluded_rows %}<tr><td><a class="order-link" href="{% url 'order_detail' row.order.id %}?return_url={{ request.get_full_path|urlencode }}">{{ row.order.siparis_numarasi }}</a></td><td>{{ row.order.musteri|default:"—" }}</td><td><strong>{{ row.order.urun_kodu|default:"—" }}</strong></td><td>{{ row.excluded_by|default:"—" }}</td><td>{{ row.excluded_at|date:"d.m.Y H:i" }}</td><td><form method="post" action="{% url 'restore_to_production_stage_control' row.id %}">{% csrf_token %}<input type="hidden" name="next" value="?section=unshipped&excluded=1"><button class="btn btn-sm btn-outline-primary">Listeye Geri Al</button></form></td></tr>{% endfor %}
-    </tbody></table>
-    {% else %}<div class="empty"><i class="bi bi-inbox"></i><strong>Bu bölümden çıkarılmış sipariş yok.</strong></div>{% endif %}
-  </div>
-  {% endif %}
-  {% endif %}
+from app_settings.access import data_scope_value
+from django.contrib.auth.decorators import login_required
+from django.core.paginator import Paginator
+from django.shortcuts import get_object_or_404, redirect, render
+from django.utils import timezone
+from django.views.decorators.http import require_POST
+from datetime import timedelta
+
+from .models import Order, OrderEvent, ProductionStageControlExclusion
 
 
-</main>
-{% endblock %}
+STAGES = {
+    "kesim": ("kesim_durum", "Kesim"),
+    "dikim": ("dikim_durum", "Dikim"),
+    "susleme": ("susleme_durum", "Süsleme"),
+}
+
+REQUIRED_VALUES = ("basladi", "bitti")
+
+
+def _has_stage_evidence(events, *stage_names):
+    return any(event.stage in stage_names for event in events)
+
+
+def _missing_stage_steps(events, stage_name, label):
+    values = {event.value for event in events if event.stage == stage_name}
+    missing = []
+    if "basladi" not in values:
+        missing.append(f"{label} Başladı")
+    if "bitti" not in values:
+        missing.append(f"{label} Bitti")
+    return missing
+
+
+def get_unshipped_inactive_orders(user):
+    """Üretim Aşama Kontrolü ile aynı 3+ gün hareketsiz listesini üret."""
+    orders = (
+        Order.objects.select_related("musteri")
+        .filter(is_active=True)
+        .exclude(siparis_tipi="MALZEME")
+        .only(
+            "id", "siparis_numarasi", "musteri__ad", "urun_kodu", "renk",
+            "beden", "siparis_tipi", "is_active", "sevkiyat_durum"
+        )
+        .order_by("-id")
+    )
+    if data_scope_value(user, "orders") == "active_only":
+        orders = orders.filter(is_active=True)
+
+    order_ids = list(orders.values_list("id", flat=True))
+    events_by_order = defaultdict(list)
+    relevant_stages = {
+        "malzeme_durum",
+        "kesim_durum",
+        "dikim_durum", "dikim_fason_durumu",
+        "nakis_durum",
+        "susleme_durum", "susleme_fason_durumu",
+        "hazir_durum",
+        "uretim_aktarimi", "uretim_aktarimı",
+        "sevkiyat_durum",
+    }
+    for event in (
+        OrderEvent.objects.filter(
+            order_id__in=order_ids,
+            event_type="stage",
+            stage__in=relevant_stages,
+        )
+        .only("order_id", "stage", "value", "timestamp", "user")
+        .order_by("order_id", "timestamp", "id")
+    ):
+        events_by_order[event.order_id].append(event)
+
+    now = timezone.now()
+    ProductionStageControlExclusion.objects.filter(
+        control_type="unshipped_3d_temp",
+        excluded_at__lte=now - timedelta(days=3),
+    ).delete()
+    exclusions = {
+        (row.order_id, row.control_type)
+        for row in ProductionStageControlExclusion.objects.all().only("order_id", "control_type")
+    }
+
+    rows = []
+    for order in orders:
+        events = events_by_order.get(order.id, [])
+        if not events:
+            continue
+        shipment_events = [event for event in events if event.stage == "sevkiyat_durum"]
+        shipped = (
+            shipment_events[-1].value == "gonderildi"
+            if shipment_events
+            else order.sevkiyat_durum == "gonderildi"
+        )
+        temporarily_hidden = (order.id, "unshipped_3d_temp") in exclusions
+        permanently_hidden = (order.id, "unshipped_7d") in exclusions
+        if not shipped and not temporarily_hidden and not permanently_hidden:
+            last_event = events[-1]
+            age = now - last_event.timestamp
+            if age >= timedelta(days=3):
+                rows.append({
+                    "order": order,
+                    "first_event": events[0],
+                    "last_event": last_event,
+                    "days_open": age.days,
+                })
+    rows.sort(key=lambda row: (-row["days_open"], row["first_event"].timestamp))
+    return rows
+
+
+@login_required
+@require_POST
+def exclude_from_production_stage_control(request, order_id):
+    order = get_object_or_404(Order, pk=order_id)
+    control_type = (request.POST.get("control_type") or "").strip()
+    valid_types = {value for value, _label in ProductionStageControlExclusion.CONTROL_TYPES}
+    if control_type not in valid_types:
+        return redirect("production_stage_control")
+
+    hide_days = (request.POST.get("hide_days") or "").strip()
+    if control_type == "unshipped_7d" and hide_days == "3":
+        control_type = "unshipped_3d_temp"
+
+    ProductionStageControlExclusion.objects.update_or_create(
+        order=order,
+        control_type=control_type,
+        defaults={"excluded_by": request.user, "excluded_at": timezone.now()},
+    )
+    return redirect(request.POST.get("next") or "production_stage_control")
+
+
+@login_required
+@require_POST
+def restore_to_production_stage_control(request, exclusion_id):
+    exclusion = get_object_or_404(ProductionStageControlExclusion, pk=exclusion_id)
+    exclusion.delete()
+    target = request.POST.get("next")
+    if target:
+        return redirect(target)
+    return redirect("/uretim-asama-kontrolu/?section=problems&excluded=1")
+
+
+@login_required
+def production_stage_control(request):
+    """Üretimde sonraki aşamaya geçildiği halde eksik bırakılmış aşama kayıtlarını göster."""
+    orders = (
+        Order.objects.select_related("musteri")
+        .filter(is_active=True)
+        .exclude(siparis_tipi="MALZEME")
+        .only(
+            "id", "siparis_numarasi", "musteri__ad", "urun_kodu", "renk",
+            "beden", "siparis_tipi", "is_active", "sevkiyat_durum"
+        )
+        .order_by("-id")
+    )
+    if data_scope_value(request.user, "orders") == "active_only":
+        orders = orders.filter(is_active=True)
+
+    order_ids = list(orders.values_list("id", flat=True))
+    events_by_order = defaultdict(list)
+    relevant_stages = {
+        "malzeme_durum",
+        "kesim_durum",
+        "dikim_durum", "dikim_fason_durumu",
+        "nakis_durum",
+        "susleme_durum", "susleme_fason_durumu",
+        "hazir_durum",
+        "uretim_aktarimi", "uretim_aktarimı",
+        "sevkiyat_durum",
+    }
+    for event in (
+        OrderEvent.objects.filter(
+            order_id__in=order_ids,
+            event_type="stage",
+            stage__in=relevant_stages,
+        )
+        .only("order_id", "stage", "value", "timestamp", "user")
+        .order_by("order_id", "timestamp", "id")
+    ):
+        events_by_order[event.order_id].append(event)
+
+    now = timezone.now()
+    ProductionStageControlExclusion.objects.filter(
+        control_type="unshipped_3d_temp",
+        excluded_at__lte=now - timedelta(days=3),
+    ).delete()
+
+    exclusions = {
+        (row.order_id, row.control_type)
+        for row in ProductionStageControlExclusion.objects.all().only("order_id", "control_type")
+    }
+
+    problems = []
+    personnel_entries = defaultdict(list)
+    unshipped_after_week = get_unshipped_inactive_orders(request.user)
+    for order in orders:
+        events = events_by_order.get(order.id, [])
+        if not events:
+            continue
+
+        reasons = []
+        attributions = []
+
+        # Yalnizca kullanilmis asama butonlarinin esini kontrol et.
+        # "Bitti" varsa "Basladi" her zaman beklenir.
+        # "Basladi" varsa "Bitti" ancak sonraki asamaya gecilince beklenir.
+        # Iki butona da basilmamissa o asama icin problem uretilmez.
+        later_stages = {
+            "kesim": {
+                "dikim_durum", "dikim_fason_durumu", "nakis_durumu",
+                "susleme_durum", "susleme_fason_durumu", "hazir_durum",
+                "sevkiyat_durum",
+            },
+            "dikim": {
+                "susleme_durum", "susleme_fason_durumu", "hazir_durum",
+                "sevkiyat_durum",
+            },
+            "susleme": {"hazir_durum", "sevkiyat_durum"},
+        }
+        for stage_key, (stage_name, label) in STAGES.items():
+            stage_events = [event for event in events if event.stage == stage_name]
+            started = any(event.value == "basladi" for event in stage_events)
+            finished = any(event.value == "bitti" for event in stage_events)
+            if finished and not started:
+                reason = f"{label} Başladı"
+                reasons.append(reason)
+                # The person who explicitly clicked Finished is accountable
+                # for the absent matching Started event, not the last editor.
+                actor_event = next(event for event in reversed(stage_events) if event.value == "bitti")
+                attributions.append({
+                    "reason": reason, "actor": (actor_event.user or "").strip() or "Bilinmeyen personel",
+                    "trigger": f"{label} Bitti", "timestamp": actor_event.timestamp,
+                })
+            if started and not finished:
+                first_start = next(
+                    event for event in stage_events if event.value == "basladi"
+                )
+                next_event = next((
+                    event for event in events
+                    if event.stage in later_stages[stage_key]
+                    and (event.timestamp, event.id) > (first_start.timestamp, first_start.id)
+                ), None)
+                if next_event:
+                    reason = f"{label} Bitti"
+                    reasons.append(reason)
+                    attributions.append({
+                        "reason": reason,
+                        "actor": (next_event.user or "").strip() or "Bilinmeyen personel",
+                        "trigger": "Sonraki aşamaya geçiş",
+                        "timestamp": next_event.timestamp,
+                    })
+
+        # Güncel sevkiyat durumunu son sevkiyat hareketinden belirle.
+        shipment_events = [event for event in events if event.stage == "sevkiyat_durum"]
+        shipped = (
+            shipment_events[-1].value == "gonderildi"
+            if shipment_events
+            else order.sevkiyat_durum == "gonderildi"
+        )
+
+        # Aynı eksikliği birden fazla kural yakalasa bile ekranda bir kez göster.
+        reasons = list(dict.fromkeys(reasons))
+        if reasons and (order.id, "stage_problem") not in exclusions:
+            last_event = events[-1]
+            problems.append({
+                "order": order,
+                "reasons": reasons,
+                "attributions": attributions,
+                "last_event": last_event,
+                "shipped": shipped,
+            })
+
+    # Group each missing action separately: one order may appear under
+    # different personnel when two different transitions are responsible.
+    for row in problems:
+        for attribution in row["attributions"]:
+            personnel_entries[attribution["actor"]].append({
+                "order": row["order"], "shipped": row["shipped"],
+                **attribution,
+            })
+
+    personnel_groups = [
+        {"name": name, "count": len(entries),
+         "orders_count": len({entry["order"].id for entry in entries})}
+        for name, entries in personnel_entries.items()
+    ]
+    personnel_groups.sort(key=lambda item: (-item["count"], item["name"].casefold()))
+    view_mode = (request.GET.get("view") or "list").strip()
+    if view_mode not in {"list", "personnel"}:
+        view_mode = "list"
+    selected_person = (request.GET.get("person") or "").strip()
+    # Only allow exact names observed in the scoped, non-excluded issues.
+    if selected_person not in personnel_entries:
+        selected_person = ""
+    person_issues = personnel_entries.get(selected_person, []) if selected_person else []
+    person_issues.sort(key=lambda item: item["timestamp"], reverse=True)
+
+    problems.sort(
+        key=lambda row: (not row["shipped"], -row["last_event"].timestamp.timestamp())
+    )
+
+    order_type = (request.GET.get("order_type") or "ALL").strip().upper()
+    valid_order_types = {"ALL", "OZEL", "SERI", "TEKLI", "STOK", "KONSINYE"}
+    if order_type not in valid_order_types:
+        order_type = "ALL"
+    if order_type != "ALL":
+        unshipped_after_week = [
+            row for row in unshipped_after_week
+            if (row["order"].siparis_tipi or "").upper() == order_type
+        ]
+
+    paginator = Paginator(problems, 50)
+    page_obj = paginator.get_page(request.GET.get("page"))
+
+    unshipped_paginator = Paginator(unshipped_after_week, 50)
+    unshipped_page_obj = unshipped_paginator.get_page(request.GET.get("unshipped_page"))
+
+    section = (request.GET.get("section") or "problems").strip()
+    if section not in {"problems", "unshipped"}:
+        section = "problems"
+
+    show_excluded = request.GET.get("excluded") == "1"
+    excluded_type = "stage_problem" if section == "problems" else "unshipped_7d"
+    excluded_rows = (
+        ProductionStageControlExclusion.objects
+        .filter(control_type=excluded_type)
+        .select_related("order", "order__musteri", "excluded_by")
+        .order_by("-excluded_at", "-id")
+        if show_excluded
+        else ProductionStageControlExclusion.objects.none()
+    )
+
+    return render(request, "core/production_stage_control.html", {
+        "problems": page_obj,
+        "view_mode": view_mode,
+        "personnel_groups": personnel_groups,
+        "selected_person": selected_person,
+        "person_issues": person_issues,
+        "person_issue_count": len(person_issues),
+        "problem_count": len(problems),
+        "unshipped_orders": unshipped_page_obj,
+        "unshipped_count": len(unshipped_after_week),
+        "excluded_rows": excluded_rows,
+        "excluded_count": ProductionStageControlExclusion.objects.filter(control_type=excluded_type).count(),
+        "show_excluded": show_excluded,
+        "section": section,
+        "order_type": order_type,
+    })
