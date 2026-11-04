@@ -76,6 +76,7 @@ urlpatterns = [
     path("showroom-foyu/kayit/<int:draft_id>/duzenle/kaydet/", showroom_views.showroom_edit_save, name="showroom_edit_save"),
     path("showroom-foyu/kayit/<int:draft_id>/siparis-onizleme/", showroom_transfer_views.showroom_transfer_preview, name="showroom_transfer_preview"),
     path("showroom-foyu/kayit/<int:draft_id>/siparis-olustur/", showroom_transfer_views.showroom_transfer_create, name="showroom_transfer_create"),
+    path("showroom-foyu/kayit/<int:draft_id>/siparis-qr-tamamla/", showroom_transfer_views.showroom_transfer_qr, name="showroom_transfer_qr"),
     path("showroom-foyu/taslak/", showroom_views.showroom_draft_load, name="showroom_draft_load"),
     path("showroom-foyu/taslak/otomatik-kaydet/", showroom_views.showroom_draft_autosave, name="showroom_draft_autosave"),
     path("showroom-foyu/taslak/indirim-kaydet/", showroom_views.showroom_draft_discount_save, name="showroom_draft_discount_save"),
