@@ -34,14 +34,22 @@ def collect_counts():
 
 def differences(expected, actual):
     errors = []
-    for name in ("database", "format"):
-        if expected.get(name) != actual.get(name):
-            errors.append(name + " mismatch")
-    # A restored PostgreSQL patch version may differ; flag major version.
-    if str(expected.get("server_version_num", ""))[:2] != str(actual.get("server_version_num", ""))[:2]:
+    # A restored database normally has a different database name; do not fail for it.
+    if expected.get("format") != actual.get("format"):
+        errors.append("format mismatch")
+    # PostgreSQL server_version_num = major * 10000 + minor.
+    try:
+        expected_major = int(expected.get("server_version_num")) // 10000
+        actual_major = int(actual.get("server_version_num")) // 10000
+    except (ValueError, TypeError):
+        errors.append("PostgreSQL version metadata invalid")
+        expected_major = actual_major = None
+    if expected_major is not None and expected_major != actual_major:
         errors.append("PostgreSQL major version mismatch")
     a = expected.get("tables", {})
     b = actual.get("tables", {})
+    if not isinstance(a, dict) or not isinstance(b, dict):
+        return errors + ["table count manifest invalid"]
     for table in sorted(set(a) | set(b)):
         if table not in a:
             errors.append(table + ": unexpected table")
