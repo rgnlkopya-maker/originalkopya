@@ -68,3 +68,33 @@ class BackupCountAuditTests(SimpleTestCase):
     def test_non_dictionary_manifest_is_rejected(self):
         actual = dict(self.expected, tables=[])
         self.assertIn("table count manifest invalid", differences(self.expected, actual))
+
+    def test_missing_table_counts_are_rejected(self):
+        actual = dict(self.expected)
+        del actual["tables"]
+        self.assertIn("table count manifest invalid", differences(self.expected, actual))
+
+    def test_empty_table_counts_are_rejected(self):
+        actual = dict(self.expected, tables={})
+        self.assertIn("table count manifest invalid", differences(self.expected, actual))
+
+    def test_invalid_row_counts_are_rejected(self):
+        actual = dict(self.expected, tables={"public.core_order": -1})
+        self.assertIn("restored row count invalid", differences(self.expected, actual))
+
+    def test_boolean_row_counts_are_rejected(self):
+        actual = dict(self.expected, tables={"public.core_order": True})
+        self.assertIn("restored row count invalid", differences(self.expected, actual))
+
+    def test_missing_format_is_rejected(self):
+        actual = dict(self.expected)
+        del actual["format"]
+        self.assertIn("format mismatch", differences(self.expected, actual))
+
+    def test_missing_version_is_rejected(self):
+        actual = dict(self.expected)
+        del actual["server_version_num"]
+        self.assertIn("PostgreSQL version metadata invalid", differences(self.expected, actual))
+
+    def test_non_mapping_manifest_is_rejected(self):
+        self.assertEqual(differences(self.expected, []), ["manifest invalid"])
