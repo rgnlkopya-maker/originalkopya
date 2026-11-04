@@ -33,3 +33,9 @@ Security: The backup scheduler currently risks exposing its credential in comman
 - Added two unit tests: isolated destination database name and malformed PostgreSQL version.
 - The code changes were committed to the isolated backup branch only. Full Django tests have not run: the local verification environment lacks Django and package installation was unavailable. Do not mark these tests passed.
 - No production dump, backup upload, restore, scheduled-task or secret changes occurred.
+
+## 2026-11-04 verification update
+- Ran seven isolated Python unit tests for the exact comparison logic with a local Python harness: 7/7 pass (same counts, changed counts, missing and unexpected table, major version change, alternate restore database name, invalid version metadata).
+- This was not the Django test suite; Django is unavailable in the local runtime, and package installation failed. Full command integration remains unverified.
+- Adjusted the audit count collection to use a read-only REPEATABLE READ transaction so counts form a consistent snapshot. Code remains only in the isolated development branch.
+- No real pg_dump, encrypted upload or restore performed. Production and current scheduled backups unchanged.
