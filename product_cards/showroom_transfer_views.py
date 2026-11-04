@@ -4,13 +4,17 @@ from decimal import Decimal, ROUND_HALF_UP
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.db import transaction
-from django.http import HttpResponseForbidden
+from django.http import HttpResponseForbidden, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 
 from core.models import Order, ProductCost, URUN_TIPI_CHOICES
 from .models import ShowroomDraft, ShowroomOrderLink
 from .price_list_views import _can_manage
 from .showroom_views import CUSTOMER_BASE_PRICE_SIZE, _apply_pricing_operations
+from core.signals_qr import suspend_order_qr
+from core.qr import ensure_order_qr
+
+TRANSFER_BATCH_SIZE = 20
 
 
 def _transfer_pricing(draft, rows):
@@ -227,6 +231,9 @@ def showroom_transfer_preview(request, draft_id):
         "draft": draft,
         "rows": rows,
         "total_orders": total_orders,
+        "transferred_orders": ShowroomOrderLink.objects.filter(draft=draft, order__isnull=False).count(),
+        "batch_size": TRANSFER_BATCH_SIZE,
+        "missing_qr_count": ShowroomOrderLink.objects.filter(draft=draft, order__isnull=False, order__qr_code_url__isnull=True).count(),
         "product_count": product_count,
         "total_value": total_value,
         "warnings": warnings,
@@ -236,89 +243,112 @@ def showroom_transfer_preview(request, draft_id):
 
 
 @login_required
-@transaction.atomic
 def showroom_transfer_create(request, draft_id):
+    """Create at most 20 individual orders in an independent, resumable transaction."""
     if request.method != "POST":
         return redirect("showroom_transfer_preview", draft_id=draft_id)
     if not _can_manage(request.user):
         return HttpResponseForbidden("Bu işlem için yetkiniz yok.")
 
-    # Yalnızca Föy satırını kilitle. Nullable customer FK'yi aynı SELECT FOR UPDATE
-    # sorgusuna katmak PostgreSQL'de outer join kilit hatasına yol açabilir.
-    draft = get_object_or_404(
-        ShowroomDraft.objects.select_for_update(),
-        id=draft_id,
-        created_by=request.user,
-    )
-    if draft.status not in {"APPROVED", "TRANSFERRED"}:
-        messages.warning(request, "Yalnızca onaylanan veya daha önce aktarılmış Föyler siparişe aktarılabilir.")
-        return redirect("showroom_approved_page")
-    if not draft.customer_id:
-        messages.error(request, "Sipariş oluşturmak için Föyde müşteri seçilmiş olmalıdır.")
-        return redirect("showroom_transfer_preview", draft_id=draft.id)
+    def failure(message, status=400):
+        if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+            return JsonResponse({"ok": False, "error": message}, status=status)
+        messages.error(request, message)
+        return redirect("showroom_transfer_preview", draft_id=draft_id)
 
-    rows, _, _, _ = _draft_rows(draft)
-    priced_rows, _, vat_rate_for_order = _transfer_pricing(draft, rows)
-    rows = _pending_transfer_rows(draft, priced_rows)
-    total_orders = sum(len(row.get("_allocated_prices", [])) for row in rows)
-    if not rows or total_orders <= 0:
-        messages.warning(request, "Bu Föyde henüz siparişe dönüşmemiş yeni ürün/adet bulunmuyor.")
-        return redirect("showroom_detail_page", draft_id=draft.id)
-    if any(row["beden"] == CUSTOMER_BASE_PRICE_SIZE for row in rows):
-        messages.error(
-            request,
-            "Baz fiyat (bedensiz) satırları siparişe aktarılamaz. "
-            "Siparişleri basen ölçülerini girerek oluşturun.",
+    with transaction.atomic():
+        # The draft lock serializes concurrent requests so the same unit cannot
+        # be consumed twice. Every successful batch commits its links together.
+        draft = get_object_or_404(
+            ShowroomDraft.objects.select_for_update(),
+            id=draft_id, created_by=request.user,
         )
-        return redirect("showroom_transfer_preview", draft_id=draft.id)
+        if draft.status not in {"APPROVED", "TRANSFERRED"}:
+            return failure("Yalnızca onaylı Föyler aktarılabilir.")
+        if not draft.customer_id:
+            return failure("Föyde müşteri seçilmiş olmalıdır.")
 
-    order_type = draft.order_type or "SERI"
-    if order_type == "KONSINYE" and not has_feature_access(request.user, "consignment.create_production"):
-        messages.error(request, "Bu Föyü KONSİNYE siparişine dönüştürme yetkiniz yok.")
-        return redirect("showroom_transfer_preview", draft_id=draft.id)
+        original_rows, _, _, _ = _draft_rows(draft)
+        priced_rows, _, vat_rate_for_order = _transfer_pricing(draft, original_rows)
+        rows = _pending_transfer_rows(draft, priced_rows)
+        remaining_before = sum(len(row.get("_allocated_prices", [])) for row in rows)
+        if any(row["beden"] == CUSTOMER_BASE_PRICE_SIZE for row in rows):
+            return failure("Baz fiyat satırlarını aktarmadan önce basen ölçüsünü girin.")
+        order_type = draft.order_type or "SERI"
+        if order_type == "KONSINYE" and not has_feature_access(request.user, "consignment.create_production"):
+            return failure("KONSİNYE siparişi oluşturma yetkiniz yok.")
+        if not remaining_before:
+            if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+                return JsonResponse({"ok": True, "created": 0, "remaining": 0})
+            messages.info(request, "Föyde aktarılacak yeni sipariş bulunmuyor.")
+            return redirect("showroom_transfer_preview", draft_id=draft_id)
 
-    customer = draft.customer
-    cost_cache = {}
-    created = 0
+        created = 0
+        cost_cache = {}
+        # Suppress synchronous Supabase upload only for this import request.
+        # QR images are processed separately and never roll back order creation.
+        with suspend_order_qr():
+            for row in rows:
+                if created >= TRANSFER_BATCH_SIZE:
+                    break
+                code = row["urun_kodu"]
+                if code not in cost_cache:
+                    pcost = ProductCost.objects.filter(urun_kodu__iexact=code).first()
+                    cost_cache[code] = (
+                        (pcost.maliyet or Decimal("0")) if pcost else Decimal("0"),
+                        (pcost.para_birimi or "TRY") if pcost else "TRY",
+                    )
+                cost, cost_currency = cost_cache[code]
+                for final_price in row.get("_allocated_prices", []):
+                    if created >= TRANSFER_BATCH_SIZE:
+                        break
+                    order = Order.objects.create(
+                        siparis_tipi=order_type, musteri=draft.customer,
+                        urun_kodu=code, urun_tipi=row["urun_tipi"],
+                        renk=row["renk"] or None, beden=row["beden"] or None,
+                        adet=1, aciklama=row["aciklama"] or None,
+                        satis_fiyati=final_price, vat_rate=vat_rate_for_order,
+                        para_birimi=draft.currency or "TRY",
+                        maliyet_uygulanan=cost, maliyet_para_birimi=cost_currency,
+                    )
+                    ShowroomOrderLink.objects.create(
+                        draft=draft, draft_item_id=row.get("draft_item_id"),
+                        order=order, order_number=order.siparis_numarasi or "",
+                    )
+                    created += 1
 
-    for row in rows:
-        code = row["urun_kodu"]
-        if code not in cost_cache:
-            pcost = ProductCost.objects.filter(urun_kodu__iexact=code).first()
-            cost_cache[code] = (
-                (pcost.maliyet or Decimal("0")) if pcost else Decimal("0"),
-                (pcost.para_birimi or "TRY") if pcost else "TRY",
-            )
-        cost, cost_currency = cost_cache[code]
-        for final_price in row.get("_allocated_prices", []):
-            order = Order.objects.create(
-                siparis_tipi=order_type,
-                musteri=customer,
-                urun_kodu=code,
-                urun_tipi=row["urun_tipi"],
-                renk=row["renk"] or None,
-                beden=row["beden"] or None,
-                adet=1,
-                aciklama=row["aciklama"] or None,
-                satis_fiyati=final_price,
-                vat_rate=vat_rate_for_order,
-                para_birimi=draft.currency or "TRY",
-                maliyet_uygulanan=cost,
-                maliyet_para_birimi=cost_currency,
-            )
-            ShowroomOrderLink.objects.create(
-                draft=draft,
-                draft_item_id=row.get("draft_item_id"),
-                order=order,
-                order_number=order.siparis_numarasi or "",
-            )
-            created += 1
+        draft.status = "TRANSFERRED"
+        draft.orders_created = True
+        draft.save(update_fields=["status", "orders_created", "updated_at"])
+        remaining = remaining_before - created
 
-    if created != total_orders:
-        raise RuntimeError("Föy sipariş adetleri ile oluşturulan sipariş adetleri eşleşmedi.")
+    if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+        return JsonResponse({"ok": True, "created": created, "remaining": remaining})
+    messages.success(request, f"{created} sipariş oluşturuldu. Kalan: {remaining}.")
+    return redirect("showroom_transfer_preview" if remaining else "order_list", **({"draft_id": draft_id} if remaining else {}))
 
-    draft.status = "TRANSFERRED"
-    draft.orders_created = True
-    draft.save(update_fields=["status", "orders_created", "updated_at"])
-    messages.success(request, f"Föyden {created} adet yeni sipariş başarıyla oluşturuldu.")
-    return redirect("order_list")
+
+@login_required
+def showroom_transfer_qr(request, draft_id):
+    """Retry a single missing QR without affecting already committed orders."""
+    if request.method != "POST":
+        return JsonResponse({"ok": False, "error": "POST gerekli"}, status=405)
+    if not _can_manage(request.user):
+        return HttpResponseForbidden("Bu işlem için yetkiniz yok.")
+    draft = get_object_or_404(ShowroomDraft, id=draft_id, created_by=request.user)
+    missing = (
+        ShowroomOrderLink.objects.filter(draft=draft, order__isnull=False)
+        .filter(order__qr_code_url__isnull=True)
+        .select_related("order").order_by("id")
+    )
+    link = missing.first()
+    if link is None:
+        return JsonResponse({"ok": True, "remaining": 0})
+    # The Supabase connection can fail independently. Never delete the order.
+    generated = ensure_order_qr(link.order)
+    remaining = missing.count()
+    if not generated:
+        return JsonResponse({"ok": False, "remaining": remaining,
+                             "error": "QR servisine ulaşılamadı. Siparişler güvende; daha sonra tekrar deneyin."},
+                            status=503)
+    return JsonResponse({"ok": True, "remaining": max(0, remaining - 1)})
