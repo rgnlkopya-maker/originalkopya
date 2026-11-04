@@ -52,3 +52,10 @@ Security: The backup scheduler currently risks exposing its credential in comman
 - This container has no Django or pg_dump; pip installation could not reach the package index (DNS failure). Do not mark real dump, restore, or Django integration as passed.
 - Security gate: rotate the exposed backup-scheduler credential in a coordinated cutover before deploying new background jobs. Do not commit secrets, connection strings, or a live database dump.
 - Next executable stage requires a secure PostgreSQL-18 client runner, encrypted offsite storage and separate key custody; restore must target a dedicated isolated DB. Current production database remains unchanged.
+
+## 2026-11-04 — isolated test coverage extension
+- Added two additional test cases to the recovery table-audit suite: enforce a REPEATABLE READ READ ONLY counting transaction and reject malformed table manifests. There are now nine Django test cases in the development branch.
+- Django is not installed in the local execution environment; installation was unsuccessful. The nine Django tests are NOT marked executed or passed.
+- Re-ran five separate encrypted-stream prototype tests successfully with Python unittest in /mnt/data. Those tests do not represent a real PostgreSQL dump or restore.
+- Existing live main branch, backup cron, database and secrets remain unchanged.
+- Next proof required: actual Django CI execution, encrypted PG18 dump with secure runner, and restore into dedicated isolated DB.
