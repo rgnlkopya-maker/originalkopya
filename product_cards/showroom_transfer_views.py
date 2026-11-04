@@ -351,4 +351,4 @@ def showroom_transfer_qr(request, draft_id):
         return JsonResponse({"ok": False, "remaining": remaining,
                              "error": "QR servisine ulaşılamadı. Siparişler güvende; daha sonra tekrar deneyin."},
                             status=503)
-    return JsonResponse({"ok": True, "remaining": max(0, remaining - 1)})
+    return JsonResponse({"ok": True, "remaining": remaining})
