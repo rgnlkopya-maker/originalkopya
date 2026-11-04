@@ -65,3 +65,10 @@ Security: The backup scheduler currently risks exposing its credential in comman
 - Added seven regression cases on the separate recovery-preparation branch: missing/empty tables, negative/boolean counts, missing format/version, invalid manifest root. Total Django test cases on the branch: 16.
 - Test execution status: 16 Django test cases remain unverified in a real Django runtime. The local environment has no Django and package-index access failed; GitHub connector did not prove a successful CI run. Do not report these tests as passed.
 - Security/production: no deployment, backup job or live database data changes. No real full encrypted pg_dump or isolated restore completed.
+
+## 2026-11-04 — critical simplification: Render native recovery
+- Verified via Render get_postgres: production instance `originalkopya-db`, PostgreSQL 18, paid compute plan `0.5c-1g`, Frankfurt. Production web app is on main and auto-deploy; the preparation branch remains isolated.
+- Render official docs confirm paid PostgreSQL instances have managed point-in-time recovery (3 days Hobby workspace, 7 days Pro+). This is a native database recovery path; availability of a particular recovery point must be checked on the database Recovery dashboard.
+- Render's Recovery page also supports manual `Create export` for a full logical database backup, retained on Render for 7 days; this export must be downloaded to independent storage for long-term/off-Render recovery.
+- Direct action to unblock: open https://dashboard.render.com/d/dpg-dach0t2fngtc73dfigg0-a , navigate Recovery and trigger Create export. The available connector exposes no Create export or PITR action, so no export has been initiated by this assistant.
+- Shortest proof route: native export -> verify archive -> independent encrypted storage -> restore to *new isolated* database; photos/files require separate verification. Stop writing additional comparator tests until a real archive exists.
