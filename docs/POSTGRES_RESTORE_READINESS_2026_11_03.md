@@ -19,3 +19,10 @@ Acceptance steps before completion:
 6. Record successful restore proof and recovery time.
 
 Security: The backup scheduler currently risks exposing its credential in command/log output. Rotate that credential with a coordinated service-and-scheduler change; do not paste its value into GitHub.
+
+## 2026-11-04 progress
+- Daily automated module backups verified from production records: folios 27 records, 6 changed/new files, completion 00:28 Istanbul; instruments 16 records, 2 new files, completion 00:11 Istanbul. These records do not establish physical archive integrity.
+- Added read-only Django management command `backup_table_audit` on isolated backup branch. It captures table names and row counts, compares with a separately captured manifest after restore, rejects table or row count differences and refuses to overwrite a prior manifest.
+- Added five unit-test cases, but tests have not yet been executed on a Django runtime; code is NOT deployed to main.
+- Reminder: a pre-restore and post-restore comparison must use the same recovery snapshot. Running baseline against a live database at a different time would create false mismatches.
+- Outstanding: encrypted real PostgreSQL dump, independent storage and a successful isolated pg_restore test, plus credential rotation.
