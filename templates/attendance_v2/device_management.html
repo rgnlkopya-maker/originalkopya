@@ -2,8 +2,8 @@
 {% block content %}
 <div class="container py-4" style="max-width:1000px">
   <div class="d-flex justify-content-between align-items-center gap-3 flex-wrap mb-4">
-    <div><div class="text-muted small">PUANTAJ GÜVENLİĞİ</div><h2 class="fw-bold mb-1">Kayıtlı Cihazlar</h2><div class="text-muted">Her kullanıcı puantaj işlemini yalnızca onaylı telefonundan yapabilir.</div></div>
-    <a href="{% url 'attendance_scan' %}" class="btn btn-outline-secondary">← Giriş / Çıkış</a>
+    <div><div class="text-muted small">YÖNETİM · CİHAZLAR</div><h2 class="fw-bold mb-1">Cihaz Yönetimi</h2><div class="text-muted">Puantaj cihaz onayları ve bildirim alabilen cihazlar.</div></div>
+    <a href="{% url 'attendance_scan' %}" class="btn btn-outline-secondary">Puantaj Giriş / Çıkış</a>
   </div>
 
   {% for message in messages %}<div class="alert alert-info">{{ message }}</div>{% endfor %}
@@ -32,4 +32,13 @@
     </table></div>
   </div>
 </div>
+<section class="card border-0 shadow-sm rounded-4 overflow-hidden mt-4">
+  <div class="card-body pb-2"><h5 class="fw-bold mb-1"><i class="bi bi-bell me-2"></i>Push Bildirim Cihazları</h5><p class="text-muted small mb-2">MoliApp'ten sistem bildirimi almak için izin vermiş kayıtlı tarayıcılar. Puantaj cihaz onaylarından bağımsızdır.</p></div>
+  <div class="table-responsive"><table class="table align-middle mb-0">
+    <thead class="table-light"><tr><th>Kullanıcı</th><th>Cihaz</th><th>Son Abonelik Güncellemesi</th></tr></thead>
+    <tbody>{% for sub in push_subscriptions %}
+      <tr><td>{{ sub.user.get_full_name|default:sub.user.username }}</td><td>{{ sub.device_type }}</td><td>{{ sub.updated_at|date:"d.m.Y H:i" }}</td></tr>
+    {% empty %}<tr><td colspan="3" class="text-center text-muted py-4">Push bildirimine kayıtlı cihaz yok.</td></tr>{% endfor %}</tbody>
+  </table></div>
+</section>
 {% endblock %}
