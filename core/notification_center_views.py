@@ -16,6 +16,8 @@ from django.views.decorators.http import require_http_methods
 from .models import Notification, UserProfile, NotificationPreference
 from .notification_preferences import EVENTS, event_delivery, settings_for_user, validated_choices
 from .reminder_models import Reminder
+from .push_views import send_push_to_user
+from .models import PushSubscription
 from .backup_center_views import manager as is_manager
 
 
@@ -37,6 +39,24 @@ EVENT_CATALOG = (
 def notification_center(request):
     if not is_manager(request.user):
         return HttpResponseForbidden("Bildirim Merkezi yalnız patron ve müdür içindir.")
+
+    if request.method == "POST" and request.POST.get("action") == "test_push":
+        count = PushSubscription.objects.filter(user=request.user).count()
+        if count == 0:
+            messages.warning(request, "Bu hesaba bağlı bildirim cihazı yok. Cihazınızda kullanıcı menüsünden Bildirimleri Aç seçeneğini kullanın.")
+        else:
+            delivered = send_push_to_user(
+                user=request.user,
+                title="MoliApp Bildirim Testi",
+                body="Test bildirimi: cihazınız Push mesajı almaya hazır.",
+                url="/yonetim/bildirim-merkezi/",
+                tag="moli-notification-center-test",
+            )
+            if delivered:
+                messages.success(request, f"Test bildirimi {delivered}/{count} kayıtlı cihaza iletim için kabul edildi. Cihazda görünmesini kontrol edin.")
+            else:
+                messages.error(request, "Test bildirimi gönderilemedi. Cihaz iznini, aboneliği ve Render Push loglarını kontrol edin.")
+        return redirect("notification_center")
 
     if request.method == "POST" and request.POST.get("action") == "save_preferences":
         choices = validated_choices(request.POST)
@@ -118,6 +138,7 @@ def notification_center(request):
         "recent_notifications": my_notifications.order_by("-timestamp")[:6],
         "reminders": reminders,
         "active_reminders": Reminder.objects.filter(is_active=True).count(),
+        "test_push_device_count": PushSubscription.objects.filter(user=request.user).count(),
         "users": get_user_model().objects.filter(is_active=True).order_by("first_name", "username"),
         "team_choices": [(key, label) for key, label in UserProfile.GOREV_SECENEKLERI if key != "yok"],
     })
