@@ -122,40 +122,60 @@ self.addEventListener('notificationclick', function(event) {
 
 
 def _deliver_push_subscription(sub, payload, private_key, claims):
-    try:
-        webpush(
+    from urllib.parse import urlparse
+
+    provider = urlparse(sub.endpoint).hostname or "unknown"
+
+    def attempt(vapid_claims):
+        return webpush(
             subscription_info={
                 "endpoint": sub.endpoint,
                 "keys": {"p256dh": sub.p256dh, "auth": sub.auth},
             },
             data=payload,
             vapid_private_key=private_key,
-            vapid_claims=claims,
+            vapid_claims=dict(vapid_claims),
             timeout=5,
         )
+
+    try:
+        attempt(claims)
+        print(f"[push-delivery] user={sub.user_id} subscription={sub.pk} provider={provider} accepted=1")
         return True
     except WebPushException as exc:
         response = getattr(exc, "response", None)
         status = getattr(response, "status_code", None)
-        body = ""
+        reason = ""
         try:
-            body = (getattr(response, "text", "") or "")[:500]
+            reason = (getattr(response, "text", "") or "")[:400]
         except Exception:
-            body = ""
-        print(
-            f"[push] user={sub.user_id} subscription={sub.pk} "
-            f"status={status} error={exc} response={body}"
-        )
+            pass
+        print(f"[push-delivery] user={sub.user_id} subscription={sub.pk} provider={provider} accepted=0 status={status} reason={reason}")
+
+        # Google accepted the legacy VAPID contact before the Apple fix. Only
+        # on a Google 403, retry once using that legacy contact; never use it
+        # for Apple, which rejects placeholder .local domains.
+        if status == 403 and provider.endswith(("fcm.googleapis.com", "googleapis.com")):
+            legacy = dict(claims)
+            legacy["sub"] = "mailto:bildirim@moliapp.local"
+            if legacy["sub"] != claims.get("sub"):
+                try:
+                    attempt(legacy)
+                    print(f"[push-delivery] user={sub.user_id} subscription={sub.pk} provider={provider} legacy_retry=accepted")
+                    return True
+                except WebPushException as retry_exc:
+                    retry_response = getattr(retry_exc, "response", None)
+                    retry_status = getattr(retry_response, "status_code", None)
+                    print(f"[push-delivery] user={sub.user_id} subscription={sub.pk} provider={provider} legacy_retry=failed status={retry_status}")
+                except Exception as retry_exc:
+                    print(f"[push-delivery] user={sub.user_id} subscription={sub.pk} provider={provider} legacy_retry=error type={type(retry_exc).__name__}")
+
         if status in (404, 410):
             PushSubscription.objects.filter(pk=sub.pk).delete()
         return False
     except Exception as exc:
-        print(
-            f"[push] user={sub.user_id} subscription={sub.pk} "
-            f"unexpected_error={type(exc).__name__}: {exc}"
-        )
+        print(f"[push-delivery] user={sub.user_id} subscription={sub.pk} provider={provider} accepted=0 error={type(exc).__name__}: {exc}")
         return False
-
 
 def send_push_to_user(user, title, body, url="/", tag="moli-reminder"):
     public_key, private_key = _vapid_keys()
