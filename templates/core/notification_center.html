@@ -58,9 +58,17 @@
     <details class="nc-panel">
       <summary><span class="nc-panel-title"><i class="bi bi-send-check"></i>Bildirim Testi</span><span class="nc-panel-trailing">{{ test_push_device_count }} kayıtlı cihaz <i class="bi bi-chevron-down"></i></span></summary>
       <div class="nc-panel-body">
-        <p class="nc-muted mb-3">Test bildirimi yalnızca bu hesapla eşleştirilmiş cihazlara gönderilir. Bir cihazda kullanıcı menüsündeki “Bildirimleri Aç” seçeneğini kullanarak izin verin.</p>
-        <form method="post" action="{% url 'notification_center' %}">{% csrf_token %}<input type="hidden" name="action" value="test_push"><button class="btn btn-outline-primary" type="submit"><i class="bi bi-send me-1"></i>Test Bildirimi Gönder</button></form>
-        <div class="nc-pref-note mt-2">Sunucunun bildirimi kabul etmesi ekranda göründüğünü garanti etmez. Cihaz bildirim ayarlarını da kontrol edin.</div>
+        <p class="nc-muted mb-3">Kullanıcı seçip bir test gönderin. Cihaz kaydı olmayan kullanıcılara Push ulaştırılamaz.</p>
+        <form method="post" action="{% url 'notification_center' %}" class="d-flex flex-wrap align-items-end gap-2">
+          {% csrf_token %}<input type="hidden" name="action" value="test_push">
+          <div style="min-width:220px;max-width:370px;flex:1"><label class="form-label" for="nc-push-test-user">Kullanıcı</label>
+          <select class="form-select" id="nc-push-test-user" name="target_user" required>
+            <option value="">Kullanıcı seçin</option>
+            {% for p in push_test_users %}<option value="{{ p.user.id }}" {% if p.user.id == request.user.id %}selected{% endif %}>{{ p.user.get_full_name|default:p.user.username }} — {{ p.device_count }} cihaz</option>{% endfor %}
+          </select></div>
+          <button class="btn btn-outline-primary" type="submit"><i class="bi bi-send me-1"></i>Seçili Kullanıcıya Test Gönder</button>
+        </form>
+        <div class="nc-pref-note mt-2">Başarılı sonuç Push servisinin bildirimi kabul ettiğini gösterir; cihazda görünmesi ayrıca kontrol edilmelidir.</div>
         <a class="nc-link d-inline-block mt-2" href="{% url 'attendance_device_management' %}">Kayıtlı cihazları görüntüle</a>
       </div>
     </details>
