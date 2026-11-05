@@ -442,14 +442,14 @@ def _device_agent_details(user_agent):
 
     # Browser signatures need to be checked from most specific to generic.
     signatures = [
-        (r"SamsungBrowser/([\\d.]+)", "Samsung Internet"),
-        (r"Edg(?:A|iOS)?/([\\d.]+)", "Microsoft Edge"),
-        (r"OPR/([\\d.]+)", "Opera"),
-        (r"FxiOS/([\\d.]+)", "Firefox iOS"),
-        (r"Firefox/([\\d.]+)", "Firefox"),
-        (r"CriOS/([\\d.]+)", "Chrome iOS"),
-        (r"Chrome/([\\d.]+)", "Chrome"),
-        (r"Version/([\\d.]+).*Safari/", "Safari"),
+        (r"SamsungBrowser/([\d.]+)", "Samsung Internet"),
+        (r"Edg(?:A|iOS)?/([\d.]+)", "Microsoft Edge"),
+        (r"OPR/([\d.]+)", "Opera"),
+        (r"FxiOS/([\d.]+)", "Firefox iOS"),
+        (r"Firefox/([\d.]+)", "Firefox"),
+        (r"CriOS/([\d.]+)", "Chrome iOS"),
+        (r"Chrome/([\d.]+)", "Chrome"),
+        (r"Version/([\d.]+).*Safari/", "Safari"),
     ]
     browser, version = "Bilinmiyor", ""
     for signature, label in signatures:
@@ -458,7 +458,7 @@ def _device_agent_details(user_agent):
             browser, version = label, match.group(1)
             break
     os_version = ""
-    match = re.search(r"(?:iPhone OS|CPU OS|Android|Windows NT|Mac OS X) ([\\d_.]+)", ua, re.IGNORECASE)
+    match = re.search(r"(?:iPhone OS|CPU OS|Android|Windows NT|Mac OS X) ([\d_.]+)", ua, re.IGNORECASE)
     if match:
         os_version = match.group(1).replace("_", ".")
     return {"platform": platform, "icon": icon, "browser": browser,
