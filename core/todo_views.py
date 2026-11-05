@@ -20,7 +20,7 @@ def todo_list(request):
         title = (request.POST.get("title") or "").strip()
         note = (request.POST.get("note") or "").strip()
         due_text = (request.POST.get("due_at") or "").strip()
-        alarm_enabled = request.POST.get("alarm_enabled") == "on"
+        alarm_enabled = bool(due_text)
         try:
             interval = int(request.POST.get("alarm_interval_minutes") or 15)
         except ValueError:
@@ -36,10 +36,6 @@ def todo_list(request):
         if not title:
             from django.contrib import messages
             messages.error(request, "Yapılacak iş başlığı boş olamaz.")
-            return redirect("todo_list")
-        if alarm_enabled and not due_text:
-            from django.contrib import messages
-            messages.error(request, "Alarm kurmak için tarih ve saat seçmelisiniz. Alarm kaydedilmedi.")
             return redirect("todo_list")
         if alarm_enabled and not due_at:
             from django.contrib import messages
