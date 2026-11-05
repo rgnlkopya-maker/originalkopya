@@ -547,8 +547,12 @@ document.addEventListener("DOMContentLoaded",function(){
     for(const [key,value] of Object.entries(extra||{}))form.append(key,value);
     try{
       const res=await fetch(url,{method:"POST",body:form,credentials:"same-origin",headers:{"X-Requested-With":"XMLHttpRequest","X-CSRFToken":csrf}});
-      // Django redirects after a successful POST. A redirect to login is not a success.
-      if(!res.ok||res.redirected&&!new URL(res.url,window.location.href).pathname.startsWith("/yapilacaklar/")){
+      // Popup completion returns explicit JSON, avoiding ambiguous redirects.
+      if(extra?.action==="finish"){
+        if(!res.ok||res.redirected)throw new Error("Tamamlama kaydedilemedi. Lütfen tekrar deneyin.");
+        const payload=await res.json();
+        if(!payload.ok||!payload.completed)throw new Error("Tamamlama onaylanamadı.");
+      }else if(!res.ok||res.redirected&&!new URL(res.url,window.location.href).pathname.startsWith("/yapilacaklar/")){
         throw new Error(res.status===403?"Oturum veya güvenlik doğrulaması başarısız. Sayfayı yenileyin.":"İşlem kaydedilemedi. Lütfen tekrar deneyin.");
       }
       const finishedId=selected.id;
