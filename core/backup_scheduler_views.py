@@ -35,6 +35,24 @@ def scheduler_tick(request):
     supplied = request.headers.get("X-Moli-Backup-Key", "")
     if not secret or not hmac.compare_digest(secret, supplied):
         return JsonResponse({"error": "forbidden"}, status=403)
+    # This already-running minute scheduler also delivers due reminders and
+    # to-do push alarms. Both processors keep their own interval/idempotency
+    # state so repeated ticks never trigger an immediate duplicate.
+    for label, processor in (
+        ("reminders", "process_due_reminders"),
+        ("todos", "process_due_todos"),
+    ):
+        try:
+            if label == "reminders":
+                from .reminder_service import process_due_reminders
+                result = process_due_reminders()
+            else:
+                from .todo_service import process_due_todos
+                result = process_due_todos()
+            logger.info("Scheduled %s processed: %s", label, result)
+        except Exception:
+            logger.exception("Scheduled %s processing failed", label)
+
     now = timezone.localtime()
     outcomes = []
     for module, _ in BackupPolicy.MODULES:
