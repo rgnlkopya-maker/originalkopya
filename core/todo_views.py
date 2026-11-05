@@ -33,6 +33,22 @@ def todo_list(request):
                 due_at = timezone.make_aware(datetime.strptime(due_text, "%Y-%m-%dT%H:%M"), timezone.get_current_timezone())
             except ValueError:
                 due_at = None
+        if not title:
+            from django.contrib import messages
+            messages.error(request, "Yapılacak iş başlığı boş olamaz.")
+            return redirect("todo_list")
+        if alarm_enabled and not due_text:
+            from django.contrib import messages
+            messages.error(request, "Alarm kurmak için tarih ve saat seçmelisiniz. Alarm kaydedilmedi.")
+            return redirect("todo_list")
+        if alarm_enabled and not due_at:
+            from django.contrib import messages
+            messages.error(request, "Alarm tarihi veya saati geçersiz. Alarm kaydedilmedi.")
+            return redirect("todo_list")
+        if alarm_enabled and due_at <= timezone.now():
+            from django.contrib import messages
+            messages.error(request, "Alarm tarihi gelecekte olmalı. Alarm kaydedilmedi.")
+            return redirect("todo_list")
         if title:
             TodoItem.objects.create(
                 user=request.user, title=title, note=note, due_at=due_at,
