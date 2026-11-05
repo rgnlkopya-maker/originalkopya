@@ -53,8 +53,17 @@
     <h1><i class="bi bi-bell me-2"></i>Bildirim Merkezi</h1>
     <div class="nc-muted">Bildirim türlerini, kullanıcı tercihlerini ve hatırlatmaları yönetin.</div>
   </header>
-  {% for message in messages %}<div class="alert alert-info mt-3 py-2">{{ message }}</div>{% endfor %}
+  {% for message in messages %}<div class="alert {% if message.tags == 'error' %}alert-danger{% elif message.tags == 'warning' %}alert-warning{% elif message.tags == 'success' %}alert-success{% else %}alert-info{% endif %} mt-3 py-2">{{ message }}</div>{% endfor %}
   <div class="nc-sections">
+    <details class="nc-panel">
+      <summary><span class="nc-panel-title"><i class="bi bi-send-check"></i>Bildirim Testi</span><span class="nc-panel-trailing">{{ test_push_device_count }} kayıtlı cihaz <i class="bi bi-chevron-down"></i></span></summary>
+      <div class="nc-panel-body">
+        <p class="nc-muted mb-3">Test bildirimi yalnızca bu hesapla eşleştirilmiş cihazlara gönderilir. Bir cihazda kullanıcı menüsündeki “Bildirimleri Aç” seçeneğini kullanarak izin verin.</p>
+        <form method="post" action="{% url 'notification_center' %}">{% csrf_token %}<input type="hidden" name="action" value="test_push"><button class="btn btn-outline-primary" type="submit"><i class="bi bi-send me-1"></i>Test Bildirimi Gönder</button></form>
+        <div class="nc-pref-note mt-2">Sunucunun bildirimi kabul etmesi ekranda göründüğünü garanti etmez. Cihaz bildirim ayarlarını da kontrol edin.</div>
+        <a class="nc-link d-inline-block mt-2" href="{% url 'attendance_device_management' %}">Kayıtlı cihazları görüntüle</a>
+      </div>
+    </details>
     <details class="nc-panel">
       <summary><span class="nc-panel-title"><i class="bi bi-list-check"></i>Bildirim Türleri</span><span class="nc-panel-trailing">9 bildirim türü <i class="bi bi-chevron-down"></i></span></summary>
       <div class="nc-panel-body">
