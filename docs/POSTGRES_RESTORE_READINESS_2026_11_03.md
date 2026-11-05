@@ -72,3 +72,11 @@ Security: The backup scheduler currently risks exposing its credential in comman
 - Render's Recovery page also supports manual `Create export` for a full logical database backup, retained on Render for 7 days; this export must be downloaded to independent storage for long-term/off-Render recovery.
 - Direct action to unblock: open https://dashboard.render.com/d/dpg-dach0t2fngtc73dfigg0-a , navigate Recovery and trigger Create export. The available connector exposes no Create export or PITR action, so no export has been initiated by this assistant.
 - Shortest proof route: native export -> verify archive -> independent encrypted storage -> restore to *new isolated* database; photos/files require separate verification. Stop writing additional comparator tests until a real archive exists.
+
+## 2026-11-05 — actual external backup integrity verification
+- The user exported Render's PostgreSQL directory archive and uploaded it to a private Google Drive folder `MoliApp Yedekleri`. Google Drive file: `2026-11-05T05_05Z.dir.tar.gz`, id `1VFiRfEgAPQHl6lDkqqwmQYghyIp-t7lh`, size 907183 bytes.
+- The archive was downloaded through the authenticated Drive connector and verified locally, without changing any production data.
+- SHA-256 of the compressed archive: `5af54f911537f9ac5541a88ae5bfc947530c3847e51acc0ec68cc3faa1766b74`.
+- Tar gzip stream fully readable, with 119 files totaling 9559454 bytes (one `toc.dat` plus 118 table-data `.dat` members). TOC has PostgreSQL `PGDMP` magic header. All 118 data members have PostgreSQL COPY end markers; 96 contain rows and 22 appear empty.
+- This is a meaningful on-disk structural integrity test, NOT a successful `pg_restore`, logical correctness check or application recovery proof. Local runtime lacks PostgreSQL client and server tools. No isolated restore has been run.
+- Archive is not encrypted and must remain private. Further work: test `pg_restore` only against a dedicated isolated PostgreSQL 18 instance and then verify application/media recovery. Avoid adding unrelated unit tests.
