@@ -84,7 +84,7 @@ def todo_complete(request, todo_id):
         # Keep the list checkbox's existing toggle behavior.
         item.completed_at = None if item.completed_at else timezone.now()
         item.save(update_fields=["completed_at"])
-    if request.POST.get("action") == "finish":
+    if request.POST.get("action") == "finish" and request.headers.get("X-Requested-With") == "XMLHttpRequest":
         return JsonResponse({"ok": True, "id": item.pk, "completed": True})
     return redirect("todo_list")
 
