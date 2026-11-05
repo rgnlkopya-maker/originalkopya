@@ -41,21 +41,27 @@ def notification_center(request):
         return HttpResponseForbidden("Bildirim Merkezi yalnız patron ve müdür içindir.")
 
     if request.method == "POST" and request.POST.get("action") == "test_push":
-        count = PushSubscription.objects.filter(user=request.user).count()
+        target_id = (request.POST.get("target_user") or "").strip()
+        target = get_user_model().objects.filter(pk=target_id, is_active=True).first() if target_id.isdecimal() else None
+        if not target:
+            messages.error(request, "Bildirim testi için geçerli bir kullanıcı seçin.")
+            return redirect("notification_center")
+        count = PushSubscription.objects.filter(user=target).count()
+        target_name = target.get_full_name() or target.username
         if count == 0:
-            messages.warning(request, "Bu hesaba bağlı bildirim cihazı yok. Cihazınızda kullanıcı menüsünden Bildirimleri Aç seçeneğini kullanın.")
+            messages.warning(request, f"{target_name} için kayıtlı bildirim cihazı bulunmuyor. Kullanıcı cihazında Bildirimleri Aç seçeneğini kullanmalı.")
         else:
-            delivered = send_push_to_user(
-                user=request.user,
+            accepted = send_push_to_user(
+                user=target,
                 title="MoliApp Bildirim Testi",
-                body="Test bildirimi: cihazınız Push mesajı almaya hazır.",
-                url="/yonetim/bildirim-merkezi/",
-                tag="moli-notification-center-test",
+                body="Yönetim panelinden gönderilen deneme bildirimidir.",
+                url="/yapilacaklar/",
+                tag=f"moli-notification-test-{target.pk}",
             )
-            if delivered:
-                messages.success(request, f"Test bildirimi {delivered}/{count} kayıtlı cihaza iletim için kabul edildi. Cihazda görünmesini kontrol edin.")
+            if accepted:
+                messages.success(request, f"{target_name}: {accepted}/{count} cihaza Push servisi tarafından kabul edildi. Ekranda gösterildiği henüz doğrulanmadı.")
             else:
-                messages.error(request, "Test bildirimi gönderilemedi. Cihaz iznini, aboneliği ve Render Push loglarını kontrol edin.")
+                messages.error(request, f"{target_name}: {count} aboneliğe denendi, Push servisi gönderimi kabul etmedi. Render loglarını ve cihaz izinlerini kontrol edin.")
         return redirect("notification_center")
 
     if request.method == "POST" and request.POST.get("action") == "save_preferences":
@@ -139,6 +145,13 @@ def notification_center(request):
         "reminders": reminders,
         "active_reminders": Reminder.objects.filter(is_active=True).count(),
         "test_push_device_count": PushSubscription.objects.filter(user=request.user).count(),
+        "push_test_users": [
+            {"user": user, "device_count": count}
+            for user, count in (
+                (u, PushSubscription.objects.filter(user=u).count())
+                for u in get_user_model().objects.filter(is_active=True).order_by("first_name", "username")
+            )
+        ],
         "users": get_user_model().objects.filter(is_active=True).order_by("first_name", "username"),
         "team_choices": [(key, label) for key, label in UserProfile.GOREV_SECENEKLERI if key != "yok"],
     })
