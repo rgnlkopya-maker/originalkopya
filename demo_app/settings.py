@@ -113,6 +113,10 @@ SUPABASE_SERVICE_ROLE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
 SUPABASE_BUCKET_NAME = os.getenv("SUPABASE_BUCKET_NAME", "order-qr")
 VAPID_PUBLIC_KEY = os.getenv("VAPID_PUBLIC_KEY", "")
 VAPID_PRIVATE_KEY = os.getenv("VAPID_PRIVATE_KEY", "")
-VAPID_SUBJECT = os.getenv("VAPID_SUBJECT", "mailto:bildirim@moliapp.local")
+# Apple Web Push rejects local-domain VAPID subjects (403 BadJwtToken).
+# Preserve legitimate configured subjects, but repair the legacy .local default.
+VAPID_SUBJECT = (os.getenv("VAPID_SUBJECT") or "").strip()
+if not VAPID_SUBJECT or VAPID_SUBJECT.lower().endswith(("@moliapp.local", "@localhost")):
+    VAPID_SUBJECT = "https://originalkopya.onrender.com"
 
 REMINDER_CRON_TOKEN = os.getenv("REMINDER_CRON_TOKEN", "")
