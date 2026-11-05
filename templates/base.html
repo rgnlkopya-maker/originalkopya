@@ -471,7 +471,7 @@ document.addEventListener("DOMContentLoaded",function(){
   let selected=null, busy=false;
   const escapeHtml=value=>String(value||"").replace(/[&<>"']/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]));
   async function check(){
-    if(document.hidden||busy||element.classList.contains("show"))return;
+    if(document.hidden||busy||element.classList.contains("show")||document.querySelector('.modal.show'))return;
     try{
       const response=await fetch(api,{credentials:"same-origin",cache:"no-store"});
       if(!response.ok)return;
