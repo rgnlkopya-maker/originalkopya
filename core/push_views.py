@@ -146,7 +146,7 @@ def _deliver_push_subscription(sub, payload, private_key, claims):
             f"[push] user={sub.user_id} subscription={sub.pk} "
             f"status={status} error={exc} response={body}"
         )
-        if status in (403, 404, 410):
+        if status in (404, 410):
             PushSubscription.objects.filter(pk=sub.pk).delete()
         return False
     except Exception as exc:
@@ -168,7 +168,7 @@ def send_push_to_user(user, title, body, url="/", tag="moli-reminder"):
         "url": url or "/",
         "tag": tag or "moli-reminder",
     }, ensure_ascii=False)
-    claims = {"sub": getattr(settings, "VAPID_SUBJECT", "mailto:bildirim@moliapp.local")}
+    claims = {"sub": getattr(settings, "VAPID_SUBJECT", "https://originalkopya.onrender.com")}
     subscriptions = list(PushSubscription.objects.filter(user=user))
     if not subscriptions:
         return 0
@@ -209,7 +209,7 @@ def send_chat_push(message):
         "url": f"/mesajlar/{message.thread_id}/",
         "tag": f"moli-chat-{message.thread_id}",
     }, ensure_ascii=False)
-    claims = {"sub": getattr(settings, "VAPID_SUBJECT", "mailto:bildirim@moliapp.local")}
+    claims = {"sub": getattr(settings, "VAPID_SUBJECT", "https://originalkopya.onrender.com")}
 
     subscriptions = list(PushSubscription.objects.filter(user_id__in=recipient_ids))
     def deliver(sub):
@@ -236,7 +236,7 @@ def send_chat_push(message):
                 f"[push] user={sub.user_id} subscription={sub.pk} "
                 f"status={status} error={exc} response={body}"
             )
-            if status in (403, 404, 410):
+            if status in (404, 410):
                 PushSubscription.objects.filter(pk=sub.pk).delete()
         except Exception as exc:
             print(
@@ -269,7 +269,7 @@ def push_test_once(request):
                 "tag": "moli-push-test",
             }, ensure_ascii=False),
             vapid_private_key=private_key,
-            vapid_claims={"sub": getattr(settings, "VAPID_SUBJECT", "mailto:bildirim@moliapp.local")},
+            vapid_claims={"sub": getattr(settings, "VAPID_SUBJECT", "https://originalkopya.onrender.com")},
             timeout=8,
         )
         return JsonResponse({"ok": True})
@@ -295,7 +295,7 @@ def send_test_push_to_user(user):
                 "tag": "moli-push-test",
             }, ensure_ascii=False),
             vapid_private_key=private_key,
-            vapid_claims={"sub": getattr(settings, "VAPID_SUBJECT", "mailto:bildirim@moliapp.local")},
+            vapid_claims={"sub": getattr(settings, "VAPID_SUBJECT", "https://originalkopya.onrender.com")},
             timeout=8,
         )
         return True
