@@ -151,7 +151,11 @@
   <div class="modal-dialog modal-dialog-centered"><div class="modal-content border-0 rounded-4 shadow">
     <div class="modal-header"><h5 class="modal-title fw-bold" id="todoAlarmTitle"><i class="bi bi-alarm me-2 text-danger"></i>Yapılacak iş alarmı</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Kapat"></button></div>
     <div class="modal-body" id="todoAlarmBody"></div>
-    <div class="modal-footer"><button type="button" class="btn btn-outline-secondary" id="todoAlarmSnooze">10 dk ertele</button><button type="button" class="btn btn-primary" id="todoAlarmComplete">Tamamlandı</button></div>
+    <div class="modal-footer flex-wrap justify-content-between gap-2">
+      <div class="d-flex align-items-center gap-2"><label for="todoAlarmSnoozeMinutes" class="small text-muted mb-0">Ertele</label><select id="todoAlarmSnoozeMinutes" class="form-select form-select-sm" style="width:auto" aria-label="Alarmı erteleme süresi"><option value="5">5 dk</option><option value="10" selected>10 dk</option><option value="15">15 dk</option><option value="30">30 dk</option><option value="60">1 saat</option><option value="120">2 saat</option></select><button type="button" class="btn btn-outline-secondary" id="todoAlarmSnooze">Ertele</button></div>
+      <button type="button" class="btn btn-primary" id="todoAlarmComplete">Tamamlandı</button>
+      <div class="alert alert-danger py-2 px-3 mb-0 w-100 d-none" id="todoAlarmActionError" role="alert" aria-live="assertive"></div>
+    </div>
   </div></div>
 </div>
 {% endif %}
@@ -489,19 +493,51 @@ document.addEventListener("DOMContentLoaded",function(){
       modal.show();
     }catch(error){console.warn("Todo alarm check failed",error)}
   }
+  const errorBox=document.getElementById("todoAlarmActionError");
+  const snoozeMinutes=document.getElementById("todoAlarmSnoozeMinutes");
+  function showActionError(message){
+    if(!errorBox)return;
+    errorBox.textContent=message;
+    errorBox.classList.remove("d-none");
+  }
+  function clearActionError(){
+    if(!errorBox)return;
+    errorBox.textContent="";
+    errorBox.classList.add("d-none");
+  }
+  element.addEventListener("show.bs.modal",clearActionError);
   async function action(url,extra){
     if(!selected||busy)return;
     busy=true;
+    clearActionError();
+    snooze.disabled=true;complete.disabled=true;if(snoozeMinutes)snoozeMinutes.disabled=true;
     const form=new FormData();
     if(csrf)form.append("csrfmiddlewaretoken",csrf);
     for(const [key,value] of Object.entries(extra||{}))form.append(key,value);
     try{
-      const res=await fetch(url,{method:"POST",body:form,credentials:"same-origin",headers:{"X-Requested-With":"XMLHttpRequest"}});
-      if(res.ok){lastShown.delete(selected.id);modal.hide();selected=null;}
-    }finally{busy=false;}
+      const res=await fetch(url,{method:"POST",body:form,credentials:"same-origin",headers:{"X-Requested-With":"XMLHttpRequest","X-CSRFToken":csrf}});
+      // Django redirects after a successful POST. A redirect to login is not a success.
+      if(!res.ok||res.redirected&&!new URL(res.url,window.location.href).pathname.startsWith("/yapilacaklar/")){
+        throw new Error(res.status===403?"Oturum veya güvenlik doğrulaması başarısız. Sayfayı yenileyin.":"İşlem kaydedilemedi. Lütfen tekrar deneyin.");
+      }
+      const finishedId=selected.id;
+      lastShown.delete(finishedId);
+      modal.hide();
+      selected=null;
+      if(window.location.pathname.startsWith("/yapilacaklar/")&&!res.redirected){
+        window.location.reload();
+      }else if(window.location.pathname==="/yapilacaklar/"){
+        window.location.reload();
+      }
+    }catch(error){
+      showActionError(error.message||"İşlem yapılamadı. İnternet bağlantınızı kontrol edin.");
+    }finally{
+      busy=false;
+      snooze.disabled=false;complete.disabled=false;if(snoozeMinutes)snoozeMinutes.disabled=false;
+    }
   }
-  snooze.addEventListener("click",()=>action(selected?.snooze_url,{minutes:"10"}));
-  complete.addEventListener("click",()=>action(selected?.complete_url,{}));
+  snooze.addEventListener("click",()=>action(selected?.snooze_url,{minutes:snoozeMinutes?.value||"10"}));
+  complete.addEventListener("click",()=>action(selected?.complete_url,{action:"finish"}));
   check();setInterval(check,30000);
   document.addEventListener("visibilitychange",()=>{if(!document.hidden)check()});
   window.addEventListener("pageshow",check);
