@@ -75,8 +75,15 @@ def todo_list(request):
 @require_POST
 def todo_complete(request, todo_id):
     item = get_object_or_404(TodoItem, pk=todo_id, user=request.user)
-    item.completed_at = None if item.completed_at else timezone.now()
-    item.save(update_fields=["completed_at"])
+    if request.POST.get("action") == "finish":
+        # Popup completion must be idempotent: never reopen a completed task.
+        if item.completed_at is None:
+            item.completed_at = timezone.now()
+            item.save(update_fields=["completed_at"])
+    else:
+        # Keep the list checkbox's existing toggle behavior.
+        item.completed_at = None if item.completed_at else timezone.now()
+        item.save(update_fields=["completed_at"])
     return redirect("todo_list")
 
 
@@ -88,7 +95,7 @@ def todo_snooze(request, todo_id):
         minutes = int(request.POST.get("minutes") or 10)
     except ValueError:
         minutes = 10
-    if minutes not in {10, 30, 60}:
+    if minutes not in ALLOWED_INTERVALS:
         minutes = 10
     item.snoozed_until = timezone.now() + timedelta(minutes=minutes)
     item.last_notified_at = None
