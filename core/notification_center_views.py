@@ -28,7 +28,7 @@ EVENT_CATALOG = (
     ("Giriş güvenliği uyarısı", "Güvenlik", "Patron ve müdür", "Uygulama içi + Push", "core.manager_notification_signals"),
     ("Yeni sohbet mesajı", "Mesaj", "Sohbet üyeleri", "Mesaj ekranı + Push", "core.push_views"),
     ("Zamanlanmış hatırlatma", "Hatırlatma", "Seçili kişi, ekip veya herkes", "Hatırlatma ekranı + Push", "core.reminder_service"),
-    ("Yapılacak iş alarmı", "Görev", "Görev sahibi", "Görev ekranı; Push işleyicisi mevcut, zamanlayıcısı doğrulanmadı", "core.todo_service"),
+    ("Yapılacak iş alarmı", "Görev", "Görev sahibi", "Uygulama içi popup; Push için zamanlayıcı ve cihaz izni gerekir", "core.todo_service"),
 )
 
 
@@ -109,7 +109,7 @@ def notification_center(request):
         })
 
     my_notifications = Notification.objects.filter(user=request.user)
-    reminders = list(Reminder.objects.select_related("target_user").order_by("-is_active", "due_at")[:8])
+    reminders = list(Reminder.objects.filter(is_active=True).select_related("target_user").order_by("due_at")[:3])
     return render(request, "core/notification_center.html", {
         "event_catalog": EVENT_CATALOG,
         "event_preferences": event_preferences,
