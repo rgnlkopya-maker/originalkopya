@@ -13,6 +13,7 @@
 <div class="todo-page">
   <div class="todo-head"><div><h2 class="todo-title">Yapılacaklarım</h2><div class="todo-sub">İşaretle, tamamla; silene kadar burada kalsın.</div></div></div>
 
+  {% for message in messages %}<div class="alert {% if message.tags == 'error' %}alert-danger{% else %}alert-info{% endif %} mb-3" role="alert">{{ message }}</div>{% endfor %}
   <div class="todo-sheet">
     <form method="post" class="todo-add">{% csrf_token %}
       <div class="todo-add-main">
@@ -24,8 +25,8 @@
       <div class="todo-extra" id="todoExtra">
         <div class="todo-extra-grid">
           <textarea name="note" rows="2" placeholder="Not ekle…"></textarea>
-          <input type="datetime-local" name="due_at">
-          <label class="todo-alarm-check"><input type="checkbox" name="alarm_enabled"> Alarm</label>
+          <input type="datetime-local" name="due_at" id="todoDueAt" aria-label="İşin tarih ve saati">
+          <label class="todo-alarm-check"><input type="checkbox" name="alarm_enabled" id="todoAlarmEnabled"> Alarm</label>
           <select name="alarm_interval_minutes"><option value="5">5 dk</option><option value="10">10 dk</option><option value="15" selected>15 dk</option><option value="30">30 dk</option><option value="60">1 saat</option><option value="120">2 saat</option></select>
         </div>
       </div>
@@ -43,6 +44,17 @@
 document.addEventListener('DOMContentLoaded',function(){
   const toggle=document.getElementById('todoDetailToggle'),extra=document.getElementById('todoExtra');
   toggle&&toggle.addEventListener('click',()=>extra.classList.toggle('open'));
+  const alarm=document.getElementById('todoAlarmEnabled'),due=document.getElementById('todoDueAt');
+  const addForm=document.querySelector('form.todo-add');
+  if(alarm&&due){
+    alarm.addEventListener('change',()=>{
+      if(alarm.checked){extra.classList.add('open');due.required=true;if(!due.value)due.focus()}
+      else due.required=false;
+    });
+    if(addForm)addForm.addEventListener('submit',event=>{
+      if(alarm.checked&&!due.value){event.preventDefault();extra.classList.add('open');due.required=true;due.reportValidity();}
+    });
+  }
   document.querySelectorAll('.todo-text-btn').forEach(btn=>btn.addEventListener('click',function(){
     this.closest('.todo-row')?.classList.toggle('open');
   }));
