@@ -87,10 +87,15 @@ def process_due_reminders(now=None):
                 state.save(update_fields=["last_notified_at", "updated_at"])
 
             notified += 1
-            body = (reminder.message or "").strip() or reminder.title
+            due_label = timezone.localtime(occurrence).strftime("%d.%m.%Y %H:%M")
+            note = " ".join((reminder.message or "").split())
+            body = f"Zaman: {due_label}"
+            if note:
+                body += f"  |  Not: {note[:140]}"
+            body += "  |  Ayrıntılar için dokunun."
             delivered += send_push_to_user(
                 user=user,
-                title=f"Hatırlatma: {reminder.title}",
+                title=f"Hatırlatma • {reminder.title[:90]}",
                 body=body,
                 url="/hatirlatmalarim/",
                 tag=f"moli-reminder-{reminder.id}-{user.id}",
