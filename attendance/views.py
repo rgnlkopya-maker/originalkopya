@@ -419,32 +419,80 @@ def punch(request):
     return JsonResponse({"ok": True, "action": "out", "message": f"Çıkış kaydedildi: {timezone.localtime(now).strftime('%H:%M')} · {location_name}"})
 
 
+def _device_agent_details(user_agent):
+    """Display information inferred from a recorded browser user-agent only."""
+    import re
+
+    ua = user_agent or ""
+    lowered = ua.lower()
+    if "ipad" in lowered:
+        platform, icon = "iPadOS", "bi-tablet"
+    elif "iphone" in lowered:
+        platform, icon = "iOS / iPhone", "bi-phone"
+    elif "android" in lowered:
+        platform, icon = "Android", "bi-phone"
+    elif "windows nt" in lowered:
+        platform, icon = "Windows", "bi-pc-display"
+    elif "macintosh" in lowered or "mac os x" in lowered:
+        platform, icon = "macOS", "bi-laptop"
+    elif "linux" in lowered:
+        platform, icon = "Linux", "bi-pc-display"
+    else:
+        platform, icon = "Bilinmiyor", "bi-display"
+
+    # Browser signatures need to be checked from most specific to generic.
+    signatures = [
+        (r"SamsungBrowser/([\\d.]+)", "Samsung Internet"),
+        (r"Edg(?:A|iOS)?/([\\d.]+)", "Microsoft Edge"),
+        (r"OPR/([\\d.]+)", "Opera"),
+        (r"FxiOS/([\\d.]+)", "Firefox iOS"),
+        (r"Firefox/([\\d.]+)", "Firefox"),
+        (r"CriOS/([\\d.]+)", "Chrome iOS"),
+        (r"Chrome/([\\d.]+)", "Chrome"),
+        (r"Version/([\\d.]+).*Safari/", "Safari"),
+    ]
+    browser, version = "Bilinmiyor", ""
+    for signature, label in signatures:
+        match = re.search(signature, ua, re.IGNORECASE)
+        if match:
+            browser, version = label, match.group(1)
+            break
+    os_version = ""
+    match = re.search(r"(?:iPhone OS|CPU OS|Android|Windows NT|Mac OS X) ([\\d_.]+)", ua, re.IGNORECASE)
+    if match:
+        os_version = match.group(1).replace("_", ".")
+    return {"platform": platform, "icon": icon, "browser": browser,
+            "browser_version": version, "os_version": os_version,
+            "user_agent": ua}
+
+
 @login_required
 @user_passes_test(is_manager)
 def device_management(request):
-    devices = AttendanceDevice.objects.select_related("user", "approved_by").order_by("status", "user__first_name", "user__username")
-    pending_count = devices.filter(status="pending").count()
     from core.models import PushSubscription
+
+    devices = list(
+        AttendanceDevice.objects.select_related("user", "approved_by")
+        .order_by("status", "user__first_name", "user__username")
+    )
+    pending_count = sum(device.status == "pending" for device in devices)
+    for device in devices:
+        device.details = _device_agent_details(device.user_agent)
+
     subscriptions = list(
-        PushSubscription.objects.select_related("user").order_by("user__first_name", "user__username", "-updated_at")
+        PushSubscription.objects.select_related("user")
+        .order_by("user__first_name", "user__username", "-updated_at")
     )
     for subscription in subscriptions:
-        ua = (subscription.user_agent or "").lower()
-        if "iphone" in ua or "ipad" in ua:
-            subscription.device_type = "iPhone / iPad"
-        elif "android" in ua:
-            subscription.device_type = "Android"
-        elif "windows" in ua:
-            subscription.device_type = "Windows"
-        elif "macintosh" in ua:
-            subscription.device_type = "Mac"
-        else:
-            subscription.device_type = "Diğer"
-    return render(request, "attendance_v2/device_management.html", {
-        "devices": devices, "pending_count": pending_count,
-        "push_subscriptions": subscriptions,
-    })
+        subscription.details = _device_agent_details(subscription.user_agent)
 
+    return render(request, "attendance_v2/device_management.html", {
+        "devices": devices,
+        "pending_count": pending_count,
+        "approved_count": len(devices) - pending_count,
+        "push_subscriptions": subscriptions,
+        "push_user_count": len({sub.user_id for sub in subscriptions}),
+    })
 
 @login_required
 @user_passes_test(is_manager)
