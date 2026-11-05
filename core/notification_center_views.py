@@ -41,27 +41,56 @@ def notification_center(request):
         return HttpResponseForbidden("Bildirim Merkezi yalnız patron ve müdür içindir.")
 
     if request.method == "POST" and request.POST.get("action") == "test_push":
+        from .notification_preferences import EVENTS_BY_KEY, settings_for_user as recipient_settings_for_user
+        from .manager_notification_signals import management_users
+
         target_id = (request.POST.get("target_user") or "").strip()
         target = get_user_model().objects.filter(pk=target_id, is_active=True).first() if target_id.isdecimal() else None
         if not target:
             messages.error(request, "Bildirim testi için geçerli bir kullanıcı seçin.")
             return redirect("notification_center")
+
+        event_key = (request.POST.get("test_event") or "generic").strip()
+        if event_key != "generic" and event_key not in EVENTS_BY_KEY:
+            messages.error(request, "Geçerli bir bildirim türü seçin.")
+            return redirect("notification_center")
+
+        name = target.get_full_name() or target.username
+        if event_key != "generic":
+            if not management_users().filter(pk=target.pk).exists():
+                messages.warning(request, f"{name}: Bu yönetim bildiriminin alıcısı değil. Test gönderilmedi.")
+                return redirect("notification_center")
+            _, push_on = event_delivery(recipient_settings_for_user(target), event_key)
+            if not push_on:
+                messages.warning(request, f"{name}: Bu bildirim türünün Push tercihi kapalı. Test gönderilmedi.")
+                return redirect("notification_center")
+
         count = PushSubscription.objects.filter(user=target).count()
-        target_name = target.get_full_name() or target.username
         if count == 0:
-            messages.warning(request, f"{target_name} için kayıtlı bildirim cihazı bulunmuyor. Kullanıcı cihazında Bildirimleri Aç seçeneğini kullanmalı.")
+            messages.warning(request, f"{name} için kayıtlı bildirim cihazı yok. Cihazda Bildirimleri Aç seçeneğini kullanın.")
+            return redirect("notification_center")
+
+        examples = {
+            "uninvoiced_shipment": ("Faturaya Aktarılmayan Yeni Sevkiyat", "Örnek sevkiyat: Fatura aktarım kontrolü bekliyor.", "/urun-kartlari/faturalar/aktarilmayan-sevkler/"),
+            "invoice_failure": ("Fatura Aktarım Hatası", "Örnek fatura: Dış sistem aktarımı başarısız.", "/urun-kartlari/faturalar/"),
+            "material_missing": ("Malzeme Eksikliği", "Örnek sipariş: Malzeme eksik olarak işaretlendi.", "/"),
+            "flagged_stage": ("Bayraklı Siparişte Üretim Hareketi", "Örnek sipariş: Üretim aşaması güncellendi.", "/"),
+            "backup_failed": ("Otomatik Yedekleme Başarısız", "Örnek yedek: Yedekleme başarısız oldu.", "/yonetim/yedekleme-merkezi/"),
+            "security_lock": ("Güvenlik Uyarısı", "Örnek giriş: Güvenlik kontrolü gerekli.", "/"),
+            "generic": ("MoliApp Bildirim Testi", "Yönetim panelinden gönderilen deneme bildirimidir.", "/yonetim/bildirim-merkezi/"),
+        }
+        heading, message, destination = examples[event_key]
+        accepted = send_push_to_user(
+            user=target,
+            title=f"[TEST] {heading}",
+            body=f"Bu bir denemedir, gerçek olay oluşmadı. {message}",
+            url=destination,
+            tag=f"moli-notification-test-{target.pk}-{event_key}",
+        )
+        if accepted:
+            messages.success(request, f"{name}: {heading} testi {accepted}/{count} cihazda Push servisi tarafından kabul edildi. Cihazda görünmesini kontrol edin.")
         else:
-            accepted = send_push_to_user(
-                user=target,
-                title="MoliApp Bildirim Testi",
-                body="Yönetim panelinden gönderilen deneme bildirimidir.",
-                url="/yapilacaklar/",
-                tag=f"moli-notification-test-{target.pk}",
-            )
-            if accepted:
-                messages.success(request, f"{target_name}: {accepted}/{count} cihaza Push servisi tarafından kabul edildi. Ekranda gösterildiği henüz doğrulanmadı.")
-            else:
-                messages.error(request, f"{target_name}: {count} aboneliğe denendi, Push servisi gönderimi kabul etmedi. Render loglarını ve cihaz izinlerini kontrol edin.")
+            messages.error(request, f"{name}: {heading} testi gönderilemedi. {count} kayıtlı cihaz için Push sunucusu kabul etmedi.")
         return redirect("notification_center")
 
     if request.method == "POST" and request.POST.get("action") == "save_preferences":
@@ -145,6 +174,7 @@ def notification_center(request):
         "reminders": reminders,
         "active_reminders": Reminder.objects.filter(is_active=True).count(),
         "test_push_device_count": PushSubscription.objects.filter(user=request.user).count(),
+        "test_event_choices": EVENTS,
         "push_test_users": [
             {"user": user, "device_count": count}
             for user, count in (
