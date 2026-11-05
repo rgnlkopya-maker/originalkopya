@@ -417,12 +417,12 @@ def invoice_manual_line_add(request, invoice_id):
         quantity = Decimal((request.POST.get("quantity") or "").replace(",", "."))
         unit_price = Decimal((request.POST.get("unit_price") or "").replace(",", "."))
         vat_rate = Decimal((request.POST.get("vat_rate") or "10").replace(",", "."))
-        if not description or len(description) > 300 or not all(x.is_finite() for x in (quantity, unit_price, vat_rate)) or quantity <= 0 or quantity > 999999 or unit_price < 0 or vat_rate != 10:
+        if not description or len(description) > 300 or not all(x.is_finite() for x in (quantity, unit_price, vat_rate)) or quantity <= 0 or quantity > 999999 or unit_price < 0 or not (Decimal("0") <= vat_rate <= Decimal("100")) or vat_rate != vat_rate.to_integral_value():
             raise ValueError()
         InvoiceManualLine.objects.create(invoice=invoice, description=description, quantity=quantity, unit_price=unit_price, vat_rate=vat_rate)
         messages.success(request, "Manuel satır eklendi.")
     except (ValueError, InvalidOperation, OverflowError):
-        messages.error(request, "Geçerli açıklama, miktar, fiyat ve %10 KDV girin.")
+        messages.error(request, "Geçerli açıklama, miktar, fiyat ve 0–100 arasında tam sayı KDV oranı girin.")
     return redirect("invoice_detail", invoice_id=invoice_id)
 
 
