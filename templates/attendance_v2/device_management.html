@@ -1,44 +1,122 @@
 {% extends "base.html" %}
 {% block content %}
-<div class="container py-4" style="max-width:1000px">
-  <div class="d-flex justify-content-between align-items-center gap-3 flex-wrap mb-4">
-    <div><div class="text-muted small">YÖNETİM · CİHAZLAR</div><h2 class="fw-bold mb-1">Cihaz Yönetimi</h2><div class="text-muted">Puantaj cihaz onayları ve bildirim alabilen cihazlar.</div></div>
-    <a href="{% url 'attendance_scan' %}" class="btn btn-outline-secondary">Puantaj Giriş / Çıkış</a>
-  </div>
-
-  {% for message in messages %}<div class="alert alert-info">{{ message }}</div>{% endfor %}
-  {% if pending_count %}<div class="alert alert-warning"><strong>{{ pending_count }} cihaz</strong> onay bekliyor.</div>{% endif %}
-
-  <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
-    <div class="table-responsive"><table class="table align-middle mb-0">
-      <thead class="table-light"><tr><th>Personel</th><th>Durum</th><th>Kayıt</th><th>Son Kullanım</th><th>Onaylayan</th><th class="text-end">İşlem</th></tr></thead>
-      <tbody>
-      {% for device in devices %}
-        <tr>
-          <td><strong>{{ device.user.get_full_name|default:device.user.username }}</strong><br><span class="text-muted small">@{{ device.user.username }}</span></td>
-          <td>{% if device.status == 'approved' %}<span class="badge text-bg-success">Onaylı</span>{% else %}<span class="badge text-bg-warning">Onay Bekliyor</span>{% endif %}</td>
-          <td>{{ device.registered_at|date:"d.m.Y H:i" }}</td>
-          <td>{{ device.last_used_at|date:"d.m.Y H:i"|default:"—" }}</td>
-          <td>{% if device.approved_by %}{{ device.approved_by.get_full_name|default:device.approved_by.username }}{% else %}—{% endif %}</td>
-          <td class="text-end">
-            <div class="d-flex gap-2 justify-content-end flex-wrap">
-              {% if device.status != 'approved' %}<form method="post" action="{% url 'attendance_approve_device' device.user.id %}">{% csrf_token %}<button class="btn btn-sm btn-success">Onayla</button></form>{% endif %}
-              <form method="post" action="{% url 'attendance_reset_device' device.user.id %}" onsubmit="return confirm('Bu cihaz kaydı sıfırlansın mı? Kullanıcı yeni telefonundan tekrar eşleştirme yapacak.');">{% csrf_token %}<button class="btn btn-sm btn-outline-danger">Cihazı Sıfırla</button></form>
-            </div>
-          </td>
-        </tr>
-      {% empty %}<tr><td colspan="6" class="text-center text-muted py-5">Henüz kayıtlı cihaz yok.</td></tr>{% endfor %}
-      </tbody>
-    </table></div>
-  </div>
-</div>
-<section class="card border-0 shadow-sm rounded-4 overflow-hidden mt-4">
-  <div class="card-body pb-2"><h5 class="fw-bold mb-1"><i class="bi bi-bell me-2"></i>Push Bildirim Cihazları</h5><p class="text-muted small mb-2">MoliApp'ten sistem bildirimi almak için izin vermiş kayıtlı tarayıcılar. Puantaj cihaz onaylarından bağımsızdır.</p></div>
-  <div class="table-responsive"><table class="table align-middle mb-0">
-    <thead class="table-light"><tr><th>Kullanıcı</th><th>Cihaz</th><th>Son Abonelik Güncellemesi</th></tr></thead>
-    <tbody>{% for sub in push_subscriptions %}
-      <tr><td>{{ sub.user.get_full_name|default:sub.user.username }}</td><td>{{ sub.device_type }}</td><td>{{ sub.updated_at|date:"d.m.Y H:i" }}</td></tr>
-    {% empty %}<tr><td colspan="3" class="text-center text-muted py-4">Push bildirimine kayıtlı cihaz yok.</td></tr>{% endfor %}</tbody>
+<style>
+.dm-wrap{max-width:1280px;margin:18px auto 56px;padding:0 18px;color:#25334c}
+.dm-header{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:22px}
+.dm-eyebrow{color:#7182a1;letter-spacing:.09em;font-size:10px;font-weight:800;text-transform:uppercase}
+.dm-header h1{font-size:26px;font-weight:850;letter-spacing:-.03em;margin:3px 0 5px}
+.dm-sub{font-size:13px;color:#75859c;margin:0}
+.dm-shortcut{display:inline-flex;align-items:center;gap:7px;background:#fff;border:1px solid #e1e7f1;border-radius:11px;color:#40557a;text-decoration:none;padding:11px 14px;font-size:12px;font-weight:750}
+.dm-shortcut:hover{background:#f7f9fd;color:#2455b3}
+.dm-stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:23px}
+.dm-stat{background:#fff;border:1px solid #e3eaf4;border-radius:16px;padding:16px 18px;display:flex;justify-content:space-between;align-items:center;gap:9px;box-shadow:0 3px 16px rgba(20,40,80,.025)}
+.dm-stat-value{font-size:27px;line-height:1.15;font-weight:850;letter-spacing:-.04em}
+.dm-stat-label{font-size:11px;font-weight:650;color:#7a8aa0;margin-top:4px}
+.dm-stat-icon{width:40px;height:40px;display:grid;place-items:center;border-radius:12px;background:#f1f5fc;color:#506da3;font-size:18px}
+.dm-section{background:#fff;border:1px solid #e4eaf3;border-radius:18px;overflow:hidden;margin-bottom:18px;box-shadow:0 4px 20px rgba(15,23,42,.025)}
+.dm-section-header{padding:20px 22px;border-bottom:1px solid #eef1f6;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px}
+.dm-section-title{font-size:17px;font-weight:850;margin:0}
+.dm-section-desc{font-size:12px;color:#8190a5;margin:5px 0 0}
+.dm-count{font-size:11px;border:1px solid #e5eaf3;background:#f7f9fc;border-radius:999px;padding:6px 11px;color:#5e718f;font-weight:750}
+.dm-table{width:100%;border-collapse:collapse}
+.dm-table th{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.045em;color:#8190a4;background:#fbfcfe;padding:12px 18px;border-bottom:1px solid #e9edf5}
+.dm-table td{padding:15px 18px;vertical-align:middle;font-size:12px;border-bottom:1px solid #edf1f6}
+.dm-table tr:last-child td{border-bottom:0}
+.dm-name{font-weight:800;font-size:13px;color:#263652}
+.dm-secondary{font-size:11px;color:#8491a4;margin-top:3px}
+.dm-device{display:flex;align-items:center;gap:10px;min-width:150px}
+.dm-device-icon{display:grid;place-items:center;flex:none;width:36px;height:36px;border-radius:11px;background:#f0f4fb;color:#4b6a9b;font-size:17px}
+.dm-platform{font-size:12px;font-weight:800}
+.dm-pill{display:inline-flex;align-items:center;gap:5px;padding:5px 9px;border-radius:999px;font-size:10px;font-weight:800}
+.dm-pill.ok{background:#eefaf2;color:#22814f}
+.dm-pill.pending{background:#fff8e9;color:#ae7319}
+.dm-pill.neutral{background:#eef3fc;color:#466ba9}
+.dm-details{border:1px solid #e4eaf3;border-radius:10px;overflow:hidden;min-width:142px}
+.dm-details summary{list-style:none;cursor:pointer;padding:8px 10px;font-size:11px;font-weight:750;color:#42618f;text-align:center;background:#f8faff}
+.dm-details summary::-webkit-details-marker{display:none}
+.dm-detail-body{padding:13px 14px;background:#fff;min-width:260px}
+.dm-detail-line{display:flex;justify-content:space-between;gap:16px;font-size:11px;margin-bottom:9px}
+.dm-detail-line span:first-child{color:#8190a4;flex:none}
+.dm-detail-line span:last-child{font-weight:650;color:#344560;text-align:right;overflow-wrap:anywhere}
+.dm-ua{font-size:10px;line-height:1.5;color:#64758e;overflow-wrap:anywhere;background:#f4f6fa;padding:9px;border-radius:8px;margin-top:6px}
+.dm-actions{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px}
+.dm-actions form{margin:0}
+.dm-actions .btn{font-size:11px;font-weight:700;border-radius:9px}
+.dm-empty{text-align:center;padding:34px 15px;color:#8391a6;font-size:12px}
+.dm-note{font-size:11px;color:#8290a3;padding:12px 21px;background:#fafbfd;border-top:1px solid #edf1f6}
+@media(max-width:850px){.dm-stats{grid-template-columns:repeat(2,minmax(0,1fr))}.dm-table th,.dm-table td{padding:12px}.dm-wrap{padding:0 12px}}
+@media(max-width:480px){.dm-header h1{font-size:23px}.dm-stat{padding:13px}.dm-stat-value{font-size:23px}.dm-stat-icon{width:34px;height:34px}}
+</style>
+<main class="dm-wrap">
+ <header class="dm-header">
+  <div><div class="dm-eyebrow">Yönetim / Güvenlik</div><h1><i class="bi bi-phone me-2"></i>Cihaz Yönetimi</h1><p class="dm-sub">Puantaj cihazları ve bildirim abonelikleri tek ekranda.</p></div>
+  <a class="dm-shortcut" href="{% url 'attendance_dashboard' %}"><i class="bi bi-clock-history"></i>Puantaj &amp; Mesai</a>
+ </header>
+ {% for message in messages %}<div class="alert alert-info py-2">{{ message }}</div>{% endfor %}
+ <div class="dm-stats">
+   <div class="dm-stat"><div><div class="dm-stat-value">{{ devices|length }}</div><div class="dm-stat-label">Puantaj cihazı</div></div><div class="dm-stat-icon"><i class="bi bi-phone"></i></div></div>
+   <div class="dm-stat"><div><div class="dm-stat-value">{{ approved_count }}</div><div class="dm-stat-label">Onaylı cihaz</div></div><div class="dm-stat-icon"><i class="bi bi-check2-circle"></i></div></div>
+   <div class="dm-stat"><div><div class="dm-stat-value">{{ pending_count }}</div><div class="dm-stat-label">Onay bekleyen</div></div><div class="dm-stat-icon"><i class="bi bi-hourglass-split"></i></div></div>
+   <div class="dm-stat"><div><div class="dm-stat-value">{{ push_subscriptions|length }}</div><div class="dm-stat-label">Push cihazı · {{ push_user_count }} kullanıcı</div></div><div class="dm-stat-icon"><i class="bi bi-bell"></i></div></div>
+ </div>
+ <section class="dm-section">
+  <div class="dm-section-header"><div><h2 class="dm-section-title">Puantaj Cihazları</h2><p class="dm-section-desc">Kayıtlı telefonların eşleştirme, onay ve kullanım bilgileri.</p></div><span class="dm-count">{{ devices|length }} kayıt</span></div>
+  <div class="table-responsive"><table class="dm-table">
+   <thead><tr><th>Personel</th><th>Cihaz &amp; tarayıcı</th><th>Durum</th><th>Kayıt tarihi</th><th>Son kullanım</th><th>Detay / işlem</th></tr></thead>
+   <tbody>{% for device in devices %}
+    <tr>
+      <td><div class="dm-name">{{ device.user.get_full_name|default:device.user.username }}</div><div class="dm-secondary">@{{ device.user.username }}</div></td>
+      <td><div class="dm-device"><span class="dm-device-icon"><i class="bi {{ device.details.icon }}"></i></span><div><div class="dm-platform">{{ device.details.platform }}</div><div class="dm-secondary">{{ device.details.browser }}{% if device.details.browser_version %} {{ device.details.browser_version }}{% endif %}</div></div></div></td>
+      <td>{% if device.status == 'approved' %}<span class="dm-pill ok"><i class="bi bi-check-circle"></i>Onaylı</span>{% else %}<span class="dm-pill pending"><i class="bi bi-clock"></i>Onay bekliyor</span>{% endif %}</td>
+      <td>{{ device.registered_at|date:"d.m.Y H:i" }}</td>
+      <td>{% if device.last_used_at %}{{ device.last_used_at|date:"d.m.Y H:i" }}{% else %}<span class="dm-secondary">Kayıt yok</span>{% endif %}</td>
+      <td>
+       <details class="dm-details"><summary>Bilgiler ve işlemler <i class="bi bi-chevron-down ms-1"></i></summary>
+        <div class="dm-detail-body">
+         <div class="dm-detail-line"><span>Hesap</span><span>{{ device.user.username }}</span></div>
+         <div class="dm-detail-line"><span>İşletim sistemi</span><span>{{ device.details.platform }}{% if device.details.os_version %} {{ device.details.os_version }}{% endif %}</span></div>
+         <div class="dm-detail-line"><span>Tarayıcı</span><span>{{ device.details.browser }} {{ device.details.browser_version }}</span></div>
+         <div class="dm-detail-line"><span>Kaydedilme</span><span>{{ device.registered_at|date:"d.m.Y H:i:s" }}</span></div>
+         <div class="dm-detail-line"><span>Son kullanım</span><span>{{ device.last_used_at|date:"d.m.Y H:i:s"|default:"Kayıt yok" }}</span></div>
+         <div class="dm-detail-line"><span>Onay zamanı</span><span>{{ device.approved_at|date:"d.m.Y H:i:s"|default:"Henüz onaylanmadı" }}</span></div>
+         <div class="dm-detail-line"><span>Onaylayan</span><span>{% if device.approved_by %}{{ device.approved_by.get_full_name|default:device.approved_by.username }}{% else %}—{% endif %}</span></div>
+         <div class="dm-secondary">Kaydedilmiş tarayıcı tanımı (User-Agent)</div><div class="dm-ua">{{ device.details.user_agent|default:"Kaydedilmemiş" }}</div>
+         <div class="dm-actions">
+          {% if device.status != 'approved' %}<form method="post" action="{% url 'attendance_approve_device' device.user.id %}">{% csrf_token %}<button type="submit" class="btn btn-success btn-sm">Onayla</button></form>{% endif %}
+          <form method="post" action="{% url 'attendance_reset_device' device.user.id %}" onsubmit="return confirm('Bu cihaz kaydı sıfırlansın mı? Kullanıcı yeni telefonundan tekrar eşleştirme yapacak.');">{% csrf_token %}<button type="submit" class="btn btn-outline-danger btn-sm">Cihazı Sıfırla</button></form>
+         </div>
+        </div>
+       </details>
+      </td>
+    </tr>
+   {% empty %}<tr><td colspan="6" class="dm-empty">Kayıtlı puantaj cihazı bulunmuyor.</td></tr>{% endfor %}</tbody>
   </table></div>
-</section>
+ </section>
+ <section class="dm-section">
+  <div class="dm-section-header"><div><h2 class="dm-section-title">Bildirim Cihazları</h2><p class="dm-section-desc">MoliApp Push aboneliği oluşturmuş tarayıcılar. Puantaj eşleştirmesinden bağımsızdır.</p></div><span class="dm-count">{{ push_subscriptions|length }} kayıt</span></div>
+  <div class="table-responsive"><table class="dm-table">
+   <thead><tr><th>Kullanıcı</th><th>Cihaz &amp; tarayıcı</th><th>Bildirim</th><th>Abonelik başlangıcı</th><th>Son güncelleme</th><th>Ayrıntılar</th></tr></thead>
+   <tbody>{% for sub in push_subscriptions %}
+    <tr>
+      <td><div class="dm-name">{{ sub.user.get_full_name|default:sub.user.username }}</div><div class="dm-secondary">@{{ sub.user.username }}</div></td>
+      <td><div class="dm-device"><span class="dm-device-icon"><i class="bi {{ sub.details.icon }}"></i></span><div><div class="dm-platform">{{ sub.details.platform }}</div><div class="dm-secondary">{{ sub.details.browser }}{% if sub.details.browser_version %} {{ sub.details.browser_version }}{% endif %}</div></div></div></td>
+      <td><span class="dm-pill neutral"><i class="bi bi-bell-fill"></i>Abonelik kayıtlı</span></td>
+      <td>{{ sub.created_at|date:"d.m.Y H:i" }}</td>
+      <td>{{ sub.updated_at|date:"d.m.Y H:i" }}</td>
+      <td><details class="dm-details"><summary>Cihaz bilgileri <i class="bi bi-chevron-down ms-1"></i></summary>
+       <div class="dm-detail-body">
+        <div class="dm-detail-line"><span>Kullanıcı hesabı</span><span>{{ sub.user.username }}</span></div>
+        <div class="dm-detail-line"><span>İşletim sistemi</span><span>{{ sub.details.platform }}{% if sub.details.os_version %} {{ sub.details.os_version }}{% endif %}</span></div>
+        <div class="dm-detail-line"><span>Tarayıcı</span><span>{{ sub.details.browser }} {{ sub.details.browser_version }}</span></div>
+        <div class="dm-detail-line"><span>Abonelik başlangıcı</span><span>{{ sub.created_at|date:"d.m.Y H:i:s" }}</span></div>
+        <div class="dm-detail-line"><span>Son abonelik güncellemesi</span><span>{{ sub.updated_at|date:"d.m.Y H:i:s" }}</span></div>
+        <div class="dm-secondary">Kaydedilmiş tarayıcı tanımı (User-Agent)</div><div class="dm-ua">{{ sub.details.user_agent|default:"Kaydedilmemiş" }}</div>
+       </div>
+      </details></td>
+    </tr>
+   {% empty %}<tr><td colspan="6" class="dm-empty">Henüz Push aboneliğine kayıtlı cihaz bulunmuyor.</td></tr>{% endfor %}</tbody>
+  </table></div>
+  <div class="dm-note"><i class="bi bi-info-circle me-1"></i>İşletim sistemi ve tarayıcı User-Agent bilgisinden tahmin edilir; kesin cihaz modeli, IP adresi, anlık çevrimiçi durumu veya bildirim teslim sonucu bu kayıtlarda tutulmaz. Güvenlik nedeniyle cihaz anahtarları ve abonelik adresleri gösterilmez.</div>
+ </section>
+</main>
 {% endblock %}
