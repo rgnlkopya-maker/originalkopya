@@ -424,7 +424,26 @@ def punch(request):
 def device_management(request):
     devices = AttendanceDevice.objects.select_related("user", "approved_by").order_by("status", "user__first_name", "user__username")
     pending_count = devices.filter(status="pending").count()
-    return render(request, "attendance_v2/device_management.html", {"devices": devices, "pending_count": pending_count})
+    from core.models import PushSubscription
+    subscriptions = list(
+        PushSubscription.objects.select_related("user").order_by("user__first_name", "user__username", "-updated_at")
+    )
+    for subscription in subscriptions:
+        ua = (subscription.user_agent or "").lower()
+        if "iphone" in ua or "ipad" in ua:
+            subscription.device_type = "iPhone / iPad"
+        elif "android" in ua:
+            subscription.device_type = "Android"
+        elif "windows" in ua:
+            subscription.device_type = "Windows"
+        elif "macintosh" in ua:
+            subscription.device_type = "Mac"
+        else:
+            subscription.device_type = "Diğer"
+    return render(request, "attendance_v2/device_management.html", {
+        "devices": devices, "pending_count": pending_count,
+        "push_subscriptions": subscriptions,
+    })
 
 
 @login_required
