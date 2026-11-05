@@ -32,29 +32,47 @@
 .nc-pref-panel summary{display:flex;align-items:center;cursor:pointer;list-style:none;font-size:13px;font-weight:800;color:#304a74}
 .nc-pref-panel summary::-webkit-details-marker{display:none}
 .nc-pref-panel[open] summary .bi-chevron-down{transform:rotate(180deg)}
+
+.nc-sections{display:flex;flex-direction:column;gap:12px;margin-top:20px}
+.nc-panel{border:1px solid #e4eaf3;border-radius:15px;background:#fff;overflow:hidden;box-shadow:0 3px 12px rgba(15,23,42,.025)}
+.nc-panel>summary{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:66px;padding:16px 20px;cursor:pointer;list-style:none}
+.nc-panel>summary::-webkit-details-marker{display:none}
+.nc-panel>summary:hover{background:#f9fbfe}
+.nc-panel-title{display:flex;align-items:center;gap:11px;font-size:15px;font-weight:800;color:#243451}
+.nc-panel-title i{font-size:18px;color:#4968a0}
+.nc-panel-trailing{display:flex;align-items:center;gap:14px;font-size:11px;color:#7c899a;font-weight:650;white-space:nowrap}
+.nc-panel[open] .nc-panel-trailing .bi-chevron-down{transform:rotate(180deg)}
+.nc-panel-body{border-top:1px solid #edf1f6;padding:18px 20px 22px}
+.nc-reminder-layout{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(270px,1fr);gap:24px}
+.nc-reminder-layout section>h2,.nc-reminder-recent h2{font-size:15px;font-weight:800;margin:0 0 14px}
+.nc-reminder-recent{border-left:1px solid #edf1f6;padding-left:24px}
+@media(max-width:760px){.nc-reminder-layout{grid-template-columns:1fr}.nc-reminder-recent{border-left:0;border-top:1px solid #edf1f6;padding:16px 0 0}.nc-panel>summary{padding:14px}.nc-panel-body{padding:14px}.nc-panel-trailing{font-size:10px}}
 </style>
 <main class="nc-wrap">
   <header class="nc-head">
     <h1><i class="bi bi-bell me-2"></i>Bildirim Merkezi</h1>
-    <div class="nc-muted">Bildirim kaynakları, geçmiş ve zamanlı hatırlatmalar için yönetim paneli</div>
+    <div class="nc-muted">Bildirim türlerini, kullanıcı tercihlerini ve hatırlatmaları yönetin.</div>
   </header>
   {% for message in messages %}<div class="alert alert-info mt-3 py-2">{{ message }}</div>{% endfor %}
-  <div class="nc-columns">
-    <section class="nc-card">
-      <h2>Hangi durumlarda bildirim geliyor?</h2>
-      <div class="nc-muted">Mevcut bildirim türleri ve kime ulaştıkları. Bildirim türleri ve alıcıları aşağıda gösterilir.</div>
-      <div class="mt-2">
+  <div class="nc-sections">
+    <details class="nc-panel">
+      <summary><span class="nc-panel-title"><i class="bi bi-list-check"></i>Bildirim Türleri</span><span class="nc-panel-trailing">9 bildirim türü <i class="bi bi-chevron-down"></i></span></summary>
+      <div class="nc-panel-body">
+        <p class="nc-muted">Hangi olayda kime, hangi kanaldan bildirim gönderildiğini gösterir.</p>
+        <div class="nc-events">
         {% for name,category,audience,channel,source in event_catalog %}
         <div class="nc-event">
           <div><div class="nc-event-name">{{ name }}</div><div class="nc-event-meta">{{ audience }} · {{ channel }}</div></div>
           <span class="nc-tag">{{ category }}</span>
         </div>
         {% endfor %}
+        </div>
       </div>
-      <hr class="my-3">
-      <details class="nc-pref-panel">
-        <summary><i class="bi bi-sliders me-2"></i>Tüm kullanıcıların bildirim tercihleri <i class="bi bi-chevron-down ms-auto"></i></summary>
-        <div class="nc-pref-note mt-2">Burada kaydettiğiniz tercihler tüm aktif kullanıcılara uygulanır. Kritik uyarılar uygulama içinde kapatılamaz. Push bildirimi ayrıca her cihazın iznine bağlıdır.</div>
+    </details>
+    <details class="nc-panel">
+      <summary><span class="nc-panel-title"><i class="bi bi-sliders"></i>Bildirim Tercihleri</span><span class="nc-panel-trailing">Tüm kullanıcılar <i class="bi bi-chevron-down"></i></span></summary>
+      <div class="nc-panel-body">
+        <p class="nc-pref-note">Buradaki seçimler tüm aktif kullanıcılara uygulanır. Kritik uygulama içi uyarılar kapatılamaz. Push bildirimi ayrıca cihaz iznine bağlıdır.</p>
       <form method="post" action="{% url 'notification_center' %}">
         {% csrf_token %}
         <input type="hidden" name="action" value="save_preferences">
@@ -72,16 +90,14 @@
         </div>
         <button class="btn btn-outline-primary" type="submit"><i class="bi bi-check2-circle me-1"></i>Tüm Kullanıcılar İçin Kaydet</button>
       </form>
-      </details>
-      <div class="nc-shortcuts">
-        <a href="{% url 'notification_list' %}"><i class="bi bi-clock-history me-1"></i>Tüm bildirimlerim</a>
-        <a href="{% url 'my_reminders' %}"><i class="bi bi-alarm me-1"></i>Hatırlatmalarım</a>
       </div>
-    </section>
-    <div>
-      <section class="nc-card mb-3">
-        <h2>Yeni hatırlatma oluştur</h2>
-        <div class="nc-muted mb-3">Kaydedilen hatırlatma mevcut hatırlatma sisteminden gönderilir.</div>
+    </details>
+    <details class="nc-panel">
+      <summary><span class="nc-panel-title"><i class="bi bi-alarm"></i>Hatırlatma Yönetimi</span><span class="nc-panel-trailing">{{ active_reminders }} aktif hatırlatma <i class="bi bi-chevron-down"></i></span></summary>
+      <div class="nc-panel-body">
+        <div class="nc-reminder-layout">
+          <section>
+            <h2>Yeni hatırlatma oluştur</h2>
         <form method="post" action="{% url 'notification_center' %}">
           {% csrf_token %}
           <div class="mb-2"><label class="form-label">Başlık</label><input class="form-control" name="title" maxlength="160" required placeholder="Örn. Haftalık sevkiyat kontrolü"></div>
@@ -98,13 +114,14 @@
           </div>
           <button type="submit" class="btn btn-outline-primary"><i class="bi bi-plus-circle me-1"></i>Hatırlatma Oluştur</button>
         </form>
-        <div class="nc-shortcuts"><a href="{% url 'reminder_management' %}">Tüm hatırlatmaları yönet</a></div>
-      </section>
-      <section class="nc-card">
-        <h2>Hatırlatma planı</h2>
-        <ul class="nc-list">{% for r in reminders %}<li><strong>{{ r.title }}</strong><div class="nc-muted">{{ r.due_at|date:"d.m.Y H:i" }} · {% if r.is_active %}Aktif{% else %}Pasif{% endif %}</div></li>{% empty %}<li class="nc-muted">Henüz hatırlatma yok.</li>{% endfor %}</ul>
-      </section>
-    </div>
+          </section>
+          <section class="nc-reminder-recent">
+            <div class="d-flex align-items-center justify-content-between gap-2 mb-2"><h2 class="mb-0">Yaklaşan hatırlatmalar</h2><a class="nc-link" href="{% url 'reminder_management' %}">Tümünü Gör</a></div>
+            <ul class="nc-list">{% for r in reminders %}<li><strong>{{ r.title }}</strong><div class="nc-muted">{{ r.due_at|date:"d.m.Y H:i" }} · {% if r.is_active %}Aktif{% else %}Pasif{% endif %}</div></li>{% empty %}<li class="nc-muted">Aktif hatırlatma yok.</li>{% endfor %}</ul>
+          </section>
+        </div>
+      </div>
+    </details>
   </div>
 </main>
 <script>
