@@ -31,10 +31,16 @@ def process_due_todos(now=None):
             locked.last_notified_at = now
             locked.save(update_fields=["last_notified_at"])
         notified += 1
+        due_label = timezone.localtime(item.due_at).strftime("%d.%m.%Y %H:%M")
+        note = " ".join((item.note or "").split())
+        details = f"Planlanan: {due_label}"
+        if note:
+            details += f"  |  Not: {note[:140]}"
+        details += "  |  Açmak için dokunun."
         delivered += send_push_to_user(
             user=item.user,
-            title=f"Yapılacak: {item.title}",
-            body=(item.note or "").strip() or "Tamamlanmayı bekleyen işiniz var.",
+            title=f"Yapılacak İş • {item.title[:90]}",
+            body=details,
             url="/yapilacaklar/",
             tag=f"moli-todo-{item.id}",
         )
