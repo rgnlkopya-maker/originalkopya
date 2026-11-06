@@ -294,7 +294,7 @@ document.addEventListener('DOMContentLoaded', async function () {
   function csrf(){var m=document.cookie.match(/csrftoken=([^;]+)/);return m?m[1]:''}
   function renderReaders(rows){
     if(!readers||!rows)return;
-    readers.innerHTML='<div style="font-weight:900;margin-bottom:7px">Kimler okudu?</div><div style="display:flex;gap:6px;flex-wrap:wrap">'+rows.map(function(r){return '<span style="padding:5px 8px;border-radius:9px;background:'+(r.read?'#eaf8ef':'#f2f3f6')+';color:'+(r.read?'#177245':'#7b8495')+';font-size:11px;font-weight:800">'+r.user+' '+(r.read?'✓':'—')+'</span>'}).join('')+'</div>';
+    readers.innerHTML='<details style="border:1px solid #e2e6ed;border-radius:10px;padding:9px 11px;background:#fff"><summary style="cursor:pointer;font-size:12px;font-weight:900;color:#293247">Kimler okudu? ('+rows.filter(function(r){return r.read}).length+'/'+rows.length+') <span style="font-weight:500;color:#7b8495">— Detayları göster</span></summary><div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px">'+rows.map(function(r){return '<span style="padding:5px 8px;border-radius:9px;background:'+(r.read?'#eaf8ef':'#f2f3f6')+';color:'+(r.read?'#177245':'#7b8495')+';font-size:11px;font-weight:800">'+r.user+' '+(r.read?'✓':'—')+'</span>'}).join('')+'</div></details>';
   }
   try{
     var r=await fetch('{% url "order_notice" order.id %}',{headers:{'X-Requested-With':'XMLHttpRequest'}});
