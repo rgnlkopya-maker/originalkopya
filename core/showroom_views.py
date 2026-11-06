@@ -12,3 +12,11 @@ def showroom(request):
     if not has_full_access(request.user):
         return HttpResponseForbidden("3D Showroom için yönetici yetkisi gerekiyor.")
     return render(request, "showroom/index.html")
+
+
+@login_required
+@require_GET
+def showroom_v2(request):
+    if not has_full_access(request.user):
+        return HttpResponseForbidden("3D Showroom V2 için yönetici yetkisi gerekiyor.")
+    return render(request, "showroom/v2.html")

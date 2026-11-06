@@ -1,0 +1,22 @@
+{% load static %}
+<!doctype html><html lang="tr"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Moli Tekstil | Boutique V2</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#ebe6df;color:#332b27;font-family:Arial,sans-serif;overflow:hidden}
+canvas{display:block;touch-action:none}header{position:fixed;top:0;left:0;right:0;display:flex;align-items:center;justify-content:space-between;padding:18px 24px;z-index:5;background:linear-gradient(#f9f6f1e8,transparent)}
+.logo{font:24px Georgia,serif;letter-spacing:.24em}small{display:block;font:10px Arial,sans-serif;letter-spacing:.14em;margin-top:4px;color:#70635b}
+a{background:#fffef0ee;border:1px solid #e2dace;padding:9px 14px;color:#453b34;text-decoration:none;border-radius:25px;font-size:12px}
+#status{position:fixed;top:85px;left:50%;transform:translateX(-50%);padding:13px 18px;border-radius:12px;background:#fffffff0;font-size:13px;z-index:6;max-width:90vw;text-align:center;box-shadow:0 5px 20px #0002}
+#help{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#ffffffe8;border-radius:30px;padding:10px 18px;font-size:12px;text-align:center;z-index:3;max-width:95vw}
+.controls{display:none;position:fixed;bottom:73px;left:14px;z-index:4;grid-template-columns:repeat(3,49px);gap:5px}.controls button{height:49px;width:49px;border-radius:50%;border:1px solid #dfd1c4;background:#ffffffe7;touch-action:none;font-size:22px}.controls button[data-k=w]{grid-column:2}.controls button[data-k=a]{grid-column:1;grid-row:2}.controls button[data-k=s]{grid-column:2;grid-row:2}.controls button[data-k=d]{grid-column:3;grid-row:2}
+@media(pointer:coarse){.controls{display:grid}#help{bottom:10px;font-size:11px}}
+</style>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"}}</script>
+</head><body>
+<header><div class="logo">MOLI<small>PRIVATE BOUTIQUE · V2</small></div><a href="/">← MoliApp</a></header>
+<div id="status">3D mimari modeli yükleniyor...</div><div id="mount"></div>
+<div id="help">Sürükleyerek etrafa bak · WASD / ok tuşları ile yürü</div>
+<div class="controls"><button data-k="w">↑</button><button data-k="a">←</button><button data-k="s">↓</button><button data-k="d">→</button></div>
+<script type="module" src="{% static 'showroom/viewer-v2.js' %}?v=1"></script>
+</body></html>
