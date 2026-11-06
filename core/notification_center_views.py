@@ -31,6 +31,9 @@ EVENT_CATALOG = (
     ("Yeni sohbet mesajı", "Mesaj", "Sohbet üyeleri", "Mesaj ekranı + Push", "core.push_views"),
     ("Zamanlanmış hatırlatma", "Hatırlatma", "Seçili kişi, ekip veya herkes", "Hatırlatma ekranı + Push", "core.reminder_service"),
     ("Yapılacak iş alarmı", "Görev", "Görev sahibi", "Uygulama içi popup; Push için zamanlayıcı ve cihaz izni gerekir", "core.todo_service"),
+    ("Yarın teslim edilecek siparişler", "Sevkiyat", "Patron ve müdür", "13.30 uygulama içi + Push", "core.todo_service"),
+    ("Üretim 3 gün hareketsiz", "Üretim", "Patron ve müdür", "13.30 uygulama içi + Push", "core.todo_service"),
+    ("Çek/senet vadesine 15 gün kaldı", "Finans", "Patron ve müdür", "13.30 uygulama içi + Push", "core.todo_service"),
 )
 
 
