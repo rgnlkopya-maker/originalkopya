@@ -155,9 +155,9 @@
    <a href="{% url 'invoice_parasut_mapping_list' %}" class="btn btn-sm btn-outline-primary">Paraşüt Cari Eşleştirme</a>
   </div>
  </div>
- {% if messages %}
+ {% if invoice_flash_messages %}
  <div class="invoice-flash-messages" role="status" aria-live="polite">
-  {% for message in messages %}{% if "mapping_notice" not in message.tags %}
+  {% for message in invoice_flash_messages %}{% if "mapping_notice" not in message.tags %}
   <div class="alert {% if 'error' in message.tags %}alert-danger{% elif 'warning' in message.tags %}alert-warning{% elif 'success' in message.tags %}alert-success{% else %}alert-info{% endif %}" role="alert">{{ message }}</div>
   {% endif %}{% endfor %}
  </div>
