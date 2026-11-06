@@ -1,0 +1,34 @@
+{% load static %}
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#eae7e1">
+  <title>Moli Tekstil | 3D Showroom</title>
+  <style>
+    *{box-sizing:border-box}html,body{height:100%;margin:0;overflow:hidden;font-family:Inter,Arial,sans-serif;background:#ecebe7;color:#292721}
+    canvas{display:block;width:100%;height:100%;touch-action:none}
+    .head{position:fixed;z-index:4;top:0;left:0;right:0;display:flex;justify-content:space-between;align-items:center;gap:12px;padding:18px 24px;background:linear-gradient(#ffffffed,#ffffff00);pointer-events:none}
+    .head>*{pointer-events:auto}.brand{font-family:Georgia,serif;letter-spacing:.22em;font-size:19px;font-weight:600}.tag{display:block;margin-top:5px;font-family:Arial,sans-serif;font-size:10px;letter-spacing:.19em;color:#79766f}
+    a.back{padding:11px 15px;border:1px solid #d9d5cb;border-radius:20px;background:#ffffffdc;color:#333;text-decoration:none;font-size:12px}
+    .hint{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);z-index:3;background:#fffef2ec;border:1px solid #e8e2d6;padding:12px 18px;border-radius:50px;text-align:center;font-size:12px;box-shadow:0 8px 28px #0001;max-width:calc(100% - 24px)}
+    .panel{position:fixed;right:24px;top:95px;z-index:5;width:min(335px,calc(100% - 40px));padding:25px;background:#fffffff2;border:1px solid #e7e1d4;box-shadow:0 16px 55px #0002;display:none;border-radius:7px}.panel.open{display:block}.panel button{position:absolute;right:14px;top:12px;border:0;background:transparent;font-size:25px;cursor:pointer}.panel h2{font-family:Georgia,serif;font-size:29px;font-weight:400;margin:4px 0 10px}.panel p{font-size:13px;color:#706a61;line-height:1.6}.panel .code{font-size:11px;letter-spacing:.16em;color:#9b8062}
+    .loading{position:fixed;inset:0;z-index:8;background:#eae8e2;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:13px;text-align:center;padding:24px}.loading strong{font-family:Georgia,serif;letter-spacing:.15em;font-weight:400;font-size:24px}.loading small{font-size:13px;color:#766f63;max-width:330px;line-height:1.5}.loading button{border:1px solid #888;background:#fff;padding:10px 16px;cursor:pointer}
+    .mobile-controls{position:fixed;z-index:4;bottom:78px;left:18px;display:none;gap:7px;touch-action:none}.mobile-controls button{width:53px;height:53px;border-radius:50%;border:1px solid #d8d2c7;background:#ffffffe3;font-size:20px;color:#333;touch-action:none}
+    @media(pointer:coarse){.mobile-controls{display:grid;grid-template-columns:repeat(3,53px)}.mobile-controls .forward{grid-column:2}.mobile-controls .left{grid-column:1;grid-row:2}.mobile-controls .backward{grid-column:2;grid-row:2}.mobile-controls .right{grid-column:3;grid-row:2}.hint{bottom:10px;font-size:10px;padding:9px 12px}.panel{right:12px;top:80px}}
+  </style>
+  <script type="importmap">
+  {"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js"}}
+  </script>
+</head>
+<body>
+  <header class="head"><div class="brand">MOLI <span class="tag">PRIVATE SHOWROOM · İÇ ÖN İZLEME</span></div><a class="back" href="/">← MoliApp</a></header>
+  <div id="loading" class="loading"><strong>MOLI SHOWROOM</strong><small id="loading-text">3D salon hazırlanıyor…</small></div>
+  <div id="stage" aria-label="Gezilebilir üç boyutlu showroom"></div>
+  <aside id="details" class="panel" aria-live="polite"><button id="close-details" aria-label="Kapat">×</button><div class="code" id="item-code"></div><h2 id="item-name"></h2><p id="item-desc"></p><p id="item-variants"></p></aside>
+  <div class="mobile-controls" aria-label="Hareket kontrolleri"><button class="forward" data-move="forward" aria-label="İleri">↑</button><button class="left" data-move="left" aria-label="Sol">←</button><button class="backward" data-move="backward" aria-label="Geri">↓</button><button class="right" data-move="right" aria-label="Sağ">→</button></div>
+  <div class="hint">Sürükle: etrafa bak · WASD / ok tuşları: yürü · Modelle ilgili bilgi için üzerine dokun</div>
+  <script type="module" src="{% static 'showroom/showroom.js' %}?v=1"></script>
+</body>
+</html>
