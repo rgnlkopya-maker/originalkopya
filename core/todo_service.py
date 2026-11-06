@@ -44,6 +44,11 @@ def process_due_todos(now=None):
             url="/yapilacaklar/",
             tag=f"moli-todo-{item.id}",
         )
+    try:
+        process_daily_management_alerts(now=now)
+    except Exception:
+        import logging
+        logging.getLogger(__name__).exception("Daily management alerts failed")
     return {"notified": notified, "delivered": delivered}
 
 
@@ -102,7 +107,7 @@ def process_daily_management_alerts(now=None):
         summary = f"Yarın ({tomorrow:%d.%m.%Y}) teslim tarihli, henüz sevk edilmemiş {len(due_orders)} sipariş var: " + "; ".join(examples)
         if len(due_orders) > 8:
             summary += f"; ve {len(due_orders)-8} sipariş daha."
-        results["tomorrow_shipping"] = publish("tomorrow-shipping", "Yarın Teslim Edilecek Siparişler", summary, "/siparisler/")
+        results["tomorrow_shipping"] = publish("tomorrow-shipping", "Yarın Teslim Edilecek Siparişler", summary, "/")
 
     # Match the existing production-stage-control 3-day inactivity rule.
     # Limit to orders with actual stage history and without a completed shipment.
