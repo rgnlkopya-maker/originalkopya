@@ -49,7 +49,7 @@ def logout_view(request):
     return redirect('/login/')
 
 from core.cad_lab_views import cad_lab
-from core.showroom_views import showroom
+from core.showroom_views import showroom, showroom_v2
 
 urlpatterns = [
     path("internal/backup-scheduler/tick/", scheduler_tick, name="backup_scheduler_tick"),
@@ -74,6 +74,7 @@ urlpatterns = [
     path("muhasebe/cek-senet/<int:pk>/cari-eslestir/", instrument_mapping_save, name="instrument_mapping_save"),
     path("kalip-cad/", cad_lab, name="cad_lab"),
     path("3d-showroom/", showroom, name="moli_3d_showroom"),
+    path("3d-showroom-v2/", showroom_v2, name="moli_3d_showroom_v2"),
     path("patron/", patron_dashboard, name="patron_dashboard"),
     path("patron/personel-ozeti/", patron_staff_summary, name="patron_staff_summary"),
     path("orders/<int:order_id>/bayrak/ekle/", create_order_flag, name="create_order_flag"),
