@@ -1,23 +1,23 @@
 import * as THREE from 'three';
 const loading=document.getElementById('loading'),loadingText=document.getElementById('loading-text');
 try {
-const scene=new THREE.Scene();scene.background=new THREE.Color(0xe8e6e0);scene.fog=new THREE.Fog(0xe8e6e0,19,45);
+const scene=new THREE.Scene();scene.background=new THREE.Color(0xd9d6d0);scene.fog=new THREE.Fog(0xd9d6d0,25,50);
 const camera=new THREE.PerspectiveCamera(65,innerWidth/innerHeight,.08,100);camera.position.set(0,1.7,9);
 const renderer=new THREE.WebGLRenderer({antialias:true,powerPreference:'high-performance'});
 renderer.setPixelRatio(Math.min(devicePixelRatio,1.8));renderer.setSize(innerWidth,innerHeight);
 renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;
-renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.65;
+renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=0.96;
 renderer.outputColorSpace=THREE.SRGBColorSpace;
 document.getElementById('stage').appendChild(renderer.domElement);
 const mat=(c,rough=.78,metal=0)=>new THREE.MeshStandardMaterial({color:c,roughness:rough,metalness:metal,side:THREE.DoubleSide});
-const plaster=mat(0xf7f4ed),floorMat=mat(0xe0dcd3,.38),gold=mat(0xb29a70,.25,.58),stone=mat(0xf3f0e9,.47),dark=mat(0x393530,.4);
+const plaster=mat(0xe5e1da),floorMat=mat(0xbcb5ab,.58),gold=mat(0xa58a60,.35,.42),stone=mat(0xd4cec4,.6),dark=mat(0x393530,.4);
 function box(w,h,d,m,x,y,z,shadows=true){const a=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),m);a.position.set(x,y,z);a.receiveShadow=shadows;a.castShadow=shadows;scene.add(a);return a}
 box(22,.2,30,floorMat,0,-.12,0);box(22,9,.25,plaster,0,4.4,-15);box(.25,9,30,plaster,-11,4.4,0);box(.25,9,30,plaster,11,4.4,0);
 box(22,.2,30,plaster,0,8.8,0);box(22,.22,.18,gold,0,.12,-14.8);
 for(let z=-12;z<13;z+=4){box(.075,.015,21,mat(0xc8c0b3,.4),0,.005,z,false)}
-for(let z=-10;z<=10;z+=8){for(let x of [-7,0,7]){const light=new THREE.RectAreaLight(0xffffff,35,5,2);light.position.set(x,8.58,z);light.lookAt(x,0,z);scene.add(light);box(5,.04,2,mat(0xfffefa,.35),x,8.59,z,false)}}
-scene.add(new THREE.HemisphereLight(0xfafaff,0xb4a897,2.3));
-const key=new THREE.DirectionalLight(0xffffff,3.2);key.position.set(-4,8,6);key.castShadow=true;key.shadow.mapSize.set(1024,1024);key.shadow.camera.left=-15;key.shadow.camera.right=15;key.shadow.camera.top=16;key.shadow.camera.bottom=-16;key.shadow.bias=-.0003;scene.add(key);
+for(let z=-10;z<=10;z+=8){for(let x of [-7,0,7]){const light=new THREE.RectAreaLight(0xfff5e8,3.5,5,2);light.position.set(x,8.58,z);light.lookAt(x,0,z);scene.add(light);box(5,.04,2,mat(0xe9e5df,.6),x,8.59,z,false)}}
+scene.add(new THREE.HemisphereLight(0xfff6ea,0x8c8176,1.25));
+const key=new THREE.DirectionalLight(0xfff1df,1.8);key.position.set(-4,8,6);key.castShadow=true;key.shadow.mapSize.set(1024,1024);key.shadow.camera.left=-15;key.shadow.camera.right=15;key.shadow.camera.top=16;key.shadow.camera.bottom=-16;key.shadow.bias=-.0003;scene.add(key);
 function frame(x,z){box(3.15,5.2,.09,stone,x,4.1,z);box(3.05,.035,.12,gold,x,1.5,z+.09);box(3.05,.035,.12,gold,x,6.7,z+.09)}
 frame(0,-14.72);
 const labelMat=mat(0x81786a);
@@ -52,7 +52,7 @@ function gown(item,x,z,rot){const group=new THREE.Group();group.position.set(x,0
 const positions=[[-6.4,-8,Math.PI/5],[-6.4,0,Math.PI/2.7],[-6.4,8,Math.PI/2.5],[6.4,-8,-Math.PI/5],[6.4,0,-Math.PI/2.7],[6.4,8,-Math.PI/2.5]];
 styles.forEach((s,i)=>gown(s,...positions[i]));
 // Wall niches and ambient architectural details
-for(const side of [-1,1])for(const z of [-8,0,8]){box(.12,4,2.85,mat(0xe8e2d7),side*10.78,3,z);box(.14,.08,2.86,gold,side*10.65,5,z)}
+for(const side of [-1,1])for(const z of [-8,0,8]){box(.12,4,2.85,mat(0xd3cec7),side*10.78,3,z);box(.14,.08,2.86,gold,side*10.65,5,z)}
 const ray=new THREE.Raycaster(),pointer=new THREE.Vector2();
 let yaw=0,pitch=0,drag=false,lastX=0,lastY=0,moved=0;const keys=new Set();
 function point(ev){const r=renderer.domElement.getBoundingClientRect();pointer.set((ev.clientX-r.left)/r.width*2-1,-(ev.clientY-r.top)/r.height*2+1)}
