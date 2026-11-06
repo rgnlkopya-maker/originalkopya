@@ -1,4 +1,5 @@
 from datetime import timedelta
+import json
 
 from django.db import transaction
 from django.utils import timezone
@@ -126,11 +127,28 @@ def process_daily_management_alerts(now=None):
         .order_by("last_stage_at")[:100]
     )
     if stalled:
-        examples = [f"{o.siparis_numarasi} ({(now-o.last_stage_at).days} gün)" for o in stalled[:8]]
-        summary = f"En az 3 gündür üretim hareketi olmayan {len(stalled)} sipariş bulundu"
-        if len(stalled) == 100:
-            summary += " (ilk 100 kayıt)"
-        summary += ": " + "; ".join(examples)
+        # Store a structured snapshot so each affected order can be opened from
+        # the inbox, including customer, product, color, size and reference.
+        detail_rows = [
+            {
+                "id": o.pk,
+                "number": o.siparis_numarasi,
+                "customer": o.musteri.ad if o.musteri else "Stok",
+                "product": o.urun_kodu or "",
+                "color": o.renk or "",
+                "size": o.beden or "",
+                "reference": o.musteri_referans or "",
+                "description": o.aciklama or "",
+                "days": (now - o.last_stage_at).days,
+            }
+            for o in stalled
+        ]
+        summary = (
+            f"En az 3 gündür üretim hareketi olmayan {len(stalled)} sipariş bulundu."
+            + (" İlk 100 kayıt gösteriliyor." if len(stalled) == 100 else "")
+            + "\nSTALLED_DETAILS:"
+            + json.dumps(detail_rows, ensure_ascii=False, separators=(",", ":"))
+        )
         results["stalled_production"] = publish("stalled-production", "Üretim Aşaması Takıldı", summary, "/uretim-asama-kontrolu/")
 
     # Explicitly payment-pending outgoing documents only (not receivables).
