@@ -57,7 +57,7 @@ def notify_management(title, message, url, *, order=None, exclude_user_ids=()):
                     from .push_views import send_push_to_user
                     user = get_user_model().objects.filter(pk=uid, is_active=True).first()
                     if user:
-                        send_push_to_user(user, title, message, url=url, tag=push_tag)
+                        send_push_to_user(user, title, message.split("\nSTALLED_DETAILS:", 1)[0], url=url, tag=push_tag)
                 except Exception:
                     logger.exception("Management push failed for user %s", uid)
 
