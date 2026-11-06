@@ -244,11 +244,14 @@ def production_stage_control(request):
                 if next_event:
                     reason = f"{label} Bitti"
                     reasons.append(reason)
+                    # Süsleme Bitti eksikse sorumlu Süsleme Başladı işlemini yapan kişidir.
+                    # Diğer aşamaların mevcut atıf kuralını koru.
+                    responsible_event = first_start if stage_key == "susleme" else next_event
                     attributions.append({
                         "reason": reason,
-                        "actor": (next_event.user or "").strip() or "Bilinmeyen personel",
-                        "trigger": "Sonraki aşamaya geçiş",
-                        "timestamp": next_event.timestamp,
+                        "actor": (responsible_event.user or "").strip() or "Bilinmeyen personel",
+                        "trigger": f"{label} Başladı" if stage_key == "susleme" else "Sonraki aşamaya geçiş",
+                        "timestamp": responsible_event.timestamp,
                     })
 
         # Güncel sevkiyat durumunu son sevkiyat hareketinden belirle.
