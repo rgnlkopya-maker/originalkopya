@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { furnishShowroom } from './architecture.js';
 const loading=document.getElementById('loading'),loadingText=document.getElementById('loading-text');
 try {
 const scene=new THREE.Scene();scene.background=new THREE.Color(0xd9d6d0);scene.fog=new THREE.Fog(0xd9d6d0,25,50);
@@ -51,6 +52,8 @@ function gown(item,x,z,rot){const group=new THREE.Group();group.position.set(x,0
 }
 const positions=[[-6.4,-8,Math.PI/5],[-6.4,0,Math.PI/2.7],[-6.4,8,Math.PI/2.5],[6.4,-8,-Math.PI/5],[6.4,0,-Math.PI/2.7],[6.4,8,-Math.PI/2.5]];
 styles.forEach((s,i)=>gown(s,...positions[i]));
+// Reference-inspired boutique architecture; independent of production data.
+furnishShowroom(THREE,scene,box);
 // Wall niches and ambient architectural details
 for(const side of [-1,1])for(const z of [-8,0,8]){box(.12,4,2.85,mat(0xd3cec7),side*10.78,3,z);box(.14,.08,2.86,gold,side*10.65,5,z)}
 const ray=new THREE.Raycaster(),pointer=new THREE.Vector2();
