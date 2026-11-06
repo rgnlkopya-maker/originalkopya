@@ -29,9 +29,9 @@ def notification_list(request):
         record.stalled_summary = ""
         if record.title == "Üretim Aşaması Takıldı":
             message = record.message or ""
-            match = re.match(r"^\\[stalled-production:[^]]+\\]\\s*", message)
+            match = re.match(r"^\[stalled-production:[^]]+\]\s*", message)
             content = message[match.end():] if match else message
-            summary, sep, payload = content.partition("\\nSTALLED_DETAILS:")
+            summary, sep, payload = content.partition("\nSTALLED_DETAILS:")
             record.stalled_summary = summary.split(": ", 1)[0] if not sep else summary
             if sep:
                 try:
@@ -46,7 +46,7 @@ def notification_list(request):
             else:
                 # Historical notifications stored only the first eight order
                 # numbers in plain text. Keep them usable without rewriting DB.
-                nums = re.findall(r"([A-Z][A-Z0-9_-]+)\\s*\\((\\d+) gün\\)", content)
+                nums = re.findall(r"([A-Z][A-Z0-9_-]+)\s*\((\d+) gün\)", content)
                 orders = {
                     o.siparis_numarasi: o
                     for o in Order.objects.filter(siparis_numarasi__in=[number for number, _ in nums]).select_related("musteri")
