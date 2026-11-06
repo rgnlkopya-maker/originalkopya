@@ -125,8 +125,8 @@ FEATURE_GROUPS = [
         ("critical.delete_user", "Kullanıcıyı Tamamen Sil", "can_manage_users"),
         ("critical.mark_departed", "Kullanıcıyı İşten Ayrıldı Olarak Kapat", "can_manage_users"),
     ]),
-    ("Ekip / Yönetim", [
-        ("team.users", "Ekipler / Kullanıcı Yönetimi", "can_manage_users"),
+    ("Personel / Yönetim", [
+        ("team.users", "Personel / Kullanıcı Yönetimi", "can_manage_users"),
         ("team.employee_detail", "Personel Detay Sayfası", "can_manage_users"),
         ("team.audit", "Kullanıcı İşlem Kayıtları", "can_manage_users"),
         ("settings.main", "Ayarlar", "can_view_settings"),
