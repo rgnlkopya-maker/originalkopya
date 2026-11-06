@@ -12,6 +12,9 @@ EVENTS = (
     ("flagged_stage", "Bayraklı sipariş üretim hareketi", False, True),
     ("backup_failed", "Otomatik yedekleme hatası", True, True),
     ("security_lock", "Giriş güvenliği uyarısı", True, True),
+    ("tomorrow_shipping", "Yarın teslim edilecek siparişler", False, True),
+    ("stalled_production", "Üretim 3 gün hareketsiz", False, True),
+    ("payable_instruments", "Çek/senet vadesine 15 gün kaldı", True, True),
 )
 EVENTS_BY_KEY = {key: {"title": name, "critical": critical, "push_default": push}
                  for key, name, critical, push in EVENTS}
@@ -22,6 +25,9 @@ EVENT_TITLE_KEYS = {
     "Bayraklı Siparişte Üretim Hareketi": "flagged_stage",
     "Otomatik Yedekleme Başarısız": "backup_failed",
     "Güvenlik Uyarısı": "security_lock",
+    "Yarın Teslim Edilecek Siparişler": "tomorrow_shipping",
+    "Üretim Aşaması Takıldı": "stalled_production",
+    "Çek/Senet Vadesine 15 Gün Kaldı": "payable_instruments",
 }
 
 
