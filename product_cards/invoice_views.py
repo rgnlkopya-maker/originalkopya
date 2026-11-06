@@ -3,12 +3,14 @@ import logging
 from decimal import Decimal, InvalidOperation
 from datetime import date
 from django.contrib import messages
+from django.contrib.messages import get_messages
+from urllib.parse import urlsplit
 from django.contrib.auth.decorators import login_required
 from django.db import IntegrityError, transaction
 from django.db.models import Prefetch
 from django.http import HttpResponseForbidden, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
-from django.urls import reverse
+from django.urls import reverse, resolve, Resolver404
 from django.utils import timezone
 from django.views.decorators.http import require_POST
 from core.models import Order, Musteri
@@ -98,7 +100,25 @@ def _invoice_list_impl(request):
     for draft in standalone_invoices:
         draft.is_manual = True
     combined_invoices = sorted(invoices + standalone_invoices, key=lambda inv: (inv.invoice_date, inv.shared_number.number), reverse=True)
-    return render(request, "product_cards/invoice_list.html", {"combined_invoices": combined_invoices, "standalone_invoices": standalone_invoices, "proforma_invoices": proforma_invoices, "invoices": invoices, "invoice_customers": Musteri.objects.filter(pk__in=({invoice.customer_id for invoice in invoices} | {invoice.customer_id for invoice in standalone_invoices})).order_by("ad"), "accounting_status_choices": [("no", "İşlenmedi"), ("yes", "Elle İşlendi"), ("api", "API ile Aktarıldı"), ("skip", "Aktarılmayacak")]})
+    # Django flash messages may remain queued after unrelated pages that do not render them.
+    # Consume them here, but show them only when arriving from an invoice workflow.
+    ref = urlsplit(request.META.get("HTTP_REFERER", ""))
+    from_invoice_page = False
+    if ref.path and (not ref.netloc or ref.netloc == request.get_host()):
+        try:
+            previous_view = resolve(ref.path).url_name or ""
+            from_invoice_page = (
+                previous_view.startswith(("invoice_", "standalone_invoice_", "proforma_invoice_"))
+                or previous_view in ("uninvoiced_shipped_orders",)
+            )
+        except Resolver404:
+            pass
+    queued_invoice_messages = list(get_messages(request))
+    invoice_flash_messages = [
+        message for message in queued_invoice_messages
+        if from_invoice_page or "invoice_notice" in message.tags
+    ]
+    return render(request, "product_cards/invoice_list.html", {"combined_invoices": combined_invoices, "standalone_invoices": standalone_invoices, "proforma_invoices": proforma_invoices, "invoices": invoices, "invoice_customers": Musteri.objects.filter(pk__in=({invoice.customer_id for invoice in invoices} | {invoice.customer_id for invoice in standalone_invoices})).order_by("ad"), "accounting_status_choices": [("no", "İşlenmedi"), ("yes", "Elle İşlendi"), ("api", "API ile Aktarıldı"), ("skip", "Aktarılmayacak")], "invoice_flash_messages": invoice_flash_messages})
 
 
 @login_required
