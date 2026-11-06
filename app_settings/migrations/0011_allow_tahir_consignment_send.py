@@ -18,7 +18,7 @@ def allow_tahir_consignment_send(apps, schema_editor):
 
 class Migration(migrations.Migration):
     dependencies = [
-        ("app_settings", "0010_useraccess_can_view_folio_link"),
+        ("app_settings", "0014_useraccess_production_stage_control"),
     ]
 
     operations = [
