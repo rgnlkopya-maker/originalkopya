@@ -22,6 +22,21 @@
 .notification-inbox-head h2{margin:0}
 .notification-clear-btn{border:1px solid #e5b8bf;border-radius:10px;padding:9px 13px;background:#fff;color:#a53c48;font-weight:700;font-size:12px}
 .notification-clear-btn:hover{background:#fff3f5}
+.stalled-head{font-size:12px;color:#61738d;margin:6px 0 11px}
+.stalled-list{display:grid;gap:7px;margin:9px 0}
+.stalled-row{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:11px 13px;background:#fff;border:1px solid #e0e8f4;border-radius:10px;text-decoration:none!important;color:#24334e!important}
+.stalled-row:hover{background:#eaf2ff;border-color:#a9c1ed}
+.stalled-main{min-width:0;display:grid;gap:4px}
+.stalled-main b{font-size:13px}
+.stalled-meta{font-size:12px;color:#566782;overflow-wrap:anywhere}
+.stalled-days{font-size:12px;font-weight:700;color:#ad5525;white-space:nowrap}
+.stalled-more{margin-top:9px}
+.stalled-more summary{cursor:pointer;color:#385bc1;font-weight:700;font-size:12px}
+.stalled-all{display:inline-flex;padding:7px 11px;margin-top:10px;border-radius:8px;background:#eef3ff;text-decoration:none!important;font-size:12px;font-weight:700;color:#3158b7!important}
+.stalled-entry{display:block;flex:1;min-width:0;padding:16px 18px;border:1px solid #e3eaf5;border-radius:13px;background:#f5f9ff;border-left:3px solid #4569bf}
+.stalled-entry .notification-entry-info{width:100%}
+@media(max-width:620px){.stalled-row{align-items:flex-start}.stalled-days{font-size:11px}}
+
 </style>
 <div class="notification-inbox">
 <div class="notification-inbox-head">
@@ -30,6 +45,39 @@
 </div>
 {% for n in notifications %}
 <div class="notification-entry-wrap">
+{% if n.stalled_rows %}
+<div class="stalled-entry">
+<div class="notification-entry-info">
+<strong>{% if not n.is_read %}<span class="notification-unread-dot d-inline-block me-2"></span>{% endif %}{{ n.title }}</strong>
+<p class="stalled-head">{{ n.stalled_summary }}</p>
+<div class="stalled-list">
+{% for o in n.stalled_rows %}
+{% if forloop.counter <= 5 %}
+<a class="stalled-row" href="{{ o.url }}" aria-label="{{ o.number }} sipariş detayını aç">
+<span class="stalled-main"><b>{{ o.customer }} · {{ o.number }}</b>
+<span class="stalled-meta">Ürün: {{ o.product|default:"—" }} · Renk: {{ o.color|default:"—" }} · Beden: {{ o.size|default:"—" }}</span>
+{% if o.reference %}<span class="stalled-meta">Müşteri Ref: {{ o.reference }}</span>{% endif %}
+{% if o.description %}<span class="stalled-meta" title="{{ o.description }}">Açıklama: {{ o.description|truncatechars:150 }}</span>{% endif %}
+</span><span class="stalled-days">{{ o.days }} gün <i class="bi bi-chevron-right ms-1"></i></span>
+</a>
+{% endif %}
+{% endfor %}
+</div>
+{% if n.stalled_rows|length > 5 %}
+<details class="stalled-more"><summary>Diğer {{ n.stalled_rows|length|add:"-5" }} siparişi göster</summary>
+<div class="stalled-list">{% for o in n.stalled_rows %}{% if forloop.counter > 5 %}
+<a class="stalled-row" href="{{ o.url }}"><span class="stalled-main"><b>{{ o.customer }} · {{ o.number }}</b>
+<span class="stalled-meta">Ürün: {{ o.product|default:"—" }} · Renk: {{ o.color|default:"—" }} · Beden: {{ o.size|default:"—" }}</span>
+{% if o.reference %}<span class="stalled-meta">Müşteri Ref: {{ o.reference }}</span>{% endif %}
+{% if o.description %}<span class="stalled-meta" title="{{ o.description }}">Açıklama: {{ o.description|truncatechars:150 }}</span>{% endif %}
+</span><span class="stalled-days">{{ o.days }} gün <i class="bi bi-chevron-right ms-1"></i></span></a>
+{% endif %}{% endfor %}</div></details>
+{% endif %}
+<a class="stalled-all" href="/uretim-asama-kontrolu/">Aşama problemlerinin tümünü gör <i class="bi bi-arrow-right ms-1"></i></a>
+<div class="mt-2"><small>{{ n.timestamp|date:"d.m.Y H:i" }}</small></div>
+</div>
+</div>
+{% else %}
 {% if n.destination %}
 <a class="notification-entry {% if not n.is_read %}is-unread{% endif %}" href="{{ n.destination }}" aria-label="{{ n.title }} sayfasına git">
 {% else %}
@@ -39,6 +87,7 @@
 <div class="notification-entry-info"><strong>{{ n.title }}</strong><p>{{ n.message }}</p><small>{{ n.timestamp|date:"d.m.Y H:i" }}</small></div>
 {% if n.destination %}<i class="bi bi-chevron-right"></i>{% endif %}
 {% if n.destination %}</a>{% else %}</div>{% endif %}
+{% endif %}
 <form class="notification-delete-form" method="post" action="{% url 'notification_delete' n.id %}" onsubmit="return confirm('Bu bildirimi silmek istiyor musunuz?');">
 {% csrf_token %}<button class="notification-delete-btn" type="submit" title="Bildirimi sil" aria-label="{{ n.title }} bildirimini sil"><i class="bi bi-trash3"></i></button>
 </form>
