@@ -44,7 +44,7 @@ def _db_env():
 
 def _encryption_key():
     try:
-        key = base64.b64decode(os.environ["MOLI_DB_BACKUP_KEY"], altchars=b"-_", validate=True)
+        key = base64.urlsafe_b64decode(os.environ["MOLI_DB_BACKUP_KEY"] + "=" * (-len(os.environ["MOLI_DB_BACKUP_KEY"]) % 4))
     except (KeyError, ValueError) as exc:
         raise RuntimeError("MOLI_DB_BACKUP_KEY is missing or invalid") from exc
     if len(key) != 32:
@@ -75,7 +75,7 @@ def run_backup():
     env = _db_env()
     if not connected():
         raise RuntimeError("Google Drive is not connected")
-    binary = os.environ.get("PG_DUMP_BIN", "pg_dump")
+    binary = os.environ.get("PG_DUMP_BIN", "/usr/lib/postgresql/18/bin/pg_dump")
     version = subprocess.run([binary, "--version"], check=True, capture_output=True, text=True, timeout=15)
     if " 18." not in version.stdout:
         raise RuntimeError("PostgreSQL 18 pg_dump client is required")
