@@ -18,6 +18,10 @@ def system_health(request):
     if not _manager(request.user):
         return HttpResponseForbidden("Bu sayfaya erişim yetkiniz yok.")
 
+    snapshots = performance_snapshot()
+    order_list_row = next((row for row in snapshots if row["path"] == "/"), None)
+    other_rows = [row for row in snapshots if row["path"] != "/"]
+
     checks = []
     started = time.perf_counter()
     db_ok = True
@@ -39,11 +43,12 @@ def system_health(request):
         "İşlem kaydı": AuditLog.objects.count(),
     }
     checks.append({"name": "Veritabanı yanıtı", "ok": db_ms < 500, "detail": "Normal" if db_ms < 500 else "Yavaş"})
-    checks.append({"name": "500 hata takibi", "ok": all(r["errors"] == 0 for r in performance_snapshot()), "detail": "Ölçülen isteklerde kontrol edildi"})
+    checks.append({"name": "500 hata takibi", "ok": all(r["errors"] == 0 for r in snapshots), "detail": "Ölçülen isteklerde kontrol edildi"})
 
     return render(request, "system_health.html", {
         "checks": checks,
-        "rows": performance_snapshot(),
+        "rows": other_rows,
+        "order_list_row": order_list_row,
         "counts": counts,
         "db_ms": db_ms,
     })
