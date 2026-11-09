@@ -1,6 +1,7 @@
 """Regression tests for BizimHesap product labels; no external API requests."""
 from datetime import date
 from decimal import Decimal
+from hashlib import sha256
 from types import SimpleNamespace
 from django.test import SimpleTestCase
 from .bizimhesap_payload import build_invoice_payload
@@ -30,8 +31,8 @@ class BizimHesapLineLabelTests(SimpleTestCase):
         payload, problems = build_invoice_payload(self.invoice, [line], self.mapping, "TEST-FIRM")
         self.assertEqual(problems, [])
         item = payload["details"][0]
-        self.assertEqual(item["productId"], "7182")
-        self.assertEqual(item["productName"], "Pudra 40 ÖZEL MDZI29162")
+        self.assertEqual(item["productId"], "MOLI-7182-" + sha256("7182 Pudra 40 ÖZEL MDZI29162".encode("utf-8")).hexdigest()[:12])
+        self.assertEqual(item["productName"], "7182 Pudra 40 ÖZEL MDZI29162")
         self.assertEqual(item["total"], "8525.00")
 
     def test_missing_color_or_size_blocks_export(self):
@@ -54,3 +55,21 @@ class BizimHesapLineLabelTests(SimpleTestCase):
         self.assertEqual(payload["details"][0]["productId"], "Accessories")
         self.assertEqual(payload["details"][0]["productName"], "Accessories")
         self.assertEqual(payload["details"][0]["quantity"], "2")
+
+    def test_same_model_with_different_size_has_distinct_product_identity(self):
+        def make_line(size):
+            order = SimpleNamespace(
+                urun_kodu="7176", renk="Pudra", beden=size,
+                siparis_tipi="OZEL", musteri_referans="MDZ129477", para_birimi="TRY"
+            )
+            return SimpleNamespace(order=order, price=Decimal("20000"),
+                                   vat_rate=Decimal("10"), quantity=1)
+        payload, problems = build_invoice_payload(
+            self.invoice, [make_line("40"), make_line("42")], self.mapping, "TEST-FIRM"
+        )
+        self.assertEqual(problems, [])
+        first, second = payload["details"]
+        self.assertNotEqual(first["productId"], second["productId"])
+        self.assertEqual(first["productName"], "7176 Pudra 40 ÖZEL MDZ129477")
+        self.assertEqual(second["productName"], "7176 Pudra 42 ÖZEL MDZ129477")
+        self.assertEqual(payload["amounts"]["total"], "44000.00")
