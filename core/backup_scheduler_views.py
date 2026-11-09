@@ -61,7 +61,16 @@ def scheduler_tick(request):
             if not policy or policy.frequency == "off":
                 continue
             scheduled = now.replace(hour=policy.hour, minute=policy.minute, second=0, microsecond=0)
-            if now < scheduled or (policy.frequency == "weekly" and now.weekday() != 6):
+            if now < scheduled or (policy.frequency == "weekly" and now.weekday() != 6) or (policy.frequency == "monthly" and now.day != 10):
+                continue
+            if module == "salary":
+                from .salary_backup_service import salary_backup
+                existing = BackupExecution.objects.filter(module="salary", success=True, started_at__year=now.year, started_at__month=now.month).exists()
+                if existing:
+                    continue
+                result = salary_backup()
+                BackupExecution.objects.create(module="salary", completed_at=timezone.now(), success=True, files=1, records=result["records"], message="Şifreli maaş yedeği Drive'a kaydedildi", details=[{"drive_file_id": result["file_id"], "bytes": result["size"]}])
+                outcomes.append({"module": "salary", "done": True})
                 continue
             if module == "database":
                 from django.core.management import call_command
@@ -111,8 +120,8 @@ def scheduler_tick(request):
             outcomes.append({"module": module, "done": bool(run.completed_at), "records": run.records})
         except Exception:
             logger.exception("Scheduled backup failed: %s", module)
-            if module == "database":
-                outcomes.append({"module": "database", "error": True})
+            if module in ("database", "salary"):
+                outcomes.append({"module": module, "error": True})
                 continue
             if "run" in locals() and run.module == module:
                 run.completed_at = timezone.now()
