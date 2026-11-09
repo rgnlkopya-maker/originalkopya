@@ -9,6 +9,7 @@ from .instrument_models import InstrumentBackupRun
 RULES = {
     "folios": ["MoliApp föyleri PDF", "Yazdırma HTML kopyaları", "JSON veri yedekleri", "Orijinal föy fotoğrafları", "Yeni ve değişen dosyalar"],
     "instruments": ["Excel liste yedeği", "JSON veri yedeği", "Çek ve senet fotoğrafları", "Mevcut fotoğrafları tekrar yükleme"],
+    "database": ["PostgreSQL 18 tam yedek", "AES-256-GCM şifreleme", "Google Drive arşivi"],
 }
 
 def manager(user):
