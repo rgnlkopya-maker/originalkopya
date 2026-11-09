@@ -9,7 +9,7 @@ from .instrument_models import InstrumentBackupRun
 RULES = {
     "folios": ["MoliApp föyleri PDF", "Yazdırma HTML kopyaları", "JSON veri yedekleri", "Orijinal föy fotoğrafları", "Yeni ve değişen dosyalar"],
     "instruments": ["Excel liste yedeği", "JSON veri yedeği", "Çek ve senet fotoğrafları", "Mevcut fotoğrafları tekrar yükleme"],
-    "database": ["PostgreSQL 18 tam yedek", "AES-256-GCM şifreleme", "Google Drive arşivi"],
+    "database": ["PostgreSQL 18 tam yedek", "AES-256-GCM şifreleme", "Her gün 00:30 (Türkiye saati)", "Google Drive: TAM YEDEK", "Klasör: https://drive.google.com/drive/folders/1asyINGpGSNOQTURxOL4niy4tuKIyWxAs"],
 }
 
 def manager(user):
@@ -21,7 +21,7 @@ def backup_center(request):
         return HttpResponseForbidden("Yedekleme Merkezi yetkiniz yok.")
     policies = []
     for key, name in BackupPolicy.MODULES:
-        policy, _ = BackupPolicy.objects.get_or_create(module=key)
+        policy, _ = BackupPolicy.objects.get_or_create(module=key, defaults=({"frequency": "daily", "hour": 0, "minute": 30} if key == "database" else {}))
         policies.append({"key": key, "name": name, "policy": policy, "rules": RULES[key]})
     history = list(BackupExecution.objects.all()[:30])
     return render(request, "core/backup_center.html", {
