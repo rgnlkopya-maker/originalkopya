@@ -367,9 +367,9 @@ def salary_backup_manual(request):
     try:
         result = salary_backup()
         run.success = True
-        run.files = 1
+        run.files = len(result["files"])
         run.records = result["records"]
-        run.details = [{"drive_file_id": result["file_id"], "bytes": result["size"], "manual": True}]
+        run.details = [{**item, "manual": True} for item in result["files"]]
         run.message = "Manuel maaş yedeği Google Drive'a kaydedildi"
         messages.success(request, "Maaş yedeği şifreli olarak Google Drive'a kaydedildi.")
     except Exception:
