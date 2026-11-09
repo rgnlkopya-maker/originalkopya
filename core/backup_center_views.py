@@ -9,6 +9,7 @@ from .instrument_models import InstrumentBackupRun
 RULES = {
     "folios": ["MoliApp föyleri PDF", "Yazdırma HTML kopyaları", "JSON veri yedekleri", "Orijinal föy fotoğrafları", "Yeni ve değişen dosyalar"],
     "instruments": ["Excel liste yedeği", "JSON veri yedeği", "Çek ve senet fotoğrafları", "Mevcut fotoğrafları tekrar yükleme"],
+    "salary": ["Maaş tanımları, dönemler, ödemeler ve avanslar", "Ödeme planları ve iptal edilen işlemler", "AES-256-GCM şifreleme", "Her ayın 10'u 00:40", "Google Drive: MAAŞ YEDEKLERİ"],
     "database": ["PostgreSQL 18 tam yedek", "AES-256-GCM şifreleme", "Her gün 00:30 (Türkiye saati)", "Google Drive: TAM YEDEK", "Klasör: https://drive.google.com/drive/folders/1asyINGpGSNOQTURxOL4niy4tuKIyWxAs"],
 }
 
@@ -21,7 +22,7 @@ def backup_center(request):
         return HttpResponseForbidden("Yedekleme Merkezi yetkiniz yok.")
     policies = []
     for key, name in BackupPolicy.MODULES:
-        policy, _ = BackupPolicy.objects.get_or_create(module=key, defaults=({"frequency": "daily", "hour": 0, "minute": 30} if key == "database" else {}))
+        policy, _ = BackupPolicy.objects.get_or_create(module=key, defaults=({"frequency": "daily", "hour": 0, "minute": 30} if key == "database" else {"frequency": "monthly", "hour": 0, "minute": 40} if key == "salary" else {}))
         policies.append({"key": key, "name": name, "policy": policy, "rules": RULES[key]})
     history = list(BackupExecution.objects.all()[:30])
     return render(request, "core/backup_center.html", {
