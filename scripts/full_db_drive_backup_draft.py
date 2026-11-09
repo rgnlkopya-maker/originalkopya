@@ -19,7 +19,7 @@ from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from googleapiclient.http import MediaFileUpload
 from django.utils import timezone
 
-DRIVE_ROOT = "1Q-KUwSudqqsyu72Eigsrx7YZfoTUp3mu"
+DRIVE_ROOT = "1asyINGpGSNOQTURxOL4niy4tuKIyWxAs"
 MAGIC = b"MOLI-PG-BACKUP-1\n"
 CHUNK = 1024 * 1024
 
@@ -69,8 +69,7 @@ def _encrypt_file(source, destination, key):
 
 def run_backup():
     from core.instrument_drive_oauth import connected, drive_service
-    from core.instrument_backup_views import _folder
-
+    
     key = _encryption_key()
     env = _db_env()
     if not connected():
@@ -92,7 +91,10 @@ def run_backup():
             raise RuntimeError("Invalid pg_dump archive")
         _encrypt_file(plain, encrypted, key)
         drive = drive_service()
-        root = _folder(drive, DRIVE_ROOT, "Tam Veritabani Yedekleri")
+        root = DRIVE_ROOT
+        folder = drive.files().get(fileId=root, fields="id,mimeType,trashed").execute()
+        if folder.get("trashed") or folder.get("mimeType") != "application/vnd.google-apps.folder":
+            raise RuntimeError("Backup destination folder is unavailable")
         name = f"MoliApp-Full-{stamp}.dump.enc"
         created = drive.files().create(
             body={"name": name, "parents": [root],
