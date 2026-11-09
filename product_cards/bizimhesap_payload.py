@@ -1,5 +1,6 @@
 """Build BizimHesap AddInvoice JSON locally. This module performs no HTTP writes."""
 from decimal import Decimal, ROUND_HALF_UP
+from hashlib import sha256
 from .external_invoice_line_label import external_invoice_item_label
 
 CURRENCIES = {"TRY": "TL", "TL": "TL", "USD": "USD", "EUR": "EUR", "GBP": "GBP", "CHF": "CHF"}
@@ -53,9 +54,11 @@ def build_invoice_payload(invoice, lines, mapping, firm_id):
             continue
         full_label = external_invoice_item_label(line)
         if order:
-            # BizimHesap renders productId and productName side by side.
-            # Put the code in productId once; productName contains only the
-            # remaining invoice-line information (color, size, type, ref).
+            # BizimHesap treats productId as a persistent product identity.
+            # Reusing the model code alone can pick an older product/catalogue
+            # label (and therefore the wrong color, size, or reference).
+            # Give each distinct full line label a deterministic, namespaced
+            # external identity; keep the complete label as the product name.
             color = str(getattr(order, "renk", "") or "").strip()
             size = str(getattr(order, "beden", "") or "").strip()
             if not color or not size:
@@ -64,14 +67,15 @@ def build_invoice_payload(invoice, lines, mapping, firm_id):
                     "): renk ve beden tamamlanmadan BizimHesap'a aktarılmaz."
                 )
                 continue
-            product_description = full_label[len(product_name):].strip() if full_label.startswith(product_name + " ") else full_label
+            product_id = "MOLI-" + product_name + "-" + sha256(full_label.encode("utf-8")).hexdigest()[:12]
+            product_description = full_label
         else:
-            # Standalone/manual lines are free-text; keep their existing
-            # mapping until the external API's productId contract is verified.
+            # Keep manual-line mapping unchanged; unrelated to this fix.
+            product_id = product_name
             product_description = full_label
         tax = money(price * rate / Decimal("100"))
         details.append({
-            "productId": product_name,
+            "productId": product_id,
             "productName": product_description,
             "note": "",
             "taxRate": str(rate),
