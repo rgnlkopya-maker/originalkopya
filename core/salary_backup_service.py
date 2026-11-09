@@ -55,16 +55,20 @@ def salary_backup():
     stamp = timezone.localtime().strftime("%Y-%m-%d_%H-%M")
     files = []
     for extension, payload in (("json", raw), ("xlsx", output.getvalue())):
-        nonce = secrets.token_bytes(12)
-        encrypted = MAGIC + nonce + AESGCM(key).encrypt(nonce, payload, MAGIC)
-        name = f"MoliApp-Maas-{stamp}.{extension}.enc"
+        if extension == "json":
+            nonce = secrets.token_bytes(12)
+            uploaded_bytes = MAGIC + nonce + AESGCM(key).encrypt(nonce, payload, MAGIC)
+            name = f"MoliApp-Maas-{stamp}.json.enc"
+        else:
+            uploaded_bytes = payload
+            name = f"MoliApp-Maas-{stamp}.xlsx"
         uploaded = drive.files().create(
-            body={"name": name, "parents": [FOLDER], "description": "Encrypted MoliApp salary backup"},
-            media_body=MediaIoBaseUpload(io.BytesIO(encrypted), mimetype="application/octet-stream", resumable=True),
+            body={"name": name, "parents": [FOLDER], "description": "Encrypted JSON or readable Excel salary backup"},
+            media_body=MediaIoBaseUpload(io.BytesIO(uploaded_bytes), mimetype=("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" if extension == "xlsx" else "application/octet-stream"), resumable=True),
             fields="id,size",
         ).execute()
         remote = drive.files().get(fileId=uploaded["id"], fields="id,size,trashed").execute()
-        if remote.get("trashed") or int(remote.get("size", -1)) != len(encrypted):
+        if remote.get("trashed") or int(remote.get("size", -1)) != len(uploaded_bytes):
             raise RuntimeError("Salary backup upload verification failed: " + extension)
-        files.append({"file_id": uploaded["id"], "size": len(encrypted), "type": extension})
+        files.append({"file_id": uploaded["id"], "size": len(uploaded_bytes), "type": extension})
     return {"file_id": files[0]["file_id"], "size": sum(f["size"] for f in files), "records": sum(len(v) for v in data["models"].values()), "files": files}
