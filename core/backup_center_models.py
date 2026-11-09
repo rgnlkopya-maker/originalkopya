@@ -2,8 +2,8 @@ from django.db import models
 
 
 class BackupPolicy(models.Model):
-    MODULES = [("folios", "Sipariş Föyleri"), ("instruments", "Çek / Senet"), ("database", "Tam Veritabanı")]
-    FREQUENCIES = [("daily", "Her gün"), ("weekly", "Haftalık"), ("off", "Kapalı")]
+    MODULES = [("folios", "Sipariş Föyleri"), ("instruments", "Çek / Senet"), ("database", "Tam Veritabanı"), ("salary", "Maaş Yedekleri")]
+    FREQUENCIES = [("daily", "Her gün"), ("weekly", "Haftalık"), ("monthly", "Aylık"), ("off", "Kapalı")]
     module = models.CharField(max_length=20, unique=True, choices=MODULES)
     frequency = models.CharField(max_length=10, choices=FREQUENCIES, default="off")
     hour = models.PositiveSmallIntegerField(default=3)
