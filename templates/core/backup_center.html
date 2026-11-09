@@ -41,7 +41,19 @@
 <p><strong>3. Dosyalar ayrı klasörlere aktarılır.</strong> PDF'ler “MoliApp Föyleri”, HTML kopyaları “Yazdırma HTML Kopyaları”, JSON dosyaları “Veri Yedekleri”, kaynak görseller “Orijinal Föyler” klasörlerinde saklanır.</p>
 <p><strong>4. Gereksiz tekrarlar önlenir.</strong> Değişmeyen belgeler ve daha önce yüklenmiş orijinal fotoğraflar yeniden yüklenmez; yeni veya değişen dosyalar eklenir.</p>
 <p><strong>5. Sonuç kaydedilir.</strong> İşlenen föy ve yeni dosya sayıları Yedekleme Geçmişi'nde gösterilir; hata olursa kayıt tutulur.</p>
-{% else %}
+{% elif item.key == 'database' %}
+<p><strong>1. Tam veritabanı okunur.</strong> PostgreSQL veritabanının yalnızca belirli modülleri değil, tüm tablo ve kayıtları tutarlı bir anlık yedek olarak alınır.</p>
+<p><strong>2. Geri yüklenebilir arşiv oluşturulur.</strong> PostgreSQL'in özel yedek biçiminde (.dump) veriler ve veritabanı yapısı kaydedilir; arşiv kontrol edilir.</p>
+<p><strong>3. Yedek şifrelenir.</strong> Arşiv AES-256-GCM ile şifrelenir (.dump.enc). Şifreleme anahtarı olmadan dosya geri yüklenemez.</p>
+<p><strong>4. Google Drive'a aktarılır.</strong> Şifreli dosya <a href="https://drive.google.com/drive/folders/1asyINGpGSNOQTURxOL4niy4tuKIyWxAs" target="_blank" rel="noopener">TAM YEDEK</a> klasörüne tarihli yeni dosya olarak yüklenir; önceki yedekler silinmez.</p>
+<p><strong>5. Sonuç doğrulanır.</strong> Drive'daki dosya boyutu kontrol edilir ve sonuç Yedekleme Geçmişi'ne kaydedilir. Geri yükleme testi ayrı bir işlemdir.</p>
+{% elif item.key == 'salary' %}
+<p><strong>1. Maaş kayıtları okunur.</strong> Maaş tanımları, dönemler, maaş geçmişi, ödeme ve avans hareketleri ile ödeme planları alınır.</p>
+<p><strong>2. İki ayrı dosya hazırlanır.</strong> Sistemsel geri yükleme için JSON, inceleme için sekmelere ayrılmış Excel (.xlsx) oluşturulur.</p>
+<p><strong>3. JSON şifrelenir.</strong> JSON dosyası AES-256-GCM ile korunur (.json.enc). Excel dosyası şifresizdir; Google Drive üzerinden doğrudan açılabilir.</p>
+<p><strong>4. Maaş klasörüne yüklenir.</strong> İki dosya <a href="https://drive.google.com/drive/folders/1vlaq3ZzAWomw153BbdPl7L95s-0FX4v8" target="_blank" rel="noopener">MAAŞ YEDEKLERİ</a> klasörüne yeni tarihli kopyalar olarak gönderilir; eski yedekler korunur. Excel'e erişim klasör izinlerine bağlıdır.</p>
+<p><strong>5. Manuel ve aylık çalışır.</strong> Maaş Ödeme sayfasındaki “Şimdi Yedekle” butonu veya her ayın 10'u saat 00:40 (Türkiye saati) zamanlaması kullanılır; sonuç Yedekleme Geçmişi'ne yazılır.</p>
+{% elif item.key == 'instruments' %}
 <p><strong>1. Güncel kayıtlar okunur.</strong> Sistemdeki çek ve senetlerin tamamı alınır.</p>
 <p><strong>2. Excel ve JSON hazırlanır.</strong> Okunabilir çek/senet listesi Excel olarak, kayıtların veri kopyası JSON olarak oluşturulur. Her yedekleme işleminde bu iki dosyanın yeni tarihli kopyası saklanır.</p>
 <p><strong>3. Fotoğraflar kontrol edilir.</strong> Çek/senet görselleri Drive'daki dosyalarla karşılaştırılır. Yalnızca eksik fotoğraflar yüklenir.</p>
