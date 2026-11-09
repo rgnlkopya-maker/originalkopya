@@ -9,7 +9,7 @@ from .instrument_models import InstrumentBackupRun
 RULES = {
     "folios": ["MoliApp föyleri PDF", "Yazdırma HTML kopyaları", "JSON veri yedekleri", "Orijinal föy fotoğrafları", "Yeni ve değişen dosyalar"],
     "instruments": ["Excel liste yedeği", "JSON veri yedeği", "Çek ve senet fotoğrafları", "Mevcut fotoğrafları tekrar yükleme"],
-    "salary": ["Şifreli JSON + Excel tablo yedeği", "Maaş tanımları, dönemler, ödemeler ve avanslar", "Ödeme planları ve iptal edilen işlemler", "AES-256-GCM şifreleme", "Her ayın 10'u 00:40", "Google Drive: MAAŞ YEDEKLERİ"],
+    "salary": ["Şifreli JSON + doğrudan açılabilir Excel tablo yedeği", "Maaş tanımları, dönemler, ödemeler ve avanslar", "Ödeme planları ve iptal edilen işlemler", "JSON için AES-256-GCM şifreleme", "Excel şifresiz; Drive klasör erişimini kısıtlayın", "Her ayın 10'u 00:40", "Google Drive: MAAŞ YEDEKLERİ"],
     "database": ["PostgreSQL 18 tam yedek", "AES-256-GCM şifreleme", "Her gün 00:30 (Türkiye saati)", "Google Drive: TAM YEDEK", "Klasör: https://drive.google.com/drive/folders/1asyINGpGSNOQTURxOL4niy4tuKIyWxAs"],
 }
 
