@@ -73,3 +73,31 @@ class BizimHesapLineLabelTests(SimpleTestCase):
         self.assertEqual(first["productName"], "7176 Pudra 40 ÖZEL MDZ129477")
         self.assertEqual(second["productName"], "7176 Pudra 42 ÖZEL MDZ129477")
         self.assertEqual(payload["amounts"]["total"], "44000.00")
+
+    def test_same_exact_label_reuses_identity(self):
+        order = SimpleNamespace(
+            urun_kodu="7176", renk="Pudra", beden="42", siparis_tipi="OZEL",
+            musteri_referans="MDZ129477", para_birimi="TRY"
+        )
+        line = SimpleNamespace(order=order, price=Decimal("10000"), vat_rate=Decimal("10"), quantity=1)
+        first, problems1 = build_invoice_payload(self.invoice, [line], self.mapping, "TEST-FIRM")
+        second, problems2 = build_invoice_payload(self.invoice, [line], self.mapping, "TEST-FIRM")
+        self.assertEqual(problems1, [])
+        self.assertEqual(problems2, [])
+        self.assertEqual(first["details"][0]["productId"], second["details"][0]["productId"])
+
+    def test_distinct_references_do_not_reuse_stale_catalog_label(self):
+        def make_line(reference):
+            order = SimpleNamespace(
+                urun_kodu="7176", renk="Pudra", beden="42",
+                siparis_tipi="OZEL", musteri_referans=reference, para_birimi="TRY"
+            )
+            return SimpleNamespace(order=order, price=Decimal("10000"),
+                                   vat_rate=Decimal("10"), quantity=1)
+        payload, problems = build_invoice_payload(
+            self.invoice, [make_line("MDZ129477"), make_line("MDZ129478")],
+            self.mapping, "TEST-FIRM"
+        )
+        self.assertEqual(problems, [])
+        self.assertNotEqual(payload["details"][0]["productId"], payload["details"][1]["productId"])
+        self.assertEqual(payload["details"][1]["productName"], "7176 Pudra 42 ÖZEL MDZ129478")
