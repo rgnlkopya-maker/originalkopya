@@ -1,62 +1,107 @@
-"""One-shot, encrypted full PostgreSQL backup to the existing private Google Drive.
+"""Encrypted, one-shot full PostgreSQL backup to private Google Drive.
 
-Not deployed. Requires pg_dump client matching server major version (18),
-DATABASE_URL, MOLI_DB_BACKUP_KEY (32 random bytes, urlsafe base64), and
-a connected Google Drive account. Never runs in an HTTP request.
+Run only in a trusted background worker, not inside an HTTP request.
+Prerequisites: PostgreSQL 18 pg_dump, DATABASE_URL, MOLI_DB_BACKUP_KEY
+(32 random bytes encoded with URL-safe base64), and existing Drive OAuth.
+This module is not scheduled or deployed.
 """
 import base64
 import hashlib
-import io
+import json
 import os
 from pathlib import Path
 import secrets
 import subprocess
 import tempfile
-from urllib.parse import urlsplit
+from urllib.parse import urlsplit, unquote
 
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from googleapiclient.http import MediaFileUpload
+from django.utils import timezone
 
 DRIVE_ROOT = "1Q-KUwSudqqsyu72Eigsrx7YZfoTUp3mu"
 MAGIC = b"MOLI-PG-BACKUP-1\n"
 CHUNK = 1024 * 1024
 
 
+def _db_env():
+    url = os.environ.get("DATABASE_URL", "")
+    p = urlsplit(url)
+    if p.scheme not in ("postgres", "postgresql") or not p.hostname or not p.path.strip("/"):
+        raise RuntimeError("DATABASE_URL is missing or invalid")
+    env = os.environ.copy()
+    env.update(PGHOST=p.hostname, PGPORT=str(p.port or 5432),
+               PGDATABASE=unquote(p.path.lstrip("/")), PGUSER=unquote(p.username or ""),
+               PGPASSWORD=unquote(p.password or ""), PGCONNECT_TIMEOUT="15")
+    # No password-bearing URL is passed to subprocess argv.
+    if not env["PGPASSWORD"]:
+        raise RuntimeError("Database password is missing")
+    if "sslmode=" in p.query:
+        from urllib.parse import parse_qs
+        env["PGSSLMODE"] = parse_qs(p.query)["sslmode"][0]
+    return env
+
+
+def _encryption_key():
+    try:
+        key = base64.b64decode(os.environ["MOLI_DB_BACKUP_KEY"], altchars=b"-_", validate=True)
+    except (KeyError, ValueError) as exc:
+        raise RuntimeError("MOLI_DB_BACKUP_KEY is missing or invalid") from exc
+    if len(key) != 32:
+        raise RuntimeError("MOLI_DB_BACKUP_KEY must decode to 32 bytes")
+    return key
+
+
+def _encrypt_file(source, destination, key):
+    nonce = secrets.token_bytes(12)
+    encryptor = Cipher(algorithms.AES(key), modes.GCM(nonce)).encryptor()
+    encryptor.authenticate_additional_data(MAGIC)
+    with open(source, "rb") as inp, open(destination, "wb") as out:
+        out.write(MAGIC + nonce)
+        while True:
+            chunk = inp.read(CHUNK)
+            if not chunk:
+                break
+            out.write(encryptor.update(chunk))
+        out.write(encryptor.finalize())
+        out.write(encryptor.tag)
+
+
 def run_backup():
     from core.instrument_drive_oauth import connected, drive_service
     from core.instrument_backup_views import _folder
 
-    url = os.environ.get("DATABASE_URL", "")
-    parsed = urlsplit(url)
-    if parsed.scheme not in ("postgres", "postgresql") or not parsed.hostname:
-        raise RuntimeError("Missing PostgreSQL DATABASE_URL")
+    key = _encryption_key()
+    env = _db_env()
     if not connected():
-        raise RuntimeError("Google Drive connection is missing")
-    key_text = os.environ.get("MOLI_DB_BACKUP_KEY", "")
-    try:
-        key = base64.b64decode(key_text, altchars=b"-_", validate=True)
-    except Exception as exc:
-        raise RuntimeError("Backup encryption key is not configured") from exc
-    if len(key) != 32:
-        raise RuntimeError("Backup encryption key must be 32 bytes")
-    dump_bin = os.environ.get("PG_DUMP_BIN", "pg_dump")
-    version = subprocess.run([dump_bin, "--version"], check=True, capture_output=True, text=True)
+        raise RuntimeError("Google Drive is not connected")
+    binary = os.environ.get("PG_DUMP_BIN", "pg_dump")
+    version = subprocess.run([binary, "--version"], check=True, capture_output=True, text=True, timeout=15)
     if " 18." not in version.stdout:
-        raise RuntimeError("PostgreSQL 18 pg_dump client required")
-
-    nonce = secrets.token_bytes(12)
-    encryptor = Cipher(algorithms.AES(key), modes.GCM(nonce)).encryptor()
-    encryptor.authenticate_additional_data(MAGIC)
-    env = os.environ.copy()
-    env["PGCONNECT_TIMEOUT"] = "15"
-    command = [dump_bin, "--dbname", url, "--format=custom", "--no-owner", "--no-acl"]
-    # The URL contains a password; never log command or process argv.
-    # Prefer libpq env variables in a production runner; this prototype is
-    # intentionally blocked until the URL is removed from argv.
-    raise RuntimeError("Production execution blocked: DB credentials must not appear in process arguments")
-
-
-def validate_drive_upload(drive, file_id, expected_size):
-    metadata = drive.files().get(fileId=file_id, fields="id,size,trashed").execute()
-    if metadata.get("trashed") or int(metadata.get("size", -1)) != expected_size:
-        raise RuntimeError("Drive upload size mismatch")
+        raise RuntimeError("PostgreSQL 18 pg_dump client is required")
+    stamp = timezone.now().strftime("%Y-%m-%dT%H-%M-%SZ")
+    with tempfile.TemporaryDirectory(prefix="moli-pg-") as temp:
+        plain = Path(temp) / "backup.dump"
+        encrypted = Path(temp) / "backup.dump.enc"
+        command = [binary, "--format=custom", "--no-owner", "--no-acl", "--file", str(plain)]
+        # stderr can contain connection details; do not log it.
+        result = subprocess.run(command, env=env, capture_output=True, timeout=600)
+        if result.returncode:
+            raise RuntimeError("pg_dump failed (details withheld)")
+        if plain.stat().st_size < 100 or plain.open("rb").read(5) != b"PGDMP":
+            raise RuntimeError("Invalid pg_dump archive")
+        _encrypt_file(plain, encrypted, key)
+        drive = drive_service()
+        root = _folder(drive, DRIVE_ROOT, "Tam Veritabani Yedekleri")
+        name = f"MoliApp-Full-{stamp}.dump.enc"
+        created = drive.files().create(
+            body={"name": name, "parents": [root],
+                  "description": "AES-256-GCM encrypted PostgreSQL 18 custom dump"},
+            media_body=MediaFileUpload(str(encrypted), mimetype="application/octet-stream", resumable=True),
+            fields="id,size,md5Checksum",
+        ).execute()
+        expected = encrypted.stat().st_size
+        remote = drive.files().get(fileId=created["id"], fields="id,size,trashed").execute()
+        if remote.get("trashed") or int(remote.get("size", -1)) != expected:
+            raise RuntimeError("Drive upload size verification failed")
+        return {"id": remote["id"], "bytes": expected, "created_at": stamp}
