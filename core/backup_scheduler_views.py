@@ -63,6 +63,11 @@ def scheduler_tick(request):
             scheduled = now.replace(hour=policy.hour, minute=policy.minute, second=0, microsecond=0)
             if now < scheduled or (policy.frequency == "weekly" and now.weekday() != 6):
                 continue
+            if module == "database":
+                from django.core.management import call_command
+                call_command("backup_full_database")
+                outcomes.append({"module": "database", "triggered": True})
+                continue
             with transaction.atomic():
                 run = BackupExecution.objects.select_for_update().filter(module=module, started_at__date=now.date()).order_by("-id").first()
                 if run and run.completed_at:
@@ -106,6 +111,9 @@ def scheduler_tick(request):
             outcomes.append({"module": module, "done": bool(run.completed_at), "records": run.records})
         except Exception:
             logger.exception("Scheduled backup failed: %s", module)
+            if module == "database":
+                outcomes.append({"module": "database", "error": True})
+                continue
             if "run" in locals() and run.module == module:
                 run.completed_at = timezone.now()
                 run.success = False
