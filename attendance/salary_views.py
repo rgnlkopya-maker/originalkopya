@@ -352,3 +352,32 @@ def salary_plan_action(request):
     except (ValueError, TypeError) as exc:
         messages.error(request, str(exc))
     return redirect(target)
+
+@login_required
+@user_passes_test(has_full_access)
+@require_POST
+def salary_backup_manual(request):
+    """Manual encrypted salary snapshot; never expose payroll data in HTTP output."""
+    import logging
+    from core.backup_center_models import BackupExecution
+    from core.salary_backup_service import salary_backup
+
+    year, month = _period(request)
+    run = BackupExecution.objects.create(module="salary", message="Manuel maaş yedeği sürüyor")
+    try:
+        result = salary_backup()
+        run.success = True
+        run.files = 1
+        run.records = result["records"]
+        run.details = [{"drive_file_id": result["file_id"], "bytes": result["size"], "manual": True}]
+        run.message = "Manuel maaş yedeği Google Drive'a kaydedildi"
+        messages.success(request, "Maaş yedeği şifreli olarak Google Drive'a kaydedildi.")
+    except Exception:
+        logging.getLogger(__name__).exception("Manual salary backup failed")
+        run.message = "Manuel maaş yedeği başarısız; Render loglarını kontrol edin"
+        messages.error(request, "Maaş yedeği oluşturulamadı. Render loglarını kontrol edin.")
+    finally:
+        run.completed_at = timezone.now()
+        run.save()
+    return redirect(_back(year, month))
+
