@@ -69,7 +69,7 @@ def scheduler_tick(request):
                 if existing:
                     continue
                 result = salary_backup()
-                BackupExecution.objects.create(module="salary", completed_at=timezone.now(), success=True, files=1, records=result["records"], message="Şifreli maaş yedeği Drive'a kaydedildi", details=[{"drive_file_id": result["file_id"], "bytes": result["size"]}])
+                BackupExecution.objects.create(module="salary", completed_at=timezone.now(), success=True, files=len(result["files"]), records=result["records"], message="Şifreli maaş yedeği Drive'a kaydedildi", details=result["files"])
                 outcomes.append({"module": "salary", "done": True})
                 continue
             if module == "database":
