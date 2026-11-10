@@ -51,8 +51,8 @@ class BizimHesapCustomerMapping(models.Model):
     confirmed_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
     updated_at = models.DateTimeField(auto_now=True)
 
-    class Meta:
-        constraints = [models.UniqueConstraint(fields=["external_customer_id"], name="unique_bizimhesap_customer_id")]
+    # Multiple MoliApp branches may point to one external accounting customer.
+    # customer remains OneToOne; external_customer_id is intentionally not unique.
 
 
 class BizimHesapInvoiceTransfer(models.Model):
@@ -89,7 +89,7 @@ class ParasutInvoiceTransfer(models.Model):
 
 class ParasutCustomerMapping(models.Model):
     customer = models.OneToOneField("core.Musteri", on_delete=models.CASCADE, related_name="parasut_mapping")
-    external_contact_id = models.CharField(max_length=100, unique=True)
+    external_contact_id = models.CharField(max_length=100)
     updated_at = models.DateTimeField(auto_now=True)
 
 
