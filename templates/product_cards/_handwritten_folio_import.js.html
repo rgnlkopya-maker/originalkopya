@@ -4,9 +4,11 @@
 if (!EDIT_MODE) {
  const host=sheet.querySelector('.showroom-sheet-head');
  const toolbar=document.createElement('div');
- toolbar.style.cssText='display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:14px';
- toolbar.innerHTML='<button type="button" class="pricing-add" id="moliSmartRead">📷 El Yazısı Föyü Oku</button><input type="file" id="moliSmartPhoto" accept="image/*" style="display:none"><span role="status" id="moliSmartStatus" style="color:#64748b;font-size:13px"></span>';
- host.prepend(toolbar);
+ toolbar.className='moli-smart-folio-action';
+ toolbar.style.cssText='display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:14px;padding:14px 16px;margin:0 0 18px;background:#f7f9ff;border:1px solid #dce4f8;border-radius:14px';
+ toolbar.innerHTML='<div style="flex:1 1 260px"><div style="font-size:14px;font-weight:800;color:#24396d">Fotoğrafınızdaki siparişi dijital föye dönüştürün</div><div style="font-size:12px;color:#65738e;margin-top:4px">El yazısıyla doldurulmuş föyün fotoğrafını yükleyin. Okunan bilgileri kontrol edip düzenleyerek siparişe aktarın.</div><span role="status" id="moliSmartStatus" aria-live="polite" style="display:block;margin-top:5px;color:#53627b;font-size:12px"></span></div><button type="button" id="moliSmartRead" style="display:inline-flex;align-items:center;justify-content:center;gap:9px;min-height:44px;padding:10px 17px;background:#293e86;color:#fff;border:1px solid #293e86;border-radius:11px;font-size:13px;font-weight:750;cursor:pointer"><i class="bi bi-camera" aria-hidden="true" style="font-size:17px"></i><span>Fotoğraftan Föy Oluştur</span></button><input type="file" id="moliSmartPhoto" accept="image/*" style="display:none">';
+ const heading=host.querySelector('.showroom-sheet-title');
+ if(heading)heading.insertAdjacentElement('afterend',toolbar);else host.prepend(toolbar);
  const start=toolbar.querySelector('#moliSmartRead'),file=toolbar.querySelector('#moliSmartPhoto'),status=toolbar.querySelector('#moliSmartStatus');
  const normalize=x=>String(x??'').trim().toLocaleLowerCase('tr-TR').replace(/\s+/g,' ');
  const num=x=>(x===null||x===undefined||x==='')?null:Number(x);
