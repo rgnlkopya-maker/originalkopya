@@ -162,11 +162,49 @@ if (!EDIT_MODE) {
     +(v.warnings.length?'KONTROL NOTLARI:\n'+v.warnings.join('\n'):'');
   diagnostic.style.border='1px solid '+(v.errors.length?'#fca5a5':'#d1d5db');
   const button=panel.querySelector('#moliSmartApply');
-  button.disabled=!!v.errors.length||!panel.querySelector('#moliSmartConfirm').checked;
-  button.title=button.disabled?'Eksikleri tamamlayın ve kontrol kutusunu işaretleyin.':'';
+  // Do not silently disable the button: show why the import cannot proceed.
+  button.disabled=false;
+  button.title=v.errors.length?v.errors.length+' eksik bilgi var. Tıklayınca ilk eksik alana yönlendirileceksiniz.':'Kontrol edilen verileri föye aktar.';
+  button.textContent=v.errors.length?'Eksikleri Göster ('+v.errors.length+')':'Kontrol Edilen Verileri Föye Aktar';
+  const confirmLabel=panel.querySelector('#moliSmartConfirm')?.closest('label');
+  if(confirmLabel)confirmLabel.style.color=v.errors.length?'#991b1b':'';
+  const oldNotice=panel.querySelector('#moliSmartBlockingNotice');
+  if(oldNotice)oldNotice.remove();
+  if(v.errors.length){
+    const note=document.createElement('div');note.id='moliSmartBlockingNotice';
+    note.style.cssText='margin:10px 0;padding:10px 12px;border-radius:9px;background:#fff5f5;border:1px solid #fecaca;color:#991b1b;font-size:13px;font-weight:650';
+    note.textContent='Aktarım için '+v.errors.length+' eksik bilgi var. "Eksikleri Göster" butonuna basarak ilk eksik alana gidebilirsiniz.';
+    button.before(note);
+  }
  }
  function applyReviewed(){
-  const panel=sheet.querySelector('#moliSmartReview'),v=validate();if(!panel||v.errors.length||!panel.querySelector('#moliSmartConfirm').checked)return;
+  const panel=sheet.querySelector('#moliSmartReview');
+  if(!panel)return;
+  const v=validate();
+  if(v.errors.length){
+    const first=v.errors[0];
+    const rowMatch=first.match(/^(\\d+)\\. satır/);
+    const target=rowMatch?panel.querySelectorAll('tbody tr')[Number(rowMatch[1])-1]
+      ?.querySelector('input:not([value]), input[data-key="product_code"], select[data-key="color"], select[data-key="size"]')
+      :first.includes('Müşteri')?panel.querySelector('#moliSmartCustomer')
+      :first.includes('Para birimi')?panel.querySelector('#moliSmartCurrency')
+      :first.includes('indirim')?panel.querySelector('#moliSmartDiscount')
+      :first.includes('ADET')?panel.querySelector('tbody'):panel.querySelector('#moliSmartDiagnostics');
+    const place=target||panel.querySelector('#moliSmartDiagnostics');
+    place?.scrollIntoView({behavior:'smooth',block:'center'});
+    if(place?.focus)place.focus({preventScroll:true});
+    const msg=panel.querySelector('#moliSmartBlockingNotice');
+    if(msg)msg.textContent='Düzeltilecek ilk konu: '+first+' Diğer eksikler yukarıdaki kontrol notlarında listeleniyor.';
+    return;
+  }
+  if(!panel.querySelector('#moliSmartConfirm').checked){
+    const checkbox=panel.querySelector('#moliSmartConfirm');
+    checkbox?.scrollIntoView({behavior:'smooth',block:'center'});
+    checkbox?.focus({preventScroll:true});
+    const msg=panel.querySelector('#moliSmartBlockingNotice');
+    if(msg)msg.textContent='Önce orijinal fotoğrafı kontrol ettiğinizi onaylayın.';
+    return;
+  }
   if(v.warnings.length&&!confirm('Hesaplama veya okuma uyarıları var. Bu uyarıları kontrol ettiniz mi?\n\n'+v.warnings.slice(0,7).join('\n')))return;
   if(showroomItems.length&&!confirm('Mevcut föyde ürünler var. Kontrol edilmiş satırlar bunların yerine geçecek. Devam edilsin mi?'))return;
   const grouped=new Map();
