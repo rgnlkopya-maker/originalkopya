@@ -212,7 +212,6 @@ def solution_page():
         + eyebrow('Eylus çözümleri')
         + '<h1>İşletmenizdeki sorunu seçin.<br><em>Çözümünü hemen görün.</em></h1>'
         + f'<p>Üretimden satışa, muhasebeden yönetime. {total} gerçek işletme ihtiyacına karşılık gelen Eylus çözümlerini keşfedin.</p>'
-        + '<a class="sol-hero-link" href="#sorular">Çözümleri keşfedin <span aria-hidden="true">↓</span></a>'
         + '</div></section>'
         + '<section class="sol-section" id="sorular"><div class="wrap">'
         + '<div class="sol-section-heading"><div>'
@@ -224,7 +223,7 @@ def solution_page():
         + '<div class="sol-layout">'
         + '<div class="sol-left"><div class="sol-left-heading">'
         + '<span class="sol-section-label" id="sol-category-caption">OPERASYON</span>'
-        + '<h2>Size tanıdık geliyor mu?</h2>'
+        + '<h2>Şu anda sizi en çok hangi sorun zorluyor?</h2>'
         + '</div><div class="sol-question-list" aria-label="Müşteri soruları">'
         + ''.join(questions) + '</div></div>'
         + '<div class="sol-right"><div class="sol-right-heading">'
