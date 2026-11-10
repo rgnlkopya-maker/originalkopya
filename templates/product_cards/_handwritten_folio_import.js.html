@@ -40,6 +40,29 @@
      next.push({code,color,size,qty,price:price===null||!Number.isFinite(price)?0:price,description:String(r.description||'')});
     });
     if(!next.length)throw Error('Okunup eşleştirilebilen ürün satırı yok. '+issues.join(' '));
+    // Compare the raw paper totals BEFORE touching the existing editor state.
+    const originalRows=Array.isArray(data.items)?data.items:[];
+    const paperQty=number(data.written_total_qty);
+    const parsedQty=next.reduce((sum,row)=>sum+row.qty,0);
+    const paperSubtotal=number(data.written_subtotal);
+    const parsedSubtotal=next.reduce((sum,row)=>sum+row.qty*row.price,0);
+    if(originalRows.length!==next.length)
+      issues.push('Bazı satırlar eşleştirilemedi: '+originalRows.length+' okunan satırdan '+next.length+' tanesi aktarılabilir. Eksik satırları elle girin.');
+    if(paperQty!==null&&Number.isFinite(paperQty)&&paperQty!==parsedQty)
+      issues.push('KRİTİK ADET FARKI: Kağıtta '+paperQty+' adet, aktarılacak '+parsedQty+' adet.');
+    if(paperSubtotal!==null&&Number.isFinite(paperSubtotal)&&Math.abs(paperSubtotal-parsedSubtotal)>0.02)
+      issues.push('KRİTİK ARA TOPLAM FARKI: Kağıtta '+paperSubtotal+', aktarılacak '+parsedSubtotal+'.');
+    const paperDiscount=number(data.written_discount_amount);
+    const discountOperation=(data.pricing_operations||[]).find(op=>op.type==='DISCOUNT'&&op.mode==='PERCENT');
+    if(paperDiscount!==null&&Number.isFinite(paperDiscount)&&paperSubtotal!==null&&discountOperation){
+      const discountPercent=number(discountOperation.value);
+      if(discountPercent!==null&&Math.abs(paperSubtotal*discountPercent/100-paperDiscount)>0.02)
+        issues.push('KRİTİK İNDİRİM FARKI: Kağıttaki indirim tutarı '+paperDiscount+', okunan yüzdeyle hesap '+(paperSubtotal*discountPercent/100)+'.');
+    }
+    if(issues.length){
+      const proceed=confirm('El yazısı okumasında '+issues.length+' kontrol gerektiren konu var.\\n\\n'+issues.slice(0,12).join('\\n')+'\\n\\nEksik/hatalı bilgileri düzeltmek için bunları föye aktarmak istiyor musunuz? Onaylanmayacak, ancak açık föydeki değerler değişecek.');
+      if(!proceed){status.textContent='Aktarım iptal edildi. Mevcut föy değiştirilmedi.';return;}
+    }
     const group=new Map();
     next.forEach(r=>{
      const key=JSON.stringify([r.code,r.price]);
