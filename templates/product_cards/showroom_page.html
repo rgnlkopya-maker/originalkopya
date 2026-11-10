@@ -186,6 +186,37 @@
  .showroom-sheet-head .moli-smart-folio-action .summary-box{flex:1 1 0!important;width:auto!important}
 }
 
+
+/* Photo-import card and two counters: visually separate siblings on the SAME line. */
+@media(min-width:951px){
+ .showroom-sheet-head>.moli-smart-folio-action{
+   grid-column:1/span 2!important;grid-row:auto!important;
+   width:100%!important;min-width:0!important;max-width:none!important;
+   margin:0 0 12px!important;justify-content:flex-start!important;align-self:stretch;
+ }
+ .showroom-sheet-head>.showroom-summary-wrap{
+   grid-column:3/-1!important;grid-row:auto!important;
+   width:100%!important;max-width:none!important;min-width:0!important;
+   align-self:stretch!important;padding:0!important;margin:0 0 12px!important;
+   border:0!important;background:transparent!important;
+ }
+ .showroom-sheet-head>.showroom-summary-wrap .showroom-summary-scroll{height:100%;overflow:visible}
+ .showroom-sheet-head>.showroom-summary-wrap .showroom-summary{display:flex;gap:9px;height:100%;min-width:0}
+ .showroom-sheet-head>.showroom-summary-wrap .summary-box{
+   flex:1 1 0!important;width:auto!important;min-width:0!important;min-height:65px;
+   background:#fafbfe;border:1px solid #e3e8f1;border-radius:11px;
+ }
+}
+@media(max-width:950px){
+ .showroom-sheet-head>.moli-smart-folio-action{grid-column:1/-1!important;width:100%!important;margin:0 0 8px!important}
+ .showroom-sheet-head>.showroom-summary-wrap{
+   grid-column:1/-1!important;display:block!important;width:100%!important;max-width:none!important;
+   padding:0!important;margin:0 0 12px!important;border:0!important
+ }
+ .showroom-sheet-head>.showroom-summary-wrap .showroom-summary{display:flex!important;gap:9px;min-width:0}
+ .showroom-sheet-head>.showroom-summary-wrap .summary-box{flex:1 1 0!important;min-width:0!important}
+}
+
 </style>
 {% endblock %}
 
@@ -260,8 +291,8 @@ document.addEventListener('DOMContentLoaded',function(){
   if(summaryBar&&headPanel){
     const smartAction=headPanel.querySelector('.moli-smart-folio-action');
     const intro=headPanel.querySelector('.showroom-sheet-intro');
-    // On the create screen, the two counters share a row with the photo reader.
-    if(smartAction&&summaryBar.parentElement!==smartAction)smartAction.appendChild(summaryBar);
+    // Keep the action card and both summary cards as siblings in one grid row.
+    if(smartAction&&smartAction.nextElementSibling!==summaryBar)smartAction.insertAdjacentElement('afterend',summaryBar);
     else if(!smartAction&&intro&&intro.nextElementSibling!==summaryBar)intro.insertAdjacentElement('afterend',summaryBar);
     summaryBar.querySelectorAll('.summary-box').forEach((box,i)=>{
       if(i===2){box.hidden=true;box.setAttribute('aria-hidden','true');}
