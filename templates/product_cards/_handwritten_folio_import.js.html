@@ -24,12 +24,12 @@ if (!EDIT_MODE) {
   const photo=file.files[0];if(!photo)return;
   start.disabled=true;status.textContent='Görsel okunuyor; mevcut föy değiştirilmez...';
   try {
-    const form=new FormData();form.append('photo',photo);
+    const form=new FormData();form.append('photo',photo);form.append('model','gpt-6-astra');
     const response=await fetch('{% url "read_handwritten_folio" %}',{method:'POST',credentials:'same-origin',headers:{'X-CSRFToken':csrf()},body:form});
     const payload=await response.json();
     if(!response.ok||!payload.ok)throw Error(payload.error||'Okuma başarısız');
     clearPhoto();photoUrl=URL.createObjectURL(photo);
-    review={data:payload.data||{},fileName:photo.name};
+    review={data:payload.data||{},fileName:photo.name,model:payload.model||'gpt-6-astra',usage:payload.usage||{}};
     displayReview();
     status.textContent='Okuma tamamlandı. Önce kontrol tablosunu düzeltin.';
   }catch(e){status.textContent=e.message||'Okuma başarısız';}
@@ -54,7 +54,7 @@ if (!EDIT_MODE) {
    return '<tr>'+cell('product_code',r.product_code,85)+select('color',colorOptions,r.color)+select('size',sizeOptions,r.size)+cell('quantity',r.quantity,65)+cell('unit_price',r.unit_price,95)+cell('written_line_total',r.written_line_total,95)+cell('description',r.description,115)+'</tr>';
   }).join('');
   panel.innerHTML='<div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center"><h4 style="margin:0">El Yazısı Okuma – Kontrol</h4><button id="moliSmartDiscard" type="button" class="sheet-delete">İncelemeyi Kapat</button></div>'
-  +'<p style="margin:7px 0">Orijinal: '+esc(review.fileName)+'. Okuma sonuçları taslak değildir. Eksikleri burada düzeltmeden föye aktarılmaz.</p>'
+  +'<p style="margin:7px 0">Orijinal: '+esc(review.fileName)+' • Model: '+esc(review.model)+' • Giriş tokenı: '+esc(review.usage.input_tokens??'?')+' • Çıkış tokenı: '+esc(review.usage.output_tokens??'?')+'. Sonuçlar taslak değildir; kontrol edin.</p>'
   +'<div style="max-height:380px;overflow:auto;background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;margin:10px 0;text-align:center"><img id="moliSmartOriginal" alt="Yüklenen orijinal föy" style="max-width:100%;height:auto" /></div>'
   +'<div style="overflow:auto"><table style="border-collapse:collapse;width:100%;min-width:840px"><thead><tr><th>Kod</th><th>Renk</th><th>Beden</th><th>Adet</th><th>Birim fiyat</th><th>Yazılı satır toplamı</th><th>Açıklama</th></tr></thead><tbody>'+rowHtml+'</tbody></table></div>'
   +'<button type="button" class="pricing-add" id="moliSmartAddRow" style="margin-top:9px">+ Eksik Satır Ekle</button>'
