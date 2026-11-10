@@ -32,6 +32,7 @@ if (!EDIT_MODE) {
   const response=await fetch('{% url "showroom_smart_photo_attach" %}',{method:'POST',credentials:'same-origin',headers:{'X-CSRFToken':csrf()},body:fd});
   const data=await response.json();
   if(!response.ok||!data.ok)throw Error(data.error||'Orijinal fotoğraflar arşivlenemedi. Föy onaylanmadı.');
+  if(Number(data.uploaded||0)+Number(data.duplicates||0)!==pendingSourcePhotos.length)throw Error('Orijinal fotoğrafların tamamı arşivlenemedi. Föy onaylanmadı.');
   pendingSourcePhotos=[];
   status.textContent='Orijinal fotoğraflar föy #'+data.draft+' arşivine kaydedildi.';
  };
@@ -71,7 +72,7 @@ if (!EDIT_MODE) {
    const select=(key,html,v)=>'<td style="min-width:100px;padding:5px"><select data-i="'+i+'" data-key="'+key+'" style="width:100%;min-width:0;border:1px solid #ccd4e2;border-radius:6px;padding:7px">'+options(html,v)+'</select></td>';
    return '<tr>'+cell('product_code',r.product_code,85)+select('color',colorOptions,r.color)+select('size',sizeOptions,r.size)+cell('quantity',r.quantity,65)+cell('unit_price',r.unit_price,95)+cell('written_line_total',r.written_line_total,95)+cell('description',r.description,115)+'</tr>';
   }).join('');
-  panel.innerHTML='<div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center"><h4 style="margin:0">El Yazısı Okuma – Kontrol</h4><button id="moliSmartDiscard" type="button" class="sheet-delete">İncelemeyi Kapat</button></div>'
+  panel.innerHTML='<div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center"><h4 style="margin:0">El Yazısı Okuma – Kontrol</h4><button id="moliSmartDiscard" type="button" style="padding:8px 12px;border:1px solid #cbd5e1;border-radius:8px;background:#fff;color:#334155">İncelemeyi Kapat</button></div>'
   +'<p style="margin:7px 0">Orijinal: '+esc(review.fileName)+' • Model: '+esc(review.model)+' • Giriş tokenı: '+esc(review.usage.input_tokens??'?')+' • Çıkış tokenı: '+esc(review.usage.output_tokens??'?')+'. Sonuçlar taslak değildir; kontrol edin.</p>'
   +'<div id="moliSmartOriginals" style="display:flex;gap:10px;overflow:auto;max-height:390px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;margin:10px 0;padding:9px"></div>'
   +'<div style="overflow:auto"><table style="border-collapse:collapse;width:100%;min-width:840px"><thead><tr><th>Kod</th><th>Renk</th><th>Beden</th><th>Adet</th><th>Birim fiyat</th><th>Yazılı satır toplamı</th><th>Açıklama</th></tr></thead><tbody>'+rowHtml+'</tbody></table></div>'
