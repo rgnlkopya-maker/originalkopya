@@ -115,82 +115,115 @@ PRODUCT = intro('Ürün','Bir siparişten<br>bütün üretime.','Siparişin bilg
 
 # Solution discovery page (public-facing; screenshot slots are intentionally empty until
 # approved, redacted screenshots from the demo are added to eylus-site/screens/).
-SOLUTIONS = [
-  ('siparis','Siparişlerinizin hangi aşamada olduğunu öğrenmek için sürekli birini mi arıyorsunuz?','Siparişin nerede olduğunu görün.','Müşteri, model, renk, beden, adet ve teslim tarihiyle birlikte siparişin kesim, dikim, süsleme, hazır ve sevkiyat durumunu görüntüleyin.','Sipariş Listesi · Sipariş Detayı'),
-  ('gecikme','Geciken işleri teslim günü geldiğinde mi fark ediyorsunuz?','Gecikme riskini önceden yakalayın.','Yaklaşan teslimatları ve üretimde hareketsiz kalan siparişleri izleyin. Bildirim Merkezi ve üretim aşama kontrolleriyle önceliklerinizi belirleyin.','Bildirim Merkezi · Üretim Aşama Kontrolü'),
-  ('personel','Hangi personelin hangi siparişte işlem yaptığını biliyor musunuz?','İşlemin kaydını ve sorumlusunu görün.','Üretim aşamalarındaki işlem geçmişini ve işlemi kaydeden personeli inceleyin. Eksik veya hatalı aşama hareketlerini personel bazında değerlendirin.','Aşama Geçmişi · Personel Bazlı Kontrol'),
-  ('foy','Müşteriden gelen siparişler hâlâ dağınık dosyalarda mı?','Siparişleri düzenli kayda dönüştürün.','Sipariş föylerini taslak ve onaylı süreçleriyle yönetin; model, renk, beden, adet ve teslimat bilgilerini sipariş sürecine aktarın.','Sipariş Föyleri'),
-  ('sevkiyat','Önümüzdeki günlerde neyi, kaç adet göndereceğinizi kolayca görebiliyor musunuz?','Sevkiyatı önceden planlayın.','Beş günlük sevkiyat planını görün. Ürün, renk, beden ve adet dağılımlarını haftalık plan üzerinden kontrol edin.','Sevkiyat Planı'),
-  ('maliyet','Ürün maliyetinin siparişe nasıl yansıdığını takip edebiliyor musunuz?','Maliyetleri siparişle birlikte izleyin.','Ürün kartındaki maliyet verilerini ve sipariş maliyetlerini aynı sistemde takip edin; sevk edilen siparişlerin kayıtlı maliyet geçmişini koruyun.','Maliyetler · Ürün Kartları'),
-  ('fatura','Siparişten faturaya geçerken bilgileri tekrar mı yazıyorsunuz?','Sipariş ile faturayı ilişkilendirin.','Sipariş satırlarını fatura taslağına aktarın, gerektiğinde düzenleyin ve desteklenen muhasebe entegrasyonları için aktarım durumlarını takip edin.','Faturalar · Entegrasyonlar'),
-  ('qr','Atölyede bir ürünün bilgisine ulaşmak vakit mi alıyor?','QR ile ilgili kayda hızla ulaşın.','Sipariş etiketleri üzerinden ilgili üretim kaydına erişin. Aşama hareketlerini siparişle bağlantılı tutun.','QR Etiket · Sipariş Detayı'),
-  ('maas','Personel ödemeleri ve avanslar farklı tablolarda mı tutuluyor?','Ödemeleri dönem bazında yönetin.','Personel maaş tanımlarını, planlanan ödemeleri, avansları ve kalan tutarları yetkili erişimiyle bir arada izleyin.','Maaşlar · Maaş Ödemeleri'),
-  ('ceksenet','Çek ve senetlerin vadesini takip etmek zorlaşıyor mu?','Vade ve belge durumunu görün.','Çek ve senet kayıtlarını müşteri, banka, tutar, vade ve durum bilgileriyle takip edin; belge görsellerini ilgili kayda bağlayın.','Çek / Senet'),
+SOLUTION_GROUPS = [
+  ("operasyon", "Operasyon", [
+    ("operasyon-01", "Siparişlerinizin güncel durumunu tek ekrandan görebiliyor musunuz?", "Siparişler tek merkezde", "Müşteri, model, renk, beden, adet, teslim tarihi ve üretim durumunu aynı listede takip edin; arayın, filtreleyin ve Excel'e aktarın.", "Sipariş Listesi"),
+    ("operasyon-02", "Üretim aşamalarındaki eksik kayıtları nasıl fark ediyorsunuz?", "Aşama sorunlarını görün", "Önceki üretim aşaması eksik olan siparişleri bulun; işlemi kaydeden kişiyi inceleyin. Bu kayıt kesin kusur tespiti değildir.", "Üretim Kontrol Merkezi · Aşama Problemleri"),
+    ("operasyon-03", "Günlerdir ilerlemeyen siparişlerinizden haberiniz var mı?", "Hareketsiz işleri fark edin", "Üç gün veya daha uzun süredir hareket görülmeyen, henüz sevk edilmemiş siparişleri görün.", "Üretim Kontrol Merkezi · Hareketsiz Siparişler"),
+    ("operasyon-04", "Bu hafta hangi müşteriye hangi siparişleri teslim edeceksiniz?", "Sevkiyatı haftalık planlayın", "Beş günlük sevkiyat planını müşteri, ürün, renk ve beden detayları ve günlük notlarla takip edin.", "Sevkiyat Planı"),
+    ("operasyon-05", "Sevkiyatını planladığınız siparişlerin fatura durumunu biliyor musunuz?", "Sevkiyat ve faturayı birlikte izleyin", "Planlı siparişlerin fatura işaretlerini görüntüleyin, detaylarına doğrudan geçin.", "Sevkiyat Planı · Fatura Durumu"),
+    ("operasyon-06", "Bu hafta hangi modelden hangi beden ve renkte kaç adet kesilecek?", "Kesim planınızı yönetin", "Siparişleri kesim gününe ekleyin. Model, renk, beden ve günlük/haftalık adet toplamlarını görün.", "Seri Kesim Planlama"),
+    ("operasyon-07", "Kesim için renk ve beden tablolarını her hafta yeniden mi hazırlıyorsunuz?", "Kesim listesini Excel'e aktarın", "Her ürünün ayrı sekmede olduğu, renk-beden matrisi şeklinde haftalık Excel çıktısı alın.", "Seri Kesim Planı · Excel"),
+    ("operasyon-08", "Bilgi almak için raporlar arasında dolaşmak zorunda mısınız?", "Eylus Asistan'a sorun", "Yapay zekâya sipariş, gecikme ve sevkiyat verileriniz hakkında doğal Türkçe sorular sorun; yetkiniz dahilinde yanıt alın.", "Eylus Asistan"),
+    ("operasyon-09", "Eski siparişleri karşılaştırmak çok mu zaman alıyor?", "Sohbet ederek sipariş analizi yapın", "Eylus Asistan'dan bir modelin siparişlerini müşterilere göre incelemesini veya günlük yönetici özetini isteyin.", "Eylus Asistan · Analiz"),
+  ]),
+  ("satis", "Satış", [
+    ("satis-01", "Müşteri bilgileriniz farklı dosyalarda mı?", "Müşteriyi tek kartta tanıyın", "Telefon, adres, yetkili kişi, fatura ve ticari bilgilerini birlikte yönetin.", "Müşteriler"),
+    ("satis-02", "En çok satış yaptığınız müşteriniz en kârlı müşteriniz mi?", "Müşteri kârlılığını görün", "Müşteri bazında ciro, maliyet, brüt kâr ve kâr marjını değerlendirin.", "Müşteri Detayı · Genel Bakış"),
+    ("satis-03", "Müşterilerinizin en çok hangi modelleri aldığını biliyor musunuz?", "Satın alma alışkanlıklarını izleyin", "Sık alınan ürünleri, sevkiyat geçmişini ve dönemsel grafikleri inceleyin.", "Müşteri Detayı · Ürün İçgörüleri"),
+    ("satis-04", "Konsinye ürünlerinizin hangi müşteride olduğunu biliyor musunuz?", "Konsinyeyi müşteri bazında yönetin", "Müşteri kartının konsinye bölümünden ilgili ürünleri inceleyin.", "Müşteri Detayı · Konsinye"),
+    ("satis-05", "Ürün fiyatlarınız maliyet ve hedef kâra göre mi oluşuyor?", "Maliyet esaslı fiyatlandırın", "Ürün kartındaki malzeme, işçilik ve diğer maliyetlerin üzerine belirlediğiniz kâr ve indirim oranlarını uygulayın.", "Fiyat Listeleri · Kâr"),
+    ("satis-06", "Kur değiştiğinde bütün fiyatları tekrar mı hesaplıyorsunuz?", "Döviz kuruna göre güncelleyin", "TCMB kurları hafta içi 09.15'te kontrol edilir; gerekirse günün kuru yeniden denenir veya son geçerli kur kullanılır. USD/EUR manuel değiştirilebilir.", "Fiyat Listeleri · Döviz"),
+    ("satis-07", "Nakit ve 3, 6, 9 ay vadeli fiyatları ayrı ayrı mı hazırlıyorsunuz?", "Vadeli fiyatları hesaplayın", "Aylık vade oranına göre nakit, 3, 6 ve 9 aylık satış fiyatlarını birlikte görüntüleyin.", "Fiyat Listeleri · Vade"),
+    ("satis-08", "İndirim yaptıktan sonra kalan kârınızı biliyor musunuz?", "Reel kârı görün", "Kâr ve indirim oranlarının birlikte oluşturduğu maliyet bazlı reel kârı hesaplayın.", "Fiyat Listeleri · Reel Kâr"),
+    ("satis-09", "TL, dolar ve euro fiyat listeniz farklı dosyalarda mı?", "Para birimlerini birlikte yönetin", "TL nakit ve vadeli fiyatlarla USD/EUR karşılıklarını tek listede görüntüleyin, Excel'e aktarın.", "Fiyat Listeleri · Excel"),
+    ("satis-10", "El yazısı sipariş föylerini satır satır mı giriyorsunuz?", "Yapay zekâ fotoğraftan okusun", "Bir veya birden fazla föy fotoğrafından ürün, renk, beden, adet ve fiyatları okutun; kontrol etmeden veriler föye uygulanmaz.", "Sipariş Föyü · Yapay Zekâ"),
+    ("satis-11", "Föyden üretime geçerken bütün bilgileri yeniden mi yazıyorsunuz?", "Onaylı föyü siparişe dönüştürün", "Kontrol ekranından ürün, renk, beden ve adet bilgilerini siparişlere aktarın; daha önce oluşturulanları tekrarlamayın.", "Sipariş Föyü · Sipariş Oluşturma"),
+    ("satis-12", "Müşteriyle anlaştığınız fiyat ve ödemeleri bir yerde görebiliyor musunuz?", "Föyde fiyat ve tahsilatı izleyin", "Fiyat, indirim, KDV, tahsilat, ödeme sözü ve kalan bakiyeyi föyde takip edin.", "Sipariş Föyü · Ödeme Planı"),
+    ("satis-13", "Kesinleşmemiş ve onaylanan föyleri nasıl ayırıyorsunuz?", "Taslak ve onayı yönetin", "Föyleri taslak olarak hazırlayın, düzenleyin ve onaylandığında üretime aktarın.", "Sipariş Föyü · Onay"),
+    ("satis-14", "Eski föylerinizin orijinal fotoğrafını kolayca bulabiliyor musunuz?", "Orijinal föyü arşivleyin", "Orijinal föy fotoğraflarını dijital kayda ekleyin; müşteri kartından inceleyin ve yazdırın.", "Sipariş Föyü · Arşiv"),
+  ]),
+  ("muhasebe", "Muhasebe", [
+    ("muhasebe-01", "Siparişleri faturalandırırken bilgileri tekrar mı yazıyorsunuz?", "Siparişten faturaya aktarın", "Sipariş Detayı'ndaki Faturaya Aktar özelliğiyle kayıtlı bilgileri fatura taslağında kullanın.", "Sipariş Detayı · Faturaya Aktar"),
+    ("muhasebe-02", "Fatura bilgilerini muhasebe programına tek tek mi giriyorsunuz?", "Entegrasyonlarla taslak gönderin", "Uygun taslakları BizimHesap veya Paraşüt'e aktarın. Paraşüt'te güncel %10 KDV koşulu bulunur.", "Fatura Detayı · Entegrasyonlar"),
+    ("muhasebe-03", "Hangi faturanın işlem beklediğini biliyor musunuz?", "Fatura durumlarını takip edin", "Taslak, faturalı ve açık hesap durumlarını, resmî numaraları ve aktarım sonuçlarını izleyin.", "Faturalar Listesi"),
+    ("muhasebe-04", "Faturadaki satırı düzeltmek için yeniden mi başlıyorsunuz?", "Faturayı esnek düzenleyin", "Satırları değiştirin, çıkarın, manuel ekleyin veya yeni faturaya ayırın.", "Fatura Detayı · Satırlar"),
+    ("muhasebe-05", "Proforma için ayrı bir dosya mı hazırlıyorsunuz?", "Proformayı uygulamadan hazırlayın", "Müşteriye sunulabilecek proforma belgelerini Faturalar bölümünde oluşturun.", "Faturalar · Proforma"),
+    ("muhasebe-06", "Çek ve senetlerinizi hâlâ defterde mi takip ediyorsunuz?", "Evrakları tek listede görün", "Alınan ve verilen çek/senet kayıtlarını banka, müşteri, tutar ve vade bilgileriyle yönetin.", "Çek ve Senetler"),
+    ("muhasebe-07", "Yaklaşan çek ve senet vadelerini önceden görebiliyor musunuz?", "Vade aralıklarını filtreleyin", "Ödeme ve tahsilat evraklarını vade tarihlerine göre inceleyin.", "Çek ve Senetler · Vade"),
+    ("muhasebe-08", "Bir çekin hangi durumda ve hangi firmada olduğunu biliyor musunuz?", "Evrakı hızla bulun", "Müşteri, banka, evrak numarası, verilen firma ve durumla arayın.", "Çek ve Senetler · Filtreler"),
+    ("muhasebe-09", "Çek fotoğraflarını bulmak için telefonunuzu mu arıyorsunuz?", "Evrak görsellerini arşivleyin", "Fotoğrafları ilgili çek/senet kaydında saklayın, görüntüleyin ve yazdırın.", "Çek ve Senetler · Görseller"),
+    ("muhasebe-10", "Çek/senet kayıtlarınızın yedeklerini nasıl alıyorsunuz?", "Google Drive'a yedekleyin", "Kayıt ve görsel yedeklemesini bağlantılı Google Drive hesabında başlatın.", "Çek ve Senetler · Yedek"),
+  ]),
+  ("yonetim", "Yönetim", [
+    ("yonetim-01", "Bugün işletmenizde neler olduğunu kimseye sormadan görebiliyor musunuz?", "Patron Ekranı ile genel durumu görün", "Geciken işler, üretim, personel ve dikkat gerektiren kayıtları tek merkezde inceleyin.", "Patron Ekranı"),
+    ("yonetim-02", "Bugün ve dün üretimde neler yapıldığını biliyor musunuz?", "Günlük üretimi karşılaştırın", "Bugünün ve dünün üretim hareketlerini aşama bazında adetlerle görün.", "Patron Ekranı · Üretim"),
+    ("yonetim-03", "Önce hangi üretim sorununa müdahale etmelisiniz?", "Dikkat gerektirenleri ayırın", "Hareketsiz siparişleri, malzeme eksiklerini, hata kayıtlarını ve yaklaşan teslimatları izleyin.", "Patron Ekranı · Öncelikler"),
+    ("yonetim-04", "Hangi personeliniz bugün geldi veya geç kaldı?", "Personel özetini izleyin", "Ekip bazında gelen, geç kalan ve gelmeyen personel sayılarını görüntüleyin.", "Patron Ekranı · Personel"),
+    ("yonetim-05", "Dünkü sevkiyatların ciro ve brüt kârını biliyor musunuz?", "Sevkiyat finansını görün", "Dünkü sevkiyatın ciro, maliyet, brüt kâr ve kâr marjını para birimi bazında inceleyin.", "Patron Ekranı · Finans"),
+  ]),
 ]
 def solution_page():
-    tabs = []
+    groups = []
+    questions = []
     panels = []
-    for i,(key,question,title,description,module) in enumerate(SOLUTIONS):
-        selected='true' if i==0 else 'false'
-        tabs.append(f'<button type="button" class="sol-question" id="sol-tab-{key}" role="tab" aria-selected="{selected}" tabindex="{0 if i==0 else -1}" aria-controls="sol-panel-{key}"><span class="sol-index">{i+1:02}</span><span class="sol-question-label">{escape(question)}</span><span class="sol-arrow" aria-hidden="true">↗</span></button>')
-        panels.append(f'''<section class="sol-panel" id="sol-panel-{key}" role="tabpanel" aria-labelledby="sol-tab-{key}" tabindex="0" {'hidden' if i else ''}>
-          {eyebrow('Eylus ile çözümü')}
-          <h3>{escape(title)}</h3><p>{escape(description)}</p>
-          <div class="sol-screen" data-solution-screen="{key}">
-            <div class="sol-screen-header"><span class="sol-screen-dots" aria-hidden="true">● ● ●</span><strong>{escape(module)}</strong></div>
-            <div class="sol-screen-empty"><span class="sol-screen-icon" aria-hidden="true">▣</span><strong>Gerçek uygulama ekranı</strong><span>Onaylı, müşteri verileri gizlenmiş ekran görüntüsü burada gösterilecek.</span></div>
-          </div>
-          <div class="sol-actions">{button('Demoyu incele','/demo/','purple')}<a class="link" href="/iletisim/">İşletmem için görüşelim <span aria-hidden="true">→</span></a></div>
-          <p class="sol-honesty">Bu bölüm yalnızca mevcut Eylus işlevlerini anlatır. Ekran görüntüsü eklenmeden temsili bir görsel gerçek uygulama ekranı olarak sunulmaz.</p>
-        </section>''')
-    return '''<section class="sol-intro"><div class="wrap">'''+eyebrow('Sorununu seç · Çözümünü gör')+'''<h1>Sizi en çok ne<br><em>zorluyor?</em></h1><p>Üretiminizi yönetirken karşılaştığınız soruyu seçin. Eylus'un bu konuda ne yaptığını, kısa ve açık bir anlatımla görün.</p><a class="link" href="#sorular">Soruları inceleyin <span aria-hidden="true">↓</span></a></div></section>
-<section class="sol-section" id="sorular"><div class="wrap sol-layout"><div class="sol-left"><div class="eyebrow">İşletmenizde bugün</div><h2>Hangi sorunla karşılaşıyorsunuz?</h2><div class="sol-tablist" role="tablist" aria-label="İşletme sorunları" aria-orientation="vertical">'''+''.join(tabs)+'''</div></div><div class="sol-right"><div class="sol-right-head"><span>EYLUS ÇÖZÜMLERİ</span><span>Seçtiğiniz sorunun karşılığı</span></div>'''+''.join(panels)+'''</div></div></section>'''+cta()
+    for group_key, group_name, items in SOLUTION_GROUPS:
+        groups.append(f'<button type="button" class="sol-category" data-sol-category="{group_key}" aria-pressed="{str(group_key==SOLUTION_GROUPS[0][0]).lower()}"><strong>{escape(group_name)}</strong><small>{len(items)} soru</small></button>')
+        for key, question, title, description, module in items:
+            selected = not questions
+            active_group = group_key == SOLUTION_GROUPS[0][0]
+            questions.append(f'<button type="button" class="sol-question" data-sol-group="{group_key}" id="sol-tab-{key}" role="tab" aria-selected="{str(selected).lower()}" tabindex="{0 if selected else -1}" aria-controls="sol-panel-{key}" {"hidden" if not active_group else ""}><span class="sol-index">•</span><span class="sol-question-label">{escape(question)}</span><span class="sol-arrow" aria-hidden="true">↗</span></button>')
+            panels.append(f"""<section class="sol-panel" id="sol-panel-{key}" role="tabpanel" aria-labelledby="sol-tab-{key}" tabindex="0" {'hidden' if not selected else ''}>
+              {eyebrow('Eylus ile çözümü')}
+              <h3>{escape(title)}</h3><p>{escape(description)}</p>
+              <div class="sol-screen" data-solution-screen="{key}">
+                <div class="sol-screen-header"><span class="sol-screen-dots" aria-hidden="true">● ● ●</span><strong>{escape(module)}</strong></div>
+                <div class="sol-screen-empty"><span class="sol-screen-icon" aria-hidden="true">▣</span><strong>Gerçek ekran görüntüsü eklenecek</strong><span>Yalnızca onaylı, müşteri ve personel bilgileri gizlenmiş Eylus uygulama görüntüsü kullanılacak.</span></div>
+              </div>
+              <div class="sol-actions">{button('Demoyu incele','/demo/','purple')}<a class="link" href="/iletisim/">İşletmem için görüşelim <span aria-hidden="true">→</span></a></div>
+            </section>""")
+    count = sum(len(items) for _, _, items in SOLUTION_GROUPS)
+    return """<section class="sol-intro"><div class="wrap">"""+eyebrow('Sorununu seç · Çözümünü gör · Demoyu incele')+f"""<h1>İşletmenizi zorlayan<br><em>sorunu seçin.</em></h1><p>Operasyon, satış, muhasebe ve yönetimde karşılaştığınız soruların Eylus'taki karşılıklarını görün. {count} soruyla işinize uygun çözümü keşfedin.</p><a class="link" href="#sorular">Soruları inceleyin <span aria-hidden="true">↓</span></a></div></section>
+    <section class="sol-section" id="sorular"><div class="wrap"><div class="sol-category-head">"""+eyebrow('Çözümler')+"""<h2>Önce çalışma alanınızı seçin.</h2><p>Bir kategori ve soru seçin; çözümü hemen yanında görün.</p></div><div class="sol-categories" role="group" aria-label="Çözüm kategorileri">"""+''.join(groups)+"""</div><div class="sol-layout"><div class="sol-left"><div class="eyebrow" id="sol-category-caption">Operasyon</div><h2>Sizi hangisi zorluyor?</h2><div class="sol-tablist" role="tablist" aria-label="İşletme sorunları" aria-orientation="vertical">"""+''.join(questions)+"""</div></div><div class="sol-right"><div class="sol-right-head"><span>EYLUS ÇÖZÜMLERİ</span><span>Seçtiğiniz sorunun karşılığı</span></div>"""+''.join(panels)+"""</div></div><p class="sol-note">Ekran görüntüleri onay ve anonimleştirme sonrası eklenecektir. Bazı özellikler yetki ve entegrasyon koşullarına bağlıdır.</p></div></section>"""+cta()
 CSS += r'''
-.sol-intro{background:radial-gradient(ellipse at 85% 28%,#ece8fa,transparent 50%),#fff;padding:98px 0 81px;border-bottom:1px solid var(--line)}
-.sol-intro h1{font-size:clamp(46px,5.7vw,76px);line-height:1.06;letter-spacing:-.065em;margin:20px 0}
-.sol-intro h1 em{font-style:normal;color:var(--purple)}.sol-intro p{font-size:18px;color:var(--muted);max-width:660px;line-height:1.7;margin-bottom:28px}
-.sol-section{background:#f8f7fb;padding:72px 0 108px}.sol-layout{display:grid;grid-template-columns:minmax(0,.92fr) minmax(0,1.08fr);gap:35px;align-items:start}
-.sol-left h2{font-size:28px;letter-spacing:-.035em;margin:18px 0 27px}.sol-tablist{display:grid;gap:10px}
-.sol-question{display:grid;grid-template-columns:40px 1fr 20px;gap:13px;align-items:center;text-align:left;min-height:90px;padding:18px 19px;background:#fff;color:#514b5b;border:1px solid #e4deeb;border-radius:12px;transition:background .2s,opacity .2s,box-shadow .2s,border-color .2s}
-.sol-index{display:grid;place-items:center;background:#f3effa;width:37px;height:37px;border-radius:9px;color:#7765ac;font-size:12px;font-weight:700}
-.sol-question-label{font-size:14px;font-weight:550;line-height:1.5}.sol-arrow{font-size:21px;color:#8f81b3}
-.sol-tablist:has(.sol-question[aria-selected=true]) .sol-question[aria-selected=false]{opacity:.59;background:#f0eef4}
-.sol-question[aria-selected=true]{opacity:1!important;border:2px solid #7560cf;background:#fff;box-shadow:0 12px 32px #4b379617;color:#252033}
-.sol-question:hover,.sol-question:focus-visible{opacity:1!important;background:#fff!important}.sol-question:hover{border-color:#b5a6dd}
-.sol-right{position:sticky;top:106px;background:white;border:1px solid #e5ddec;border-radius:17px;box-shadow:0 18px 55px #3b2a6010;overflow:hidden}
-.sol-right-head{display:flex;justify-content:space-between;gap:12px;padding:20px 29px;border-bottom:1px solid var(--line);color:#777083;font-size:10px;letter-spacing:.075em;font-weight:650}
-.sol-panel{padding:31px 29px 25px}.sol-panel[hidden]{display:none}.sol-panel .eyebrow{margin-bottom:15px}.sol-panel h3{font-size:clamp(24px,2.4vw,32px);line-height:1.19;letter-spacing:-.04em;margin-bottom:15px}
-.sol-panel>p{color:#655e6d;font-size:14px;line-height:1.8}.sol-screen{margin-top:23px;border:1px solid #e9e4ef;border-radius:12px;overflow:hidden;background:#faf9fd}
-.sol-screen-header{height:45px;background:#fff;border-bottom:1px solid #ebe7f1;display:flex;align-items:center;gap:15px;padding:0 18px;color:#686078;font-size:11px}
-.sol-screen-header strong{font-weight:600}.sol-screen-dots{color:#c8bfd7;font-size:10px;letter-spacing:3px}.sol-screen-empty{min-height:198px;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;gap:9px;color:#857a98;padding:23px}
-.sol-screen-empty strong{color:#524b5b;font-size:14px}.sol-screen-empty span:last-child{font-size:12px;max-width:280px;line-height:1.6}
-.sol-screen-icon{font-size:34px;color:#b9abd5}.sol-actions{display:flex;gap:20px;align-items:center;flex-wrap:wrap;margin-top:25px}
-.sol-panel .sol-honesty{font-size:10px;line-height:1.6;margin:22px 0 0;color:#888091}
-@media(max-width:860px){.sol-layout{grid-template-columns:1fr;gap:24px}.sol-right{position:static}.sol-section{padding:50px 0 75px}.sol-tablist{grid-template-columns:1fr 1fr}.sol-question{min-height:115px}.sol-right-head{padding:17px 23px}.sol-panel{padding:25px 23px}}
-@media(max-width:560px){.sol-intro{padding:62px 0 55px}.sol-intro p{font-size:16px}.sol-tablist{grid-template-columns:1fr}.sol-question{min-height:75px;padding:13px 15px}.sol-left h2{font-size:25px}.sol-right-head{font-size:9px}.sol-panel{padding:23px 18px}}
+.sol-category-head{margin:0 0 22px}.sol-category-head h2{font-size:34px;letter-spacing:-.04em;margin:12px 0}.sol-category-head p{color:var(--muted);font-size:14px}
+.sol-categories{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:0 0 32px}
+.sol-category{display:flex;justify-content:space-between;gap:12px;align-items:center;text-align:left;border:1px solid #ddd6e8;border-radius:12px;background:#fff;padding:20px}
+.sol-category strong{font-size:16px}.sol-category small{font-size:11px;color:#796f87;white-space:nowrap}
+.sol-category[aria-pressed=true]{border:2px solid var(--purple);background:#f4f0ff;box-shadow:0 8px 28px #5d4bb015}
+.sol-category:hover{border-color:#9e8aca}.sol-question[hidden]{display:none!important}
+.sol-question[aria-selected=false]{opacity:.72!important;background:#fff!important}
+.sol-note{font-size:11px;color:#81798a;margin:22px 0 0}
+@media(max-width:860px){.sol-categories{grid-template-columns:repeat(2,minmax(0,1fr))}.sol-tablist{grid-template-columns:1fr 1fr}}
+@media(max-width:560px){.sol-categories{gap:8px}.sol-category{flex-direction:column;align-items:flex-start;padding:13px;gap:5px}.sol-tablist{grid-template-columns:1fr}.sol-category strong{font-size:14px}}
 '''
 JS += r'''
-const solTabs = [...document.querySelectorAll('.sol-question[role="tab"]')];
-function selectSolution(tab,focus=false){
-  solTabs.forEach(t=>{
-    const active=t===tab;
-    t.setAttribute('aria-selected',String(active));
-    t.tabIndex=active?0:-1;
-    const panel=document.getElementById(t.getAttribute('aria-controls'));
-    if(panel)panel.hidden=!active;
-  });
-  if(focus)tab.focus();
+const categoryButtons=[...document.querySelectorAll('[data-sol-category]')];
+const allSolutionTabs=[...document.querySelectorAll('.sol-question[role="tab"]')];
+function chooseSolution(tab,focus=false){
+  allSolutionTabs.forEach(t=>{
+    const active=t===tab;t.setAttribute('aria-selected',String(active));t.tabIndex=active?0:-1;
+    const panel=document.getElementById(t.getAttribute('aria-controls'));if(panel)panel.hidden=!active;
+  });if(focus)tab.focus();
 }
-solTabs.forEach((tab,i)=>{
-  tab.addEventListener('click',()=>selectSolution(tab));
+function chooseCategory(key){
+  categoryButtons.forEach(c=>c.setAttribute('aria-pressed',String(c.dataset.solCategory===key)));
+  allSolutionTabs.forEach(t=>{t.hidden=t.dataset.solGroup!==key;});
+  const button=categoryButtons.find(c=>c.dataset.solCategory===key);
+  const caption=document.getElementById('sol-category-caption');
+  if(button&&caption)caption.textContent=button.querySelector('strong').textContent;
+  const first=allSolutionTabs.find(t=>t.dataset.solGroup===key);if(first)chooseSolution(first);
+}
+categoryButtons.forEach(c=>c.addEventListener('click',()=>chooseCategory(c.dataset.solCategory)));
+allSolutionTabs.forEach(tab=>{
+  tab.addEventListener('click',()=>chooseSolution(tab));
   tab.addEventListener('keydown',e=>{
+    const visible=allSolutionTabs.filter(t=>!t.hidden),i=visible.indexOf(tab);
     let n=i;
-    if(e.key==='ArrowDown'||e.key==='ArrowRight')n=(i+1)%solTabs.length;
-    else if(e.key==='ArrowUp'||e.key==='ArrowLeft')n=(i+solTabs.length-1)%solTabs.length;
-    else if(e.key==='Home')n=0;
-    else if(e.key==='End')n=solTabs.length-1;
-    else return;
-    e.preventDefault();selectSolution(solTabs[n],true);
+    if(e.key==='ArrowDown'||e.key==='ArrowRight')n=(i+1)%visible.length;
+    else if(e.key==='ArrowUp'||e.key==='ArrowLeft')n=(i+visible.length-1)%visible.length;
+    else if(e.key==='Home')n=0;else if(e.key==='End')n=visible.length-1;else return;
+    e.preventDefault();chooseSolution(visible[n],true);
   });
 });
 '''
