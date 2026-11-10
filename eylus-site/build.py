@@ -117,7 +117,7 @@ PRODUCT = intro('Ürün','Bir siparişten<br>bütün üretime.','Siparişin bilg
 # approved, redacted screenshots from the demo are added to eylus-site/screens/).
 SOLUTION_GROUPS = [
   ("operasyon", "Operasyon", [
-    ("operasyon-01", "Siparişlerinizin güncel durumunu tek ekrandan görebiliyor musunuz?", "Siparişler tek merkezde", "Müşteri, model, renk, beden, adet, teslim tarihi ve üretim durumunu aynı listede takip edin; arayın, filtreleyin ve Excel'e aktarın.", "Sipariş Listesi"),
+    ("operasyon-01", "Siparişlerinizin atölyedeki son durumunu tek ekrandan görebiliyor musunuz, yoksa atölyeyi arayıp üretim alanında dolaşarak mı öğreniyorsunuz?", "Siparişler tek merkezde", "Müşteri, model, renk, beden, adet, teslim tarihi ve üretim durumunu aynı listede takip edin; arayın, filtreleyin ve Excel'e aktarın.", "Sipariş Listesi"),
     ("operasyon-02", "Üretim aşamalarındaki eksik kayıtları nasıl fark ediyorsunuz?", "Aşama sorunlarını görün", "Önceki üretim aşaması eksik olan siparişleri bulun; işlemi kaydeden kişiyi inceleyin. Bu kayıt kesin kusur tespiti değildir.", "Üretim Kontrol Merkezi · Aşama Problemleri"),
     ("operasyon-03", "Günlerdir ilerlemeyen siparişlerinizden haberiniz var mı?", "Hareketsiz işleri fark edin", "Üç gün veya daha uzun süredir hareket görülmeyen, henüz sevk edilmemiş siparişleri görün.", "Üretim Kontrol Merkezi · Hareketsiz Siparişler"),
     ("operasyon-04", "Bu hafta hangi müşteriye hangi siparişleri teslim edeceksiniz?", "Sevkiyatı haftalık planlayın", "Beş günlük sevkiyat planını müşteri, ürün, renk ve beden detayları ve günlük notlarla takip edin.", "Sevkiyat Planı"),
