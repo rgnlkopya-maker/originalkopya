@@ -117,7 +117,7 @@ PRODUCT = intro('Ürün','Bir siparişten<br>bütün üretime.','Siparişin bilg
 # approved, redacted screenshots from the demo are added to eylus-site/screens/).
 SOLUTION_GROUPS = [
   ("operasyon", "Operasyon", [
-    ("operasyon-01", "Siparişlerinizin atölyedeki son durumunu tek ekrandan görebiliyor musunuz, yoksa atölyeyi arayıp üretim alanında dolaşarak mı öğreniyorsunuz?", "Siparişler tek merkezde", "Müşteri, model, renk, beden, adet, teslim tarihi ve üretim durumunu aynı listede takip edin; arayın, filtreleyin ve Excel'e aktarın.", "Sipariş Listesi"),
+    ("operasyon-01", "Siparişlerinizin atölyedeki son durumunu tek ekrandan görebiliyor musunuz, yoksa atölyeyi arayıp üretim alanında dolaşarak mı öğreniyorsunuz?", "Siparişlerin son durumunu tek ekrandan görün", "Siparişinizin hangi aşamada olduğunu öğrenmek için atölyeyi aramanıza gerek kalmaz. Kesim, dikim, süsleme, malzeme eksikliği ve sevkiyat gibi güncel durumları; müşteri, model, beden ve teslim tarihiyle birlikte tek listede görüntüleyin. Arama ve filtreleme ile istediğiniz siparişi kolayca bulun.", "Sipariş Listesi"),
     ("operasyon-02", "Kullandığınız üretim takip sistemi, personelin eksik kaydettiği aşamaları tespit edip sizi uyarıyor mu?", "Aşama sorunlarını görün", "Önceki üretim aşaması eksik olan siparişleri bulun; işlemi kaydeden kişiyi inceleyin. Bu kayıt kesin kusur tespiti değildir.", "Üretim Kontrol Merkezi · Aşama Problemleri"),
     ("operasyon-03", "İş süreçlerinizde bir aşamada takılıp kalan veya düzeltme gerektiren işleri zamanında fark edebiliyor musunuz?", "Hareketsiz işleri fark edin", "Üç gün veya daha uzun süredir hareket görülmeyen, henüz sevk edilmemiş siparişleri görün.", "Üretim Kontrol Merkezi · Hareketsiz Siparişler"),
     ("operasyon-04", "Hangi siparişin hangi gün teslim edileceğini gösteren kesinleşmiş teslimat planınızı nereden takip ediyorsunuz?", "Sevkiyatı haftalık planlayın", "Beş günlük sevkiyat planını müşteri, ürün, renk ve beden detayları ve günlük notlarla takip edin.", "Sevkiyat Planı"),
@@ -184,10 +184,12 @@ def approved_solution_screen(key):
     output.mkdir(parents=True, exist_ok=True)
     copyfile(original, output / filename)
     url = '/assets/solutions/' + escape(filename, quote=True)
-    return (f'<figure class="sol-real-screen"><a href="{url}" target="_blank" rel="noopener" '
-            f'aria-label="Ekran görüntüsünü büyüt: {escape(alt, quote=True)}">'
-            f'<img loading="lazy" decoding="async" src="{url}" alt="{escape(alt, quote=True)}"></a>'
-            f'<figcaption>Gerçek Eylus uygulama ekranı · Büyütmek için seçin</figcaption></figure>')
+    return (f'<figure class="sol-real-screen"><button type="button" class="sol-screen-open" '
+            f'data-sol-image-open data-sol-image-src="{url}" '
+            f'data-sol-image-alt="{escape(alt, quote=True)}" '
+            f'aria-label="Ekran görüntüsünü büyüt">'
+            f'<img loading="lazy" decoding="async" src="{url}" alt="{escape(alt, quote=True)}">'
+            f'<span class="sol-zoom-indicator" aria-hidden="true">⤢</span></button></figure>')
 
 def solution_page():
     def solution_content(key, title, description, module, compact=False):
@@ -196,7 +198,6 @@ def solution_page():
             f'<{heading}>{escape(title)}</{heading}>'
             f'<p>{escape(description)}</p>'
             f'{approved_solution_screen(key)}'
-            f'<div class="sol-module"><span class="sol-module-icon" aria-hidden="true">▤</span><div><small>İlgili Eylus ekranı</small><strong>{escape(module)}</strong></div></div>'
             f'</div>')
 
     categories = []
@@ -244,7 +245,13 @@ def solution_page():
         + '<div class="sol-right">'
         + ''.join(desktop_panels) + '</div>'
         + '</div>'
-        + '</div></section>' + cta()
+        + '</div></section>'
+        + '<dialog class="sol-screen-dialog" id="sol-screen-dialog" aria-label="Eylus uygulama ekran görüntüsü">'
+        + '<div class="sol-dialog-toolbar"><span>Ekran görüntüsü</span><div class="sol-dialog-actions">'
+        + '<button type="button" data-sol-image-zoom class="sol-dialog-zoom">Yakınlaştır</button>'
+        + '<button type="button" data-sol-image-close class="sol-dialog-close" aria-label="Görseli kapat">×</button>'
+        + '</div></div><div class="sol-dialog-viewport"><img alt=""></div></dialog>'
+        + cta()
     )
 
 CSS += r'''
@@ -284,15 +291,24 @@ CSS += r'''
 .sol-desktop-panel[hidden]{display:none!important}
 .sol-answer{padding:34px 30px 30px}
 .sol-answer h3,.sol-answer h4{font-size:clamp(24px,2.4vw,33px);letter-spacing:-.045em;line-height:1.18;margin:0 0 16px}
-.sol-answer p{font-size:15px;color:#635d70;line-height:1.8;margin:0 0 22px}
-.sol-real-screen{margin:0 0 19px;border:1px solid #e9e3f7;border-radius:13px;overflow:hidden;background:#fff}
-.sol-real-screen a{display:block;line-height:0}
-.sol-real-screen img{display:block;width:100%;max-height:470px;height:auto;object-fit:contain}
-.sol-real-screen figcaption{padding:10px 14px;color:#6f6580;font-size:11px;border-top:1px solid #ece7f5;line-height:1.5}
-.sol-module{display:flex;align-items:center;gap:14px;background:linear-gradient(110deg,#f8f5ff,#fcfbff);border:1px solid #e9e3f7;border-radius:13px;padding:16px;margin:0}
-.sol-module-icon{display:grid;place-items:center;flex:0 0 39px;width:39px;height:39px;background:#ebe5fc;border-radius:11px;color:var(--purple);font-size:25px}
-.sol-module small{display:block;color:#8c8297;font-size:10px;margin-bottom:4px}
-.sol-module strong{display:block;font-size:13px;font-weight:750;line-height:1.4;color:#3d3155}
+.sol-answer p{font-size:16px;color:#37313f;font-weight:500;line-height:1.68;margin:0 0 22px}
+.sol-real-screen{margin:0;border:1px solid #e9e3f7;border-radius:13px;overflow:hidden;background:#fff}
+.sol-screen-open{display:block;width:100%;border:0;padding:0;background:#fff;position:relative;cursor:zoom-in;line-height:0}
+.sol-screen-open img{display:block;width:100%;max-height:460px;height:auto;object-fit:contain}
+.sol-screen-open:focus-visible{outline:3px solid var(--purple);outline-offset:-3px}
+.sol-zoom-indicator{position:absolute;right:12px;top:12px;background:#fff;box-shadow:0 3px 15px #26203333;color:#44308c;font-size:22px;line-height:1;border-radius:10px;padding:8px 11px}
+.sol-screen-dialog{border:0;border-radius:18px;padding:0;position:fixed;inset:0;margin:auto;width:min(1100px,95vw);max-width:95vw;max-height:90dvh;overflow:hidden;background:#fff;box-shadow:0 20px 90px #0005}
+.sol-screen-dialog::backdrop{background:rgba(15,14,24,.76)}
+.sol-dialog-toolbar{display:flex;align-items:center;justify-content:space-between;gap:14px;min-height:60px;padding:10px 15px 10px 22px;border-bottom:1px solid #e7e4ec;background:#fff;color:#292334;font-size:14px;font-weight:750}
+.sol-dialog-actions{display:flex;align-items:center;gap:9px}
+.sol-dialog-zoom,.sol-dialog-close{border:1px solid #ded9e8;background:#f8f6fd;border-radius:10px;min-height:38px;color:#372b55;cursor:pointer;font-weight:700}
+.sol-dialog-zoom{padding:8px 13px;font-size:13px}
+.sol-dialog-close{width:40px;font-size:25px;line-height:1}
+.sol-dialog-zoom:focus-visible,.sol-dialog-close:focus-visible{outline:3px solid var(--purple);outline-offset:2px}
+.sol-dialog-viewport{max-height:calc(90dvh - 60px);overflow:auto;overscroll-behavior:contain;background:#f4f4f8;text-align:center;touch-action:pan-x pan-y}
+.sol-dialog-viewport img{display:block;width:100%;max-width:100%;max-height:calc(90dvh - 65px);height:auto;object-fit:contain;margin:0 auto}
+.sol-screen-dialog.is-zoomed .sol-dialog-viewport img{width:max(1100px,160vw);max-width:none;max-height:none}
+@media(max-width:560px){.sol-screen-dialog{width:96vw;max-width:96vw;border-radius:13px}.sol-dialog-toolbar{padding:8px 10px 8px 13px;min-height:54px;font-size:12px}.sol-dialog-viewport{max-height:calc(90dvh - 54px)}.sol-dialog-viewport img{max-height:calc(90dvh - 54px)}.sol-dialog-zoom{font-size:12px;padding:7px 10px}.sol-dialog-close{min-height:38px;width:38px}}
 .sol-mobile-panel{display:none}
 @media(max-width:900px){
  .sol-categories{grid-template-columns:repeat(2,minmax(0,1fr))}
@@ -304,9 +320,7 @@ CSS += r'''
  .sol-question-chevron{transform:rotate(0deg)}
  .sol-answer{padding:19px 19px 21px}
  .sol-answer h4{font-size:22px;line-height:1.23;margin:0 0 11px}
- .sol-answer p{font-size:13px;line-height:1.75;margin-bottom:17px}
- .sol-module{padding:12px;margin-bottom:16px}
- .sol-cta .button{min-height:41px;padding:10px 14px}
+ .sol-answer p{font-size:15px;color:#37313f;font-weight:550;line-height:1.7;margin-bottom:17px}
  .sol-section{padding:30px 0 68px}
 }
 @media(max-width:560px){
@@ -366,6 +380,42 @@ solQuestionButtons.forEach(btn=>{
     solSetQuestion(mobile&&solSelected===key?null:key);
   });
 });
+
+// Responsive solution screenshot viewer: bounded dialog, zoom, tap-away and Escape to dismiss.
+const solScreenDialog=document.getElementById('sol-screen-dialog');
+if(solScreenDialog){
+  const img=solScreenDialog.querySelector('.sol-dialog-viewport img');
+  const viewport=solScreenDialog.querySelector('.sol-dialog-viewport');
+  const zoomButton=solScreenDialog.querySelector('[data-sol-image-zoom]');
+  const closeButton=solScreenDialog.querySelector('[data-sol-image-close]');
+  const resetZoom=()=>{
+    solScreenDialog.classList.remove('is-zoomed');
+    zoomButton.textContent='Yakınlaştır';
+    viewport.scrollTop=0;viewport.scrollLeft=0;
+  };
+  document.querySelectorAll('[data-sol-image-open]').forEach(button=>{
+    button.addEventListener('click',()=>{
+      resetZoom();
+      img.src=button.dataset.solImageSrc;
+      img.alt=button.dataset.solImageAlt||'Eylus uygulama ekranı';
+      solScreenDialog.showModal();
+      closeButton.focus();
+    });
+  });
+  closeButton.addEventListener('click',()=>solScreenDialog.close());
+  zoomButton.addEventListener('click',()=>{
+    const zoomed=solScreenDialog.classList.toggle('is-zoomed');
+    zoomButton.textContent=zoomed?'Ekrana sığdır':'Yakınlaştır';
+    viewport.scrollTop=0;viewport.scrollLeft=0;
+  });
+  solScreenDialog.addEventListener('click',event=>{
+    if(event.target===solScreenDialog)solScreenDialog.close();
+  });
+  solScreenDialog.addEventListener('close',()=>{
+    resetZoom();
+    img.removeAttribute('src');
+  });
+}
 '''
 
 TEXTILE = solution_page()
