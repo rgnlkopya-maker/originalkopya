@@ -14,9 +14,10 @@ if (!EDIT_MODE) {
  else if(intro)intro.insertAdjacentElement('afterend',toolbar);
  else if(heading)heading.insertAdjacentElement('afterend',toolbar);
  else host.prepend(toolbar);
- // Keep counters beside the upload card as separate sibling cards, not inside it.
+ // Counters belong beneath "Siparişi Alan" in the dedicated side stack.
  const counters=host.querySelector('.showroom-summary-wrap');
- if(counters&&toolbar.nextElementSibling!==counters)toolbar.insertAdjacentElement('afterend',counters);
+ const sideStack=host.querySelector('.smart-folio-side-stack');
+ if(counters&&sideStack&&counters.parentElement!==sideStack)sideStack.appendChild(counters);
  const config=document.createElement('div');
  config.className='moli-reader-config';
  config.style.cssText='display:flex;flex-wrap:wrap;align-items:center;gap:8px;width:100%;font-size:11px;color:#53627b;margin-top:1px';
