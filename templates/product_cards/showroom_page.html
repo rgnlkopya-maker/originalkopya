@@ -320,6 +320,39 @@
  }
 }
 
+
+/* Dense folio header: use available width for photo controls, not oversized totals. */
+@media(min-width:1201px){
+ .showroom-sheet-head{
+  grid-template-columns:minmax(220px,.95fr) minmax(470px,2.65fr) minmax(112px,.53fr) minmax(112px,.53fr)!important;
+  align-items:center!important;column-gap:10px!important;row-gap:8px!important;
+  padding:12px 16px!important;
+ }
+ .showroom-sheet-head>.showroom-summary-wrap{align-self:center!important}
+ .showroom-sheet-head>.showroom-summary-wrap .showroom-summary{
+  gap:8px!important;align-items:center!important;height:auto!important;
+ }
+ .showroom-sheet-head>.showroom-summary-wrap .summary-box{
+  min-height:58px!important;padding:8px 10px!important;border-radius:10px!important;
+ }
+ .showroom-sheet-head>.showroom-summary-wrap .summary-box span{
+  font-size:9px!important;line-height:1.3!important;margin-bottom:4px!important;
+ }
+ .showroom-sheet-head>.showroom-summary-wrap .summary-box strong{font-size:16px!important}
+ .showroom-sheet-head>.smart-folio-heading-block .showroom-sheet-title{font-size:19px!important}
+ .showroom-sheet-head>.smart-folio-heading-block .showroom-sheet-intro{font-size:12px!important;line-height:1.45!important}
+ .showroom-sheet-head>.moli-smart-folio-action{align-self:center!important}
+ .showroom-sheet-head .showroom-customer-wrap label,
+ .showroom-sheet-head .showroom-order-taker-wrap label,
+ .showroom-sheet-head .showroom-order-type-wrap label,
+ .showroom-sheet-head>.showroom-fx-fields label{margin-bottom:4px!important;font-size:11px!important}
+ .showroom-sheet-head .showroom-customer,
+ .showroom-sheet-head .showroom-order-taker,
+ .showroom-sheet-head .showroom-order-type,
+ .showroom-sheet-head #showroomCurrency{min-height:38px!important;height:38px!important;padding:6px 10px!important}
+ .showroom-sheet-head .showroom-fx-fields{margin-top:0!important}
+}
+
 </style>
 {% endblock %}
 
