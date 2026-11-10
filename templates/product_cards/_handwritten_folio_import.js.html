@@ -12,6 +12,9 @@ if (!EDIT_MODE) {
  if(intro)intro.insertAdjacentElement('afterend',toolbar);
  else if(heading)heading.insertAdjacentElement('afterend',toolbar);
  else host.prepend(toolbar);
+ // renderSheet() runs before this toolbar is inserted; move counters here on first open.
+ const counters=host.querySelector('.showroom-summary-wrap');
+ if(counters&&counters.parentElement!==toolbar)toolbar.appendChild(counters);
  const start=toolbar.querySelector('#moliSmartRead'),file=toolbar.querySelector('#moliSmartPhoto'),status=toolbar.querySelector('#moliSmartStatus');
  const normalize=x=>String(x??'').trim().toLocaleLowerCase('tr-TR').replace(/\s+/g,' ');
  const num=x=>(x===null||x===undefined||x==='')?null:Number(x);
