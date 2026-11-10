@@ -84,6 +84,7 @@ document.addEventListener('DOMContentLoaded',function(){
  function resetPopup(){rows.innerHTML='';rowIndex=0;editIndex=null;addRow();}
  function openEditPopup(i){const item=showroomItems[i];if(!item)return;editIndex=i;productInput.value=item.urun_kodu;rows.innerHTML='';rowIndex=0;item.satirlar.forEach(addRow);bootstrap.Modal.getOrCreateInstance(modalEl).show();}
  renderSheet();if(EDIT_MODE){applyData(EDIT_DATA);setTimeout(()=>document.getElementById('showroomCreateBtn')?.click(),0);}else restoreDraft();
+ {% include "product_cards/_handwritten_folio_import.js.html" %}
  document.querySelectorAll('.showroom-add').forEach(btn=>btn.addEventListener('click',function(){const tableRow=this.closest('tr');const codeLink=tableRow&&tableRow.querySelector('.product-code-link');if(!codeLink)return;productInput.value=codeLink.textContent.trim();resetPopup();bootstrap.Modal.getOrCreateInstance(modalEl).show();}));
  const initialProductCode=new URLSearchParams(window.location.search).get('urun');
  if(initialProductCode){
