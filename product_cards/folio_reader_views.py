@@ -131,7 +131,7 @@ def read_handwritten_folio(request):
             "messages": [
                 {"role": "system", "content": PROMPT},
                 {"role": "user", "content": [
-                    {"type": "text", "text": ("These are multiple views of ONE form (full page and detail crops); count each physical row once." if len(uploads) == 1 else "These are " + str(len(uploads)) + " uploaded photos belonging to one order. Each photo can show a different page or overlapping portion. Preserve all distinct product rows, avoid counting duplicated rows twice, and read final totals from the last relevant page. Return one combined items list. Do NOT invent missing information.")},
+                    {"type": "text", "text": (("This is the complete ORIGINAL photo of one order form. Preserve every row; count each physical row once." if read_mode == "standard" else "These are THREE read-only views of ONE original order form: full image, upper section and lower section. Do not double-count overlapping rows.") if len(uploads) == 1 else "These are " + str(len(uploads)) + " uploaded original photos belonging to one order. Each may show a distinct page or overlapping portion. Keep all distinct product rows without double-counting, and read final totals from the last relevant page. Do NOT invent missing information.")},
                     *[{"type": "image_url", "image_url": {"url": url, "detail": "high"}} for url in image_urls],
                 ]},
             ],
