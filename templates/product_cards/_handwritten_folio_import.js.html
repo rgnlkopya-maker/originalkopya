@@ -43,8 +43,9 @@ if (!EDIT_MODE) {
   const options=(html,raw)=>{
    const el=document.createElement('select');el.innerHTML=html;
    const selected=selectValue(html,raw);
-   if(raw&&!selected){let o=document.createElement('option');o.value='';o.textContent='⚠ Eşleşmedi: '+String(raw);el.prepend(o);}
-   el.value=selected;return el.innerHTML;
+   const list=[...el.options].filter(o=>o.value!=='');
+   const first='<option value=""'+(!selected?' selected':'')+'>'+esc(raw&&!selected?'⚠ Eşleşmedi: '+String(raw):'Seçiniz')+'</option>';
+   return first+list.map(o=>'<option value="'+esc(o.value)+'"'+(selected===o.value?' selected':'')+'>'+esc(o.textContent)+'</option>').join('');
   };
   panel.style.cssText='padding:16px;margin-bottom:16px;background:#fff;border:2px solid #d2dbe9;border-radius:14px;font-size:13px';
   const rowHtml=rows.map((r,i)=>{
@@ -71,7 +72,7 @@ if (!EDIT_MODE) {
     const tbody=panel.querySelector('tbody'),i=tbody.rows.length;
     const tr=document.createElement('tr');
     function field(key,type='text'){const td=document.createElement('td');td.style.padding='5px';const el=document.createElement('input');el.type=type;el.dataset.i=String(i);el.dataset.key=key;el.style.cssText='width:100%;min-width:70px;border:1px solid #ccd4e2;border-radius:6px;padding:7px';td.appendChild(el);return td;}
-    function select(key,html){const td=document.createElement('td');td.style.padding='5px';const el=document.createElement('select');el.dataset.i=String(i);el.dataset.key=key;el.style.cssText='min-width:100px;width:100%;border:1px solid #ccd4e2;border-radius:6px;padding:7px';el.innerHTML=html;td.appendChild(el);return td;}
+    function select(key,html){const td=document.createElement('td');td.style.padding='5px';const el=document.createElement('select');el.dataset.i=String(i);el.dataset.key=key;el.style.cssText='min-width:100px;width:100%;border:1px solid #ccd4e2;border-radius:6px;padding:7px';el.innerHTML='<option value="">Seçiniz</option>'+html;el.value='';td.appendChild(el);return td;}
     tr.appendChild(field('product_code'));tr.appendChild(select('color',colorOptions));tr.appendChild(select('size',sizeOptions));
     tr.appendChild(field('quantity','number'));tr.appendChild(field('unit_price','number'));tr.appendChild(field('written_line_total','number'));tr.appendChild(field('description'));
     tbody.appendChild(tr);recompute();tr.querySelector('input')?.focus();
