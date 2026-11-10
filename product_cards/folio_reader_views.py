@@ -101,13 +101,24 @@ def _image_data(upload):
 def read_handwritten_folio(request):
     if not _can_manage(request.user):
         return JsonResponse({"ok": False, "error": "Bu işlem için yetkiniz yok."}, status=403)
-    upload = request.FILES.get("photo")
-    if upload is None:
-        return JsonResponse({"ok": False, "error": "Bir föy fotoğrafı seçin."}, status=400)
+    uploads = request.FILES.getlist("photos") or ([request.FILES["photo"]] if "photo" in request.FILES else [])
+    if not uploads:
+        return JsonResponse({"ok": False, "error": "En az bir föy fotoğrafı seçin."}, status=400)
+    if len(uploads) > 15:
+        return JsonResponse({"ok": False, "error": "Tek okumada en fazla 15 fotoğraf yüklenebilir."}, status=400)
+    if sum(file.size for file in uploads) > 60 * 1024 * 1024:
+        return JsonResponse({"ok": False, "error": "Fotoğrafların toplam boyutu 60 MB sınırını aşamaz."}, status=400)
     try:
         from pillow_heif import register_heif_opener
         register_heif_opener()
-        image_urls = _image_data(upload)
+        image_urls = []
+        if len(uploads) == 1:
+            image_urls = _image_data(uploads[0])
+        else:
+            # Many distinct pages: one legible full-page view per uploaded photo.
+            # Do not duplicate each page with overlapping crops.
+            for upload in uploads:
+                image_urls.append(_image_data(upload)[0])
     except ValueError as exc:
         return JsonResponse({"ok": False, "error": str(exc)}, status=400)
     requested_model = request.POST.get("model", "gpt-4.1").strip()
@@ -124,7 +135,7 @@ def read_handwritten_folio(request):
             "messages": [
                 {"role": "system", "content": PROMPT},
                 {"role": "user", "content": [
-                    {"type": "text", "text": "These are three views of the SAME form: full page, upper crop and lower crop. Do not double-count overlapping rows. Extract all rows and totals."},
+                    {"type": "text", "text": ("These are multiple views of ONE form (full page and detail crops); count each physical row once." if len(uploads) == 1 else "These are " + str(len(uploads)) + " uploaded photos belonging to one order. Each photo can show a different page or overlapping portion. Preserve all distinct product rows, avoid counting duplicated rows twice, and read final totals from the last relevant page. Return one combined items list. Do NOT invent missing information.")},
                     *[{"type": "image_url", "image_url": {"url": url, "detail": "high"}} for url in image_urls],
                 ]},
             ],
