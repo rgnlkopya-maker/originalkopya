@@ -39,7 +39,7 @@
 <main class="pm-wrap">
 {% if messages %}<div aria-live="polite" role="status">{% for message in messages %}<div class="alert {% if 'error' in message.tags %}alert-danger{% elif 'warning' in message.tags %}alert-warning{% elif 'success' in message.tags %}alert-success{% else %}alert-info{% endif %}" role="alert">{{ message }}</div>{% endfor %}</div>{% endif %}
 <div class="d-flex align-items-center justify-content-between gap-2 flex-wrap mb-3">
-<div><h2 class="mb-1">Paraşüt Cari Eşleştirme</h2><p class="pm-sub mb-0">MoliApp müşterisini Paraşüt'teki mevcut cariye bir kez eşleştirin.</p></div>
+<div><h2 class="mb-1">Paraşüt Cari Eşleştirme</h2><p class="pm-sub mb-0">MoliApp şubelerini mevcut Paraşüt carilerine bağlayın. Birden fazla şube aynı cari ID'yi kullanabilir.</p></div>
 <a href="{% url 'invoice_list' %}" class="btn btn-sm btn-outline-secondary">← Faturalara Dön</a>
 </div>
 <div class="cm-stats" aria-label="Eşleştirme özeti"><div class="cm-stat"><span class="cm-value">{{ customer_count }}</span><span class="cm-label">Aktif müşteri</span></div><div class="cm-stat"><span class="cm-value">{{ mapped_count }}</span><span class="cm-label">Eşleşen müşteri</span></div><div class="cm-stat"><span class="cm-value" id="cmUnmapped"></span><span class="cm-label">Eşleşmeyen müşteri</span></div></div>
