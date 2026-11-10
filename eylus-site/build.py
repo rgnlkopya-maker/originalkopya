@@ -167,7 +167,6 @@ def solution_page():
     def solution_content(title, description, module, compact=False):
         heading = 'h4' if compact else 'h3'
         return (f'<div class="sol-answer">'
-            f'<span class="sol-kicker">EYLUS İLE ÇÖZÜMÜ</span>'
             f'<{heading}>{escape(title)}</{heading}>'
             f'<p>{escape(description)}</p>'
             f'<div class="sol-module"><span class="sol-module-icon" aria-hidden="true">▤</span><div><small>İlgili Eylus ekranı</small><strong>{escape(module)}</strong></div></div>'
@@ -218,13 +217,9 @@ def solution_page():
         + '<h2>Şu anda sizi en çok hangi sorun zorluyor?</h2>'
         + '</div><div class="sol-question-list" aria-label="Müşteri soruları">'
         + ''.join(questions) + '</div></div>'
-        + '<div class="sol-right"><div class="sol-right-heading">'
-        + '<span>EYLUS' + ' / ÇÖZÜMÜNÜZ</span><span class="sol-right-mark">✦</span>'
-        + '</div>'
+        + '<div class="sol-right">'
         + ''.join(desktop_panels) + '</div>'
         + '</div>'
-        + '<p class="sol-disclaimer">Ekran görüntüleri, gerçek müşteri ve personel bilgileri gizlendikten ve onaylandıktan sonra eklenecektir. '
-        + 'İşlevler kullanıcı yetkileri ve entegrasyon koşullarına bağlı olabilir.</p>'
         + '</div></section>' + cta()
     )
 
@@ -263,11 +258,8 @@ CSS += r'''
 .sol-item.is-active .sol-question-index{background:#eee8ff;color:var(--purple)}
 .sol-item.is-active .sol-question-label{color:#4e36a7}
 .sol-right{position:sticky;top:105px;border:1px solid #e8e1ef;background:white;box-shadow:0 17px 45px #30224b0c;border-radius:18px;overflow:hidden}
-.sol-right-heading{height:56px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #eeeaf3;padding:0 25px;color:#80738c;font-size:10px;font-weight:800;letter-spacing:.12em}
-.sol-right-mark{color:var(--purple);font-size:19px}
 .sol-desktop-panel[hidden]{display:none!important}
 .sol-answer{padding:34px 30px 30px}
-.sol-kicker{display:block;color:var(--purple);font-size:11px;letter-spacing:.13em;font-weight:800;margin-bottom:14px}
 .sol-answer h3,.sol-answer h4{font-size:clamp(24px,2.4vw,33px);letter-spacing:-.045em;line-height:1.18;margin:0 0 16px}
 .sol-answer p{font-size:15px;color:#635d70;line-height:1.8;margin:0 0 22px}
 .sol-module{display:flex;align-items:center;gap:14px;background:linear-gradient(110deg,#f8f5ff,#fcfbff);border:1px solid #e9e3f7;border-radius:13px;padding:16px;margin:0 0 25px}
@@ -277,7 +269,6 @@ CSS += r'''
 .sol-cta{display:flex;align-items:center;gap:18px;flex-wrap:wrap}
 .sol-cta .button{min-height:45px}
 .sol-secondary-link{font-size:13px;font-weight:700;color:#6551b3;white-space:nowrap}
-.sol-disclaimer{margin:26px 0 0;color:#8a8195;font-size:11px;line-height:1.7}
 .sol-mobile-panel{display:none}
 @media(max-width:900px){
  .sol-categories{grid-template-columns:repeat(2,minmax(0,1fr))}
