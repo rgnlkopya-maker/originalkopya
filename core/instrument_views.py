@@ -330,9 +330,6 @@ def instrument_mapping_save(request, pk):
         return redirect("instrument_detail", pk=pk)
     try:
         with transaction.atomic():
-            if BizimHesapCustomerMapping.objects.filter(external_customer_id=code).exclude(customer_id=record.customer_id).exists():
-                messages.error(request, "Bu BizimHesap cari kodu başka bir müşteriye eşleştirilmiş.", extra_tags="instrument_notice")
-                return redirect("instrument_detail", pk=pk)
             BizimHesapCustomerMapping.objects.update_or_create(customer_id=record.customer_id,defaults={"external_customer_id":code,"confirmed_by":request.user})
     except IntegrityError:
         messages.error(request, "Cari eşleştirmesi çakıştı.", extra_tags="instrument_notice")
