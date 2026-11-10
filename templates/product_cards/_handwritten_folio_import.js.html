@@ -5,10 +5,13 @@ if (!EDIT_MODE) {
  const host=sheet.querySelector('.showroom-sheet-head');
  const toolbar=document.createElement('div');
  toolbar.className='moli-smart-folio-action';
- toolbar.style.cssText='display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:14px;padding:14px 16px;margin:0 0 18px;background:#f7f9ff;border:1px solid #dce4f8;border-radius:14px';
- toolbar.innerHTML='<div style="flex:1 1 260px"><div style="font-size:14px;font-weight:800;color:#24396d">Fotoğraflardan sipariş föyü oluşturun</div><div style="font-size:12px;color:#65738e;margin-top:4px">Bir veya birden fazla orijinal föy fotoğrafı seçin. Hepsi birlikte okunur, kontrol edilir ve föy kaydedildiğinde arşivine eklenir.</div><span role="status" id="moliSmartStatus" aria-live="polite" style="display:block;margin-top:5px;color:#53627b;font-size:12px"></span></div><button type="button" id="moliSmartRead" style="display:inline-flex;align-items:center;justify-content:center;gap:9px;min-height:44px;padding:10px 17px;background:#293e86;color:#fff;border:1px solid #293e86;border-radius:11px;font-size:13px;font-weight:750;cursor:pointer"><i class="bi bi-camera" aria-hidden="true" style="font-size:17px"></i><span>Fotoğraflardan Föy Oluştur</span></button><input type="file" id="moliSmartPhoto" accept="image/*,.heic,.heif,.tif,.tiff" multiple style="display:none">';
+ toolbar.style.cssText='grid-column:1/-1;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;padding:11px 13px;margin:0 0 17px;background:#f8faff;border:1px solid #e4eaf5;border-radius:11px';
+ toolbar.innerHTML='<div style="flex:1 1 260px"><div style="font-size:14px;font-weight:800;color:#24396d">Orijinal Föyden Aktar</div><div style="font-size:12px;color:#65738e;margin-top:4px">Birden fazla fotoğraf seçebilirsiniz. Bilgileri kontrol ettikten sonra orijinaller föy arşivine eklenir.</div><span role="status" id="moliSmartStatus" aria-live="polite" style="display:block;margin-top:5px;color:#53627b;font-size:12px"></span></div><button type="button" id="moliSmartRead" style="display:inline-flex;align-items:center;justify-content:center;gap:9px;min-height:44px;padding:10px 15px;background:#293e86;color:#fff;border:1px solid #293e86;border-radius:11px;font-size:13px;font-weight:750;cursor:pointer"><i class="bi bi-camera" aria-hidden="true" style="font-size:17px"></i><span>Fotoğraf Yükle ve Oku</span></button><input type="file" id="moliSmartPhoto" accept="image/*,.heic,.heif,.tif,.tiff" multiple style="display:none">';
+ const intro=host.querySelector('.showroom-sheet-intro');
  const heading=host.querySelector('.showroom-sheet-title');
- if(heading)heading.insertAdjacentElement('afterend',toolbar);else host.prepend(toolbar);
+ if(intro)intro.insertAdjacentElement('afterend',toolbar);
+ else if(heading)heading.insertAdjacentElement('afterend',toolbar);
+ else host.prepend(toolbar);
  const start=toolbar.querySelector('#moliSmartRead'),file=toolbar.querySelector('#moliSmartPhoto'),status=toolbar.querySelector('#moliSmartStatus');
  const normalize=x=>String(x??'').trim().toLocaleLowerCase('tr-TR').replace(/\s+/g,' ');
  const num=x=>(x===null||x===undefined||x==='')?null:Number(x);
