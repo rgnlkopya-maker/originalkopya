@@ -150,6 +150,42 @@
  .showroom-sheet-head .moli-smart-folio-action .summary-box{flex:1 1 0;min-width:0}
 }
 
+
+/* Final alignment: photo action and the two counters form one uninterrupted row. */
+.showroom-sheet-head .moli-smart-folio-action{
+  width:100%!important;min-width:0!important;max-width:none!important;
+  margin:0 0 12px!important;padding:11px 13px!important;
+  display:flex!important;align-items:center!important;justify-content:flex-start!important;
+  flex-wrap:nowrap!important;gap:14px!important;
+}
+.showroom-sheet-head .moli-smart-folio-action>div:first-child{
+  flex:1 1 280px!important;min-width:180px!important;max-width:460px!important;
+}
+.showroom-sheet-head .moli-smart-folio-action #moliSmartRead{
+  flex:0 0 auto!important;
+}
+.showroom-sheet-head .moli-smart-folio-action .showroom-summary-wrap{
+  flex:0 0 auto!important;align-self:center!important;
+  margin:0 0 0 auto!important;padding:0!important;border:0!important;
+  max-width:none!important;width:auto!important;
+}
+.showroom-sheet-head .moli-smart-folio-action .showroom-summary{
+  display:flex!important;align-items:stretch!important;gap:8px!important;height:auto!important;
+}
+.showroom-sheet-head .moli-smart-folio-action .summary-box{
+  flex:0 0 auto!important;width:138px!important;min-width:0!important;min-height:46px!important;
+}
+@media(max-width:950px){
+ .showroom-sheet-head .moli-smart-folio-action{flex-wrap:wrap!important}
+ .showroom-sheet-head .moli-smart-folio-action .showroom-summary-wrap{margin-left:0!important}
+}
+@media(max-width:600px){
+ .showroom-sheet-head .moli-smart-folio-action>div:first-child{flex:1 1 100%!important;max-width:none!important}
+ .showroom-sheet-head .moli-smart-folio-action #moliSmartRead{width:100%!important}
+ .showroom-sheet-head .moli-smart-folio-action .showroom-summary-wrap{width:100%!important}
+ .showroom-sheet-head .moli-smart-folio-action .summary-box{flex:1 1 0!important;width:auto!important}
+}
+
 </style>
 {% endblock %}
 
