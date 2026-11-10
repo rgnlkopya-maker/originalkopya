@@ -55,21 +55,34 @@ Output JSON only."""
 
 
 def _image_data(upload):
+    """Make a focused image of the written content, avoiding large empty paper margins."""
     if upload.size < 50 or upload.size > MAX_BYTES:
         raise ValueError("Fotoğraf 10 MB sınırında ve boş olmayan bir dosya olmalı.")
     try:
-        with Image.open(upload) as image:
-            if image.format not in ("JPEG", "PNG", "WEBP", "HEIF", "HEIC", "MPO", "TIFF"):
+        with Image.open(upload) as original:
+            if original.format not in ("JPEG", "PNG", "WEBP", "HEIF", "HEIC", "MPO", "TIFF"):
                 raise ValueError("Lütfen JPEG, PNG, WEBP veya HEIC biçiminde fotoğraf yükleyin.")
-            image.seek(0)
-            image = ImageOps.exif_transpose(image).convert("RGB")
-            image.thumbnail((2200, 2200))
+            original.seek(0)
+            image = ImageOps.exif_transpose(original).convert("RGB")
+            # Some photos have a very large white bottom area that makes the table tiny.
+            # Crop only if the content bounding box is clear and the savings are meaningful.
+            if image.width >= 250 and image.height >= 250:
+                gray = image.convert("L")
+                ink = gray.point(lambda x: 255 if x < 205 else 0)
+                bbox = ink.getbbox()
+                if bbox:
+                    margin = max(14, int(min(image.size) * .025))
+                    left, top, right, bottom = bbox
+                    bbox = (max(0, left - margin), max(0, top - margin),
+                            min(image.width, right + margin), min(image.height, bottom + margin))
+                    if (bbox[2] - bbox[0]) * (bbox[3] - bbox[1]) < image.width * image.height * .82:
+                        image = image.crop(bbox)
+            image.thumbnail((2800, 2800))
             buffer = io.BytesIO()
-            image.save(buffer, "JPEG", quality=88)
+            image.save(buffer, "JPEG", quality=92, optimize=True)
             return "data:image/jpeg;base64," + base64.b64encode(buffer.getvalue()).decode("ascii")
     except (UnidentifiedImageError, OSError) as exc:
         raise ValueError("Fotoğraf dosyası okunamadı.") from exc
-
 
 @login_required
 @require_POST
