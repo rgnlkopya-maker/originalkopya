@@ -192,15 +192,26 @@ def approved_solution_screen(key):
             f'<img loading="lazy" decoding="async" src="{url}" alt="{escape(alt, quote=True)}">'
             f'<span class="sol-zoom-indicator" aria-hidden="true">⤢</span></button></figure>')
 
+# Every new solution uses the approved title -> lead -> support -> real screen pattern.
+# Original approved texts remain unchanged unless explicitly revised.
+SOLUTION_EDITORIAL_COPY = {
+    "operasyon-01": (
+        "Atölyeyi aramadan, siparişinizin hangi aşamada olduğunu tek bakışta görün.",
+        "Kesimden sevkiyata güncel durumları; müşteri, model, beden ve teslim tarihiyle birlikte takip edin. Arama ve filtrelerle istediğiniz siparişe kolayca ulaşın.",
+    ),
+    "yonetim-01": (
+        "İşletmenizde bugün neler olduğunu öğrenmek için tek tek rapor istemeyin.",
+        "Patron Ekranı'nda geciken ve yaklaşan teslimatları, günlük üretim hareketlerini, malzeme eksiklerini ve personel özetini bir arada görün. Öncelik vermeniz gereken işleri daha hızlı belirleyin.",
+    ),
+}
+
 def solution_page():
     def solution_content(key, title, description, module, compact=False):
         heading = 'h4' if compact else 'h3'
-        if key == 'operasyon-01':
-            details = (
-                '<p class="sol-lead">Atölyeyi aramadan, siparişinizin hangi aşamada olduğunu tek bakışta görün.</p>'
-                '<p class="sol-support">Kesimden sevkiyata güncel durumları; müşteri, model, beden ve teslim tarihiyle '
-                'birlikte takip edin. Arama ve filtrelerle istediğiniz siparişe kolayca ulaşın.</p>'
-            )
+        if key in SOLUTION_EDITORIAL_COPY:
+            lead, support = SOLUTION_EDITORIAL_COPY[key]
+            details = (f'<p class="sol-lead">{escape(lead)}</p>'
+                       f'<p class="sol-support">{escape(support)}</p>')
         else:
             details = f'<p>{escape(description)}</p>'
         return (f'<div class="sol-answer">'
