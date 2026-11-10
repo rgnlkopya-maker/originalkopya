@@ -110,28 +110,40 @@ def read_handwritten_folio(request):
         image_urls = _image_data(upload)
     except ValueError as exc:
         return JsonResponse({"ok": False, "error": str(exc)}, status=400)
+    requested_model = request.POST.get("model", "gpt-4.1").strip()
+    allowed_models = {"gpt-4.1", "gpt-6.1-sol", "gpt-6-astra"}
+    if requested_model not in allowed_models:
+        return JsonResponse({"ok": False, "error": "Desteklenmeyen okuma modeli."}, status=400)
     key = os.getenv("OPENAI_API_KEY", "").strip()
     if not key:
         return JsonResponse({"ok": False, "error": "El yazısı okuma için OPENAI_API_KEY henüz Render ortamında tanımlı değil."}, status=503)
     try:
+        payload = {
+            "model": requested_model,
+            "response_format": {"type": "json_object"},
+            "messages": [
+                {"role": "system", "content": PROMPT},
+                {"role": "user", "content": [
+                    {"type": "text", "text": "These are three views of the SAME form: full page, upper crop and lower crop. Do not double-count overlapping rows. Extract all rows and totals."},
+                    *[{"type": "image_url", "image_url": {"url": url, "detail": "high"}} for url in image_urls],
+                ]},
+            ],
+        }
+        if requested_model == "gpt-4.1":
+            payload["temperature"] = 0
+            payload["max_completion_tokens"] = 5000
+        else:
+            # Reasoning models may reject temperature; use completion token budget.
+            payload["max_completion_tokens"] = 9000
         response = requests.post(
             "https://api.openai.com/v1/chat/completions",
             headers={"Authorization": "Bearer " + key, "Content-Type": "application/json"},
-            json={
-                "model": os.getenv("MOLI_FOLIO_VISION_MODEL", "gpt-4.1"),
-                "temperature": 0,
-                "response_format": {"type": "json_object"},
-                "messages": [
-                    {"role": "system", "content": PROMPT},
-                    {"role": "user", "content": [
-                        {"type": "text", "text": "These are THREE views of the SAME order form: full page, upper close-up and lower close-up. Do NOT count overlapping rows twice. Transcribe all handwritten rows and totals. Read prices from the price column and size ticks from their actual column."},
-                        *[{"type": "image_url", "image_url": {"url": url, "detail": "high"}} for url in image_urls],
-                    ]},
-                ],
-                "max_tokens": 5000,
-            },
-            timeout=(5, 19),
+            json=payload,
+            timeout=(5, 22),
         )
+        if response.status_code == 400:
+            logger.warning("Folio model rejected request: model=%s", requested_model)
+            return JsonResponse({"ok": False, "error": "Seçilen model okuma isteğini kabul etmedi. Başka bir model seçin; mevcut föy değişmedi."}, status=503)
         if response.status_code == 429:
             try:
                 api_error = response.json().get("error") or {}
@@ -149,11 +161,16 @@ def read_handwritten_folio(request):
         if response.status_code == 403:
             return JsonResponse({"ok": False, "error": "El yazısı okuma servisine erişim engellendi. API hesabı veya model erişimini kontrol edin."}, status=503)
         response.raise_for_status()
-        parsed = json.loads(response.json()["choices"][0]["message"]["content"])
+        result = response.json()
+        parsed = json.loads(result["choices"][0]["message"]["content"])
         if not isinstance(parsed, dict) or not isinstance(parsed.get("items"), list):
             raise ValueError("Beklenen alanlar okuma yanıtında bulunamadı.")
         parsed["items"] = parsed["items"][:200]
-        return JsonResponse({"ok": True, "data": parsed})
+        usage = result.get("usage") or {}
+        return JsonResponse({"ok": True, "data": parsed, "model": requested_model,
+                             "usage": {"input_tokens": usage.get("prompt_tokens"),
+                                       "output_tokens": usage.get("completion_tokens"),
+                                       "total_tokens": usage.get("total_tokens")}})
     except (requests.RequestException, KeyError, IndexError, TypeError, ValueError, json.JSONDecodeError):
         logger.exception("Handwritten folio reading failed")
         return JsonResponse({"ok": False, "error": "Fotoğraf okunamadı veya okuma servisi yanıt vermedi. Tekrar deneyin."}, status=503)
