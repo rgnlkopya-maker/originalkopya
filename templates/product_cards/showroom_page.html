@@ -217,6 +217,73 @@
  .showroom-sheet-head>.showroom-summary-wrap .summary-box{flex:1 1 0!important;min-width:0!important}
 }
 
+
+/* Final four-part header: title+intro | import card | product count | quantity. */
+.showroom-sheet-head{
+  grid-template-columns:minmax(190px,1.04fr) minmax(365px,1.55fr) minmax(125px,.58fr) minmax(125px,.58fr)!important;
+  align-items:stretch!important;column-gap:12px!important;row-gap:11px!important;
+}
+.showroom-sheet-head>.smart-folio-heading-block{
+  grid-column:1!important;min-width:0;align-self:center;
+}
+.showroom-sheet-head>.smart-folio-heading-block .showroom-sheet-title{margin:0 0 6px!important;font-size:20px}
+.showroom-sheet-head>.smart-folio-heading-block .showroom-sheet-intro{
+  margin:0!important;line-height:1.5!important;max-width:260px;
+}
+.showroom-sheet-head>.moli-smart-folio-action{
+  grid-column:2!important;margin:0!important;max-width:none!important;
+  min-width:0!important;width:100%!important;align-self:stretch!important;
+  padding:10px 12px!important;flex-wrap:nowrap!important;
+  gap:10px!important;justify-content:space-between!important;
+}
+.showroom-sheet-head>.moli-smart-folio-action>div:first-child{
+  min-width:0!important;max-width:none!important;flex:1 1 160px!important;
+}
+.showroom-sheet-head>.moli-smart-folio-action #moliSmartRead{
+  flex:0 0 auto!important;min-height:42px!important;padding:8px 12px!important;
+}
+.showroom-sheet-head>.showroom-summary-wrap{
+  grid-column:3/-1!important;min-width:0!important;width:100%!important;
+  max-width:none!important;margin:0!important;padding:0!important;
+  align-self:stretch!important;border:0!important;background:transparent!important;
+}
+.showroom-sheet-head>.showroom-summary-wrap .showroom-summary{
+  display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;
+  gap:9px!important;min-width:0!important;height:100%!important;
+}
+.showroom-sheet-head>.showroom-summary-wrap .summary-box{
+  flex:none!important;min-width:0!important;width:auto!important;
+  display:flex;flex-direction:column;justify-content:center;
+  padding:9px 10px!important;min-height:65px!important;
+}
+.showroom-sheet-head>.showroom-sheet-head-fields,
+.showroom-sheet-head>.showroom-fx-fields{display:contents!important}
+.showroom-sheet-head .showroom-customer-wrap{grid-column:1!important}
+.showroom-sheet-head .showroom-order-taker-wrap{grid-column:2!important}
+.showroom-sheet-head .showroom-order-type-wrap{grid-column:3!important}
+.showroom-sheet-head>.showroom-fx-fields>div{grid-column:4!important}
+@media(max-width:1200px){
+  .showroom-sheet-head{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+  .showroom-sheet-head>.smart-folio-heading-block{grid-column:1!important}
+  .showroom-sheet-head>.moli-smart-folio-action{grid-column:2!important;flex-wrap:wrap!important}
+  .showroom-sheet-head>.showroom-summary-wrap{grid-column:1/-1!important}
+  .showroom-sheet-head .showroom-customer-wrap{grid-column:1!important}
+  .showroom-sheet-head .showroom-order-taker-wrap{grid-column:2!important}
+  .showroom-sheet-head .showroom-order-type-wrap{grid-column:1!important}
+  .showroom-sheet-head>.showroom-fx-fields>div{grid-column:2!important}
+}
+@media(max-width:680px){
+  .showroom-sheet-head{grid-template-columns:minmax(0,1fr)!important}
+  .showroom-sheet-head>.smart-folio-heading-block,
+  .showroom-sheet-head>.moli-smart-folio-action,
+  .showroom-sheet-head>.showroom-summary-wrap,
+  .showroom-sheet-head .showroom-customer-wrap,
+  .showroom-sheet-head .showroom-order-taker-wrap,
+  .showroom-sheet-head .showroom-order-type-wrap,
+  .showroom-sheet-head>.showroom-fx-fields>div{grid-column:1!important}
+  .showroom-sheet-head>.moli-smart-folio-action #moliSmartRead{width:auto!important}
+}
+
 </style>
 {% endblock %}
 
@@ -287,6 +354,15 @@ document.addEventListener('DOMContentLoaded',function(){
   if(!sheet)return;
   if(!sheet.dataset.ready){sheet.innerHTML=`<div class="showroom-sheet-inner"><div class="showroom-summary-wrap"><div class="showroom-summary-scroll"><div class="showroom-summary"><div class="summary-box"><span>Toplam Ürün Çeşidi</span><strong id="sumTypes">0</strong></div><div class="summary-box"><span>Toplam Adet</span><strong id="sumQty">0</strong></div><div class="summary-box"><span>Toplam Tutar</span><strong id="sumAmount">0,00 TL</strong></div></div></div></div><div class="showroom-sheet-head"><h3 class="showroom-sheet-title">Akıllı Sipariş Föyü</h3><p class="showroom-sheet-intro">Sipariş bilgilerini girin veya orijinal föy fotoğraflarından aktarın.</p><div class="showroom-sheet-head-fields"><div class="showroom-customer-wrap"><label>Müşteri</label><select id="showroomSheetCustomer" class="showroom-customer">${customerOptions}</select></div><div class="showroom-order-taker-wrap"><label>Siparişi Alan</label><input id="showroomOrderTakenBy" class="showroom-order-taker" type="text" maxlength="120" placeholder="İsim yazın"></div><div class="showroom-order-type-wrap"><label>Sipariş Tipi</label><select id="showroomOrderType" class="showroom-order-type">${orderTypeOptions}</select></div></div><div class="showroom-fx-fields"><div><label for="showroomCurrency">Para Birimi</label><select id="showroomCurrency"><option value="TRY">TL (TRY)</option><option value="USD">USD ($)</option><option value="EUR">EUR (€)</option><option value="GBP">GBP (£)</option></select></div></div></div><div id="showroomSheetItems"></div><div class="showroom-totals"><div class="total-row"><span>Ara Toplam</span><strong id="sheetSubtotal">0,00 TL</strong></div><div class="pricing-head"><span>Fiyat İşlemleri</span><button type="button" id="showroomAddPricing" class="pricing-add">+ İşlem Ekle</button></div><div id="pricingOperations"></div><div class="total-row"><span>İşlemler Sonrası</span><strong id="sheetOperationsTotal">0,00 TL</strong></div><div class="folio-adjustment"><div><label style="font-size:11px;font-weight:800;color:#697386">Föy Toplamını Düzelt</label><div class="folio-adjustment-note">Boş bırakırsan hesaplanan tutar kullanılır. Daha düşük veya yüksek bir toplam yazarsan fark ürünlere oranlı dağıtılır.</div></div><input id="sheetFolioTarget" type="number" min="0" step="0.01" placeholder="İsteğe bağlı net toplam"></div><div class="total-row"><span>Föy Düzeltmesi</span><strong id="sheetAdjustmentValue">+ 0,00 TL</strong></div><div class="total-row"><span>Föy Toplamı</span><strong id="sheetFolioTotal">0,00 TL</strong></div><div class="discount-fields"><div class="discount-field"><label>Eski Bakiye (TL)</label><input id="sheetPreviousBalance" type="number" min="0" step="0.01" placeholder="Varsa girin"></div></div><div class="total-row"><span>Eski Bakiye</span><strong id="sheetPreviousBalanceValue">0,00 TL</strong></div><div class="total-row grand-total"><span>Genel Toplam</span><strong id="sheetGrandTotal">0,00 TL</strong></div><div class="showroom-payments finance-payments"><div class="payment-head"><div><div class="payment-title">Tahsilat / Ödeme Planı</div><div class="payment-note">Genel toplam oluştuktan sonra tahsilat ve ödeme planını buradan girin. Ödeme sözleri yalnızca plan olarak takip edilir.</div></div><button type="button" id="showroomAddPayment" class="payment-add">+ Ödeme Satırı</button></div><div id="showroomPaymentRows"></div><div class="payment-summary"><div class="payment-stat"><span>Tahsil Edilen</span><b id="sheetCollected">0,00 TL</b></div><div class="payment-stat"><span>Ödeme Sözü</span><b id="sheetPromised">0,00 TL</b></div><div class="payment-stat remaining"><span>Kalan Tutar</span><b id="sheetRemaining">0,00 TL</b></div></div></div><div class="total-row"><span>Tahsil Edilen</span><strong id="sheetCollectedBottom">- 0,00 TL</strong></div><div class="total-row grand-total"><span>Kalan Tutar</span><strong id="sheetRemainingBottom">0,00 TL</strong></div>${actionButtonsHtml}</div></div>`;sheet.dataset.ready='1';}
   const summaryBar=sheet.querySelector('.showroom-summary-wrap'),headPanel=sheet.querySelector('.showroom-sheet-head');
+  if(headPanel&&!headPanel.querySelector('.smart-folio-heading-block')){
+    const title=headPanel.querySelector('.showroom-sheet-title'),intro=headPanel.querySelector('.showroom-sheet-intro');
+    if(title&&intro){
+      const headingBlock=document.createElement('div');
+      headingBlock.className='smart-folio-heading-block';
+      headPanel.insertBefore(headingBlock,title);
+      headingBlock.append(title,intro);
+    }
+  }
   if(summaryBar&&headPanel&&summaryBar.parentElement!==headPanel)headPanel.appendChild(summaryBar);
   if(summaryBar&&headPanel){
     const smartAction=headPanel.querySelector('.moli-smart-folio-action');
