@@ -6,7 +6,7 @@ if (!EDIT_MODE) {
  const toolbar=document.createElement('div');
  toolbar.className='moli-smart-folio-action';
  toolbar.style.cssText='display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:14px;padding:14px 16px;margin:0 0 18px;background:#f7f9ff;border:1px solid #dce4f8;border-radius:14px';
- toolbar.innerHTML='<div style="flex:1 1 260px"><div style="font-size:14px;font-weight:800;color:#24396d">Fotoğrafınızdaki siparişi dijital föye dönüştürün</div><div style="font-size:12px;color:#65738e;margin-top:4px">El yazısıyla doldurulmuş föyün fotoğrafını yükleyin. Okunan bilgileri kontrol edip düzenleyerek siparişe aktarın.</div><span role="status" id="moliSmartStatus" aria-live="polite" style="display:block;margin-top:5px;color:#53627b;font-size:12px"></span></div><button type="button" id="moliSmartRead" style="display:inline-flex;align-items:center;justify-content:center;gap:9px;min-height:44px;padding:10px 17px;background:#293e86;color:#fff;border:1px solid #293e86;border-radius:11px;font-size:13px;font-weight:750;cursor:pointer"><i class="bi bi-camera" aria-hidden="true" style="font-size:17px"></i><span>Fotoğraftan Föy Oluştur</span></button><input type="file" id="moliSmartPhoto" accept="image/*" style="display:none">';
+ toolbar.innerHTML='<div style="flex:1 1 260px"><div style="font-size:14px;font-weight:800;color:#24396d">Fotoğraflardan sipariş föyü oluşturun</div><div style="font-size:12px;color:#65738e;margin-top:4px">Bir veya birden fazla orijinal föy fotoğrafı seçin. Hepsi birlikte okunur, kontrol edilir ve föy kaydedildiğinde arşivine eklenir.</div><span role="status" id="moliSmartStatus" aria-live="polite" style="display:block;margin-top:5px;color:#53627b;font-size:12px"></span></div><button type="button" id="moliSmartRead" style="display:inline-flex;align-items:center;justify-content:center;gap:9px;min-height:44px;padding:10px 17px;background:#293e86;color:#fff;border:1px solid #293e86;border-radius:11px;font-size:13px;font-weight:750;cursor:pointer"><i class="bi bi-camera" aria-hidden="true" style="font-size:17px"></i><span>Fotoğraflardan Föy Oluştur</span></button><input type="file" id="moliSmartPhoto" accept="image/*,.heic,.heif,.tif,.tiff" multiple style="display:none">';
  const heading=host.querySelector('.showroom-sheet-title');
  if(heading)heading.insertAdjacentElement('afterend',toolbar);else host.prepend(toolbar);
  const start=toolbar.querySelector('#moliSmartRead'),file=toolbar.querySelector('#moliSmartPhoto'),status=toolbar.querySelector('#moliSmartStatus');
@@ -19,19 +19,35 @@ if (!EDIT_MODE) {
    return found?found.value:'';
  };
  let review=null;
- let photoUrl=null;
- const clearPhoto=()=>{if(photoUrl){URL.revokeObjectURL(photoUrl);photoUrl=null;}};
+ let photoUrls=[];
+ let pendingSourcePhotos=[];
+ const clearPhoto=()=>{photoUrls.forEach(u=>URL.revokeObjectURL(u));photoUrls=[];};
+ window.__moliSmartBeforeFinalize=async function(){
+  if(!pendingSourcePhotos.length)return;
+  // Sync the current editor data before finding its active folio ID.
+  const sync=await fetch(SAVE_URL,{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json','X-CSRFToken':csrf()},body:JSON.stringify(snapshot())});
+  const syncData=await sync.json();
+  if(!sync.ok||!syncData.ok)throw Error(syncData.message||'Föy kaydedilemedi. Fotoğraflar aktarılmadı.');
+  const fd=new FormData();pendingSourcePhotos.forEach(photo=>fd.append('photos',photo));
+  const response=await fetch('{% url "showroom_smart_photo_attach" %}',{method:'POST',credentials:'same-origin',headers:{'X-CSRFToken':csrf()},body:fd});
+  const data=await response.json();
+  if(!response.ok||!data.ok)throw Error(data.error||'Orijinal fotoğraflar arşivlenemedi. Föy onaylanmadı.');
+  pendingSourcePhotos=[];
+  status.textContent='Orijinal fotoğraflar föy #'+data.draft+' arşivine kaydedildi.';
+ };
  start.addEventListener('click',()=>file.click());
  file.addEventListener('change',async()=>{
-  const photo=file.files[0];if(!photo)return;
-  start.disabled=true;status.textContent='Görsel okunuyor; mevcut föy değiştirilmez...';
+  const photos=Array.from(file.files);if(!photos.length)return;
+  if(photos.length>15){status.textContent='Bir okumada en fazla 15 fotoğraf seçebilirsiniz.';file.value='';return;}
+  if(photos.reduce((sum,p)=>sum+p.size,0)>60*1024*1024){status.textContent='Fotoğrafların toplam boyutu 60 MB sınırını aşamaz.';file.value='';return;}
+  start.disabled=true;status.textContent=photos.length+' fotoğraf birlikte okunuyor; mevcut föy değiştirilmez...';
   try {
-    const form=new FormData();form.append('photo',photo);form.append('model','gpt-6-astra');
+    const form=new FormData();photos.forEach(p=>form.append('photos',p));form.append('model','gpt-6-astra');
     const response=await fetch('{% url "read_handwritten_folio" %}',{method:'POST',credentials:'same-origin',headers:{'X-CSRFToken':csrf()},body:form});
     const payload=await response.json();
     if(!response.ok||!payload.ok)throw Error(payload.error||'Okuma başarısız');
-    clearPhoto();photoUrl=URL.createObjectURL(photo);
-    review={data:payload.data||{},fileName:photo.name,model:payload.model||'gpt-6-astra',usage:payload.usage||{}};
+    clearPhoto();photoUrls=photos.map(p=>URL.createObjectURL(p));
+    review={data:payload.data||{},files:photos,fileName:photos.map(p=>p.name).join(', '),model:payload.model||'gpt-6-astra',usage:payload.usage||{}};
     displayReview();
     status.textContent='Okuma tamamlandı. Önce kontrol tablosunu düzeltin.';
   }catch(e){status.textContent=e.message||'Okuma başarısız';}
@@ -57,14 +73,15 @@ if (!EDIT_MODE) {
   }).join('');
   panel.innerHTML='<div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center"><h4 style="margin:0">El Yazısı Okuma – Kontrol</h4><button id="moliSmartDiscard" type="button" class="sheet-delete">İncelemeyi Kapat</button></div>'
   +'<p style="margin:7px 0">Orijinal: '+esc(review.fileName)+' • Model: '+esc(review.model)+' • Giriş tokenı: '+esc(review.usage.input_tokens??'?')+' • Çıkış tokenı: '+esc(review.usage.output_tokens??'?')+'. Sonuçlar taslak değildir; kontrol edin.</p>'
-  +'<div style="max-height:380px;overflow:auto;background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;margin:10px 0;text-align:center"><img id="moliSmartOriginal" alt="Yüklenen orijinal föy" style="max-width:100%;height:auto" /></div>'
+  +'<div id="moliSmartOriginals" style="display:flex;gap:10px;overflow:auto;max-height:390px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;margin:10px 0;padding:9px"></div>'
   +'<div style="overflow:auto"><table style="border-collapse:collapse;width:100%;min-width:840px"><thead><tr><th>Kod</th><th>Renk</th><th>Beden</th><th>Adet</th><th>Birim fiyat</th><th>Yazılı satır toplamı</th><th>Açıklama</th></tr></thead><tbody>'+rowHtml+'</tbody></table></div>'
   +'<button type="button" class="pricing-add" id="moliSmartAddRow" style="margin-top:9px">+ Eksik Satır Ekle</button>'
   +'<div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:12px"><label>Müşteri <select id="moliSmartCustomer" style="padding:8px;max-width:250px">'+options(customerOptions,data.customer)+'</select></label><label>Para birimi <select id="moliSmartCurrency"><option value="">Seçiniz</option><option value="TRY">TL</option><option value="USD">USD</option><option value="EUR">EUR</option><option value="GBP">GBP</option></select></label><label>İndirim (%) <input id="moliSmartDiscount" type="number" min="0" max="100" step="0.01" style="width:90px;padding:8px"></label><label>Siparişi alan <input id="moliSmartTaker" style="padding:8px;width:150px" value="'+esc(data.order_taken_by)+'"></label></div>'
   +'<div id="moliSmartDiagnostics" style="white-space:pre-wrap;background:#f8fafc;border-radius:10px;padding:12px;margin-top:12px"></div>'
   +'<label style="display:flex;align-items:center;gap:8px;margin:12px 0"><input type="checkbox" id="moliSmartConfirm"> Satırları orijinal fotoğrafla karşılaştırdım; eksik/hatalı alanları düzelttim.</label>'
   +'<button type="button" id="moliSmartApply" class="pricing-add">Kontrol Edilen Verileri Föye Aktar</button>';
-  if(photoUrl)panel.querySelector('#moliSmartOriginal').src=photoUrl;
+  const previews=panel.querySelector('#moliSmartOriginals');
+  photoUrls.forEach((url,i)=>{const card=document.createElement('div');card.style.cssText='flex:0 0 auto;width:min(320px,75vw);text-align:center';const label=document.createElement('div');label.textContent=(i+1)+'. '+review.files[i].name;label.style.cssText='font-size:12px;font-weight:700;padding:4px';const img=document.createElement('img');img.src=url;img.alt=(i+1)+'. orijinal föy fotoğrafı';img.style.cssText='max-width:100%;max-height:330px;object-fit:contain;border-radius:8px';card.append(label,img);previews.appendChild(card);});
   const currencyEl=panel.querySelector('#moliSmartCurrency');
   currencyEl.value=['TRY','USD','EUR','GBP'].includes(data.currency)?data.currency:'';
   const discountEl=panel.querySelector('#moliSmartDiscount');
@@ -149,6 +166,7 @@ if (!EDIT_MODE) {
     if(!grouped.has(k))grouped.set(k,{siparis_tipi:'SERI',urun_kodu:r.code,anlasilan_fiyat:r.price,satirlar:[]});
     grouped.get(k).satirlar.push({renk:r.color,bedenler:[r.size],adet:r.qty,aciklama:r.description});
   });
+  pendingSourcePhotos=[...review.files];
   showroomItems.splice(0,showroomItems.length,...grouped.values());
   showroomPayments.splice(0,showroomPayments.length);
   pricingOperations.splice(0,pricingOperations.length);
@@ -156,7 +174,7 @@ if (!EDIT_MODE) {
   customerId=v.customer;currency=v.curr;orderTakenBy=panel.querySelector('#moliSmartTaker').value.slice(0,120);
   previousBalance=0;folioAdjustmentTarget='';
   renderSheet();scheduleSave();
-  status.textContent=v.qtySum+' adet kontrol edilerek föye aktarıldı.';
+  status.textContent=v.qtySum+' adet kontrol edilerek föye aktarıldı; '+pendingSourcePhotos.length+' orijinal fotoğraf föy kaydedilirken arşive eklenecek.';
   panel.remove();clearPhoto();review=null;
  }
 }
