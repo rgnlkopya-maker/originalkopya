@@ -140,7 +140,7 @@ def read_handwritten_folio(request):
             "https://api.openai.com/v1/chat/completions",
             headers={"Authorization": "Bearer " + key, "Content-Type": "application/json"},
             json=payload,
-            timeout=(5, 22),
+            timeout=(7, 80),
         )
         if response.status_code == 400:
             logger.warning("Folio model rejected request: model=%s", requested_model)
@@ -172,6 +172,9 @@ def read_handwritten_folio(request):
                              "usage": {"input_tokens": usage.get("prompt_tokens"),
                                        "output_tokens": usage.get("completion_tokens"),
                                        "total_tokens": usage.get("total_tokens")}})
+    except requests.Timeout:
+        logger.warning("Folio model timed out: model=%s", requested_model)
+        return JsonResponse({"ok": False, "error": "Yapay zekâ yanıtı zaman aşımına uğradı. İstek otomatik tekrar edilmeyecek. Lütfen API kullanımını kontrol edin, ardından yeniden deneyin."}, status=504)
     except (requests.RequestException, KeyError, IndexError, TypeError, ValueError, json.JSONDecodeError):
         logger.exception("Handwritten folio reading failed")
         return JsonResponse({"ok": False, "error": "Fotoğraf okunamadı veya okuma servisi yanıt vermedi. Tekrar deneyin."}, status=503)
