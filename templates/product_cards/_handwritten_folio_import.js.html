@@ -59,8 +59,29 @@
       if(discountPercent!==null&&Math.abs(paperSubtotal*discountPercent/100-paperDiscount)>0.02)
         issues.push('KRİTİK İNDİRİM FARKI: Kağıttaki indirim tutarı '+paperDiscount+', okunan yüzdeyle hesap '+(paperSubtotal*discountPercent/100)+'.');
     }
+    const invalidPrices=next.filter(row=>!Number.isFinite(row.price)||row.price<=0);
+    const invalidRows=originalRows.length!==next.length;
+    const invalidQty=paperQty!==null&&Number.isFinite(paperQty)&&paperQty!==parsedQty;
+    const invalidSubtotal=paperSubtotal!==null&&Number.isFinite(paperSubtotal)&&Math.abs(paperSubtotal-parsedSubtotal)>0.02;
+    const noPaperEvidence=paperQty===null&&paperSubtotal===null;
+    const blocking=invalidPrices.length>0||invalidRows||invalidQty||invalidSubtotal||noPaperEvidence;
+    if(blocking){
+      const errs=[
+        ...(invalidPrices.length?['Birim fiyatı boş/sıfır olan '+invalidPrices.length+' satır var.']:[]),
+        ...(invalidRows?['Okunan satırların tamamı eşleştirilemedi.']:[]),
+        ...(invalidQty?['Kağıt ile aktarılacak adet sayısı uyuşmuyor.']:[]),
+        ...(invalidSubtotal?['Kağıt ile hesaplanan ara toplam uyuşmuyor.']:[]),
+        ...(noPaperEvidence?['Kağıttaki toplam adet ve ara toplam okunamadı; doğrulama yapılamıyor.']:[])
+      ];
+      let notice=sheet.querySelector('#handwrittenFolioReview');
+      if(!notice){notice=document.createElement('div');notice.id='handwrittenFolioReview';sheet.querySelector('.showroom-sheet-inner').prepend(notice);}
+      notice.style.cssText='white-space:pre-wrap;background:#fef2f2;border:1px solid #fca5a5;color:#991b1b;padding:14px;border-radius:12px;margin-bottom:12px;font-size:13px';
+      notice.textContent='GÜVENLİK KONTROLÜ: Bu okuma mevcut föye AKTARILMADI.\n'+errs.join('\n')+'\n\nOkunan veriler (yalnızca inceleme):\n'+originalRows.map((r,i)=>(i+1)+'. '+[r.product_code||'?',r.color||'?',r.size||'?',r.quantity??'?',r.unit_price??'?'].join(' / ')).join('\n')+'\n\nDiğer notlar:\n'+issues.slice(0,30).join('\n');
+      status.textContent='Eksik veya tutarsız okuma. Mevcut föy korunuyor.';
+      return;
+    }
     if(issues.length){
-      const proceed=confirm('El yazısı okumasında '+issues.length+' kontrol gerektiren konu var.\\n\\n'+issues.slice(0,12).join('\\n')+'\\n\\nEksik/hatalı bilgileri düzeltmek için bunları föye aktarmak istiyor musunuz? Onaylanmayacak, ancak açık föydeki değerler değişecek.');
+      const proceed=confirm('El yazısı okumasında '+issues.length+' kontrol gerektiren konu var.\n\n'+issues.slice(0,12).join('\n')+'\n\nEksik/hatalı bilgileri düzeltmek için bunları föye aktarmak istiyor musunuz? Onaylanmayacak, ancak açık föydeki değerler değişecek.');
       if(!proceed){status.textContent='Aktarım iptal edildi. Mevcut föy değiştirilmedi.';return;}
     }
     const group=new Map();
