@@ -503,6 +503,56 @@
  }
 }
 
+
+/* The single-row header must work at normal desktop CSS widths, not only at >=1450px.
+   Layout-only overrides: preserve existing typography, colors, radii and control heights. */
+@media(min-width:1101px){
+ .showroom-sheet-head{
+  display:grid!important;
+  grid-template-columns:
+   minmax(0,1.1fr) minmax(0,2.9fr) minmax(0,.7fr) minmax(0,.7fr)
+   minmax(0,1.85fr) minmax(0,1.15fr) minmax(0,1.05fr) minmax(0,1.05fr)!important;
+  gap:8px!important;align-items:center!important;
+ }
+ .showroom-sheet-head>.smart-folio-heading-block{
+  grid-column:1!important;grid-row:1!important;min-width:0!important;
+ }
+ .showroom-sheet-head>.moli-smart-folio-action{
+  grid-column:2!important;grid-row:1!important;min-width:0!important;
+  width:100%!important;margin:0!important;
+ }
+ .showroom-sheet-head>.showroom-summary-wrap{
+  grid-column:3/span 2!important;grid-row:1!important;
+  min-width:0!important;width:100%!important;
+  margin:0!important;padding:0!important;
+ }
+ .showroom-sheet-head>.showroom-summary-wrap .showroom-summary{
+  grid-template-columns:repeat(2,minmax(0,1fr))!important;
+  min-width:0!important;
+ }
+ .showroom-sheet-head>.showroom-sheet-head-fields,
+ .showroom-sheet-head>.showroom-fx-fields{display:contents!important}
+ .showroom-sheet-head .showroom-customer-wrap{
+  grid-column:5!important;grid-row:1!important;min-width:0!important;
+ }
+ .showroom-sheet-head .showroom-order-taker-wrap{
+  grid-column:6!important;grid-row:1!important;min-width:0!important;
+ }
+ .showroom-sheet-head .showroom-order-type-wrap{
+  grid-column:7!important;grid-row:1!important;min-width:0!important;
+ }
+ .showroom-sheet-head>.showroom-fx-fields>div{
+  grid-column:8!important;grid-row:1!important;min-width:0!important;
+ }
+ .showroom-sheet-head .showroom-customer-inline{
+  grid-template-columns:minmax(0,1fr) auto!important;min-width:0!important;
+ }
+ .showroom-sheet-head .showroom-customer,
+ .showroom-sheet-head .showroom-order-taker,
+ .showroom-sheet-head .showroom-order-type,
+ .showroom-sheet-head #showroomCurrency{width:100%!important;min-width:0!important}
+}
+
 </style>
 {% endblock %}
 
