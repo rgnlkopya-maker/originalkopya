@@ -56,6 +56,7 @@ if (!EDIT_MODE) {
   +'<p style="margin:7px 0">Orijinal: '+esc(review.fileName)+'. Okuma sonuçları taslak değildir. Eksikleri burada düzeltmeden föye aktarılmaz.</p>'
   +'<div style="max-height:380px;overflow:auto;background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;margin:10px 0;text-align:center"><img id="moliSmartOriginal" alt="Yüklenen orijinal föy" style="max-width:100%;height:auto" /></div>'
   +'<div style="overflow:auto"><table style="border-collapse:collapse;width:100%;min-width:840px"><thead><tr><th>Kod</th><th>Renk</th><th>Beden</th><th>Adet</th><th>Birim fiyat</th><th>Yazılı satır toplamı</th><th>Açıklama</th></tr></thead><tbody>'+rowHtml+'</tbody></table></div>'
+  +'<button type="button" class="pricing-add" id="moliSmartAddRow" style="margin-top:9px">+ Eksik Satır Ekle</button>'
   +'<div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:12px"><label>Müşteri <select id="moliSmartCustomer" style="padding:8px;max-width:250px">'+options(customerOptions,data.customer)+'</select></label><label>Para birimi <select id="moliSmartCurrency"><option value="">Seçiniz</option><option value="TRY">TL</option><option value="USD">USD</option><option value="EUR">EUR</option><option value="GBP">GBP</option></select></label><label>İndirim (%) <input id="moliSmartDiscount" type="number" min="0" max="100" step="0.01" style="width:90px;padding:8px"></label><label>Siparişi alan <input id="moliSmartTaker" style="padding:8px;width:150px" value="'+esc(data.order_taken_by)+'"></label></div>'
   +'<div id="moliSmartDiagnostics" style="white-space:pre-wrap;background:#f8fafc;border-radius:10px;padding:12px;margin-top:12px"></div>'
   +'<label style="display:flex;align-items:center;gap:8px;margin:12px 0"><input type="checkbox" id="moliSmartConfirm"> Satırları orijinal fotoğrafla karşılaştırdım; eksik/hatalı alanları düzelttim.</label>'
@@ -66,6 +67,15 @@ if (!EDIT_MODE) {
   const discountEl=panel.querySelector('#moliSmartDiscount');
   const disc=Array.isArray(data.pricing_operations)?data.pricing_operations.find(o=>o.type==='DISCOUNT'&&o.mode==='PERCENT'):null;
   discountEl.value=disc&&Number.isFinite(num(disc.value))?String(disc.value):'';
+  panel.querySelector('#moliSmartAddRow').onclick=()=>{
+    const tbody=panel.querySelector('tbody'),i=tbody.rows.length;
+    const tr=document.createElement('tr');
+    function field(key,type='text'){const td=document.createElement('td');td.style.padding='5px';const el=document.createElement('input');el.type=type;el.dataset.i=String(i);el.dataset.key=key;el.style.cssText='width:100%;min-width:70px;border:1px solid #ccd4e2;border-radius:6px;padding:7px';td.appendChild(el);return td;}
+    function select(key,html){const td=document.createElement('td');td.style.padding='5px';const el=document.createElement('select');el.dataset.i=String(i);el.dataset.key=key;el.style.cssText='min-width:100px;width:100%;border:1px solid #ccd4e2;border-radius:6px;padding:7px';el.innerHTML=html;td.appendChild(el);return td;}
+    tr.appendChild(field('product_code'));tr.appendChild(select('color',colorOptions));tr.appendChild(select('size',sizeOptions));
+    tr.appendChild(field('quantity','number'));tr.appendChild(field('unit_price','number'));tr.appendChild(field('written_line_total','number'));tr.appendChild(field('description'));
+    tbody.appendChild(tr);recompute();tr.querySelector('input')?.focus();
+  };
   panel.querySelector('#moliSmartDiscard').onclick=()=>{review=null;panel.remove();clearPhoto();status.textContent='İnceleme kapatıldı; föy değiştirilmedi.';};
   panel.addEventListener('input',recompute);
   panel.addEventListener('change',recompute);
