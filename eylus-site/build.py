@@ -211,7 +211,6 @@ def solution_page():
         + ''.join(categories) + '</div>'
         + '<div class="sol-layout">'
         + '<div class="sol-left"><div class="sol-left-heading">'
-        + '<span class="sol-section-label" id="sol-category-caption">OPERASYON</span>'
         + '<h2>Şu anda sizi en çok hangi sorun zorluyor?</h2>'
         + '</div><div class="sol-question-list" aria-label="Müşteri soruları">'
         + ''.join(questions) + '</div></div>'
@@ -242,8 +241,7 @@ CSS += r'''
 .sol-layout{display:grid;grid-template-columns:minmax(0,.96fr) minmax(0,1.04fr);gap:25px;align-items:start}
 .sol-left,.sol-right{min-width:0}
 .sol-left-heading{margin-bottom:18px}
-.sol-section-label{font-size:11px;letter-spacing:.14em;color:var(--purple);font-weight:750}
-.sol-left-heading h2{font-size:23px;letter-spacing:-.03em;margin:9px 0 0}
+.sol-left-heading h2{font-size:23px;letter-spacing:-.03em;margin:0}
 .sol-question-list{display:grid;gap:9px}
 .sol-item{min-width:0;border:1px solid #e9e3ef;background:#fff;border-radius:12px;overflow:hidden;transition:border-color .15s,box-shadow .15s}
 .sol-item[hidden]{display:none!important}
@@ -326,9 +324,6 @@ function solSetQuestion(key){
 function solSelectCategory(group){
   solCategories.forEach(btn=>btn.setAttribute('aria-pressed',String(btn.dataset.solCategory===group)));
   solItems.forEach(item=>{item.hidden=item.dataset.solGroup!==group;});
-  const caption=document.getElementById('sol-category-caption');
-  const button=solCategories.find(btn=>btn.dataset.solCategory===group);
-  if(caption&&button)caption.textContent=button.querySelector('.sol-category-title').textContent.toLocaleUpperCase('tr-TR');
   const first=solItems.find(item=>item.dataset.solGroup===group);
   solSetQuestion(first?.dataset.solItem||null);
 }
