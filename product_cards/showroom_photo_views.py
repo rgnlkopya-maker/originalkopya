@@ -1,5 +1,6 @@
 """Private photos attached to saved showroom folios; printing remains separate."""
 import logging
+import hashlib
 import os
 import io
 from PIL import Image, ImageOps, UnidentifiedImageError
@@ -9,7 +10,7 @@ from uuid import uuid4
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.http import HttpResponseForbidden, HttpResponseNotFound
+from django.http import HttpResponseForbidden, HttpResponseNotFound, JsonResponse
 from django.shortcuts import get_object_or_404, redirect
 from django.views.decorators.http import require_POST
 from supabase import create_client
@@ -177,3 +178,52 @@ def delete(request, draft_id, photo_id):
         logger.exception("Folio photo delete failed")
         messages.error(request, "Fotoğraf silinemedi.", extra_tags="folio_photo")
     return redirect("showroom_detail_page", draft_id=draft_id)
+
+
+@login_required
+@require_POST
+def attach_smart_source_photos(request):
+    """Attach source photos to the active, unsaved form before user finalizes it.
+
+    Files are stored in the existing private Supabase bucket and the existing
+    ShowroomFolioPhoto table, so current detail views and Drive backup work unchanged.
+    """
+    if not _can_manage(request.user):
+        return JsonResponse({"ok": False, "error": "Yetkiniz yok."}, status=403)
+    from .showroom_views import _active_draft
+    draft = _active_draft(request.user)
+    if not draft:
+        return JsonResponse({"ok": False, "error": "Aktif föy bulunamadı. Önce föyü kaydedin."}, status=409)
+    files = request.FILES.getlist("photos")
+    if not files or len(files) > 15:
+        return JsonResponse({"ok": False, "error": "1-15 arası orijinal fotoğraf seçin."}, status=400)
+    if sum(f.size for f in files) > 60 * 1024 * 1024:
+        return JsonResponse({"ok": False, "error": "Toplam fotoğraf boyutu 60 MB sınırını aşıyor."}, status=400)
+    uploaded = 0
+    duplicates = 0
+    for file in files:
+        try:
+            ext, mime, contents = _prepare_photo(file)
+            digest = hashlib.sha256(contents).hexdigest()
+            path = f"folio-source-photos/{draft.pk}/smart-{digest}{ext.lower()}"
+            if ShowroomFolioPhoto.objects.filter(draft=draft, storage_path=path).exists():
+                duplicates += 1
+                continue
+            try:
+                storage().upload(path, contents, file_options={"content-type": mime, "upsert": "false"})
+            except Exception:
+                # A previous upload may have succeeded before a connection error.
+                if not ShowroomFolioPhoto.objects.filter(draft=draft, storage_path=path).exists():
+                    logger.exception("Smart folio source image upload failed: folio=%s", draft.pk)
+                    return JsonResponse({"ok": False, "error": "Orijinal fotoğraf arşive yüklenemedi; föy henüz onaylanmadı.", "uploaded": uploaded}, status=503)
+            ShowroomFolioPhoto.objects.get_or_create(
+                draft=draft, storage_path=path,
+                defaults={"original_name": file.name[:255]},
+            )
+            uploaded += 1
+        except (ValidationError, ValueError) as exc:
+            return JsonResponse({"ok": False, "error": f"Fotoğraf doğrulanamadı: {str(exc)}", "uploaded": uploaded}, status=400)
+        except Exception:
+            logger.exception("Smart folio source image registration failed: folio=%s", draft.pk)
+            return JsonResponse({"ok": False, "error": "Fotoğraf kaydı tamamlanamadı. Tekrar denemeden önce föyü kontrol edin.", "uploaded": uploaded}, status=503)
+    return JsonResponse({"ok": True, "draft": draft.pk, "uploaded": uploaded, "duplicates": duplicates})
