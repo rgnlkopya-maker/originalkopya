@@ -123,6 +123,7 @@ document.addEventListener('DOMContentLoaded',function(){
    if(approve&&!confirm('Bu Föy onaylanan sipariş olarak kaydedilsin mi?'))return;
    const btn=save||del||approve;btn.disabled=true;window.__moliShowroomFinalizing=true;
    try{
+     if(!del&&typeof window.__moliSmartBeforeFinalize==='function')await window.__moliSmartBeforeFinalize();
      const data=await runAction(save?'save_draft':del?'delete':'approve');
      await clearAnyRecreatedDraft();
      alert(data.message);
