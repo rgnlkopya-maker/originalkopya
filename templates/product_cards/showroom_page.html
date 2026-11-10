@@ -553,6 +553,101 @@
  .showroom-sheet-head #showroomCurrency{width:100%!important;min-width:0!important}
 }
 
+
+/* Four-column, three-level header; real DOM stacks avoid inherited grid conflicts.
+   Typography, inputs, buttons, colors and border treatments are preserved. */
+@media(min-width:1450px){
+ .showroom-sheet-head{
+  display:grid!important;
+  grid-template-columns:minmax(190px,.95fr) minmax(260px,1.3fr) minmax(280px,1.25fr) minmax(470px,2.65fr)!important;
+  column-gap:14px!important;row-gap:0!important;
+  padding:16px 18px!important;align-items:stretch!important;
+ }
+ .showroom-sheet-head>.smart-folio-heading-block{
+  grid-column:1!important;grid-row:1!important;align-self:center!important;min-width:0!important;
+ }
+ .showroom-sheet-head>.smart-folio-heading-block .showroom-sheet-title{
+  font-size:20px!important;line-height:1.25!important;
+ }
+ .showroom-sheet-head>.smart-folio-heading-block .showroom-sheet-intro{
+  font-size:12px!important;line-height:1.5!important;
+ }
+ .showroom-sheet-head>.smart-folio-form-stack{
+  grid-column:2!important;grid-row:1!important;display:grid!important;
+  grid-template-rows:repeat(3,minmax(0,1fr))!important;
+  gap:8px!important;min-width:0!important;
+ }
+ .showroom-sheet-head>.smart-folio-side-stack{
+  grid-column:3!important;grid-row:1!important;display:flex!important;
+  flex-direction:column!important;gap:9px!important;min-width:0!important;
+ }
+ .showroom-sheet-head>.smart-folio-form-stack>div,
+ .showroom-sheet-head>.smart-folio-side-stack>div{
+  grid-column:auto!important;grid-row:auto!important;min-width:0!important;
+  align-self:stretch!important;margin:0!important;
+ }
+ .showroom-sheet-head>.smart-folio-form-stack .showroom-customer-wrap,
+ .showroom-sheet-head>.smart-folio-form-stack .showroom-order-type-wrap{width:100%!important}
+ .showroom-sheet-head>.smart-folio-form-stack .showroom-customer-inline{
+  display:grid!important;grid-template-columns:minmax(0,1fr) auto!important;gap:6px!important;
+ }
+ .showroom-sheet-head>.smart-folio-form-stack .showroom-customer-add-btn{white-space:nowrap!important}
+ .showroom-sheet-head>.smart-folio-side-stack>.showroom-summary-wrap{
+  position:static!important;display:block!important;flex:1 1 auto!important;
+  width:100%!important;max-width:none!important;min-height:0!important;
+  padding:0!important;margin:0!important;border:0!important;background:transparent!important;
+ }
+ .showroom-sheet-head>.smart-folio-side-stack .showroom-summary-scroll{overflow:visible!important;height:100%!important}
+ .showroom-sheet-head>.smart-folio-side-stack .showroom-summary{
+  display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;
+  height:100%!important;min-height:0!important;gap:8px!important;
+ }
+ .showroom-sheet-head>.smart-folio-side-stack .summary-box{
+  width:auto!important;min-width:0!important;min-height:0!important;height:100%!important;
+  flex:none!important;
+ }
+ .showroom-sheet-head>.moli-smart-folio-action{
+  grid-column:4!important;grid-row:1!important;
+  align-self:stretch!important;width:100%!important;max-width:none!important;
+  margin:0!important;padding:12px!important;min-width:0!important;
+ }
+ .showroom-sheet-head>.moli-smart-folio-action .moli-reader-config>span{display:block!important}
+ .showroom-sheet-head>.showroom-sheet-head-fields,
+ .showroom-sheet-head>.showroom-fx-fields{display:none!important}
+ .showroom-sheet-head>.smart-folio-form-stack .showroom-customer,
+ .showroom-sheet-head>.smart-folio-form-stack .showroom-order-type,
+ .showroom-sheet-head>.smart-folio-form-stack #showroomCurrency,
+ .showroom-sheet-head>.smart-folio-side-stack .showroom-order-taker,
+ .showroom-sheet-head>.smart-folio-form-stack .showroom-customer-add-btn{
+  height:40px!important;min-height:40px!important;
+ }
+}
+@media(max-width:1449px){
+ .showroom-sheet-head>.smart-folio-form-stack,
+ .showroom-sheet-head>.smart-folio-side-stack{
+  display:flex!important;flex-direction:column!important;gap:10px!important;min-width:0!important;
+ }
+ .showroom-sheet-head>.smart-folio-form-stack{grid-column:1!important;grid-row:auto!important}
+ .showroom-sheet-head>.smart-folio-side-stack{grid-column:2!important;grid-row:auto!important}
+ .showroom-sheet-head>.smart-folio-form-stack>div,
+ .showroom-sheet-head>.smart-folio-side-stack>div{min-width:0!important;grid-column:auto!important}
+ .showroom-sheet-head>.smart-folio-side-stack>.showroom-summary-wrap{
+  position:static!important;max-width:none!important;width:100%!important;
+  margin:0!important;padding:0!important;border:0!important;
+ }
+ .showroom-sheet-head>.smart-folio-side-stack .showroom-summary{
+  display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;
+  min-width:0!important;
+ }
+ .showroom-sheet-head>.smart-folio-side-stack .summary-box{min-width:0!important;width:auto!important}
+ .showroom-sheet-head>.showroom-sheet-head-fields,
+ .showroom-sheet-head>.showroom-fx-fields{display:none!important}
+}
+@media(max-width:680px){
+ .showroom-sheet-head>.smart-folio-form-stack,
+ .showroom-sheet-head>.smart-folio-side-stack{grid-column:1!important}
+}
+
 </style>
 {% endblock %}
 
@@ -636,12 +731,29 @@ document.addEventListener('DOMContentLoaded',function(){
   if(summaryBar&&headPanel){
     const smartAction=headPanel.querySelector('.moli-smart-folio-action');
     const intro=headPanel.querySelector('.showroom-sheet-intro');
-    // Keep the action card and both summary cards as siblings in one grid row.
-    if(smartAction&&smartAction.nextElementSibling!==summaryBar)smartAction.insertAdjacentElement('afterend',summaryBar);
-    else if(!smartAction&&intro&&intro.nextElementSibling!==summaryBar)intro.insertAdjacentElement('afterend',summaryBar);
+    // Counters live under the order-taker in the second stacked column.
+    // The DOM is grouped below; do not move counters back beside the photo card.
+    if(!headPanel.querySelector('.smart-folio-side-stack')&&intro&&intro.nextElementSibling!==summaryBar)
+      intro.insertAdjacentElement('afterend',summaryBar);
     summaryBar.querySelectorAll('.summary-box').forEach((box,i)=>{
       if(i===2){box.hidden=true;box.setAttribute('aria-hidden','true');}
     });
+  }
+  // Preserve the actual input nodes and listeners while grouping the visual header.
+  if(headPanel&&!headPanel.querySelector('.smart-folio-form-stack')){
+    const formStack=document.createElement('div'),sideStack=document.createElement('div');
+    formStack.className='smart-folio-form-stack';
+    sideStack.className='smart-folio-side-stack';
+    const customerWrap=headPanel.querySelector('.showroom-customer-wrap');
+    const fxWrap=headPanel.querySelector('.showroom-fx-fields>div');
+    const typeWrap=headPanel.querySelector('.showroom-order-type-wrap');
+    const takerWrap=headPanel.querySelector('.showroom-order-taker-wrap');
+    if(customerWrap)formStack.appendChild(customerWrap);
+    if(fxWrap)formStack.appendChild(fxWrap);
+    if(typeWrap)formStack.appendChild(typeWrap);
+    if(takerWrap)sideStack.appendChild(takerWrap);
+    if(summaryBar)sideStack.appendChild(summaryBar);
+    headPanel.append(formStack,sideStack);
   }
   const customer=sheet.querySelector('#showroomSheetCustomer'),orderTaker=sheet.querySelector('#showroomOrderTakenBy'),orderTypeSelect=sheet.querySelector('#showroomOrderType');if(customer)customer.value=customerId;if(orderTaker&&document.activeElement!==orderTaker)orderTaker.value=orderTakenBy;if(orderTypeSelect&&document.activeElement!==orderTypeSelect)orderTypeSelect.value=orderType;syncFxControls();installCustomerFoliosButton();
   const list=sheet.querySelector('#showroomSheetItems');if(!showroomItems.length)list.innerHTML='<div class="showroom-empty">Henüz föye ürün eklenmedi.</div>';else list.innerHTML=showroomItems.map((item,index)=>{const qty=totalQty(item),unit=Number(item.anlasilan_fiyat)||0,total=qty*vatExclusiveUnitPrice(item);const lines=item.satirlar.flatMap(r=>r.bedenler.map(size=>({renk:r.renk,beden:size,adet:r.adet,aciklama:r.aciklama}))).map(l=>`<div class="sheet-line"><div><div class="sheet-line-labels">Renk</div>${escapeHtml(l.renk)}</div><div><div class="sheet-line-labels">Beden</div>${escapeHtml(l.beden)}</div><div><div class="sheet-line-labels">Adet</div>${escapeHtml(l.adet)}</div><div><div class="sheet-line-labels">Açıklama</div>${l.aciklama?`<button type="button" class="sheet-description">${escapeHtml(shortText(l.aciklama))}<span class="sheet-desc-pop">${escapeHtml(l.aciklama)}</span></button>`:'-'}</div></div>`).join('');return `<section class="sheet-product"><div class="sheet-product-head"><div class="sheet-product-code">${escapeHtml(item.urun_kodu)}</div><div class="sheet-product-qty">${qty} adet</div><div><input type="number" min="0" step="0.01" class="sheet-product-price" data-price-index="${index}" value="${unit||''}" placeholder="Baz fiyat"><div class="unit-price-results"><div class="effective-unit" data-effective-index="${index}">KDV dahil: ${money(effectiveUnitPrice(item))}</div><div class="vat-exclusive-unit" data-vat-exclusive-index="${index}">KDV hariç: ${money(vatExclusiveUnitPrice(item))}</div></div></div><div class="sheet-math">=</div><div class="sheet-product-total" data-total-index="${index}">${money(total)}</div><div class="sheet-product-actions"><button type="button" class="sheet-edit" data-edit-index="${index}">Düzenle</button><button type="button" class="sheet-delete" data-delete-index="${index}">Sil</button></div></div><div class="sheet-lines">${lines}</div></section>`;}).join('');
