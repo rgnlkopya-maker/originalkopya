@@ -1,5 +1,5 @@
 from django.urls import path
-from . import views, status_views, finance_views, price_list_views, showroom_views, showroom_print_views, showroom_transfer_views, public_product_views, public_qr_views, invoice_views, smart_pattern_views, showroom_photo_views, showroom_backup_views
+from . import views, status_views, finance_views, price_list_views, showroom_views, showroom_print_views, showroom_transfer_views, public_product_views, public_qr_views, invoice_views, smart_pattern_views, showroom_photo_views, showroom_backup_views, folio_reader_views
 
 urlpatterns = [
     path("akilli-kalip/", smart_pattern_views.smart_pattern_home, name="smart_pattern_home"),
@@ -60,6 +60,7 @@ urlpatterns = [
     path("kur-guncelle/", views.refresh_exchange_rate, name="refresh_exchange_rate"),
     path("fiyat-listesi/", price_list_views.price_list, name="price_list"),
     path("showroom-foyu/", showroom_views.showroom_page, name="showroom_page"),
+    path("showroom-foyu/elle-yazilan-foy-oku/", folio_reader_views.read_handwritten_folio, name="read_handwritten_folio"),
     path("showroom-foyu/taslaklar/", showroom_views.showroom_drafts_page, name="showroom_drafts_page"),
     path("showroom-foyu/onaylananlar/", showroom_views.showroom_approved_page, name="showroom_approved_page"),
     path("showroom-foyu/musteri/<int:customer_id>/", showroom_views.showroom_customer_folios, name="showroom_customer_folios"),
