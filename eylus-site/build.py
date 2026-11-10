@@ -170,8 +170,6 @@ def solution_page():
             f'<{heading}>{escape(title)}</{heading}>'
             f'<p>{escape(description)}</p>'
             f'<div class="sol-module"><span class="sol-module-icon" aria-hidden="true">▤</span><div><small>İlgili Eylus ekranı</small><strong>{escape(module)}</strong></div></div>'
-            f'<div class="sol-cta">{button("Canlı demoyu incele", "/demo/", "purple")}'
-            f'<a href="/iletisim/" class="sol-secondary-link">Bize ulaşın <span aria-hidden="true">→</span></a></div>'
             f'</div>')
 
     categories = []
@@ -262,13 +260,10 @@ CSS += r'''
 .sol-answer{padding:34px 30px 30px}
 .sol-answer h3,.sol-answer h4{font-size:clamp(24px,2.4vw,33px);letter-spacing:-.045em;line-height:1.18;margin:0 0 16px}
 .sol-answer p{font-size:15px;color:#635d70;line-height:1.8;margin:0 0 22px}
-.sol-module{display:flex;align-items:center;gap:14px;background:linear-gradient(110deg,#f8f5ff,#fcfbff);border:1px solid #e9e3f7;border-radius:13px;padding:16px;margin:0 0 25px}
+.sol-module{display:flex;align-items:center;gap:14px;background:linear-gradient(110deg,#f8f5ff,#fcfbff);border:1px solid #e9e3f7;border-radius:13px;padding:16px;margin:0}
 .sol-module-icon{display:grid;place-items:center;flex:0 0 39px;width:39px;height:39px;background:#ebe5fc;border-radius:11px;color:var(--purple);font-size:25px}
 .sol-module small{display:block;color:#8c8297;font-size:10px;margin-bottom:4px}
 .sol-module strong{display:block;font-size:13px;font-weight:750;line-height:1.4;color:#3d3155}
-.sol-cta{display:flex;align-items:center;gap:18px;flex-wrap:wrap}
-.sol-cta .button{min-height:45px}
-.sol-secondary-link{font-size:13px;font-weight:700;color:#6551b3;white-space:nowrap}
 .sol-mobile-panel{display:none}
 @media(max-width:900px){
  .sol-categories{grid-template-columns:repeat(2,minmax(0,1fr))}
