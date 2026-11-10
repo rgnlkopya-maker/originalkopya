@@ -727,7 +727,8 @@ document.addEventListener('DOMContentLoaded',function(){
       headingBlock.append(title,intro);
     }
   }
-  if(summaryBar&&headPanel&&summaryBar.parentElement!==headPanel)headPanel.appendChild(summaryBar);
+  // Never pull the counters out of their side stack on subsequent renderSheet calls.
+  if(summaryBar&&headPanel&&!headPanel.querySelector('.smart-folio-side-stack')&&summaryBar.parentElement!==headPanel)headPanel.appendChild(summaryBar);
   if(summaryBar&&headPanel){
     const smartAction=headPanel.querySelector('.moli-smart-folio-action');
     const intro=headPanel.querySelector('.showroom-sheet-intro');
