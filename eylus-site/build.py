@@ -315,6 +315,67 @@ CSS += r'''
 @media(prefers-reduced-motion:reduce){.eylus-contact-chevron{transition:none}}
 '''
 
+
+# Match the approved photo-led composition on desktop and give mobile its own
+# genuinely visible photograph, rather than washing it out behind long text.
+CSS += r'''
+@media(min-width:961px){
+ .eylus-home-hero{min-height:min(790px,calc(100svh - 82px));background:#fff}
+ .eylus-hero-photo{inset:0 0 0 auto;width:68%;height:100%}
+ .eylus-hero-photo img{object-fit:cover;object-position:center 42%}
+ .eylus-hero-photo:before{background:linear-gradient(90deg,#fff 0%,rgba(255,255,255,.97) 14%,rgba(255,255,255,.69) 33%,rgba(255,255,255,.07) 69%,transparent 100%)}
+ .eylus-hero-content{width:60%;padding:62px 0}
+ .eylus-hero-prompts{margin-bottom:30px}
+ .eylus-home-hero h1{font-size:clamp(62px,5.4vw,80px)}
+ .eylus-hero-description{margin-bottom:30px}
+ .eylus-hero-button{min-height:73px}
+}
+@media(min-width:651px) and (max-width:960px){
+ .eylus-home-hero{min-height:700px}
+ .eylus-hero-photo:before{background:linear-gradient(90deg,rgba(255,255,255,.97) 0%,rgba(255,255,255,.88) 33%,rgba(255,255,255,.27) 100%)}
+ .eylus-hero-content{padding:44px 0}
+ .eylus-hero-prompts{margin-bottom:22px}
+}
+@media(max-width:650px){
+ .eylus-home-hero{display:block;position:relative;min-height:0;background:#fff;overflow:hidden;border-bottom:1px solid #eee9f3;padding-top:198px}
+ .eylus-hero-photo{position:absolute;inset:0 0 auto;width:100%;height:305px;overflow:hidden}
+ .eylus-hero-photo img{display:block;width:100%;height:100%;object-fit:cover;object-position:center 30%}
+ .eylus-hero-photo:before{background:linear-gradient(180deg,rgba(255,255,255,0) 0%,rgba(255,255,255,.01) 37%,rgba(255,255,255,.48) 63%,rgba(255,255,255,.95) 88%,#fff 100%)}
+ .eylus-hero-container{position:relative;width:calc(100% - 34px);z-index:3}
+ .eylus-hero-content{width:100%;max-width:none;padding:0 0 35px}
+ .eylus-hero-prompts{display:grid;gap:6px;margin:0 0 18px}
+ .eylus-hero-prompt{display:flex;align-items:center;gap:9px;font-size:11px;line-height:1.36;letter-spacing:-.015em;white-space:normal}
+ .eylus-hero-prompt b{font-size:11px;margin:0 1px}
+ .eylus-prompt-icon{flex:0 0 31px;width:31px;height:31px;border-radius:9px;background:#eee5fae8}
+ .eylus-prompt-icon svg{width:17px;height:17px}
+ .eylus-home-hero h1{font-size:clamp(43px,11vw,55px);line-height:1.01;letter-spacing:-.055em;margin:0 0 19px}
+ .eylus-home-hero h1 em:after{bottom:-9px;height:4px;border-top-width:3px}
+ .eylus-hero-description{font-size:14px;line-height:1.48;margin-bottom:20px;max-width:430px}
+ .eylus-hero-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;max-width:none}
+ .eylus-hero-actions>.eylus-contact-menu,.eylus-hero-actions>a{min-width:0;max-width:100%}
+ .eylus-hero-button{display:flex;align-items:center;gap:8px;min-height:70px;padding:10px 10px;border-radius:12px;box-shadow:0 5px 14px #42147c14}
+ .eylus-hero-button-icon{flex:0 0 22px;width:22px}
+ .eylus-hero-button-icon svg{width:21px;height:21px}
+ .eylus-hero-button strong{font-size:12.5px;line-height:1.15;white-space:normal;overflow-wrap:normal;letter-spacing:-.02em}
+ .eylus-hero-button small{display:none}
+ .eylus-contact-chevron{font-size:15px;margin-left:auto}
+ .eylus-contact-menu[open] .eylus-hero-contact-options{position:absolute;top:calc(100% + 7px);margin-top:0}
+ .eylus-contact-options{padding:6px}
+ .eylus-contact-options a{min-height:43px;flex-direction:column;align-items:flex-start;justify-content:center;gap:2px;padding:8px 10px;font-size:12px}
+ .eylus-contact-options a small{display:block;font-size:10px}
+}
+@media(max-width:370px){
+ .eylus-home-hero{padding-top:172px}
+ .eylus-hero-photo{height:280px}
+ .eylus-hero-container{width:calc(100% - 28px)}
+ .eylus-hero-prompts{gap:4px}
+ .eylus-hero-prompt{font-size:10.5px;line-height:1.35}
+ .eylus-home-hero h1{font-size:clamp(39px,11vw,45px)}
+ .eylus-hero-button{gap:6px;padding:9px 8px}
+ .eylus-hero-button strong{font-size:11.5px}
+}
+'''
+
 EYLUS_HOME_HERO = '''<section class="eylus-home-hero" aria-labelledby="eylus-hero-heading">
   <div class="eylus-hero-photo" aria-hidden="true">
     <img src="/assets/eylus-hero-workshop.webp" width="706" height="760" alt="" decoding="async" fetchpriority="high">
