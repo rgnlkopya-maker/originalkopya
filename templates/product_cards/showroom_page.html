@@ -719,6 +719,51 @@
  .showroom-sheet-head>.moli-smart-folio-action{align-self:start!important}
 }
 
+
+/* Final compact two-by-two information layout beside original-folio importer. */
+@media(min-width:1101px){
+ .showroom-sheet-head{
+   grid-template-columns:minmax(180px,.9fr) minmax(220px,1.18fr)
+     minmax(190px,.95fr) minmax(430px,2.3fr)!important;
+   align-items:center!important;column-gap:13px!important;
+ }
+ .showroom-sheet-head>.smart-folio-form-stack,
+ .showroom-sheet-head>.smart-folio-side-stack{
+   display:flex!important;flex-direction:column!important;
+   justify-content:space-between!important;gap:9px!important;
+   align-self:stretch!important;min-height:0!important;min-width:0!important;
+ }
+ .showroom-sheet-head>.smart-folio-form-stack>div,
+ .showroom-sheet-head>.smart-folio-side-stack>div:not(.showroom-summary-wrap){
+   flex:1 1 0!important;display:flex!important;
+   flex-direction:column!important;justify-content:center!important;
+   min-width:0!important;
+ }
+ .showroom-sheet-head>.smart-folio-form-stack .showroom-customer,
+ .showroom-sheet-head>.smart-folio-form-stack #showroomCurrency,
+ .showroom-sheet-head>.smart-folio-side-stack .showroom-order-taker,
+ .showroom-sheet-head>.smart-folio-side-stack .showroom-order-type{
+   height:40px!important;min-height:40px!important;
+ }
+ .showroom-sheet-head>.moli-smart-folio-action{
+   align-self:stretch!important;display:grid!important;align-content:center!important;
+   min-width:0!important;
+ }
+ .showroom-sheet-head>.moli-smart-folio-action .moli-reader-config{
+   display:flex!important;gap:6px 10px!important;align-items:center!important;
+ }
+ .showroom-sheet-head>.moli-smart-folio-action .moli-reader-config label{
+   display:inline-flex!important;align-items:center!important;gap:5px!important;
+ }
+ .showroom-sheet-head>.moli-smart-folio-action .moli-reader-config select{
+   min-height:28px!important;
+ }
+ .showroom-sheet-head .showroom-customer-add-icon{
+   width:22px!important;height:22px!important;min-width:22px!important;min-height:22px!important;
+   border-radius:6px!important;font-size:12px!important;
+ }
+}
+
 </style>
 {% endblock %}
 
@@ -822,8 +867,8 @@ document.addEventListener('DOMContentLoaded',function(){
     const takerWrap=headPanel.querySelector('.showroom-order-taker-wrap');
     if(customerWrap)formStack.appendChild(customerWrap);
     if(fxWrap)formStack.appendChild(fxWrap);
-    if(typeWrap)formStack.appendChild(typeWrap);
     if(takerWrap)sideStack.appendChild(takerWrap);
+    if(typeWrap)sideStack.appendChild(typeWrap);
     if(summaryBar)sideStack.appendChild(summaryBar);
     headPanel.append(formStack,sideStack);
   }
