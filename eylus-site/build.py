@@ -5,7 +5,7 @@ import os
 OUT = Path(__file__).parent / 'dist'
 OUT.mkdir(exist_ok=True)
 (OUT / 'assets').mkdir(exist_ok=True)
-SITE = os.environ.get('SITE_URL', 'https://eylus-web.onrender.com').rstrip('/')
+SITE = 'https://eylus.com.tr'  # Canonical public domain for metadata, robots and sitemap
 DEMO = 'https://eylus-demo.onrender.com/'
 SOCIAL = 'https://www.instagram.com/eylustech/'
 # All public files are generated here. No production settings, media or databases are copied.
@@ -350,7 +350,7 @@ PAGES = {
  '/iletisim/': ('İletişim ve görüşme', 'Eylus ile iletişime geçin. İşletmenize uygun üretim takibini ve demo erişimini konuşalım.', CONTACT),
 }
 def page(path,title,desc,body,noindex=False):
-    return f'''<!doctype html><html lang="tr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{escape(title)} | Eylus</title><meta name="description" content="{escape(desc,quote=True)}"><meta name="theme-color" content="#6450d8"><meta name="referrer" content="strict-origin-when-cross-origin"><meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'none'; object-src 'none'; base-uri 'self'; form-action 'none'"><meta name="robots" content="{'noindex,follow' if noindex else 'index,follow'}"><link rel="canonical" href="{SITE}{path}"><meta property="og:type" content="website"><meta property="og:locale" content="tr_TR"><meta property="og:title" content="{escape(title,quote=True)} | Eylus"><meta property="og:description" content="{escape(desc,quote=True)}"><meta property="og:url" content="{SITE}{path}"><link rel="icon" type="image/svg+xml" href="/assets/favicon.svg"><link rel="stylesheet" href="/assets/site.css"><script src="/assets/site.js" defer></script></head><body>{header(path)}<main id="main">{body}</main>{footer()}</body></html>'''
+    return f'''<!doctype html><html lang="tr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{escape(title)} | Eylus</title><meta name="description" content="{escape(desc,quote=True)}"><meta name="theme-color" content="#6450d8"><meta name="referrer" content="strict-origin-when-cross-origin"><meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'none'; object-src 'none'; base-uri 'self'; form-action 'none'"><meta name="robots" content="{'noindex,follow' if noindex else 'index,follow'}"><link rel="canonical" href="{SITE}{path}"><meta property="og:type" content="website"><meta property="og:site_name" content="Eylus"><meta property="og:locale" content="tr_TR"><meta property="og:title" content="{escape(title,quote=True)} | Eylus"><meta property="og:description" content="{escape(desc,quote=True)}"><meta property="og:url" content="{SITE}{path}"><meta name="twitter:card" content="summary"><link rel="icon" type="image/svg+xml" href="/assets/favicon.svg"><link rel="stylesheet" href="/assets/site.css"><script src="/assets/site.js" defer></script></head><body>{header(path)}<main id="main">{body}</main>{footer()}</body></html>'''
 for path,(title,desc,body) in PAGES.items():
     dest=OUT / path.strip('/') / 'index.html'
     dest.parent.mkdir(parents=True,exist_ok=True)
