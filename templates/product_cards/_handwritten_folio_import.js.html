@@ -17,7 +17,13 @@ if (!EDIT_MODE) {
  // Keep counters beside the upload card as separate sibling cards, not inside it.
  const counters=host.querySelector('.showroom-summary-wrap');
  if(counters&&toolbar.nextElementSibling!==counters)toolbar.insertAdjacentElement('afterend',counters);
+ const config=document.createElement('div');
+ config.className='moli-reader-config';
+ config.style.cssText='display:flex;flex-wrap:wrap;align-items:center;gap:8px;width:100%;font-size:11px;color:#53627b;margin-top:1px';
+ config.innerHTML='<label>Okuma modeli <select id="moliReaderModel" style="border:1px solid #d6deea;border-radius:7px;background:#fff;padding:5px"><option value="gpt-6-astra">Astra · ayrıntılı model</option><option value="gpt-6.1-sol">Sol · hız testi</option></select></label><label>Görüntü yöntemi <select id="moliReaderMode" style="border:1px solid #d6deea;border-radius:7px;background:#fff;padding:5px"><option value="standard">Standart · tek tam görüntü</option><option value="detailed">Detaylı · 3 okuma görüntüsü</option></select></label><span>Orijinal fotoğraf değiştirilmez. Otomatik tekrar yapılmaz.</span>';
+ toolbar.appendChild(config);
  const start=toolbar.querySelector('#moliSmartRead'),file=toolbar.querySelector('#moliSmartPhoto'),status=toolbar.querySelector('#moliSmartStatus');
+ const modelSelect=toolbar.querySelector('#moliReaderModel'),modeSelect=toolbar.querySelector('#moliReaderMode');
  const normalize=x=>String(x??'').trim().toLocaleLowerCase('tr-TR').replace(/\s+/g,' ');
  const num=x=>(x===null||x===undefined||x==='')?null:Number(x);
  const esc=x=>escapeHtml(String(x??''));
@@ -49,18 +55,24 @@ if (!EDIT_MODE) {
   const photos=Array.from(file.files);if(!photos.length)return;
   if(photos.length>15){status.textContent='Bir okumada en fazla 15 fotoğraf seçebilirsiniz.';file.value='';return;}
   if(photos.reduce((sum,p)=>sum+p.size,0)>60*1024*1024){status.textContent='Fotoğrafların toplam boyutu 60 MB sınırını aşamaz.';file.value='';return;}
-  start.disabled=true;status.textContent=photos.length+' fotoğraf birlikte okunuyor; mevcut föy değiştirilmez...';
+  start.disabled=true;modelSelect.disabled=true;modeSelect.disabled=true;
+  const readStart=performance.now();
+  const elapsedText=()=>Math.floor((performance.now()-readStart)/1000);
+  status.textContent=photos.length+' orijinal fotoğraf gönderiliyor ve okunuyor... '+elapsedText()+' sn';
+  const readingClock=setInterval(()=>{status.textContent=photos.length+' orijinal fotoğraf gönderiliyor ve okunuyor... '+elapsedText()+' sn';},1000);
   try {
-    const form=new FormData();photos.forEach(p=>form.append('photos',p));form.append('model','gpt-6-astra');
+    const form=new FormData();photos.forEach(p=>form.append('photos',p));
+    form.append('model',modelSelect.value);
+    form.append('read_mode',modeSelect.value);
     const response=await fetch('{% url "read_handwritten_folio" %}',{method:'POST',credentials:'same-origin',headers:{'X-CSRFToken':csrf()},body:form});
     const payload=await response.json();
     if(!response.ok||!payload.ok)throw Error(payload.error||'Okuma başarısız');
     clearPhoto();photoUrls=photos.map(p=>URL.createObjectURL(p));
-    review={data:payload.data||{},files:photos,fileName:photos.map(p=>p.name).join(', '),model:payload.model||'gpt-6-astra',usage:payload.usage||{}};
+    review={data:payload.data||{},files:photos,fileName:photos.map(p=>p.name).join(', '),model:payload.model||modelSelect.value,usage:payload.usage||{},timing:payload.timing||{},readMode:payload.read_mode||modeSelect.value};
     displayReview();
-    status.textContent='Okuma tamamlandı. Önce kontrol tablosunu düzeltin.';
+    status.textContent='Okuma '+elapsedText()+' saniyede tamamlandı. Bilgileri kontrol edin.';
   }catch(e){status.textContent=e.message||'Okuma başarısız';}
-  finally {start.disabled=false;file.value='';}
+  finally {clearInterval(readingClock);start.disabled=false;modelSelect.disabled=false;modeSelect.disabled=false;file.value='';}
  });
  function displayReview(){
   let panel=sheet.querySelector('#moliSmartReview');
@@ -75,15 +87,20 @@ if (!EDIT_MODE) {
    return first+list.map(o=>'<option value="'+esc(o.value)+'"'+(selected===o.value?' selected':'')+'>'+esc(o.textContent)+'</option>').join('');
   };
   panel.style.cssText='padding:16px;margin-bottom:16px;background:#fff;border:2px solid #d2dbe9;border-radius:14px;font-size:13px';
+  const codeList=document.getElementById('modal_urun_kod_listesi');
+  const knownCodes=codeList?[...codeList.options].map(o=>String(o.value||o.textContent||'').trim()).filter(Boolean):[];
+  const uniqueCodes=[...new Set(knownCodes)];
+  const codeChoices=uniqueCodes.length?'<datalist id="moliSmartCodeChoices">'+uniqueCodes.map(code=>'<option value="'+esc(code)+'"></option>').join('')+'</datalist>':'';
   const rowHtml=rows.map((r,i)=>{
-   const cell=(key,v,width)=>'<td style="min-width:'+width+'px;padding:5px"><input data-i="'+i+'" data-key="'+key+'" value="'+esc(v)+'" style="width:100%;min-width:0;border:1px solid #ccd4e2;border-radius:6px;padding:7px"></td>';
+   const cell=(key,v,width)=>'<td style="min-width:'+width+'px;padding:5px"><input data-i="'+i+'" data-key="'+key+'" value="'+esc(v)+'" '+(key==='product_code'&&uniqueCodes.length?'list="moliSmartCodeChoices" ':'')+'style="width:100%;min-width:0;border:1px solid #ccd4e2;border-radius:6px;padding:7px"></td>';
    const select=(key,html,v)=>'<td style="min-width:100px;padding:5px"><select data-i="'+i+'" data-key="'+key+'" style="width:100%;min-width:0;border:1px solid #ccd4e2;border-radius:6px;padding:7px">'+options(html,v)+'</select></td>';
    return '<tr>'+cell('product_code',r.product_code,85)+select('color',colorOptions,r.color)+select('size',sizeOptions,r.size)+cell('quantity',r.quantity,65)+cell('unit_price',r.unit_price,95)+cell('written_line_total',r.written_line_total,95)+cell('description',r.description,115)+'</tr>';
   }).join('');
   panel.innerHTML='<div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center"><h4 style="margin:0">El Yazısı Okuma – Kontrol</h4><button id="moliSmartDiscard" type="button" style="padding:8px 12px;border:1px solid #cbd5e1;border-radius:8px;background:#fff;color:#334155">İncelemeyi Kapat</button></div>'
   +'<p style="margin:7px 0">Orijinal: '+esc(review.fileName)+' • Model: '+esc(review.model)+' • Giriş tokenı: '+esc(review.usage.input_tokens??'?')+' • Çıkış tokenı: '+esc(review.usage.output_tokens??'?')+'. Sonuçlar taslak değildir; kontrol edin.</p>'
+  +'<div style="font-size:12px;color:#53627b;padding:8px 10px;background:#f8fafc;border-radius:8px">Okuma süresi: '+esc(((review.timing.total_ms||0)/1000).toFixed(1))+' sn · Görsel hazırlama: '+esc(((review.timing.preparation_ms||0)/1000).toFixed(1))+' sn · Yapay zekâ: '+esc(((review.timing.api_ms||0)/1000).toFixed(1))+' sn · Gönderilen görünüm: '+esc(review.timing.images_sent||'?')+'</div>'
   +'<div id="moliSmartOriginals" style="display:flex;gap:10px;overflow:auto;max-height:390px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;margin:10px 0;padding:9px"></div>'
-  +'<div style="overflow:auto"><table style="border-collapse:collapse;width:100%;min-width:840px"><thead><tr><th>Kod</th><th>Renk</th><th>Beden</th><th>Adet</th><th>Birim fiyat</th><th>Yazılı satır toplamı</th><th>Açıklama</th></tr></thead><tbody>'+rowHtml+'</tbody></table></div>'
+  +codeChoices+'<div style="overflow:auto"><table style="border-collapse:collapse;width:100%;min-width:840px"><thead><tr><th>Kod</th><th>Renk</th><th>Beden</th><th>Adet</th><th>Birim fiyat</th><th>Yazılı satır toplamı</th><th>Açıklama</th></tr></thead><tbody>'+rowHtml+'</tbody></table></div>'
   +'<button type="button" class="pricing-add" id="moliSmartAddRow" style="margin-top:9px">+ Eksik Satır Ekle</button>'
   +'<div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:12px"><label>Müşteri <select id="moliSmartCustomer" style="padding:8px;max-width:250px">'+options(customerOptions,data.customer)+'</select></label><label>Para birimi <select id="moliSmartCurrency"><option value="">Seçiniz</option><option value="TRY">TL</option><option value="USD">USD</option><option value="EUR">EUR</option><option value="GBP">GBP</option></select></label><label>İndirim (%) <input id="moliSmartDiscount" type="number" min="0" max="100" step="0.01" style="width:90px;padding:8px"></label><label>Siparişi alan <input id="moliSmartTaker" style="padding:8px;width:150px" value="'+esc(data.order_taken_by)+'"></label></div>'
   +'<div id="moliSmartDiagnostics" style="white-space:pre-wrap;background:#f8fafc;border-radius:10px;padding:12px;margin-top:12px"></div>'
