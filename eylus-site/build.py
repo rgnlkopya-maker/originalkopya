@@ -165,7 +165,9 @@ SOLUTION_GROUPS = [
 ]
 # Explicitly approved, anonymized real app captures only. Do not auto-discover photos.
 # After user approval, map: "operasyon-01": ("siparis-listesi.webp", "Sipariş Listesi ekranı")
-APPROVED_SOLUTION_SCREENSHOTS = {}
+APPROVED_SOLUTION_SCREENSHOTS = {
+    "operasyon-01": ("siparis-listesi-onayli.webp", "Eylus Sipariş Listesi: Son Durum sütunu kırmızı kalemle vurgulanmış, müşteri ve sipariş bilgileri örnek verilerle anonimleştirilmiş gerçek uygulama ekranı"),
+}
 
 def approved_solution_screen(key):
     approved = APPROVED_SOLUTION_SCREENSHOTS.get(key)
