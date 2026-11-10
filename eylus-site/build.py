@@ -49,7 +49,7 @@ def header(path):
     chat_icon = '<svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11.5a7.9 7.9 0 0 1-8 8 9 9 0 0 1-3.7-.8L4 20l1.4-4.1A8 8 0 1 1 20 11.5Z"/><path d="M8.7 10.2c1 2.1 2.3 3.4 4.4 4.4"/></svg>'
     return f'''<a class="skip" href="#main">İçeriğe geç</a><header class="nav eylus-header"><div class="wrap nav-inner"><a class="wordmark" href="/" aria-label="Eylus ana sayfa"><img src="/assets/eylus-wordmark.png" width="1488" height="252" alt="EYLUS" decoding="async"></a><nav id="primary-nav" class="nav-links" aria-label="Ana menü">{links}</nav><div class="nav-cta"><a class="nav-login" href="{DEMO}" target="_blank" rel="noopener noreferrer" title="Eylus demo giriş ekranı">Giriş Yap</a><details class="eylus-nav-contact"><summary class="nav-write">{chat_icon}<span>Bize Yazın</span></summary><div class="eylus-contact-options eylus-contact-nav-options"><a href="https://www.instagram.com/eylustech/" target="_blank" rel="noopener noreferrer">Instagram <small>@eylustech</small></a><a href="https://wa.me/905368163125" target="_blank" rel="noopener noreferrer">WhatsApp <small>Mesaj gönder</small></a></div></details></div><button class="menu-toggle" aria-label="Menüyü aç veya kapat" aria-controls="primary-nav" aria-expanded="false" type="button">☰</button></div></header>'''
 def footer():
-    return f'''<footer class="footer"><div class="wrap"><div class="footer-top"><div><a class="wordmark" href="/" aria-label="Eylus ana sayfa"><img src="/assets/eylus-wordmark.png" width="1488" height="252" alt="EYLUS" loading="lazy" decoding="async"></a><p>Üretimin her aşaması kontrolünüzde.</p></div><div class="footer-links"><div><strong>KEŞFEDİN</strong><a href="/urun/">Ürün</a><a href="/tekstil/">Tekstil çözümü</a><a href="/demo/">Canlı demo</a></div><div><strong>EYLUS</strong><a href="/neden-eylus/">Neden Eylus?</a><a href="/iletisim/">İletişim</a><a href="{SOCIAL}" target="_blank" rel="noopener noreferrer">Instagram ↗</a></div></div></div><div class="footer-bottom"><span>© 2026 Eylus</span><span>Üretim yönetim yazılımı</span><a href="/iletisim/#gizlilik">Site ve gizlilik bilgisi</a></div></div></footer>'''
+    return f'''<footer class="footer eylus-footer"><div class="wrap"><div class="footer-top"><div class="eylus-footer-brand"><a class="wordmark" href="/" aria-label="Eylus ana sayfa"><img src="/assets/eylus-wordmark.png" width="1488" height="252" alt="EYLUS" loading="lazy" decoding="async"></a><p>Üretimin her aşaması kontrolünüzde.</p><small>İşletmenizin sipariş, üretim ve sevkiyat süreçlerini birlikte görün.</small></div><div class="footer-links"><div><strong>KEŞFEDİN</strong><a href="/tekstil/">Çözümler</a><a href="/tekstil/">Tekstil çözümü</a><a href="/demo/">Canlı demo</a></div><div><strong>EYLUS</strong><a href="/neden-eylus/">Neden Eylus?</a><a href="/iletisim/">İletişim</a><a href="{SOCIAL}" target="_blank" rel="noopener noreferrer">Instagram</a></div></div></div><div class="footer-bottom"><span>© 2026 Eylus</span><span>Üretim yönetim yazılımı</span><a href="/iletisim/#gizlilik">Site ve gizlilik bilgisi</a></div></div></footer>'''
 def cta():
     return '<section class="wrap cta"><div>'+eyebrow('Eylus ile tanışın')+'<h2>Üretiminize birlikte<br>daha yakından bakalım.</h2><p>Önce ürünü keşfedin. Sonra işletmenize uyumunu konuşalım.</p></div><div class="actions">'+button('Demoyu incele','/demo/','light')+'</div></section>'
 def intro(label,title,description):
@@ -376,6 +376,85 @@ CSS += r'''
 }
 '''
 
+
+# Eylus hero and footer: mobile-first refinement approved 11 Nov 2026.
+CSS += r'''
+/* Compact, airy process chips, kept readable over the original workshop photo. */
+.eylus-hero-prompts{gap:10px;margin-bottom:34px}
+.eylus-hero-prompt{display:flex;align-items:center;gap:11px;width:fit-content;max-width:100%;padding:9px 15px 9px 10px;border:1px solid rgba(228,218,246,.94);border-radius:16px;background:rgba(255,255,255,.82);box-shadow:0 5px 22px rgba(49,28,95,.045);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);font-size:13px;font-weight:630;line-height:1.45;white-space:normal;color:#242035}
+.eylus-hero-prompt>span:last-child{min-width:0;overflow-wrap:break-word}
+.eylus-hero-prompt b{font-size:12px;margin:0 2px;color:#8858d2}
+.eylus-prompt-icon{flex:0 0 35px;width:35px;height:35px;border-radius:11px;background:#efe9fb;color:#6633bc}
+.eylus-prompt-icon svg{width:20px;height:20px}
+/* A restrained primary CTA and clearly distinct quiet secondary CTA. */
+.eylus-hero-actions{display:flex;gap:13px;align-items:stretch}
+.eylus-hero-actions>a{flex:1 1 0;min-width:0}
+.eylus-hero-button{border-radius:17px;min-height:76px;padding:14px 17px;gap:12px;box-shadow:0 7px 23px rgba(71,35,134,.095);transform:none}
+.eylus-hero-button:hover{transform:translateY(-2px);box-shadow:0 11px 28px rgba(71,35,134,.14)}
+.eylus-hero-primary{background:linear-gradient(120deg,#56319d,#7546c0);border:1px solid #6a40ad;color:#fff}
+.eylus-hero-primary:hover{background:linear-gradient(120deg,#4d298d,#6739ad);border-color:#6739ad;color:#fff}
+.eylus-hero-secondary{background:rgba(255,255,255,.92);border:1px solid #b4a0d4;color:#4c2986}
+.eylus-hero-secondary:hover{background:#f6f0fe;border-color:#9d83c9;color:#432178}
+.eylus-hero-primary small{color:#f2eafe}.eylus-hero-secondary small{color:#64547b}
+.eylus-hero-button strong{white-space:normal;overflow-wrap:break-word;font-size:15px;letter-spacing:-.012em}
+.eylus-hero-button small{display:block;font-size:11px;white-space:normal;line-height:1.35;margin-top:4px}
+.eylus-hero-button-icon{flex:0 0 30px}
+.eylus-hero-button-icon svg{width:24px;height:24px}
+.eylus-hero-button-arrow{font-size:18px;margin-left:auto;opacity:.84;flex:none}
+.eylus-trust-strip{padding:30px 0 36px;background:linear-gradient(180deg,#fff 0%,#f8f6fc 100%);border-bottom:1px solid #eee8f5}
+.eylus-trust-inner{display:flex;gap:16px;align-items:center;justify-content:center;max-width:1060px}
+.eylus-trust-mark{width:35px;height:35px;flex:0 0 35px;display:grid;place-items:center;border:1px solid #e5d9f4;border-radius:11px;color:#7651b2;background:#fff}
+.eylus-trust-inner p{margin:0;color:#665b75;font-size:13px;line-height:1.65;flex:1}
+.eylus-trust-inner p strong{color:#332746;font-weight:750}
+.eylus-trust-inner>a{color:#6436a2;font-size:12px;font-weight:700;white-space:nowrap}
+.eylus-trust-inner>a:hover{text-decoration:underline}
+.eylus-footer{background:#f8f7fb;border-top:0;padding-top:57px;color:#332e40}
+.eylus-footer .footer-top{gap:60px;padding-bottom:42px}
+.eylus-footer .footer-links{gap:65px}
+.eylus-footer .footer-links strong{font-size:11px;letter-spacing:.085em}
+.eylus-footer .footer-links a{font-size:13px;line-height:1.65}
+.eylus-footer .eylus-footer-brand p{font-weight:650;margin:14px 0 6px;font-size:15px}
+.eylus-footer .eylus-footer-brand small{display:block;color:#766f7d;max-width:310px;line-height:1.7;font-size:12px}
+.eylus-footer .footer-bottom{border-top:1px solid #e7e2ed;padding-top:19px;gap:18px}
+@media(max-width:960px){
+ .eylus-header .nav-cta{display:none!important}
+ .eylus-header .menu-toggle{margin-left:auto}
+ .eylus-home-hero .eylus-hero-content{max-width:780px}
+}
+@media(max-width:650px){
+ .eylus-home-hero{padding-top:202px}
+ .eylus-hero-photo{height:303px}
+ .eylus-hero-prompts{gap:8px;margin-bottom:23px}
+ .eylus-hero-prompt{max-width:100%;width:100%;gap:9px;padding:7px 10px 7px 8px;border-radius:12px;background:rgba(255,255,255,.88);font-size:11.5px;line-height:1.4}
+ .eylus-prompt-icon{flex:0 0 30px;width:30px;height:30px;border-radius:9px}
+ .eylus-prompt-icon svg{width:17px;height:17px}
+ .eylus-home-hero h1{margin-bottom:23px}
+ .eylus-hero-description{margin-bottom:22px}
+ .eylus-hero-actions{display:grid!important;grid-template-columns:minmax(0,1fr)!important;gap:11px;max-width:100%}
+ .eylus-hero-button{width:100%;min-height:75px;padding:14px 17px;gap:12px;border-radius:17px}
+ .eylus-hero-button strong{font-size:16px;line-height:1.25}
+ .eylus-hero-button small{display:block!important;font-size:11px;margin-top:4px}
+ .eylus-hero-button-icon{flex:0 0 27px;width:27px}
+ .eylus-hero-button-icon svg{width:23px;height:23px}
+ .eylus-trust-strip{padding:25px 0 30px}
+ .eylus-trust-inner{align-items:flex-start;gap:10px;flex-wrap:wrap}
+ .eylus-trust-mark{flex-basis:30px;width:30px;height:30px}
+ .eylus-trust-inner p{flex:1 1 calc(100% - 45px);font-size:12px}
+ .eylus-trust-inner>a{margin-left:40px;margin-top:-2px}
+ .eylus-footer{padding-top:39px}
+ .eylus-footer .footer-top{display:grid;grid-template-columns:1fr;gap:31px;padding-bottom:33px}
+ .eylus-footer .eylus-footer-brand small{max-width:390px}
+ .eylus-footer .footer-links{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:19px}
+ .eylus-footer .footer-bottom{display:flex;flex-wrap:wrap;justify-content:space-between;gap:10px;padding-top:16px}
+}
+@media(max-width:370px){
+ .eylus-hero-prompt{font-size:10.5px;padding:6px 7px}
+ .eylus-hero-button{min-height:73px}
+ .eylus-hero-button strong{font-size:15px}
+}
+@media(prefers-reduced-motion:reduce){.eylus-hero-button{transition:none}}
+'''
+
 EYLUS_HOME_HERO = '''<section class="eylus-home-hero" aria-labelledby="eylus-hero-heading">
   <div class="eylus-hero-photo" aria-hidden="true">
     <img src="/assets/eylus-hero-workshop.webp" width="706" height="760" alt="" decoding="async" fetchpriority="high">
@@ -383,19 +462,20 @@ EYLUS_HOME_HERO = '''<section class="eylus-home-hero" aria-labelledby="eylus-her
   <div class="wrap eylus-hero-container"><div class="eylus-hero-content">
     <div class="eylus-hero-prompts">
       <div class="eylus-hero-prompt"><span class="eylus-prompt-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9h16l-2-5H6L4 9Z"/><path d="M5 9v11h14V9"/><path d="M3 9c1 3 3 3 4 0 1 3 3 3 4 0 1 3 3 3 4 0 1 3 3 3 4 0"/><path d="M10 20v-7h5v7"/></svg></span><span>İşyerinizde <b>•</b> atölyenizde <b>•</b> fabrikanızda <b>•</b> mağazanızda</span></div>
-      <div class="eylus-hero-prompt"><span class="eylus-prompt-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"><path d="m12 2 9 5-9 5-9-5 9-5Z"/><path d="M3 7v10l9 5 9-5V7"/><path d="M12 12v10"/></svg></span><span>siparişleri <b>•</b> üretimi <b>•</b> stoklarınızı <b>•</b> randevularınızı <b>•</b> personelinizi</span></div>
+      <div class="eylus-hero-prompt"><span class="eylus-prompt-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"><path d="m12 2 9 5-9 5-9-5 9-5Z"/><path d="M3 7v10l9 5 9-5V7"/><path d="M12 12v10"/></svg></span><span>siparişleri <b>•</b> üretimi <b>•</b> stoklarınızı <b>•</b> personelinizi</span></div>
       <div class="eylus-hero-prompt"><span class="eylus-prompt-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="7" width="18" height="14" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M3 13h18"/></svg></span><span>evdeyken <b>•</b> seyahatteyken <b>•</b> tatildeyken</span></div>
     </div>
     <h1 id="eylus-hero-heading">Nasıl takip<br><em>ediyorsunuz?</em></h1>
     <p class="eylus-hero-description">Eylus, dağınık süreçleri tek merkezde toplar;<br class="eylus-desktop-break"> size özel çözümü birlikte kurgular.</p>
     <div class="eylus-hero-actions">
-      <details class="eylus-contact-menu"><summary class="eylus-hero-button eylus-hero-primary"><span class="eylus-hero-button-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11.5a7.9 7.9 0 0 1-8 8 9 9 0 0 1-3.7-.8L4 20l1.4-4.1A8 8 0 1 1 20 11.5Z"/><path d="M8.7 10.2c1 2.1 2.3 3.4 4.4 4.4"/></svg></span><span class="eylus-contact-summary-copy"><strong>Bize Yazın</strong><small>Instagram veya WhatsApp</small></span><span class="eylus-contact-chevron" aria-hidden="true">⌄</span></summary><div class="eylus-contact-options eylus-hero-contact-options"><a href="https://www.instagram.com/eylustech/" target="_blank" rel="noopener noreferrer"><span>Instagram</span><small>@eylustech</small></a><a href="https://wa.me/905368163125" target="_blank" rel="noopener noreferrer"><span>WhatsApp</span><small>Mesaj gönder</small></a></div></details>
-      <a class="eylus-hero-button eylus-hero-secondary" href="/tekstil/"><span class="eylus-hero-button-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg></span><span><strong>Çözümlerimizi İnceleyin</strong><small>Sorununuzu seçin, çözümünüzü görün</small></span></a>
+      <a class="eylus-hero-button eylus-hero-primary eylus-demo-request" href="https://wa.me/905368163125?text=Merhaba%2C%20Eylus%20icin%20demo%20talep%20ediyorum." target="_blank" rel="noopener noreferrer" aria-label="WhatsApp üzerinden Eylus demo talep et"><span class="eylus-hero-button-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11.5a7.9 7.9 0 0 1-8 8 9 9 0 0 1-3.7-.8L4 20l1.4-4.1A8 8 0 1 1 20 11.5Z"/><path d="M8.7 10.2c1 2.1 2.3 3.4 4.4 4.4"/></svg></span><span><strong>Demo Talep Et</strong><small>WhatsApp üzerinden hızlıca ulaşın</small></span><span class="eylus-hero-button-arrow" aria-hidden="true">↗</span></a>
+      <a class="eylus-hero-button eylus-hero-secondary" href="/tekstil/"><span class="eylus-hero-button-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg></span><span><strong>Çözümleri İnceleyin</strong><small>Sorununuzu seçin, çözümümüzü görün</small></span></a>
     </div>
   </div></div>
 </section>'''
 
-HOME = EYLUS_HOME_HERO
+EYLUS_HOME_TRUST = '''<section class="eylus-trust-strip" aria-label="Eylus yaklaşımı"><div class="wrap eylus-trust-inner"><span class="eylus-trust-mark" aria-hidden="true">✦</span><p><strong>Dağınık süreçlere tek merkezden bakın.</strong> Eylus, siparişten sevkiyata kadar işletmenizin iş akışlarını bir araya getirir.</p><a href="/tekstil/">Çözümleri keşfedin <span aria-hidden="true">↗</span></a></div></section>'''
+HOME = EYLUS_HOME_HERO + EYLUS_HOME_TRUST
 PRODUCT = intro('Ürün','Bir siparişten<br>bütün üretime.','Siparişin bilgisi, üretimin hareketi ve teslimatın planı. Birbirinden kopuk değil, birlikte.')+'<section class="section"><div class="wrap">'+features()+'<div class="callout">Eylus’un işletmenizdeki kapsamını ve kullanacağınız modülleri birlikte değerlendirelim. Bu site otomatik teklif veya lisans taahhüdü oluşturmaz.</div></div></section>'+TOUR+cta()
 
 # Solution discovery page (public-facing; screenshot slots are intentionally empty until
