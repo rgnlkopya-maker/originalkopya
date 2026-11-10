@@ -1,5 +1,6 @@
 from pathlib import Path
 from html import escape
+from hashlib import sha256
 import os
 
 OUT = Path(__file__).parent / 'dist'
@@ -430,12 +431,20 @@ PAGES = {
  '/demo/': ('Canlı demo', 'Eylus demo uygulamasına geçin; sipariş, üretim aşaması ve sevkiyat akışını inceleyin.', DEMO_PAGE),
  '/iletisim/': ('İletişim ve görüşme', 'Eylus ile iletişime geçin. İşletmenize uygun üretim takibini ve demo erişimini konuşalım.', CONTACT),
 }
+
+# Fingerprint the generated page and its assets on every release to prevent stale local CSS/JS.
+CACHE_VERSION = sha256((CSS + JS + TEXTILE).encode('utf-8')).hexdigest()[:12]
 def page(path,title,desc,body,noindex=False):
-    return f'''<!doctype html><html lang="tr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{escape(title)} | Eylus</title><meta name="description" content="{escape(desc,quote=True)}"><meta name="theme-color" content="#6450d8"><meta name="referrer" content="strict-origin-when-cross-origin"><meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'none'; object-src 'none'; base-uri 'self'; form-action 'none'"><meta name="robots" content="{'noindex,follow' if noindex else 'index,follow'}"><link rel="canonical" href="{SITE}{path}"><meta property="og:type" content="website"><meta property="og:site_name" content="Eylus"><meta property="og:locale" content="tr_TR"><meta property="og:title" content="{escape(title,quote=True)} | Eylus"><meta property="og:description" content="{escape(desc,quote=True)}"><meta property="og:url" content="{SITE}{path}"><meta name="twitter:card" content="summary"><link rel="icon" type="image/svg+xml" href="/assets/favicon.svg"><link rel="stylesheet" href="/assets/site.css"><script src="/assets/site.js" defer></script></head><body>{header(path)}<main id="main">{body}</main>{footer()}</body></html>'''
+    return f'''<!doctype html><html lang="tr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{escape(title)} | Eylus</title><meta name="description" content="{escape(desc,quote=True)}"><meta name="theme-color" content="#6450d8"><meta name="referrer" content="strict-origin-when-cross-origin"><meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'none'; object-src 'none'; base-uri 'self'; form-action 'none'"><meta name="robots" content="{'noindex,follow' if noindex else 'index,follow'}"><link rel="canonical" href="{SITE}{path}"><meta property="og:type" content="website"><meta property="og:site_name" content="Eylus"><meta property="og:locale" content="tr_TR"><meta property="og:title" content="{escape(title,quote=True)} | Eylus"><meta property="og:description" content="{escape(desc,quote=True)}"><meta property="og:url" content="{SITE}{path}"><meta name="twitter:card" content="summary"><meta name="eylus-release" content="{CACHE_VERSION}"><link rel="icon" type="image/svg+xml" href="/assets/favicon.svg"><link rel="stylesheet" href="/assets/site.css?v={CACHE_VERSION}"><script src="/assets/site.js?v={CACHE_VERSION}" defer></script></head><body>{header(path)}<main id="main">{body}</main>{footer()}</body></html>'''
 for path,(title,desc,body) in PAGES.items():
     dest=OUT / path.strip('/') / 'index.html'
     dest.parent.mkdir(parents=True,exist_ok=True)
     dest.write_text(page(path,title,desc,body,noindex=path=='/demo/'),encoding='utf-8')
+# Versioned QA route is unlinked, noindex, and has the same markup as the main solutions page.
+qa = OUT / 'surum-kontrol-20261110-1531' / 'index.html'
+qa.parent.mkdir(parents=True, exist_ok=True)
+qa.write_text(page('/tekstil/', PAGES['/tekstil/'][0], PAGES['/tekstil/'][1], TEXTILE, True), encoding='utf-8')
+(OUT/'site-version.txt').write_text('EYLUS release: ' + CACHE_VERSION + '\nMain solutions: /tekstil/\n',encoding='utf-8')
 (OUT/'assets/site.css').write_text(CSS,encoding='utf-8')
 (OUT/'assets/site.js').write_text(JS,encoding='utf-8')
 (OUT/'assets/favicon.svg').write_text('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="14" fill="#6450d8"/><text x="17" y="46" font-size="47" font-family="Arial,sans-serif" font-weight="bold" fill="white">e</text></svg>',encoding='utf-8')
