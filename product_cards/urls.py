@@ -61,6 +61,7 @@ urlpatterns = [
     path("fiyat-listesi/", price_list_views.price_list, name="price_list"),
     path("showroom-foyu/", showroom_views.showroom_page, name="showroom_page"),
     path("showroom-foyu/elle-yazilan-foy-oku/", folio_reader_views.read_handwritten_folio, name="read_handwritten_folio"),
+    path("showroom-foyu/akilli-orijinal-fotograf-ekle/", showroom_photo_views.attach_smart_source_photos, name="showroom_smart_photo_attach"),
     path("showroom-foyu/taslaklar/", showroom_views.showroom_drafts_page, name="showroom_drafts_page"),
     path("showroom-foyu/onaylananlar/", showroom_views.showroom_approved_page, name="showroom_approved_page"),
     path("showroom-foyu/musteri/<int:customer_id>/", showroom_views.showroom_customer_folios, name="showroom_customer_folios"),
