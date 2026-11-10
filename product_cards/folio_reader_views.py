@@ -85,6 +85,22 @@ def read_handwritten_folio(request):
             },
             timeout=(5, 19),
         )
+        if response.status_code == 429:
+            try:
+                api_error = response.json().get("error") or {}
+                code = str(api_error.get("code") or api_error.get("type") or "")
+            except (ValueError, AttributeError):
+                code = ""
+            logger.warning("Folio vision API returned 429; category=%s", code[:80])
+            if code in ("insufficient_quota", "billing_hard_limit_reached"):
+                message = "El yazısı okuma servisi: API bakiyesi veya kullanım kotası yetersiz. API hesabının ödeme ve kullanım limitlerini kontrol edin."
+            else:
+                message = "El yazısı okuma servisi hız sınırına ulaştı (429). Bir süre sonra tekrar deneyin; sorun sürerse API kullanım limitlerini kontrol edin."
+            return JsonResponse({"ok": False, "error": message, "api_error_code": code[:80]}, status=503)
+        if response.status_code == 401:
+            return JsonResponse({"ok": False, "error": "El yazısı okuma API anahtarı geçersiz. Render API ayarlarını kontrol edin."}, status=503)
+        if response.status_code == 403:
+            return JsonResponse({"ok": False, "error": "El yazısı okuma servisine erişim engellendi. API hesabı veya model erişimini kontrol edin."}, status=503)
         response.raise_for_status()
         parsed = json.loads(response.json()["choices"][0]["message"]["content"])
         if not isinstance(parsed, dict) or not isinstance(parsed.get("items"), list):
