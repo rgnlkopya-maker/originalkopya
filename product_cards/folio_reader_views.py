@@ -77,10 +77,22 @@ def _image_data(upload):
                             min(image.width, right + margin), min(image.height, bottom + margin))
                     if (bbox[2] - bbox[0]) * (bbox[3] - bbox[1]) < image.width * image.height * .82:
                         image = image.crop(bbox)
-            image.thumbnail((2800, 2800))
-            buffer = io.BytesIO()
-            image.save(buffer, "JPEG", quality=92, optimize=True)
-            return "data:image/jpeg;base64," + base64.b64encode(buffer.getvalue()).decode("ascii")
+            # Provide the full page and two overlapping close-ups in a SINGLE API request.
+            # Each crop retains table headers/row positions; the full page anchors totals.
+            views = [image]
+            if image.height > 500:
+                height = image.height
+                views.extend([
+                    image.crop((0, 0, image.width, int(height * .65))),
+                    image.crop((0, int(height * .35), image.width, height)),
+                ])
+            urls = []
+            for view in views:
+                view.thumbnail((2800, 2800))
+                buffer = io.BytesIO()
+                view.save(buffer, "JPEG", quality=92, optimize=True)
+                urls.append("data:image/jpeg;base64," + base64.b64encode(buffer.getvalue()).decode("ascii"))
+            return urls
     except (UnidentifiedImageError, OSError) as exc:
         raise ValueError("Fotoğraf dosyası okunamadı.") from exc
 
@@ -95,7 +107,7 @@ def read_handwritten_folio(request):
     try:
         from pillow_heif import register_heif_opener
         register_heif_opener()
-        image_url = _image_data(upload)
+        image_urls = _image_data(upload)
     except ValueError as exc:
         return JsonResponse({"ok": False, "error": str(exc)}, status=400)
     key = os.getenv("OPENAI_API_KEY", "").strip()
@@ -112,8 +124,8 @@ def read_handwritten_folio(request):
                 "messages": [
                     {"role": "system", "content": PROMPT},
                     {"role": "user", "content": [
-                        {"type": "text", "text": "Read this handwritten order form. Flag all uncertainty."},
-                        {"type": "image_url", "image_url": {"url": image_url, "detail": "high"}},
+                        {"type": "text", "text": "These are THREE views of the SAME order form: full page, upper close-up and lower close-up. Do NOT count overlapping rows twice. Transcribe all handwritten rows and totals. Read prices from the price column and size ticks from their actual column."},
+                        *[{"type": "image_url", "image_url": {"url": url, "detail": "high"}} for url in image_urls],
                     ]},
                 ],
                 "max_tokens": 5000,
