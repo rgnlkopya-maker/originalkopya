@@ -51,6 +51,73 @@
  .showroom-sheet-head .showroom-customer-add-btn{font-size:11px;padding:0 8px}
 }
 
+
+/* Compact header: photo action plus the two useful counters in one row. */
+.showroom-sheet-head .moli-smart-folio-action{
+  grid-column:1 / span 2!important;
+  display:flex!important;
+  justify-content:flex-start!important;
+  align-items:center!important;
+  flex-wrap:wrap!important;
+  column-gap:16px!important;
+  row-gap:8px!important;
+  margin:0 0 15px!important;
+  padding:11px 13px!important;
+}
+.showroom-sheet-head .moli-smart-folio-action>div:first-child{flex:0 1 340px!important;min-width:220px}
+.showroom-sheet-head .moli-smart-folio-action #moliSmartRead{
+  flex:0 0 auto;white-space:nowrap;font-size:12px!important;min-height:41px!important;
+}
+.showroom-sheet-head .showroom-summary-wrap{
+  grid-column:3/-1!important;align-self:stretch;
+  padding:0!important;margin:0 0 15px!important;border:0!important;
+}
+.showroom-sheet-head .showroom-summary-scroll,
+.showroom-sheet-head .showroom-summary{height:100%;overflow:visible}
+.showroom-sheet-head .showroom-summary{gap:8px}
+.showroom-sheet-head .summary-box{display:flex;flex-direction:column;justify-content:center}
+.showroom-sheet-head .summary-box[hidden]{display:none!important}
+/* Calculations are easier to scan when values remain close to their labels. */
+.showroom-totals{
+  max-width:1160px;
+  margin:18px auto 0;
+  padding:16px 24px;
+  box-shadow:0 2px 12px rgba(37,53,84,.035);
+}
+.showroom-totals>.total-row{
+  display:grid;grid-template-columns:minmax(0,1fr) minmax(155px,220px);
+  gap:14px;align-items:center;
+  min-height:43px;padding:10px 6px;
+  border-bottom:1px solid #e9edf4;
+  box-shadow:0 2px 4px -4px rgba(38,56,85,.23);
+}
+.showroom-totals>.total-row>strong{justify-self:end;text-align:right;white-space:nowrap}
+.showroom-totals>.total-row.grand-total{border-bottom:0;border-top:1px solid #dfe5ef;margin-top:4px}
+.showroom-totals>.pricing-head{margin:15px 6px 6px}
+.showroom-totals>.folio-adjustment{
+  grid-template-columns:minmax(0,1fr) minmax(155px,220px);
+  gap:14px;align-items:center;
+  padding:12px 6px;border-bottom:1px solid #e9edf4;
+}
+.showroom-totals>.folio-adjustment input{width:100%;max-width:220px;justify-self:end;min-height:40px;border:1px solid #dfe5ef;border-radius:9px;padding:0 10px}
+.showroom-totals>.discount-fields{margin:7px 6px;padding:6px 0 12px;border-bottom:1px solid #e9edf4}
+.showroom-totals>.discount-fields .discount-field{max-width:420px}
+.showroom-totals>.pricing-row{border-bottom-color:#e9edf4}
+@media(max-width:1240px){
+ .showroom-sheet-head .moli-smart-folio-action{grid-column:1/-1!important}
+ .showroom-sheet-head .showroom-summary-wrap{grid-column:1/-1!important;max-width:430px}
+ .showroom-sheet-head .showroom-summary{min-height:55px}
+}
+@media(max-width:600px){
+ .showroom-sheet-head .moli-smart-folio-action>div:first-child{flex:1 1 100%!important}
+ .showroom-sheet-head .moli-smart-folio-action #moliSmartRead{width:100%}
+ .showroom-totals{padding:12px 13px}
+ .showroom-totals>.total-row{grid-template-columns:minmax(0,1fr) minmax(110px,145px);gap:8px}
+ .showroom-totals>.total-row>strong{font-size:15px}
+ .showroom-totals>.folio-adjustment{grid-template-columns:1fr}
+ .showroom-totals>.folio-adjustment input{justify-self:start}
+}
+
 </style>
 {% endblock %}
 
@@ -122,6 +189,16 @@ document.addEventListener('DOMContentLoaded',function(){
   if(!sheet.dataset.ready){sheet.innerHTML=`<div class="showroom-sheet-inner"><div class="showroom-summary-wrap"><div class="showroom-summary-scroll"><div class="showroom-summary"><div class="summary-box"><span>Toplam Ürün Çeşidi</span><strong id="sumTypes">0</strong></div><div class="summary-box"><span>Toplam Adet</span><strong id="sumQty">0</strong></div><div class="summary-box"><span>Toplam Tutar</span><strong id="sumAmount">0,00 TL</strong></div></div></div></div><div class="showroom-sheet-head"><h3 class="showroom-sheet-title">Akıllı Sipariş Föyü</h3><p class="showroom-sheet-intro">Sipariş bilgilerini girin veya orijinal föy fotoğraflarından aktarın.</p><div class="showroom-sheet-head-fields"><div class="showroom-customer-wrap"><label>Müşteri</label><select id="showroomSheetCustomer" class="showroom-customer">${customerOptions}</select></div><div class="showroom-order-taker-wrap"><label>Siparişi Alan</label><input id="showroomOrderTakenBy" class="showroom-order-taker" type="text" maxlength="120" placeholder="İsim yazın"></div><div class="showroom-order-type-wrap"><label>Sipariş Tipi</label><select id="showroomOrderType" class="showroom-order-type">${orderTypeOptions}</select></div></div><div class="showroom-fx-fields"><div><label for="showroomCurrency">Para Birimi</label><select id="showroomCurrency"><option value="TRY">TL (TRY)</option><option value="USD">USD ($)</option><option value="EUR">EUR (€)</option><option value="GBP">GBP (£)</option></select></div></div></div><div id="showroomSheetItems"></div><div class="showroom-totals"><div class="total-row"><span>Ara Toplam</span><strong id="sheetSubtotal">0,00 TL</strong></div><div class="pricing-head"><span>Fiyat İşlemleri</span><button type="button" id="showroomAddPricing" class="pricing-add">+ İşlem Ekle</button></div><div id="pricingOperations"></div><div class="total-row"><span>İşlemler Sonrası</span><strong id="sheetOperationsTotal">0,00 TL</strong></div><div class="folio-adjustment"><div><label style="font-size:11px;font-weight:800;color:#697386">Föy Toplamını Düzelt</label><div class="folio-adjustment-note">Boş bırakırsan hesaplanan tutar kullanılır. Daha düşük veya yüksek bir toplam yazarsan fark ürünlere oranlı dağıtılır.</div></div><input id="sheetFolioTarget" type="number" min="0" step="0.01" placeholder="İsteğe bağlı net toplam"></div><div class="total-row"><span>Föy Düzeltmesi</span><strong id="sheetAdjustmentValue">+ 0,00 TL</strong></div><div class="total-row"><span>Föy Toplamı</span><strong id="sheetFolioTotal">0,00 TL</strong></div><div class="discount-fields"><div class="discount-field"><label>Eski Bakiye (TL)</label><input id="sheetPreviousBalance" type="number" min="0" step="0.01" placeholder="Varsa girin"></div></div><div class="total-row"><span>Eski Bakiye</span><strong id="sheetPreviousBalanceValue">0,00 TL</strong></div><div class="total-row grand-total"><span>Genel Toplam</span><strong id="sheetGrandTotal">0,00 TL</strong></div><div class="showroom-payments finance-payments"><div class="payment-head"><div><div class="payment-title">Tahsilat / Ödeme Planı</div><div class="payment-note">Genel toplam oluştuktan sonra tahsilat ve ödeme planını buradan girin. Ödeme sözleri yalnızca plan olarak takip edilir.</div></div><button type="button" id="showroomAddPayment" class="payment-add">+ Ödeme Satırı</button></div><div id="showroomPaymentRows"></div><div class="payment-summary"><div class="payment-stat"><span>Tahsil Edilen</span><b id="sheetCollected">0,00 TL</b></div><div class="payment-stat"><span>Ödeme Sözü</span><b id="sheetPromised">0,00 TL</b></div><div class="payment-stat remaining"><span>Kalan Tutar</span><b id="sheetRemaining">0,00 TL</b></div></div></div><div class="total-row"><span>Tahsil Edilen</span><strong id="sheetCollectedBottom">- 0,00 TL</strong></div><div class="total-row grand-total"><span>Kalan Tutar</span><strong id="sheetRemainingBottom">0,00 TL</strong></div>${actionButtonsHtml}</div></div>`;sheet.dataset.ready='1';}
   const summaryBar=sheet.querySelector('.showroom-summary-wrap'),headPanel=sheet.querySelector('.showroom-sheet-head');
   if(summaryBar&&headPanel&&summaryBar.parentElement!==headPanel)headPanel.appendChild(summaryBar);
+  if(summaryBar&&headPanel){
+    const smartAction=headPanel.querySelector('.moli-smart-folio-action');
+    const intro=headPanel.querySelector('.showroom-sheet-intro');
+    // On the create screen, the two counters share a row with the photo reader.
+    if(smartAction&&smartAction.nextElementSibling!==summaryBar)smartAction.insertAdjacentElement('afterend',summaryBar);
+    else if(!smartAction&&intro&&intro.nextElementSibling!==summaryBar)intro.insertAdjacentElement('afterend',summaryBar);
+    summaryBar.querySelectorAll('.summary-box').forEach((box,i)=>{
+      if(i===2){box.hidden=true;box.setAttribute('aria-hidden','true');}
+    });
+  }
   const customer=sheet.querySelector('#showroomSheetCustomer'),orderTaker=sheet.querySelector('#showroomOrderTakenBy'),orderTypeSelect=sheet.querySelector('#showroomOrderType');if(customer)customer.value=customerId;if(orderTaker&&document.activeElement!==orderTaker)orderTaker.value=orderTakenBy;if(orderTypeSelect&&document.activeElement!==orderTypeSelect)orderTypeSelect.value=orderType;syncFxControls();installCustomerFoliosButton();
   const list=sheet.querySelector('#showroomSheetItems');if(!showroomItems.length)list.innerHTML='<div class="showroom-empty">Henüz föye ürün eklenmedi.</div>';else list.innerHTML=showroomItems.map((item,index)=>{const qty=totalQty(item),unit=Number(item.anlasilan_fiyat)||0,total=qty*vatExclusiveUnitPrice(item);const lines=item.satirlar.flatMap(r=>r.bedenler.map(size=>({renk:r.renk,beden:size,adet:r.adet,aciklama:r.aciklama}))).map(l=>`<div class="sheet-line"><div><div class="sheet-line-labels">Renk</div>${escapeHtml(l.renk)}</div><div><div class="sheet-line-labels">Beden</div>${escapeHtml(l.beden)}</div><div><div class="sheet-line-labels">Adet</div>${escapeHtml(l.adet)}</div><div><div class="sheet-line-labels">Açıklama</div>${l.aciklama?`<button type="button" class="sheet-description">${escapeHtml(shortText(l.aciklama))}<span class="sheet-desc-pop">${escapeHtml(l.aciklama)}</span></button>`:'-'}</div></div>`).join('');return `<section class="sheet-product"><div class="sheet-product-head"><div class="sheet-product-code">${escapeHtml(item.urun_kodu)}</div><div class="sheet-product-qty">${qty} adet</div><div><input type="number" min="0" step="0.01" class="sheet-product-price" data-price-index="${index}" value="${unit||''}" placeholder="Baz fiyat"><div class="unit-price-results"><div class="effective-unit" data-effective-index="${index}">KDV dahil: ${money(effectiveUnitPrice(item))}</div><div class="vat-exclusive-unit" data-vat-exclusive-index="${index}">KDV hariç: ${money(vatExclusiveUnitPrice(item))}</div></div></div><div class="sheet-math">=</div><div class="sheet-product-total" data-total-index="${index}">${money(total)}</div><div class="sheet-product-actions"><button type="button" class="sheet-edit" data-edit-index="${index}">Düzenle</button><button type="button" class="sheet-delete" data-delete-index="${index}">Sil</button></div></div><div class="sheet-lines">${lines}</div></section>`;}).join('');
   renderPricingRows();renderPayments();renderSummary();renderTotals();const cb=sheet.querySelector('#sheetCollectedBottom'),rb=sheet.querySelector('#sheetRemainingBottom');if(cb)cb.textContent='- '+money(collectedTotal());if(rb)rb.textContent=money(Math.max(0,grandTotal()-collectedTotal()));
