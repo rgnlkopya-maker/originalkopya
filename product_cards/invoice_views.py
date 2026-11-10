@@ -299,9 +299,6 @@ def invoice_parasut_mapping_save(request, customer_id):
         return redirect("invoice_parasut_mapping_list")
     try:
         with transaction.atomic():
-            if ParasutCustomerMapping.objects.filter(external_contact_id=code).exclude(customer=customer).exists():
-                messages.error(request, "Paraşüt cari ID başka bir müşteriye eşleştirilmiş.", extra_tags="mapping_notice")
-                return redirect("invoice_parasut_mapping_list")
             ParasutCustomerMapping.objects.update_or_create(
                 customer=customer, defaults={"external_contact_id": code},
             )
@@ -336,15 +333,12 @@ def invoice_customer_mapping_save(request, customer_id):
         return redirect("invoice_customer_mapping_list")
     try:
         with transaction.atomic():
-            if BizimHesapCustomerMapping.objects.filter(external_customer_id=code).exclude(customer=customer).exists():
-                messages.error(request, "Bu cari kodu başka bir müşteriye eşleştirilmiş.")
-                return redirect("invoice_customer_mapping_list")
             BizimHesapCustomerMapping.objects.update_or_create(
                 customer=customer,
                 defaults={"external_customer_id": code, "confirmed_by": request.user},
             )
     except IntegrityError:
-        messages.error(request, "Bu cari kodu zaten başka bir müşteride kullanılıyor.")
+        messages.error(request, "Cari eşleştirmesi kaydedilemedi; lütfen tekrar deneyin.")
         return redirect("invoice_customer_mapping_list")
     messages.success(request, f"{customer.ad}: Cari eşleştirmesi kaydedildi.")
     return redirect("invoice_customer_mapping_list")
