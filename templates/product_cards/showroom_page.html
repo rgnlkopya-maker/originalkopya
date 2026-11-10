@@ -353,6 +353,59 @@
  .showroom-sheet-head .showroom-fx-fields{margin-top:0!important}
 }
 
+
+/* Tight top strip: override older spacious sheet-header styles reliably. */
+@media(min-width:1201px){
+ .showroom-sheet-head{
+  grid-template-columns:minmax(190px,1fr) minmax(440px,2.6fr) minmax(105px,.52fr) minmax(105px,.52fr)!important;
+  align-items:center!important;row-gap:4px!important;
+  padding:10px 14px!important;
+ }
+ .showroom-sheet-head>.showroom-summary-wrap{
+  align-self:center!important;height:auto!important;
+  margin:0!important;padding:0!important;
+ }
+ .showroom-sheet-head>.showroom-summary-wrap .showroom-summary-scroll{
+  height:auto!important;overflow:visible!important;
+ }
+ .showroom-sheet-head>.showroom-summary-wrap .showroom-summary{
+  min-height:0!important;height:auto!important;gap:6px!important;
+ }
+ .showroom-sheet-head>.showroom-summary-wrap .summary-box{
+  min-height:0!important;height:49px!important;
+  padding:5px 8px!important;border-radius:9px!important;
+ }
+ .showroom-sheet-head>.showroom-summary-wrap .summary-box span{
+  font-size:9px!important;margin-bottom:2px!important;
+ }
+ .showroom-sheet-head>.showroom-summary-wrap .summary-box strong{font-size:16px!important;line-height:1.1!important}
+ .showroom-sheet-head>.smart-folio-heading-block{align-self:center!important}
+ .showroom-sheet-head>.moli-smart-folio-action{
+  padding:7px 10px!important;row-gap:4px!important;
+ }
+ .showroom-sheet-head>.moli-smart-folio-action .moli-reader-config{
+  row-gap:3px!important;
+ }
+ .showroom-sheet-head>.moli-smart-folio-action .moli-reader-config>span{
+  display:none!important;
+ }
+ .showroom-sheet-head .showroom-customer-wrap,
+ .showroom-sheet-head .showroom-order-taker-wrap,
+ .showroom-sheet-head .showroom-order-type-wrap,
+ .showroom-sheet-head>.showroom-fx-fields>div{align-self:end!important;margin-top:0!important}
+ .showroom-sheet-head .showroom-customer,
+ .showroom-sheet-head .showroom-order-taker,
+ .showroom-sheet-head .showroom-order-type,
+ .showroom-sheet-head #showroomCurrency{
+  height:34px!important;min-height:34px!important;
+  padding:4px 9px!important;
+ }
+ .showroom-sheet-head .showroom-customer-add-btn{
+  height:34px!important;min-height:34px!important;
+ }
+ .showroom-sheet-head label{margin-bottom:3px!important}
+}
+
 </style>
 {% endblock %}
 
