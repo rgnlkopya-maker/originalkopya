@@ -184,8 +184,11 @@ if (!EDIT_MODE) {
   if(v.errors.length){
     const first=v.errors[0];
     const rowMatch=first.match(/^(\\d+)\\. satır/);
-    const target=rowMatch?panel.querySelectorAll('tbody tr')[Number(rowMatch[1])-1]
-      ?.querySelector('input:not([value]), input[data-key="product_code"], select[data-key="color"], select[data-key="size"]')
+    const tr=rowMatch?panel.querySelectorAll('tbody tr')[Number(rowMatch[1])-1]:null;
+    const missingField=tr&&[...tr.querySelectorAll('[data-key]')].find(el=>
+      ['product_code','color','size','quantity','unit_price'].includes(el.dataset.key)
+      &&(!el.value||(['quantity','unit_price'].includes(el.dataset.key)&&Number(el.value)<=0)));
+    const target=rowMatch?(missingField||tr?.querySelector('[data-key="product_code"]'))
       :first.includes('Müşteri')?panel.querySelector('#moliSmartCustomer')
       :first.includes('Para birimi')?panel.querySelector('#moliSmartCurrency')
       :first.includes('indirim')?panel.querySelector('#moliSmartDiscount')
