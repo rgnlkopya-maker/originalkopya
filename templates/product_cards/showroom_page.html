@@ -406,6 +406,103 @@
  .showroom-sheet-head label{margin-bottom:3px!important}
 }
 
+
+/* Desktop one-line folio toolbar: ALL eight sections share one grid row.
+   Width is reduced, not the controls' height. Keep form DOM/logic unchanged. */
+@media(min-width:1450px){
+ .showroom-sheet-head{
+  display:grid!important;
+  grid-template-columns:minmax(165px,1.25fr) minmax(340px,2.6fr)
+     minmax(90px,.72fr) minmax(90px,.72fr)
+     minmax(205px,1.85fr) minmax(105px,1.05fr)
+     minmax(105px,.95fr) minmax(105px,.95fr)!important;
+  align-items:center!important;
+  column-gap:8px!important;row-gap:0!important;
+  padding:12px 14px!important;
+ }
+ .showroom-sheet-head>.smart-folio-heading-block{
+  grid-column:1!important;grid-row:1!important;min-width:0!important;
+ }
+ .showroom-sheet-head>.smart-folio-heading-block .showroom-sheet-title{
+  font-size:17px!important;line-height:1.25!important;
+ }
+ .showroom-sheet-head>.smart-folio-heading-block .showroom-sheet-intro{
+  font-size:11px!important;line-height:1.4!important;
+ }
+ .showroom-sheet-head>.moli-smart-folio-action{
+  grid-column:2!important;grid-row:1!important;min-width:0!important;
+  margin:0!important;padding:8px!important;
+ }
+ .showroom-sheet-head>.moli-smart-folio-action>div:first-child{
+  min-width:0!important;
+ }
+ .showroom-sheet-head>.moli-smart-folio-action #moliSmartRead{
+  padding:8px 9px!important;font-size:11px!important;
+ }
+ .showroom-sheet-head>.moli-smart-folio-action .moli-reader-config select{
+  max-width:138px!important;
+ }
+ .showroom-sheet-head>.showroom-summary-wrap{
+  grid-column:3/span 2!important;grid-row:1!important;min-width:0!important;
+  align-self:center!important;margin:0!important;padding:0!important;
+ }
+ .showroom-sheet-head>.showroom-summary-wrap .showroom-summary{
+  grid-template-columns:repeat(2,minmax(0,1fr))!important;
+  height:auto!important;gap:7px!important;
+ }
+ .showroom-sheet-head>.showroom-summary-wrap .summary-box{
+  min-width:0!important;width:auto!important;height:63px!important;
+  min-height:63px!important;padding:8px!important;
+ }
+ .showroom-sheet-head>.showroom-sheet-head-fields,
+ .showroom-sheet-head>.showroom-fx-fields{display:contents!important}
+ .showroom-sheet-head .showroom-customer-wrap{
+  grid-column:5!important;grid-row:1!important;min-width:0!important;
+ }
+ .showroom-sheet-head .showroom-order-taker-wrap{
+  grid-column:6!important;grid-row:1!important;min-width:0!important;
+ }
+ .showroom-sheet-head .showroom-order-type-wrap{
+  grid-column:7!important;grid-row:1!important;min-width:0!important;
+ }
+ .showroom-sheet-head>.showroom-fx-fields>div{
+  grid-column:8!important;grid-row:1!important;min-width:0!important;
+ }
+ .showroom-sheet-head .showroom-customer-inline{
+  display:grid!important;grid-template-columns:minmax(0,1fr) auto!important;
+  gap:4px!important;min-width:0!important;
+ }
+ .showroom-sheet-head .showroom-customer-add-btn{
+  font-size:10px!important;padding:0 6px!important;
+  height:40px!important;min-height:40px!important;
+  white-space:nowrap!important;
+ }
+ .showroom-sheet-head .showroom-customer,
+ .showroom-sheet-head .showroom-order-taker,
+ .showroom-sheet-head .showroom-order-type,
+ .showroom-sheet-head #showroomCurrency{
+  width:100%!important;height:40px!important;min-height:40px!important;
+  padding:7px 8px!important;font-size:12px!important;
+ }
+ .showroom-sheet-head .showroom-fx-fields{margin:0!important}
+ .showroom-sheet-head .showroom-customer-wrap label,
+ .showroom-sheet-head .showroom-order-taker-wrap label,
+ .showroom-sheet-head .showroom-order-type-wrap label,
+ .showroom-sheet-head>.showroom-fx-fields label{
+  font-size:10px!important;margin-bottom:5px!important;
+ }
+}
+/* Restore normal usable form controls whenever the viewport needs wrapping. */
+@media(min-width:1201px) and (max-width:1449px){
+ .showroom-sheet-head .showroom-customer,
+ .showroom-sheet-head .showroom-order-taker,
+ .showroom-sheet-head .showroom-order-type,
+ .showroom-sheet-head #showroomCurrency,
+ .showroom-sheet-head .showroom-customer-add-btn{
+  height:40px!important;min-height:40px!important;
+ }
+}
+
 </style>
 {% endblock %}
 
