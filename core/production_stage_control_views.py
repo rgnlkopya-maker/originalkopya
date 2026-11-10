@@ -2,6 +2,7 @@ from collections import defaultdict
 
 from app_settings.access import data_scope_value
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth import get_user_model
 from django.core.paginator import Paginator
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
@@ -18,6 +19,24 @@ STAGES = {
 }
 
 REQUIRED_VALUES = ("basladi", "bitti")
+
+
+
+def _manager_event_names():
+    """Usernames/full names saved as strings in OrderEvent.user for patron/mudur."""
+    User = get_user_model()
+    managers = (
+        User.objects.filter(groups__name__in=("patron", "mudur"))
+        | User.objects.filter(is_superuser=True)
+    ).distinct().values("username", "first_name", "last_name")
+    names = set()
+    for user in managers:
+        username = (user["username"] or "").strip()
+        full_name = " ".join(part for part in ((user["first_name"] or "").strip(), (user["last_name"] or "").strip()) if part)
+        for value in (username, full_name):
+            if value:
+                names.add(" ".join(value.casefold().split()))
+    return names
 
 
 def _has_stage_evidence(events, *stage_names):
@@ -193,6 +212,7 @@ def production_stage_control(request):
 
     problems = []
     personnel_entries = defaultdict(list)
+    manager_names = _manager_event_names()
     unshipped_after_week = get_unshipped_inactive_orders(request.user)
     for order in orders:
         events = events_by_order.get(order.id, [])
@@ -262,8 +282,13 @@ def production_stage_control(request):
             else order.sevkiyat_durum == "gonderildi"
         )
 
-        # Aynı eksikliği birden fazla kural yakalasa bile ekranda bir kez göster.
-        reasons = list(dict.fromkeys(reasons))
+        # Patron/mudur kaynakli islemleri HATA listelerine dahil etme.
+        # Siparisteki diger personel sorunlari gorunmeye devam eder.
+        attributions = [
+            item for item in attributions
+            if " ".join(item["actor"].casefold().split()) not in manager_names
+        ]
+        reasons = list(dict.fromkeys(item["reason"] for item in attributions))
         if reasons and (order.id, "stage_problem") not in exclusions:
             last_event = events[-1]
             problems.append({
