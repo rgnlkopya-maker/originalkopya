@@ -7,7 +7,7 @@
   bar.innerHTML='<button type="button" id="folioHandwriteBtn" class="pricing-add">📷 Föy Oku (El Yazısı)</button><input type="file" id="folioHandwriteFile" accept="image/*" style="display:none"><span id="folioHandwriteStatus" role="status" style="font-size:12px;color:#64748b"></span>';
   head.prepend(bar);
   const btn=bar.querySelector('button'),picker=bar.querySelector('input'),status=bar.querySelector('span');
-  const norm=x=>String(x??'').trim().toLocaleLowerCase('tr-TR').replace(/\\s+/g,' ');
+  const norm=x=>String(x??'').trim().toLocaleLowerCase('tr-TR').replace(/\s+/g,' ');
   const option=(html,value,multi=false)=>{
    const el=document.createElement('select');el.innerHTML=html;
    const found=[...el.options].find(o=>norm(o.value)===norm(value)||norm(o.textContent)===norm(value));
@@ -73,7 +73,7 @@
     let notice=sheet.querySelector('#handwrittenFolioReview');
     if(!notice){notice=document.createElement('div');notice.id='handwrittenFolioReview';sheet.querySelector('.showroom-sheet-inner').prepend(notice);}
     notice.style.cssText='white-space:pre-wrap;background:#fffbeb;border:1px solid #fcd34d;color:#78350f;padding:14px;border-radius:12px;margin-bottom:12px;font-size:13px';
-    notice.textContent='FÖY OKUMA KONTROLÜ — Kaydetmeden önce fotoğrafla karşılaştırın.\\n'+(issues.length?issues.map((v,i)=>(i+1)+'. '+v).join('\\n'):'Belirgin fark bulunmadı. Yine de tüm alanları kontrol edin.');
+    notice.textContent='FÖY OKUMA KONTROLÜ — Kaydetmeden önce fotoğrafla karşılaştırın.\n'+(issues.length?issues.map((v,i)=>(i+1)+'. '+v).join('\n'):'Belirgin fark bulunmadı. Yine de tüm alanları kontrol edin.');
     status.textContent=next.length+' satır aktarıldı, '+issues.length+' kontrol notu.';
    }catch(err){status.textContent=err.message||'Okuma sırasında hata oluştu.';}
    finally{btn.disabled=false;picker.value='';}
