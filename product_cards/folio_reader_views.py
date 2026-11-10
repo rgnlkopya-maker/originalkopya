@@ -134,7 +134,8 @@ def read_handwritten_folio(request):
             payload["max_completion_tokens"] = 5000
         else:
             # Reasoning models may reject temperature; use completion token budget.
-            payload["max_completion_tokens"] = 9000
+            payload["max_completion_tokens"] = 5500
+            payload["reasoning_effort"] = "low"
         response = requests.post(
             "https://api.openai.com/v1/chat/completions",
             headers={"Authorization": "Bearer " + key, "Content-Type": "application/json"},
