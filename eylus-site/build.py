@@ -208,16 +208,8 @@ def solution_page():
                 f'{solution_content(title,description,module)}</section>'
             )
     return (
-        '<section class="sol-hero"><div class="wrap sol-hero-inner">'
-        + eyebrow('Eylus çözümleri')
-        + '<h1>İşletmenizdeki sorunu seçin.<br><em>Çözümünü hemen görün.</em></h1>'
-        + f'<p>Üretimden satışa, muhasebeden yönetime. {total} gerçek işletme ihtiyacına karşılık gelen Eylus çözümlerini keşfedin.</p>'
-        + '</div></section>'
-        + '<section class="sol-section" id="sorular"><div class="wrap">'
-        + '<div class="sol-section-heading"><div>'
-        + eyebrow('İhtiyacınıza göre keşfedin')
-        + '<h2>Hangi alanda çözüm arıyorsunuz?</h2></div>'
-        + '<p>Önce alanı, sonra sizi ilgilendiren soruyu seçin.</p></div>'
+        '<section class="sol-section" id="sorular"><div class="wrap">'
+        + '<div class="sol-section-heading"><h1>Hangi alanda çözüm arıyorsunuz?</h1></div>'
         + '<div class="sol-categories" role="group" aria-label="Çözüm kategorileri">'
         + ''.join(categories) + '</div>'
         + '<div class="sol-layout">'
@@ -244,9 +236,9 @@ CSS += r'''
 .sol-hero h1 em{font-style:normal;color:var(--purple)}
 .sol-hero p{max-width:700px;color:var(--muted);font-size:16px;line-height:1.7;margin:0 0 20px}
 .sol-hero-link{display:inline-flex;gap:9px;align-items:center;color:var(--purple);font-size:13px;font-weight:700;padding:5px 0}
-.sol-section{background:#faf9fc;padding:58px 0 85px}
-.sol-section-heading{display:flex;align-items:end;justify-content:space-between;gap:20px;margin-bottom:24px}
-.sol-section-heading h2{font-size:clamp(26px,3vw,35px);letter-spacing:-.04em;margin:14px 0 0}
+.sol-section{background:#faf9fc;padding:38px 0 85px}
+.sol-section-heading{margin-bottom:22px}
+.sol-section-heading h1{font-size:clamp(27px,3vw,36px);line-height:1.2;letter-spacing:-.04em;margin:0}
 .sol-section-heading p{color:var(--muted);font-size:13px;line-height:1.6;margin:0 0 3px;max-width:350px}
 .sol-categories{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:11px;margin-bottom:36px}
 .sol-category{width:100%;display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:66px;text-align:left;border:1px solid #e8e0ee;background:#fff;border-radius:12px;padding:16px 17px;transition:box-shadow .2s,border-color .2s,background .2s}
@@ -300,14 +292,14 @@ CSS += r'''
  .sol-answer p{font-size:13px;line-height:1.75;margin-bottom:17px}
  .sol-module{padding:12px;margin-bottom:16px}
  .sol-cta .button{min-height:41px;padding:10px 14px}
- .sol-section{padding:42px 0 68px}
+ .sol-section{padding:30px 0 68px}
 }
 @media(max-width:560px){
  .sol-hero{padding:47px 0 37px}
  .sol-hero h1{font-size:clamp(33px,9vw,43px);line-height:1.14;margin:17px 0}
  .sol-hero p{font-size:14px}
  .sol-section-heading{display:block;margin-bottom:17px}
- .sol-section-heading h2{font-size:25px;margin:10px 0}
+ .sol-section-heading h1{font-size:25px;margin:0}
  .sol-section-heading p{font-size:12px}
  .sol-categories{gap:8px;margin-bottom:26px}
  .sol-category{min-height:58px;padding:12px;display:flex;flex-direction:column;align-items:flex-start;gap:4px}
