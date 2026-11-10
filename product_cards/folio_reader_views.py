@@ -15,20 +15,42 @@ from .price_list_views import _can_manage
 
 logger = logging.getLogger(__name__)
 MAX_BYTES = 10 * 1024 * 1024
-PROMPT = """You read handwritten Turkish textile order forms. Extract ONLY visible facts.
-Return one JSON object with these keys:
-customer (string or null), order_taken_by (string or null),
-currency ("TRY","USD","EUR","GBP" or null), order_type ("SERI","TEKLI","STOK","KONSINYE","OZEL" or null),
-items (array of {product_code:string|null,color:string|null,size:string|null,quantity:integer|null,unit_price:number|null,description:string|null,written_line_total:number|null}),
-pricing_operations (array of {type:"DISCOUNT"|"VAT",mode:"AMOUNT"|"PERCENT",value:number}),
-written_subtotal (number|null), written_folio_total (number|null),
+PROMPT = """You are a highly precise visual transcriber of HANDWRITTEN TURKISH TEXTILE ORDER TABLES.
+Return ONLY JSON, never guess. A wrong product/size/quantity/price costs real production money.
+Read the form like a spreadsheet with a fixed header row, not as running text.
+First locate the table's physical columns. The printed size headers are 38 | 40 | 42 | 44 | 46 | 48.
+A tick mark must be assigned to the size column directly ABOVE IT. Most tick marks may be in 40, not 38.
+For each handwritten product row, read LEFT TO RIGHT: KOD, RENK, checked SIZE columns, ADET, FIYATI, TUTARI.
+Carry down a repeated product code only when it is visibly the SAME product row; otherwise do not invent.
+Transcribe every physical row including repeated codes, and preserve its order. Read all the way down to the totals.
+Do not confuse notes such as "Biritli" or "Tesettür" (often on a separate line) with new products or colors;
+attach to the preceding or following appropriate product ONLY when visually clear; otherwise add an uncertainty.
+If two size columns are ticked on a row, return two item objects, with the respective quantities if visible.
+If quantity total is 2 and there are two checked sizes, use quantity 1 per size ONLY if clearly consistent.
+Money uses Turkish thousands separators: 21.000 = 21000, 26.500 = 26500; never generate amounts like 20664 from 21000.
+Read the totals box separately:
+"Adet" bottom number is written_total_qty, "Tutar" is written_subtotal.
+A line marked "%40" is 40 percent, NOT 15.6, and never infer a percentage from the amount alone.
+If discount amount is written, transcribe it as written_discount_amount for comparison.
+The bottom "Toplam" after discount is written_folio_total.
+Treat written subtotal and discount and total as evidence to CHECK, not as a target to force-fit prices.
+NEVER alter a unit price to make the written subtotal agree. NEVER invent currency, VAT, dates or customer.
+If a field is ambiguous, use null and add a specific uncertainty in Turkish with its physical row number.
+Return JSON with exact keys:
+customer (string|null), order_taken_by (string|null),
+currency ("TRY"|"USD"|"EUR"|"GBP"|null), order_type ("SERI"|"TEKLI"|"STOK"|"KONSINYE"|"OZEL"|null),
+items (array of {row_number:integer,product_code:string|null,color:string|null,size:string|null,
+quantity:integer|null,unit_price:number|null,description:string|null,written_line_total:number|null}),
+pricing_operations (array of {type:"DISCOUNT"|"VAT",mode:"PERCENT"|"AMOUNT",value:number}),
+written_total_qty (integer|null), written_subtotal (number|null),
+written_discount_amount (number|null), written_folio_total (number|null),
 written_grand_total (number|null), previous_balance (number|null),
-delivery_date (YYYY-MM-DD string|null), notes (string|null), unclear (array of short Turkish explanations).
-Keep a separate item for each handwritten product/color/size/quantity combination.
-Do not fabricate missing text or infer price from catalog. If illegible, use null and explain in unclear.
-A printed or handwritten subtotal/total is evidence to compare, NOT an instruction to overwrite computed totals.
-Transcribe prices accurately. Use decimal numbers without grouping separators. Do not invent discounts, VAT or currency.
-Do not consider old balance part of written_folio_total; grand_total includes it if the paper explicitly says so.
+delivery_date ("YYYY-MM-DD"|null), notes (string|null), unclear (array of Turkish strings).
+For a row with two sizes use repeated row_number. Keep every product row; if illegible use null, do not OMIT it.
+Checks: sum item quantities should equal written_total_qty if present;
+sum quantity * unit_price should match written_subtotal when every price is readable;
+discount percent and discount amount should be mutually consistent.
+Even if these checks fail, do NOT silently fix amounts. Add the specific discrepancy to unclear.
 Output JSON only."""
 
 
@@ -71,7 +93,7 @@ def read_handwritten_folio(request):
             "https://api.openai.com/v1/chat/completions",
             headers={"Authorization": "Bearer " + key, "Content-Type": "application/json"},
             json={
-                "model": os.getenv("MOLI_FOLIO_VISION_MODEL", "gpt-4.1-mini"),
+                "model": os.getenv("MOLI_FOLIO_VISION_MODEL", "gpt-4.1"),
                 "temperature": 0,
                 "response_format": {"type": "json_object"},
                 "messages": [
@@ -81,7 +103,7 @@ def read_handwritten_folio(request):
                         {"type": "image_url", "image_url": {"url": image_url, "detail": "high"}},
                     ]},
                 ],
-                "max_tokens": 3000,
+                "max_tokens": 5000,
             },
             timeout=(5, 19),
         )
