@@ -164,66 +164,203 @@ SOLUTION_GROUPS = [
   ]),
 ]
 def solution_page():
-    groups = []
+    def solution_content(title, description, module, compact=False):
+        heading = 'h4' if compact else 'h3'
+        return (f'<div class="sol-answer">'
+            f'<span class="sol-kicker">EYLUS İLE ÇÖZÜMÜ</span>'
+            f'<{heading}>{escape(title)}</{heading}>'
+            f'<p>{escape(description)}</p>'
+            f'<div class="sol-module"><span class="sol-module-icon" aria-hidden="true">▤</span><div><small>İlgili Eylus ekranı</small><strong>{escape(module)}</strong></div></div>'
+            f'<div class="sol-cta">{button("Canlı demoyu incele", "/demo/", "purple")}'
+            f'<a href="/iletisim/" class="sol-secondary-link">Bize ulaşın <span aria-hidden="true">→</span></a></div>'
+            f'</div>')
+
+    categories = []
     questions = []
-    panels = []
-    for group_key, group_name, items in SOLUTION_GROUPS:
-        groups.append(f'<button type="button" class="sol-category" data-sol-category="{group_key}" aria-pressed="{str(group_key==SOLUTION_GROUPS[0][0]).lower()}"><strong>{escape(group_name)}</strong><small>{len(items)} soru</small></button>')
-        for key, question, title, description, module in items:
-            selected = not questions
-            active_group = group_key == SOLUTION_GROUPS[0][0]
-            questions.append(f'<button type="button" class="sol-question" data-sol-group="{group_key}" id="sol-tab-{key}" role="tab" aria-selected="{str(selected).lower()}" tabindex="{0 if selected else -1}" aria-controls="sol-panel-{key}" {"hidden" if not active_group else ""}><span class="sol-index">•</span><span class="sol-question-label">{escape(question)}</span><span class="sol-arrow" aria-hidden="true">↗</span></button>')
-            panels.append(f"""<section class="sol-panel" id="sol-panel-{key}" role="tabpanel" aria-labelledby="sol-tab-{key}" tabindex="0" {'hidden' if not selected else ''}>
-              {eyebrow('Eylus ile çözümü')}
-              <h3>{escape(title)}</h3><p>{escape(description)}</p>
-              <div class="sol-screen" data-solution-screen="{key}">
-                <div class="sol-screen-header"><span class="sol-screen-dots" aria-hidden="true">● ● ●</span><strong>{escape(module)}</strong></div>
-                <div class="sol-screen-empty"><span class="sol-screen-icon" aria-hidden="true">▣</span><strong>Gerçek ekran görüntüsü eklenecek</strong><span>Yalnızca onaylı, müşteri ve personel bilgileri gizlenmiş Eylus uygulama görüntüsü kullanılacak.</span></div>
-              </div>
-              <div class="sol-actions">{button('Demoyu incele','/demo/','purple')}<a class="link" href="/iletisim/">İşletmem için görüşelim <span aria-hidden="true">→</span></a></div>
-            </section>""")
-    count = sum(len(items) for _, _, items in SOLUTION_GROUPS)
-    return """<section class="sol-intro"><div class="wrap">"""+eyebrow('Sorununu seç · Çözümünü gör · Demoyu incele')+f"""<h1>İşletmenizi zorlayan<br><em>sorunu seçin.</em></h1><p>Operasyon, satış, muhasebe ve yönetimde karşılaştığınız soruların Eylus'taki karşılıklarını görün. {count} soruyla işinize uygun çözümü keşfedin.</p><a class="link" href="#sorular">Soruları inceleyin <span aria-hidden="true">↓</span></a></div></section>
-    <section class="sol-section" id="sorular"><div class="wrap"><div class="sol-category-head">"""+eyebrow('Çözümler')+"""<h2>Önce çalışma alanınızı seçin.</h2><p>Bir kategori ve soru seçin; çözümü hemen yanında görün.</p></div><div class="sol-categories" role="group" aria-label="Çözüm kategorileri">"""+''.join(groups)+"""</div><div class="sol-layout"><div class="sol-left"><div class="eyebrow" id="sol-category-caption">Operasyon</div><h2>Sizi hangisi zorluyor?</h2><div class="sol-tablist" role="tablist" aria-label="İşletme sorunları" aria-orientation="vertical">"""+''.join(questions)+"""</div></div><div class="sol-right"><div class="sol-right-head"><span>EYLUS ÇÖZÜMLERİ</span><span>Seçtiğiniz sorunun karşılığı</span></div>"""+''.join(panels)+"""</div></div><p class="sol-note">Ekran görüntüleri onay ve anonimleştirme sonrası eklenecektir. Bazı özellikler yetki ve entegrasyon koşullarına bağlıdır.</p></div></section>"""+cta()
+    desktop_panels = []
+    total = sum(len(rows) for _, _, rows in SOLUTION_GROUPS)
+    for group_index, (group_key, group_name, rows) in enumerate(SOLUTION_GROUPS):
+        is_initial_group = group_index == 0
+        categories.append(
+            f'<button type="button" class="sol-category" data-sol-category="{escape(group_key)}" '
+            f'aria-pressed="{str(is_initial_group).lower()}">'
+            f'<span class="sol-category-title">{escape(group_name)}</span>'
+            f'<span class="sol-category-count">{len(rows)} konu</span></button>'
+        )
+        for number, (key, question, title, description, module) in enumerate(rows, 1):
+            is_initial_item = is_initial_group and number == 1
+            questions.append(
+                f'<article class="sol-item {"is-active" if is_initial_item else ""}" '
+                f'data-sol-item="{escape(key)}" data-sol-group="{escape(group_key)}" '
+                f'{"hidden" if not is_initial_group else ""}>'
+                f'<button type="button" class="sol-question" data-sol-question="{escape(key)}" '
+                f'aria-controls="sol-mobile-{escape(key)}" aria-expanded="{str(is_initial_item).lower()}">'
+                f'<span class="sol-question-index">{number:02}</span>'
+                f'<span class="sol-question-label">{escape(question)}</span>'
+                f'<span class="sol-question-chevron" aria-hidden="true">⌄</span></button>'
+                f'<div class="sol-mobile-panel" data-sol-mobile-panel="{escape(key)}" '
+                f'id="sol-mobile-{escape(key)}" {"hidden" if not is_initial_item else ""}>'
+                f'{solution_content(title,description,module,True)}</div></article>'
+            )
+            desktop_panels.append(
+                f'<section class="sol-desktop-panel" data-sol-desktop-panel="{escape(key)}" '
+                f'aria-label="{escape(question,quote=True)}" {"hidden" if not is_initial_item else ""}>'
+                f'{solution_content(title,description,module)}</section>'
+            )
+    return (
+        '<section class="sol-hero"><div class="wrap sol-hero-inner">'
+        + eyebrow('Eylus çözümleri')
+        + '<h1>İşletmenizdeki sorunu seçin.<br><em>Çözümünü hemen görün.</em></h1>'
+        + f'<p>Üretimden satışa, muhasebeden yönetime. {total} gerçek işletme ihtiyacına karşılık gelen Eylus çözümlerini keşfedin.</p>'
+        + '<a class="sol-hero-link" href="#sorular">Çözümleri keşfedin <span aria-hidden="true">↓</span></a>'
+        + '</div></section>'
+        + '<section class="sol-section" id="sorular"><div class="wrap">'
+        + '<div class="sol-section-heading"><div>'
+        + eyebrow('İhtiyacınıza göre keşfedin')
+        + '<h2>Hangi alanda çözüm arıyorsunuz?</h2></div>'
+        + '<p>Önce alanı, sonra sizi ilgilendiren soruyu seçin.</p></div>'
+        + '<div class="sol-categories" role="group" aria-label="Çözüm kategorileri">'
+        + ''.join(categories) + '</div>'
+        + '<div class="sol-layout">'
+        + '<div class="sol-left"><div class="sol-left-heading">'
+        + '<span class="sol-section-label" id="sol-category-caption">OPERASYON</span>'
+        + '<h2>Size tanıdık geliyor mu?</h2>'
+        + '</div><div class="sol-question-list" aria-label="Müşteri soruları">'
+        + ''.join(questions) + '</div></div>'
+        + '<div class="sol-right"><div class="sol-right-heading">'
+        + '<span>EYLUS' + ' / ÇÖZÜMÜNÜZ</span><span class="sol-right-mark">✦</span>'
+        + '</div>'
+        + ''.join(desktop_panels) + '</div>'
+        + '</div>'
+        + '<p class="sol-disclaimer">Ekran görüntüleri, gerçek müşteri ve personel bilgileri gizlendikten ve onaylandıktan sonra eklenecektir. '
+        + 'İşlevler kullanıcı yetkileri ve entegrasyon koşullarına bağlı olabilir.</p>'
+        + '</div></section>' + cta()
+    )
+
 CSS += r'''
-.sol-category-head{margin:0 0 22px}.sol-category-head h2{font-size:34px;letter-spacing:-.04em;margin:12px 0}.sol-category-head p{color:var(--muted);font-size:14px}
-.sol-categories{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:0 0 32px}
-.sol-category{display:flex;justify-content:space-between;gap:12px;align-items:center;text-align:left;border:1px solid #ddd6e8;border-radius:12px;background:#fff;padding:20px}
-.sol-category strong{font-size:16px}.sol-category small{font-size:11px;color:#796f87;white-space:nowrap}
-.sol-category[aria-pressed=true]{border:2px solid var(--purple);background:#f4f0ff;box-shadow:0 8px 28px #5d4bb015}
-.sol-category:hover{border-color:#9e8aca}.sol-question[hidden]{display:none!important}
-.sol-question[aria-selected=false]{opacity:.72!important;background:#fff!important}
-.sol-note{font-size:11px;color:#81798a;margin:22px 0 0}
-@media(max-width:860px){.sol-categories{grid-template-columns:repeat(2,minmax(0,1fr))}.sol-tablist{grid-template-columns:1fr 1fr}}
-@media(max-width:560px){.sol-categories{gap:8px}.sol-category{flex-direction:column;align-items:flex-start;padding:13px;gap:5px}.sol-tablist{grid-template-columns:1fr}.sol-category strong{font-size:14px}}
+/* Eylus solutions: purposeful desktop two-column layout, native mobile accordion. */
+.sol-hero{padding:65px 0 58px;background:radial-gradient(ellipse at 83% 38%,#efeaff 0,transparent 48%),linear-gradient(180deg,#fff,#fcfbff);border-bottom:1px solid #ece7f4}
+.sol-hero-inner{max-width:1180px}.sol-hero .eyebrow{font-size:11px;letter-spacing:.14em}
+.sol-hero h1{font-size:clamp(36px,4.35vw,58px);letter-spacing:-.052em;line-height:1.12;margin:22px 0 19px;max-width:900px}
+.sol-hero h1 em{font-style:normal;color:var(--purple)}
+.sol-hero p{max-width:700px;color:var(--muted);font-size:16px;line-height:1.7;margin:0 0 20px}
+.sol-hero-link{display:inline-flex;gap:9px;align-items:center;color:var(--purple);font-size:13px;font-weight:700;padding:5px 0}
+.sol-section{background:#faf9fc;padding:58px 0 85px}
+.sol-section-heading{display:flex;align-items:end;justify-content:space-between;gap:20px;margin-bottom:24px}
+.sol-section-heading h2{font-size:clamp(26px,3vw,35px);letter-spacing:-.04em;margin:14px 0 0}
+.sol-section-heading p{color:var(--muted);font-size:13px;line-height:1.6;margin:0 0 3px;max-width:350px}
+.sol-categories{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:11px;margin-bottom:36px}
+.sol-category{width:100%;display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:66px;text-align:left;border:1px solid #e8e0ee;background:#fff;border-radius:12px;padding:16px 17px;transition:box-shadow .2s,border-color .2s,background .2s}
+.sol-category:hover{border-color:#b2a3d9;box-shadow:0 5px 22px #4134610b}
+.sol-category[aria-pressed=true]{border:2px solid var(--purple);background:#f6f3ff;box-shadow:0 7px 22px #49369310;padding:15px 16px}
+.sol-category-title{font-size:15px;font-weight:750;letter-spacing:-.015em;color:#282236}
+.sol-category-count{font-size:11px;color:#81748e;white-space:nowrap}
+.sol-layout{display:grid;grid-template-columns:minmax(0,.96fr) minmax(0,1.04fr);gap:25px;align-items:start}
+.sol-left,.sol-right{min-width:0}
+.sol-left-heading{margin-bottom:18px}
+.sol-section-label{font-size:11px;letter-spacing:.14em;color:var(--purple);font-weight:750}
+.sol-left-heading h2{font-size:23px;letter-spacing:-.03em;margin:9px 0 0}
+.sol-question-list{display:grid;gap:9px}
+.sol-item{min-width:0;border:1px solid #e9e3ef;background:#fff;border-radius:12px;overflow:hidden;transition:border-color .15s,box-shadow .15s}
+.sol-item[hidden]{display:none!important}
+.sol-item:hover{border-color:#c3b8df}
+.sol-item.is-active{border-color:#917ddb;box-shadow:0 5px 18px #47378a0d}
+.sol-question{width:100%;display:grid;grid-template-columns:34px minmax(0,1fr) 19px;gap:13px;align-items:center;text-align:left;border:0;background:transparent;min-height:72px;padding:14px 15px;color:#302b3b}
+.sol-question-index{width:33px;height:33px;display:grid;place-items:center;border-radius:9px;background:#f4f1fa;color:#8776b6;font-size:11px;font-weight:750}
+.sol-question-label{font-size:13.5px;font-weight:600;line-height:1.47;overflow-wrap:anywhere}
+.sol-question-chevron{font-size:22px;line-height:1;color:#998bab;transform:rotate(-90deg)}
+.sol-item.is-active .sol-question-index{background:#eee8ff;color:var(--purple)}
+.sol-item.is-active .sol-question-label{color:#4e36a7}
+.sol-right{position:sticky;top:105px;border:1px solid #e8e1ef;background:white;box-shadow:0 17px 45px #30224b0c;border-radius:18px;overflow:hidden}
+.sol-right-heading{height:56px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #eeeaf3;padding:0 25px;color:#80738c;font-size:10px;font-weight:800;letter-spacing:.12em}
+.sol-right-mark{color:var(--purple);font-size:19px}
+.sol-desktop-panel[hidden]{display:none!important}
+.sol-answer{padding:34px 30px 30px}
+.sol-kicker{display:block;color:var(--purple);font-size:11px;letter-spacing:.13em;font-weight:800;margin-bottom:14px}
+.sol-answer h3,.sol-answer h4{font-size:clamp(24px,2.4vw,33px);letter-spacing:-.045em;line-height:1.18;margin:0 0 16px}
+.sol-answer p{font-size:15px;color:#635d70;line-height:1.8;margin:0 0 22px}
+.sol-module{display:flex;align-items:center;gap:14px;background:linear-gradient(110deg,#f8f5ff,#fcfbff);border:1px solid #e9e3f7;border-radius:13px;padding:16px;margin:0 0 25px}
+.sol-module-icon{display:grid;place-items:center;flex:0 0 39px;width:39px;height:39px;background:#ebe5fc;border-radius:11px;color:var(--purple);font-size:25px}
+.sol-module small{display:block;color:#8c8297;font-size:10px;margin-bottom:4px}
+.sol-module strong{display:block;font-size:13px;font-weight:750;line-height:1.4;color:#3d3155}
+.sol-cta{display:flex;align-items:center;gap:18px;flex-wrap:wrap}
+.sol-cta .button{min-height:45px}
+.sol-secondary-link{font-size:13px;font-weight:700;color:#6551b3;white-space:nowrap}
+.sol-disclaimer{margin:26px 0 0;color:#8a8195;font-size:11px;line-height:1.7}
+.sol-mobile-panel{display:none}
+@media(max-width:900px){
+ .sol-categories{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .sol-layout{grid-template-columns:1fr;gap:16px}
+ .sol-right{display:none}
+ .sol-mobile-panel:not([hidden]){display:block;border-top:1px solid #eee8f6;background:#fcfbff}
+ .sol-item.is-active{border:1px solid var(--purple);box-shadow:0 8px 20px #53439613}
+ .sol-item.is-active .sol-question-chevron{transform:rotate(180deg)}
+ .sol-question-chevron{transform:rotate(0deg)}
+ .sol-answer{padding:19px 19px 21px}
+ .sol-answer h4{font-size:22px;line-height:1.23;margin:0 0 11px}
+ .sol-answer p{font-size:13px;line-height:1.75;margin-bottom:17px}
+ .sol-module{padding:12px;margin-bottom:16px}
+ .sol-cta .button{min-height:41px;padding:10px 14px}
+ .sol-section{padding:42px 0 68px}
+}
+@media(max-width:560px){
+ .sol-hero{padding:47px 0 37px}
+ .sol-hero h1{font-size:clamp(33px,9vw,43px);line-height:1.14;margin:17px 0}
+ .sol-hero p{font-size:14px}
+ .sol-section-heading{display:block;margin-bottom:17px}
+ .sol-section-heading h2{font-size:25px;margin:10px 0}
+ .sol-section-heading p{font-size:12px}
+ .sol-categories{gap:8px;margin-bottom:26px}
+ .sol-category{min-height:58px;padding:12px;display:flex;flex-direction:column;align-items:flex-start;gap:4px}
+ .sol-category[aria-pressed=true]{padding:11px}
+ .sol-category-title{font-size:14px}
+ .sol-category-count{font-size:10px}
+ .sol-left-heading h2{font-size:20px}
+ .sol-question{min-height:69px;padding:12px;grid-template-columns:29px minmax(0,1fr) 16px;gap:10px}
+ .sol-question-index{width:29px;height:29px;font-size:10px}
+ .sol-question-label{font-size:13px}
+ .sol-answer{padding:17px 14px 19px}
+ .sol-answer h4{font-size:21px}
+ .sol-cta{gap:14px}
+ .sol-secondary-link{font-size:12px}
+}
+@media(prefers-reduced-motion:reduce){.sol-category,.sol-item{transition:none}}
 '''
+
 JS += r'''
-const categoryButtons=[...document.querySelectorAll('[data-sol-category]')];
-const allSolutionTabs=[...document.querySelectorAll('.sol-question[role="tab"]')];
-function chooseSolution(tab,focus=false){
-  allSolutionTabs.forEach(t=>{
-    const active=t===tab;t.setAttribute('aria-selected',String(active));t.tabIndex=active?0:-1;
-    const panel=document.getElementById(t.getAttribute('aria-controls'));if(panel)panel.hidden=!active;
-  });if(focus)tab.focus();
+const solCategories=[...document.querySelectorAll('[data-sol-category]')];
+const solQuestionButtons=[...document.querySelectorAll('[data-sol-question]')];
+const solItems=[...document.querySelectorAll('[data-sol-item]')];
+let solSelected=solQuestionButtons[0]?.dataset.solQuestion||null;
+function solSetQuestion(key){
+  solSelected=key;
+  solQuestionButtons.forEach(btn=>{
+    const active=btn.dataset.solQuestion===key;
+    btn.setAttribute('aria-expanded',String(active));
+  });
+  solItems.forEach(item=>item.classList.toggle('is-active',item.dataset.solItem===key));
+  document.querySelectorAll('[data-sol-mobile-panel]').forEach(panel=>{
+    panel.hidden=panel.dataset.solMobilePanel!==key;
+  });
+  document.querySelectorAll('[data-sol-desktop-panel]').forEach(panel=>{
+    panel.hidden=panel.dataset.solDesktopPanel!==key;
+  });
 }
-function chooseCategory(key){
-  categoryButtons.forEach(c=>c.setAttribute('aria-pressed',String(c.dataset.solCategory===key)));
-  allSolutionTabs.forEach(t=>{t.hidden=t.dataset.solGroup!==key;});
-  const button=categoryButtons.find(c=>c.dataset.solCategory===key);
+function solSelectCategory(group){
+  solCategories.forEach(btn=>btn.setAttribute('aria-pressed',String(btn.dataset.solCategory===group)));
+  solItems.forEach(item=>{item.hidden=item.dataset.solGroup!==group;});
   const caption=document.getElementById('sol-category-caption');
-  if(button&&caption)caption.textContent=button.querySelector('strong').textContent;
-  const first=allSolutionTabs.find(t=>t.dataset.solGroup===key);if(first)chooseSolution(first);
+  const button=solCategories.find(btn=>btn.dataset.solCategory===group);
+  if(caption&&button)caption.textContent=button.querySelector('.sol-category-title').textContent.toLocaleUpperCase('tr-TR');
+  const first=solItems.find(item=>item.dataset.solGroup===group);
+  solSetQuestion(first?.dataset.solItem||null);
 }
-categoryButtons.forEach(c=>c.addEventListener('click',()=>chooseCategory(c.dataset.solCategory)));
-allSolutionTabs.forEach(tab=>{
-  tab.addEventListener('click',()=>chooseSolution(tab));
-  tab.addEventListener('keydown',e=>{
-    const visible=allSolutionTabs.filter(t=>!t.hidden),i=visible.indexOf(tab);
-    let n=i;
-    if(e.key==='ArrowDown'||e.key==='ArrowRight')n=(i+1)%visible.length;
-    else if(e.key==='ArrowUp'||e.key==='ArrowLeft')n=(i+visible.length-1)%visible.length;
-    else if(e.key==='Home')n=0;else if(e.key==='End')n=visible.length-1;else return;
-    e.preventDefault();chooseSolution(visible[n],true);
+solCategories.forEach(btn=>btn.addEventListener('click',()=>solSelectCategory(btn.dataset.solCategory)));
+solQuestionButtons.forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    const key=btn.dataset.solQuestion;
+    const mobile=window.matchMedia('(max-width: 900px)').matches;
+    solSetQuestion(mobile&&solSelected===key?null:key);
   });
 });
 '''
