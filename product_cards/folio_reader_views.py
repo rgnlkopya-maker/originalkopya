@@ -4,6 +4,7 @@ import io
 import json
 import logging
 import os
+import time
 
 import requests
 from PIL import Image, ImageOps, UnidentifiedImageError
@@ -54,33 +55,24 @@ Even if these checks fail, do NOT silently fix amounts. Add the specific discrep
 Output JSON only."""
 
 
-def _image_data(upload):
-    """Make a focused image of the written content, avoiding large empty paper margins."""
+def _image_data(upload, detailed=False):
+    """Create API-only views. Original uploaded files are NEVER edited or replaced.
+
+    The Supabase original-photo archive receives the untouched upload elsewhere.
+    Normal mode sends one full-frame view; detailed mode adds two read-only crops.
+    """
     if upload.size < 50 or upload.size > MAX_BYTES:
         raise ValueError("Fotoğraf 10 MB sınırında ve boş olmayan bir dosya olmalı.")
     try:
         with Image.open(upload) as original:
             if original.format not in ("JPEG", "PNG", "WEBP", "HEIF", "HEIC", "MPO", "TIFF"):
                 raise ValueError("Lütfen JPEG, PNG, WEBP veya HEIC biçiminde fotoğraf yükleyin.")
-            original.seek(0)
             image = ImageOps.exif_transpose(original).convert("RGB")
-            # Some photos have a very large white bottom area that makes the table tiny.
-            # Crop only if the content bounding box is clear and the savings are meaningful.
-            if image.width >= 250 and image.height >= 250:
-                gray = image.convert("L")
-                ink = gray.point(lambda x: 255 if x < 205 else 0)
-                bbox = ink.getbbox()
-                if bbox:
-                    margin = max(14, int(min(image.size) * .025))
-                    left, top, right, bottom = bbox
-                    bbox = (max(0, left - margin), max(0, top - margin),
-                            min(image.width, right + margin), min(image.height, bottom + margin))
-                    if (bbox[2] - bbox[0]) * (bbox[3] - bbox[1]) < image.width * image.height * .82:
-                        image = image.crop(bbox)
-            # Provide the full page and two overlapping close-ups in a SINGLE API request.
-            # Each crop retains table headers/row positions; the full page anchors totals.
+            # No deskew, contrast, sharpening or content crop in the normal mode.
+            # Resizing only applies to the API copy, never the original attachment.
+            image.thumbnail((2800, 2800))
             views = [image]
-            if image.height > 500:
+            if detailed and image.height > 500:
                 height = image.height
                 views.extend([
                     image.crop((0, 0, image.width, int(height * .65))),
@@ -88,9 +80,8 @@ def _image_data(upload):
                 ])
             urls = []
             for view in views:
-                view.thumbnail((2800, 2800))
                 buffer = io.BytesIO()
-                view.save(buffer, "JPEG", quality=92, optimize=True)
+                view.save(buffer, "JPEG", quality=90, optimize=True)
                 urls.append("data:image/jpeg;base64," + base64.b64encode(buffer.getvalue()).decode("ascii"))
             return urls
     except (UnidentifiedImageError, OSError) as exc:
@@ -99,6 +90,7 @@ def _image_data(upload):
 @login_required
 @require_POST
 def read_handwritten_folio(request):
+    started = time.perf_counter()
     if not _can_manage(request.user):
         return JsonResponse({"ok": False, "error": "Bu işlem için yetkiniz yok."}, status=403)
     uploads = request.FILES.getlist("photos") or ([request.FILES["photo"]] if "photo" in request.FILES else [])
@@ -108,20 +100,24 @@ def read_handwritten_folio(request):
         return JsonResponse({"ok": False, "error": "Tek okumada en fazla 15 fotoğraf yüklenebilir."}, status=400)
     if sum(file.size for file in uploads) > 60 * 1024 * 1024:
         return JsonResponse({"ok": False, "error": "Fotoğrafların toplam boyutu 60 MB sınırını aşamaz."}, status=400)
+    read_mode = request.POST.get("read_mode", "standard")
+    if read_mode not in ("standard", "detailed"):
+        return JsonResponse({"ok": False, "error": "Geçersiz okuma seçimi."}, status=400)
     try:
         from pillow_heif import register_heif_opener
         register_heif_opener()
         image_urls = []
         if len(uploads) == 1:
-            image_urls = _image_data(uploads[0])
+            image_urls = _image_data(uploads[0], detailed=(read_mode == "detailed"))
         else:
             # Many distinct pages: one legible full-page view per uploaded photo.
             # Do not duplicate each page with overlapping crops.
             for upload in uploads:
-                image_urls.append(_image_data(upload)[0])
+                image_urls.extend(_image_data(upload, detailed=False))
     except ValueError as exc:
         return JsonResponse({"ok": False, "error": str(exc)}, status=400)
-    requested_model = request.POST.get("model", "gpt-4.1").strip()
+    prepare_ms = round((time.perf_counter() - started) * 1000)
+    requested_model = request.POST.get("model", "gpt-6-astra").strip()
     allowed_models = {"gpt-4.1", "gpt-6.1-sol", "gpt-6-astra"}
     if requested_model not in allowed_models:
         return JsonResponse({"ok": False, "error": "Desteklenmeyen okuma modeli."}, status=400)
@@ -147,12 +143,14 @@ def read_handwritten_folio(request):
             # Reasoning models may reject temperature; use completion token budget.
             payload["max_completion_tokens"] = 5500
             payload["reasoning_effort"] = "low"
+        api_started = time.perf_counter()
         response = requests.post(
             "https://api.openai.com/v1/chat/completions",
             headers={"Authorization": "Bearer " + key, "Content-Type": "application/json"},
             json=payload,
             timeout=(7, 80),
         )
+        api_ms = round((time.perf_counter() - api_started) * 1000)
         if response.status_code == 400:
             logger.warning("Folio model rejected request: model=%s", requested_model)
             return JsonResponse({"ok": False, "error": "Seçilen model okuma isteğini kabul etmedi. Başka bir model seçin; mevcut föy değişmedi."}, status=503)
@@ -179,7 +177,13 @@ def read_handwritten_folio(request):
             raise ValueError("Beklenen alanlar okuma yanıtında bulunamadı.")
         parsed["items"] = parsed["items"][:200]
         usage = result.get("usage") or {}
-        return JsonResponse({"ok": True, "data": parsed, "model": requested_model,
+        total_ms = round((time.perf_counter() - started) * 1000)
+        logger.info("Folio reader complete: model=%s mode=%s pages=%s views=%s prep_ms=%s api_ms=%s total_ms=%s",
+                    requested_model, read_mode, len(uploads), len(image_urls), prepare_ms, api_ms, total_ms)
+        return JsonResponse({"ok": True, "data": parsed, "model": result.get("model", requested_model),
+                             "read_mode": read_mode,
+                             "timing": {"preparation_ms": prepare_ms, "api_ms": api_ms, "total_ms": total_ms,
+                                        "images_sent": len(image_urls)},
                              "usage": {"input_tokens": usage.get("prompt_tokens"),
                                        "output_tokens": usage.get("completion_tokens"),
                                        "total_tokens": usage.get("total_tokens")}})
