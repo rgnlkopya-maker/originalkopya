@@ -163,12 +163,37 @@ SOLUTION_GROUPS = [
     ("yonetim-05", "Dünkü sevkiyatların ciro ve brüt kârını biliyor musunuz?", "Sevkiyat finansını görün", "Dünkü sevkiyatın ciro, maliyet, brüt kâr ve kâr marjını para birimi bazında inceleyin.", "Patron Ekranı · Finans"),
   ]),
 ]
+# Explicitly approved, anonymized real app captures only. Do not auto-discover photos.
+# After user approval, map: "operasyon-01": ("siparis-listesi.webp", "Sipariş Listesi ekranı")
+APPROVED_SOLUTION_SCREENSHOTS = {}
+
+def approved_solution_screen(key):
+    approved = APPROVED_SOLUTION_SCREENSHOTS.get(key)
+    if not approved:
+        return ''
+    filename, alt = approved
+    if Path(filename).name != filename or Path(filename).suffix.lower() not in ('.webp', '.png', '.jpg', '.jpeg'):
+        raise ValueError('Unsafe screenshot filename for ' + key)
+    original = Path(__file__).parent / 'screens' / filename
+    if not original.is_file():
+        raise FileNotFoundError('Approved screenshot file missing: ' + filename)
+    from shutil import copyfile
+    output = OUT / 'assets' / 'solutions'
+    output.mkdir(parents=True, exist_ok=True)
+    copyfile(original, output / filename)
+    url = '/assets/solutions/' + escape(filename, quote=True)
+    return (f'<figure class="sol-real-screen"><a href="{url}" target="_blank" rel="noopener" '
+            f'aria-label="Ekran görüntüsünü büyüt: {escape(alt, quote=True)}">'
+            f'<img loading="lazy" decoding="async" src="{url}" alt="{escape(alt, quote=True)}"></a>'
+            f'<figcaption>Gerçek Eylus uygulama ekranı · Büyütmek için seçin</figcaption></figure>')
+
 def solution_page():
-    def solution_content(title, description, module, compact=False):
+    def solution_content(key, title, description, module, compact=False):
         heading = 'h4' if compact else 'h3'
         return (f'<div class="sol-answer">'
             f'<{heading}>{escape(title)}</{heading}>'
             f'<p>{escape(description)}</p>'
+            f'{approved_solution_screen(key)}'
             f'<div class="sol-module"><span class="sol-module-icon" aria-hidden="true">▤</span><div><small>İlgili Eylus ekranı</small><strong>{escape(module)}</strong></div></div>'
             f'</div>')
 
@@ -197,12 +222,12 @@ def solution_page():
                 f'<span class="sol-question-chevron" aria-hidden="true">⌄</span></button>'
                 f'<div class="sol-mobile-panel" data-sol-mobile-panel="{escape(key)}" '
                 f'id="sol-mobile-{escape(key)}" {"hidden" if not is_initial_item else ""}>'
-                f'{solution_content(title,description,module,True)}</div></article>'
+                f'{solution_content(key,title,description,module,True)}</div></article>'
             )
             desktop_panels.append(
                 f'<section class="sol-desktop-panel" data-sol-desktop-panel="{escape(key)}" '
                 f'aria-label="{escape(question,quote=True)}" {"hidden" if not is_initial_item else ""}>'
-                f'{solution_content(title,description,module)}</section>'
+                f'{solution_content(key,title,description,module)}</section>'
             )
     return (
         '<section class="sol-section" id="sorular"><div class="wrap">'
@@ -258,6 +283,10 @@ CSS += r'''
 .sol-answer{padding:34px 30px 30px}
 .sol-answer h3,.sol-answer h4{font-size:clamp(24px,2.4vw,33px);letter-spacing:-.045em;line-height:1.18;margin:0 0 16px}
 .sol-answer p{font-size:15px;color:#635d70;line-height:1.8;margin:0 0 22px}
+.sol-real-screen{margin:0 0 19px;border:1px solid #e9e3f7;border-radius:13px;overflow:hidden;background:#fff}
+.sol-real-screen a{display:block;line-height:0}
+.sol-real-screen img{display:block;width:100%;max-height:470px;height:auto;object-fit:contain}
+.sol-real-screen figcaption{padding:10px 14px;color:#6f6580;font-size:11px;border-top:1px solid #ece7f5;line-height:1.5}
 .sol-module{display:flex;align-items:center;gap:14px;background:linear-gradient(110deg,#f8f5ff,#fcfbff);border:1px solid #e9e3f7;border-radius:13px;padding:16px;margin:0}
 .sol-module-icon{display:grid;place-items:center;flex:0 0 39px;width:39px;height:39px;background:#ebe5fc;border-radius:11px;color:var(--purple);font-size:25px}
 .sol-module small{display:block;color:#8c8297;font-size:10px;margin-bottom:4px}
