@@ -1,125 +1,140 @@
 
- // Existing showroom editor integration. No alternate pricing engine.
- if(!EDIT_MODE){
-  const head=sheet.querySelector('.showroom-sheet-head');
-  const bar=document.createElement('div');
-  bar.style.cssText='display:flex;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:12px';
-  bar.innerHTML='<button type="button" id="folioHandwriteBtn" class="pricing-add">📷 Föy Oku (El Yazısı)</button><input type="file" id="folioHandwriteFile" accept="image/*" style="display:none"><span id="folioHandwriteStatus" role="status" style="font-size:12px;color:#64748b"></span>';
-  head.prepend(bar);
-  const btn=bar.querySelector('button'),picker=bar.querySelector('input'),status=bar.querySelector('span');
-  const norm=x=>String(x??'').trim().toLocaleLowerCase('tr-TR').replace(/\s+/g,' ');
-  const option=(html,value,multi=false)=>{
-   const el=document.createElement('select');el.innerHTML=html;
-   const found=[...el.options].find(o=>norm(o.value)===norm(value)||norm(o.textContent)===norm(value));
+// Smart folio: read -> human review -> explicit apply to the EXISTING editor.
+// A model output never modifies orders, prices or the active draft by itself.
+if (!EDIT_MODE) {
+ const host=sheet.querySelector('.showroom-sheet-head');
+ const toolbar=document.createElement('div');
+ toolbar.style.cssText='display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:14px';
+ toolbar.innerHTML='<button type="button" class="pricing-add" id="moliSmartRead">📷 El Yazısı Föyü Oku</button><input type="file" id="moliSmartPhoto" accept="image/*" style="display:none"><span role="status" id="moliSmartStatus" style="color:#64748b;font-size:13px"></span>';
+ host.prepend(toolbar);
+ const start=toolbar.querySelector('#moliSmartRead'),file=toolbar.querySelector('#moliSmartPhoto'),status=toolbar.querySelector('#moliSmartStatus');
+ const normalize=x=>String(x??'').trim().toLocaleLowerCase('tr-TR').replace(/\s+/g,' ');
+ const num=x=>(x===null||x===undefined||x==='')?null:Number(x);
+ const esc=x=>escapeHtml(String(x??''));
+ const selectValue=(optionsHtml,raw)=>{
+   const el=document.createElement('select');el.innerHTML=optionsHtml;
+   const found=[...el.options].find(o=>normalize(o.value)===normalize(raw)||normalize(o.textContent)===normalize(raw));
    return found?found.value:'';
-  };
-  const number=x=>x===null||x===undefined||x===''?null:Number(x);
-  btn.addEventListener('click',()=>picker.click());
-  picker.addEventListener('change',async()=>{
-   const photo=picker.files[0];if(!photo)return;
-   if(showroomItems.length&&!confirm('Açık föydeki ürünler yeni okuma ile değiştirilecek. Devam edilsin mi?')){picker.value='';return;}
-   btn.disabled=true;status.textContent='El yazısı okunuyor...';
-   try{
+ };
+ let review=null;
+ start.addEventListener('click',()=>file.click());
+ file.addEventListener('change',async()=>{
+  const photo=file.files[0];if(!photo)return;
+  start.disabled=true;status.textContent='Görsel okunuyor; mevcut föy değiştirilmez...';
+  try {
     const form=new FormData();form.append('photo',photo);
-    const response=await fetch('{% url "read_handwritten_folio" %}',{method:'POST',headers:{'X-CSRFToken':csrf()},credentials:'same-origin',body:form});
-    const result=await response.json();
-    if(!response.ok||!result.ok)throw Error(result.error||'Okuma başarısız.');
-    const data=result.data,issues=Array.isArray(data.unclear)?data.unclear.map(String):[];
-    const customer=option(customerOptions,data.customer);
-    if(data.customer&&!customer)issues.push('Müşteri eşleşmedi: '+data.customer+'. Elle seçin.');
-    const next=[];
-    (data.items||[]).forEach((r,i)=>{
-     const code=String(r.product_code||'').trim(),color=option(colorOptions,r.color),size=option(sizeOptions,r.size),qty=number(r.quantity),price=number(r.unit_price);
-     if(!code||!color||!size||!Number.isInteger(qty)||qty<1){
-      issues.push((i+1)+'. satır eksik: '+[code||'kod yok',r.color||'renk yok',r.size||'beden yok',r.quantity||'adet yok'].join(' / ')+'. Elle ekleyin.');return;
-     }
-     if(price===null||!Number.isFinite(price)||price<0)issues.push(code+' '+color+' '+size+' birim fiyatı okunamadı, girin.');
-     const written=number(r.written_line_total);
-     if(written!==null&&price!==null&&Number.isFinite(written)&&Number.isFinite(price)&&Math.abs(written-qty*price)>0.02)
-      issues.push(code+' '+color+' '+size+' satır toplamı uyuşmuyor: yazılan '+written+', hesaplanan '+qty*price+'.');
-     next.push({code,color,size,qty,price:price===null||!Number.isFinite(price)?0:price,description:String(r.description||'')});
-    });
-    if(!next.length)throw Error('Okunup eşleştirilebilen ürün satırı yok. '+issues.join(' '));
-    // Compare the raw paper totals BEFORE touching the existing editor state.
-    const originalRows=Array.isArray(data.items)?data.items:[];
-    const paperQty=number(data.written_total_qty);
-    const parsedQty=next.reduce((sum,row)=>sum+row.qty,0);
-    const paperSubtotal=number(data.written_subtotal);
-    const parsedSubtotal=next.reduce((sum,row)=>sum+row.qty*row.price,0);
-    if(originalRows.length!==next.length)
-      issues.push('Bazı satırlar eşleştirilemedi: '+originalRows.length+' okunan satırdan '+next.length+' tanesi aktarılabilir. Eksik satırları elle girin.');
-    if(paperQty!==null&&Number.isFinite(paperQty)&&paperQty!==parsedQty)
-      issues.push('KRİTİK ADET FARKI: Kağıtta '+paperQty+' adet, aktarılacak '+parsedQty+' adet.');
-    if(paperSubtotal!==null&&Number.isFinite(paperSubtotal)&&Math.abs(paperSubtotal-parsedSubtotal)>0.02)
-      issues.push('KRİTİK ARA TOPLAM FARKI: Kağıtta '+paperSubtotal+', aktarılacak '+parsedSubtotal+'.');
-    const paperDiscount=number(data.written_discount_amount);
-    const discountOperation=(data.pricing_operations||[]).find(op=>op.type==='DISCOUNT'&&op.mode==='PERCENT');
-    if(paperDiscount!==null&&Number.isFinite(paperDiscount)&&paperSubtotal!==null&&discountOperation){
-      const discountPercent=number(discountOperation.value);
-      if(discountPercent!==null&&Math.abs(paperSubtotal*discountPercent/100-paperDiscount)>0.02)
-        issues.push('KRİTİK İNDİRİM FARKI: Kağıttaki indirim tutarı '+paperDiscount+', okunan yüzdeyle hesap '+(paperSubtotal*discountPercent/100)+'.');
-    }
-    const invalidPrices=next.filter(row=>!Number.isFinite(row.price)||row.price<=0);
-    const invalidRows=originalRows.length!==next.length;
-    const invalidQty=paperQty!==null&&Number.isFinite(paperQty)&&paperQty!==parsedQty;
-    const invalidSubtotal=paperSubtotal!==null&&Number.isFinite(paperSubtotal)&&Math.abs(paperSubtotal-parsedSubtotal)>0.02;
-    const noPaperEvidence=paperQty===null&&paperSubtotal===null;
-    const blocking=invalidPrices.length>0||invalidRows||invalidQty||invalidSubtotal||noPaperEvidence;
-    if(blocking){
-      const errs=[
-        ...(invalidPrices.length?['Birim fiyatı boş/sıfır olan '+invalidPrices.length+' satır var.']:[]),
-        ...(invalidRows?['Okunan satırların tamamı eşleştirilemedi.']:[]),
-        ...(invalidQty?['Kağıt ile aktarılacak adet sayısı uyuşmuyor.']:[]),
-        ...(invalidSubtotal?['Kağıt ile hesaplanan ara toplam uyuşmuyor.']:[]),
-        ...(noPaperEvidence?['Kağıttaki toplam adet ve ara toplam okunamadı; doğrulama yapılamıyor.']:[])
-      ];
-      let notice=sheet.querySelector('#handwrittenFolioReview');
-      if(!notice){notice=document.createElement('div');notice.id='handwrittenFolioReview';sheet.querySelector('.showroom-sheet-inner').prepend(notice);}
-      notice.style.cssText='white-space:pre-wrap;background:#fef2f2;border:1px solid #fca5a5;color:#991b1b;padding:14px;border-radius:12px;margin-bottom:12px;font-size:13px';
-      notice.textContent='GÜVENLİK KONTROLÜ: Bu okuma mevcut föye AKTARILMADI.\n'+errs.join('\n')+'\n\nOkunan veriler (yalnızca inceleme):\n'+originalRows.map((r,i)=>(i+1)+'. '+[r.product_code||'?',r.color||'?',r.size||'?',r.quantity??'?',r.unit_price??'?'].join(' / ')).join('\n')+'\n\nDiğer notlar:\n'+issues.slice(0,30).join('\n');
-      status.textContent='Eksik veya tutarsız okuma. Mevcut föy korunuyor.';
-      return;
-    }
-    if(issues.length){
-      const proceed=confirm('El yazısı okumasında '+issues.length+' kontrol gerektiren konu var.\n\n'+issues.slice(0,12).join('\n')+'\n\nEksik/hatalı bilgileri düzeltmek için bunları föye aktarmak istiyor musunuz? Onaylanmayacak, ancak açık föydeki değerler değişecek.');
-      if(!proceed){status.textContent='Aktarım iptal edildi. Mevcut föy değiştirilmedi.';return;}
-    }
-    const group=new Map();
-    next.forEach(r=>{
-     const key=JSON.stringify([r.code,r.price]);
-     if(!group.has(key))group.set(key,{siparis_tipi:'SERI',urun_kodu:r.code,anlasilan_fiyat:r.price,satirlar:[]});
-     group.get(key).satirlar.push({renk:r.color,bedenler:[r.size],adet:r.qty,aciklama:r.description});
-    });
-    const ops=[];
-    (data.pricing_operations||[]).forEach(op=>{
-     const val=number(op.value);
-     if(['DISCOUNT','VAT'].includes(op.type)&&['PERCENT','AMOUNT'].includes(op.mode)&&val!==null&&Number.isFinite(val)&&val>=0)
-      ops.push({type:op.type,mode:op.type==='VAT'?'PERCENT':op.mode,value:val});
-     else issues.push('Fiyat işlemi belirsiz; elle kontrol edin.');
-    });
-    showroomItems.splice(0,showroomItems.length,...group.values());
-    showroomPayments.splice(0,showroomPayments.length);
-    pricingOperations.splice(0,pricingOperations.length,...ops);
-    customerId=customer||'';orderTakenBy=String(data.order_taken_by||'').slice(0,120);
-    orderType=['SERI','TEKLI','STOK','KONSINYE','OZEL'].includes(data.order_type)?data.order_type:'SERI';
-    if(['TRY','USD','EUR','GBP'].includes(data.currency))currency=data.currency;
-    else issues.push('Para birimini kontrol edin.');
-    const old=number(data.previous_balance);previousBalance=old!==null&&Number.isFinite(old)?Math.max(0,old):0;
-    folioAdjustmentTarget=''; // Never turn a mistaken handwritten total into a price adjustment.
-    renderSheet();scheduleSave();
-    if(data.delivery_date)issues.push('Teslim tarihi: '+data.delivery_date+' (mevcut föyde ayrı tarih alanı yok; kontrol edin).');
-    if(data.notes)issues.push('Genel not: '+String(data.notes));
-    for(const [label,key,calculated] of [['Ara toplam','written_subtotal',subtotal()],['Föy toplamı','written_folio_total',folioTotal()],['Genel toplam','written_grand_total',grandTotal()]]){
-     const val=number(data[key]);
-     if(val!==null&&Number.isFinite(val)&&Math.abs(val-calculated)>0.02)
-      issues.push(label+' uyuşmuyor. El yazısı: '+money(val)+'; MoliApp: '+money(calculated)+'; fark: '+money(Math.abs(val-calculated))+'.');
-    }
-    let notice=sheet.querySelector('#handwrittenFolioReview');
-    if(!notice){notice=document.createElement('div');notice.id='handwrittenFolioReview';sheet.querySelector('.showroom-sheet-inner').prepend(notice);}
-    notice.style.cssText='white-space:pre-wrap;background:#fffbeb;border:1px solid #fcd34d;color:#78350f;padding:14px;border-radius:12px;margin-bottom:12px;font-size:13px';
-    notice.textContent='FÖY OKUMA KONTROLÜ — Kaydetmeden önce fotoğrafla karşılaştırın.\n'+(issues.length?issues.map((v,i)=>(i+1)+'. '+v).join('\n'):'Belirgin fark bulunmadı. Yine de tüm alanları kontrol edin.');
-    status.textContent=next.length+' satır aktarıldı, '+issues.length+' kontrol notu.';
-   }catch(err){status.textContent=err.message||'Okuma sırasında hata oluştu.';}
-   finally{btn.disabled=false;picker.value='';}
-  });
+    const response=await fetch('{% url "read_handwritten_folio" %}',{method:'POST',credentials:'same-origin',headers:{'X-CSRFToken':csrf()},body:form});
+    const payload=await response.json();
+    if(!response.ok||!payload.ok)throw Error(payload.error||'Okuma başarısız');
+    review={data:payload.data||{},fileName:photo.name};
+    displayReview();
+    status.textContent='Okuma tamamlandı. Önce kontrol tablosunu düzeltin.';
+  }catch(e){status.textContent=e.message||'Okuma başarısız';}
+  finally {start.disabled=false;file.value='';}
+ });
+ function displayReview(){
+  let panel=sheet.querySelector('#moliSmartReview');
+  if(!panel){panel=document.createElement('section');panel.id='moliSmartReview';sheet.querySelector('.showroom-sheet-inner').insertBefore(panel,sheet.querySelector('.showroom-sheet-head'));}
+  const data=review.data;
+  const rows=Array.isArray(data.items)?data.items:[];
+  const options=(html,raw)=>{
+   const el=document.createElement('select');el.innerHTML=html;
+   const selected=selectValue(html,raw);
+   if(raw&&!selected){let o=document.createElement('option');o.value='';o.textContent='⚠ Eşleşmedi: '+String(raw);el.prepend(o);}
+   el.value=selected;return el.innerHTML;
+  };
+  panel.style.cssText='padding:16px;margin-bottom:16px;background:#fff;border:2px solid #d2dbe9;border-radius:14px;font-size:13px';
+  const rowHtml=rows.map((r,i)=>{
+   const cell=(key,v,width)=>'<td style="min-width:'+width+'px;padding:5px"><input data-i="'+i+'" data-key="'+key+'" value="'+esc(v)+'" style="width:100%;min-width:0;border:1px solid #ccd4e2;border-radius:6px;padding:7px"></td>';
+   const select=(key,html,v)=>'<td style="min-width:100px;padding:5px"><select data-i="'+i+'" data-key="'+key+'" style="width:100%;min-width:0;border:1px solid #ccd4e2;border-radius:6px;padding:7px">'+options(html,v)+'</select></td>';
+   return '<tr>'+cell('product_code',r.product_code,85)+select('color',colorOptions,r.color)+select('size',sizeOptions,r.size)+cell('quantity',r.quantity,65)+cell('unit_price',r.unit_price,95)+cell('written_line_total',r.written_line_total,95)+cell('description',r.description,115)+'</tr>';
+  }).join('');
+  panel.innerHTML='<div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center"><h4 style="margin:0">El Yazısı Okuma – Kontrol</h4><button id="moliSmartDiscard" type="button" class="sheet-delete">İncelemeyi Kapat</button></div>'
+  +'<p style="margin:7px 0">Orijinal: '+esc(review.fileName)+'. Okuma sonuçları taslak değildir. Eksikleri burada düzeltmeden föye aktarılmaz.</p>'
+  +'<div style="overflow:auto"><table style="border-collapse:collapse;width:100%;min-width:840px"><thead><tr><th>Kod</th><th>Renk</th><th>Beden</th><th>Adet</th><th>Birim fiyat</th><th>Yazılı satır toplamı</th><th>Açıklama</th></tr></thead><tbody>'+rowHtml+'</tbody></table></div>'
+  +'<div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:12px"><label>Müşteri <select id="moliSmartCustomer" style="padding:8px;max-width:250px">'+options(customerOptions,data.customer)+'</select></label><label>Para birimi <select id="moliSmartCurrency"><option value="">Seçiniz</option><option value="TRY">TL</option><option value="USD">USD</option><option value="EUR">EUR</option><option value="GBP">GBP</option></select></label><label>İndirim (%) <input id="moliSmartDiscount" type="number" min="0" max="100" step="0.01" style="width:90px;padding:8px"></label><label>Siparişi alan <input id="moliSmartTaker" style="padding:8px;width:150px" value="'+esc(data.order_taken_by)+'"></label></div>'
+  +'<div id="moliSmartDiagnostics" style="white-space:pre-wrap;background:#f8fafc;border-radius:10px;padding:12px;margin-top:12px"></div>'
+  +'<label style="display:flex;align-items:center;gap:8px;margin:12px 0"><input type="checkbox" id="moliSmartConfirm"> Satırları orijinal fotoğrafla karşılaştırdım; eksik/hatalı alanları düzelttim.</label>'
+  +'<button type="button" id="moliSmartApply" class="pricing-add">Kontrol Edilen Verileri Föye Aktar</button>';
+  const currencyEl=panel.querySelector('#moliSmartCurrency');
+  currencyEl.value=['TRY','USD','EUR','GBP'].includes(data.currency)?data.currency:'';
+  const discountEl=panel.querySelector('#moliSmartDiscount');
+  const disc=Array.isArray(data.pricing_operations)?data.pricing_operations.find(o=>o.type==='DISCOUNT'&&o.mode==='PERCENT'):null;
+  discountEl.value=disc&&Number.isFinite(num(disc.value))?String(disc.value):'';
+  panel.querySelector('#moliSmartDiscard').onclick=()=>{review=null;panel.remove();status.textContent='İnceleme kapatıldı; föy değiştirilmedi.';};
+  panel.addEventListener('input',recompute);
+  panel.addEventListener('change',recompute);
+  panel.querySelector('#moliSmartApply').onclick=applyReviewed;
+  recompute();
+  panel.scrollIntoView({behavior:'smooth',block:'start'});
  }
+ function currentRows(){
+  const p=sheet.querySelector('#moliSmartReview'),items=[];
+  if(!p)return items;
+  p.querySelectorAll('tbody tr').forEach((tr,i)=>{
+   const field=k=>tr.querySelector('[data-key="'+k+'"]')?.value??'';
+   items.push({code:field('product_code').trim(),color:field('color'),size:field('size'),qty:num(field('quantity')),price:num(field('unit_price')),written:num(field('written_line_total')),description:field('description'),row:i+1});
+  });
+  return items;
+ }
+ function validate(){
+  const p=sheet.querySelector('#moliSmartReview'),items=currentRows(),data=review?.data||{},errors=[],warnings=[];
+  const customer=p.querySelector('#moliSmartCustomer').value,curr=p.querySelector('#moliSmartCurrency').value,discountRaw=p.querySelector('#moliSmartDiscount').value;
+  if(!customer)errors.push('Müşteri seçilmedi.');
+  if(!curr)errors.push('Para birimi seçilmedi.');
+  if(!items.length)errors.push('Ürün satırı yok.');
+  let sum=0,qtySum=0;
+  items.forEach(r=>{
+   if(!r.code||!r.color||!r.size||!Number.isInteger(r.qty)||r.qty<=0||r.price===null||!Number.isFinite(r.price)||r.price<=0)
+      errors.push(r.row+'. satır: Kod, sistemdeki renk/beden, adet ve pozitif fiyat gerekli.');
+   if(Number.isFinite(r.qty)&&r.qty>0)qtySum+=r.qty;
+   if(Number.isFinite(r.qty)&&Number.isFinite(r.price))sum+=r.qty*r.price;
+   if(r.written!==null&&Number.isFinite(r.written)&&r.price!==null&&Number.isFinite(r.price)&&r.qty!==null&&Math.abs(r.written-r.qty*r.price)>.02)
+      warnings.push(r.row+'. satır hesabı: Yazılı '+r.written+', hesaplanan '+(r.qty*r.price)+'.');
+  });
+  const originalQty=num(data.written_total_qty),originalSubtotal=num(data.written_subtotal);
+  if(originalQty!==null&&qtySum!==originalQty)errors.push('ADET UYUŞMAZLIĞI: Kağıtta '+originalQty+', burada '+qtySum+'.');
+  if(originalSubtotal!==null&&Math.abs(sum-originalSubtotal)>.02)
+    warnings.push('ARA TOPLAM UYUŞMAZLIĞI: Kağıtta '+originalSubtotal+', MoliApp hesabında '+sum+'. (El yazısında hesap hatası olabilir.)');
+  const discount=discountRaw===''?null:num(discountRaw);
+  if(discount===null)warnings.push('İndirim boş: varsa yüzdeyi yazın.');
+  else if(!Number.isFinite(discount)||discount<0||discount>100)errors.push('İndirim 0–100 arasında olmalı.');
+  const net=sum*(1-(discount||0)/100),paperNet=num(data.written_folio_total);
+  if(paperNet!==null&&Math.abs(net-paperNet)>.02)warnings.push('NET TOPLAM UYUŞMAZLIĞI: Kağıtta '+paperNet+', hesaplanan '+net+'.');
+  const paperDiscount=num(data.written_discount_amount);
+  if(paperDiscount!==null&&discount!==null&&Math.abs(sum*discount/100-paperDiscount)>.02)warnings.push('İndirim tutarı uyuşmuyor: yazılı '+paperDiscount+', hesaplanan '+sum*discount/100+'.');
+  (Array.isArray(data.unclear)?data.unclear:[]).slice(0,12).forEach(x=>warnings.push('Okuma notu: '+String(x)));
+  return {items,errors,warnings,customer,curr,discount,sum,net,qtySum};
+ }
+ function recompute(){
+  const panel=sheet.querySelector('#moliSmartReview');if(!panel||!review)return;
+  const v=validate(),diagnostic=panel.querySelector('#moliSmartDiagnostics');
+  diagnostic.textContent='Ürün: '+v.items.length+' satır | Adet: '+v.qtySum+' | Ara toplam: '+v.sum.toLocaleString('tr-TR')+' | Hesaplanan indirim sonrası: '+v.net.toLocaleString('tr-TR')+'\n\n'
+    +(v.errors.length?'DÜZELTİLMESİ GEREKENLER:\n'+v.errors.join('\n')+'\n\n':'')
+    +(v.warnings.length?'KONTROL NOTLARI:\n'+v.warnings.join('\n'):'');
+  diagnostic.style.border='1px solid '+(v.errors.length?'#fca5a5':'#d1d5db');
+  const button=panel.querySelector('#moliSmartApply');
+  button.disabled=!!v.errors.length||!panel.querySelector('#moliSmartConfirm').checked;
+  button.title=button.disabled?'Eksikleri tamamlayın ve kontrol kutusunu işaretleyin.':'';
+ }
+ function applyReviewed(){
+  const panel=sheet.querySelector('#moliSmartReview'),v=validate();if(!panel||v.errors.length||!panel.querySelector('#moliSmartConfirm').checked)return;
+  if(v.warnings.length&&!confirm('Hesaplama veya okuma uyarıları var. Bu uyarıları kontrol ettiniz mi?\n\n'+v.warnings.slice(0,7).join('\n')))return;
+  if(showroomItems.length&&!confirm('Mevcut föyde ürünler var. Kontrol edilmiş satırlar bunların yerine geçecek. Devam edilsin mi?'))return;
+  const grouped=new Map();
+  v.items.forEach(r=>{
+    const k=JSON.stringify([r.code,r.price]);
+    if(!grouped.has(k))grouped.set(k,{siparis_tipi:'SERI',urun_kodu:r.code,anlasilan_fiyat:r.price,satirlar:[]});
+    grouped.get(k).satirlar.push({renk:r.color,bedenler:[r.size],adet:r.qty,aciklama:r.description});
+  });
+  showroomItems.splice(0,showroomItems.length,...grouped.values());
+  showroomPayments.splice(0,showroomPayments.length);
+  pricingOperations.splice(0,pricingOperations.length);
+  if(v.discount!==null&&v.discount>0)pricingOperations.push({type:'DISCOUNT',mode:'PERCENT',value:v.discount});
+  customerId=v.customer;currency=v.curr;orderTakenBy=panel.querySelector('#moliSmartTaker').value.slice(0,120);
+  previousBalance=0;folioAdjustmentTarget='';
+  renderSheet();scheduleSave();
+  status.textContent=v.qtySum+' adet kontrol edilerek föye aktarıldı.';
+  panel.remove();review=null;
+ }
+}
