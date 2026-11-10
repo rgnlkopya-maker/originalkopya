@@ -17,6 +17,8 @@ if (!EDIT_MODE) {
    return found?found.value:'';
  };
  let review=null;
+ let photoUrl=null;
+ const clearPhoto=()=>{if(photoUrl){URL.revokeObjectURL(photoUrl);photoUrl=null;}};
  start.addEventListener('click',()=>file.click());
  file.addEventListener('change',async()=>{
   const photo=file.files[0];if(!photo)return;
@@ -26,6 +28,7 @@ if (!EDIT_MODE) {
     const response=await fetch('{% url "read_handwritten_folio" %}',{method:'POST',credentials:'same-origin',headers:{'X-CSRFToken':csrf()},body:form});
     const payload=await response.json();
     if(!response.ok||!payload.ok)throw Error(payload.error||'Okuma başarısız');
+    clearPhoto();photoUrl=URL.createObjectURL(photo);
     review={data:payload.data||{},fileName:photo.name};
     displayReview();
     status.textContent='Okuma tamamlandı. Önce kontrol tablosunu düzeltin.';
@@ -51,17 +54,19 @@ if (!EDIT_MODE) {
   }).join('');
   panel.innerHTML='<div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center"><h4 style="margin:0">El Yazısı Okuma – Kontrol</h4><button id="moliSmartDiscard" type="button" class="sheet-delete">İncelemeyi Kapat</button></div>'
   +'<p style="margin:7px 0">Orijinal: '+esc(review.fileName)+'. Okuma sonuçları taslak değildir. Eksikleri burada düzeltmeden föye aktarılmaz.</p>'
+  +'<div style="max-height:380px;overflow:auto;background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;margin:10px 0;text-align:center"><img id="moliSmartOriginal" alt="Yüklenen orijinal föy" style="max-width:100%;height:auto" /></div>'
   +'<div style="overflow:auto"><table style="border-collapse:collapse;width:100%;min-width:840px"><thead><tr><th>Kod</th><th>Renk</th><th>Beden</th><th>Adet</th><th>Birim fiyat</th><th>Yazılı satır toplamı</th><th>Açıklama</th></tr></thead><tbody>'+rowHtml+'</tbody></table></div>'
   +'<div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:12px"><label>Müşteri <select id="moliSmartCustomer" style="padding:8px;max-width:250px">'+options(customerOptions,data.customer)+'</select></label><label>Para birimi <select id="moliSmartCurrency"><option value="">Seçiniz</option><option value="TRY">TL</option><option value="USD">USD</option><option value="EUR">EUR</option><option value="GBP">GBP</option></select></label><label>İndirim (%) <input id="moliSmartDiscount" type="number" min="0" max="100" step="0.01" style="width:90px;padding:8px"></label><label>Siparişi alan <input id="moliSmartTaker" style="padding:8px;width:150px" value="'+esc(data.order_taken_by)+'"></label></div>'
   +'<div id="moliSmartDiagnostics" style="white-space:pre-wrap;background:#f8fafc;border-radius:10px;padding:12px;margin-top:12px"></div>'
   +'<label style="display:flex;align-items:center;gap:8px;margin:12px 0"><input type="checkbox" id="moliSmartConfirm"> Satırları orijinal fotoğrafla karşılaştırdım; eksik/hatalı alanları düzelttim.</label>'
   +'<button type="button" id="moliSmartApply" class="pricing-add">Kontrol Edilen Verileri Föye Aktar</button>';
+  if(photoUrl)panel.querySelector('#moliSmartOriginal').src=photoUrl;
   const currencyEl=panel.querySelector('#moliSmartCurrency');
   currencyEl.value=['TRY','USD','EUR','GBP'].includes(data.currency)?data.currency:'';
   const discountEl=panel.querySelector('#moliSmartDiscount');
   const disc=Array.isArray(data.pricing_operations)?data.pricing_operations.find(o=>o.type==='DISCOUNT'&&o.mode==='PERCENT'):null;
   discountEl.value=disc&&Number.isFinite(num(disc.value))?String(disc.value):'';
-  panel.querySelector('#moliSmartDiscard').onclick=()=>{review=null;panel.remove();status.textContent='İnceleme kapatıldı; föy değiştirilmedi.';};
+  panel.querySelector('#moliSmartDiscard').onclick=()=>{review=null;panel.remove();clearPhoto();status.textContent='İnceleme kapatıldı; föy değiştirilmedi.';};
   panel.addEventListener('input',recompute);
   panel.addEventListener('change',recompute);
   panel.querySelector('#moliSmartApply').onclick=applyReviewed;
@@ -135,6 +140,6 @@ if (!EDIT_MODE) {
   previousBalance=0;folioAdjustmentTarget='';
   renderSheet();scheduleSave();
   status.textContent=v.qtySum+' adet kontrol edilerek föye aktarıldı.';
-  panel.remove();review=null;
+  panel.remove();clearPhoto();review=null;
  }
 }
