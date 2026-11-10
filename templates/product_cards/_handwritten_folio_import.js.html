@@ -113,7 +113,11 @@ if (!EDIT_MODE) {
   if(originalSubtotal!==null&&Math.abs(sum-originalSubtotal)>.02)
     warnings.push('ARA TOPLAM UYUŞMAZLIĞI: Kağıtta '+originalSubtotal+', MoliApp hesabında '+sum+'. (El yazısında hesap hatası olabilir.)');
   const discount=discountRaw===''?null:num(discountRaw);
-  if(discount===null)warnings.push('İndirim boş: varsa yüzdeyi yazın.');
+  const originalNet=num(data.written_folio_total);
+  const originalDiscount=num(data.written_discount_amount);
+  const requiresDiscount=(originalDiscount!==null&&originalDiscount>0)||(originalNet!==null&&originalSubtotal!==null&&originalNet<originalSubtotal-.02);
+  if(discount===null&&requiresDiscount)errors.push('Kağıtta indirim var; indirim yüzdesini mutlaka girin.');
+  else if(discount===null)warnings.push('İndirim okunamadı; varsa yüzdeyi yazın.');
   else if(!Number.isFinite(discount)||discount<0||discount>100)errors.push('İndirim 0–100 arasında olmalı.');
   const net=sum*(1-(discount||0)/100),paperNet=num(data.written_folio_total);
   if(paperNet!==null&&Math.abs(net-paperNet)>.02)warnings.push('NET TOPLAM UYUŞMAZLIĞI: Kağıtta '+paperNet+', hesaplanan '+net+'.');
