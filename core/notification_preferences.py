@@ -30,6 +30,7 @@ EVENTS = (
     ("product_profit_min", "En düşük kârlı ürün değişikliği", False, True),
     ("product_quantity_max", "En fazla sevk edilen ürün değişikliği", False, True),
     ("product_quantity_min", "En az sevk edilen ürün değişikliği", False, True),
+    ("finance_integrity_error", "Sevkiyat finans veri hatası", True, True),
 )
 EVENTS_BY_KEY = {key: {"title": name, "critical": critical, "push_default": push}
                  for key, name, critical, push in EVENTS}
@@ -58,6 +59,7 @@ EVENT_TITLE_KEYS = {
     "En Düşük Kârlı Ürün Değişti": "product_profit_min",
     "En Fazla Sevk Edilen Ürün Değişti": "product_quantity_max",
     "En Az Sevk Edilen Ürün Değişti": "product_quantity_min",
+    "Sevkiyat Finans Veri Hatası": "finance_integrity_error",
 }
 
 
