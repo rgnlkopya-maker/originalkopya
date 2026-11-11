@@ -4,6 +4,7 @@ from django.contrib.auth.decorators import login_required
 from django.shortcuts import get_object_or_404, redirect, render
 from django.http import JsonResponse
 from django.urls import reverse
+from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.http import require_GET
 from django.utils import timezone
 from django.views.decorators.http import require_POST
@@ -109,6 +110,15 @@ def todo_snooze(request, todo_id):
             "minutes": minutes,
             "snoozed_until": item.snoozed_until.isoformat(),
         })
+    # A popup can be opened over any MoliApp screen. Native form fallback
+    # must return to that same screen, not redirect the user to the todo list.
+    previous_page = (request.headers.get("Referer") or "").strip()
+    if previous_page and url_has_allowed_host_and_scheme(
+        previous_page,
+        allowed_hosts={request.get_host()},
+        require_https=request.is_secure(),
+    ):
+        return redirect(previous_page)
     return redirect("todo_list")
 
 
