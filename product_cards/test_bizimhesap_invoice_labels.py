@@ -1,7 +1,6 @@
 """Regression tests for BizimHesap product labels; no external API requests."""
 from datetime import date
 from decimal import Decimal
-from hashlib import sha256
 from types import SimpleNamespace
 from django.test import SimpleTestCase
 from .bizimhesap_payload import build_invoice_payload
@@ -31,7 +30,7 @@ class BizimHesapLineLabelTests(SimpleTestCase):
         payload, problems = build_invoice_payload(self.invoice, [line], self.mapping, "TEST-FIRM")
         self.assertEqual(problems, [])
         item = payload["details"][0]
-        self.assertEqual(item["productId"], "MOLI-7182-" + sha256("7182 Pudra 40 ÖZEL MDZI29162".encode("utf-8")).hexdigest()[:12])
+        self.assertEqual(item["productId"], "7182 Pudra 40 ÖZEL MDZI29162")
         self.assertEqual(item["productName"], "7182 Pudra 40 ÖZEL MDZI29162")
         self.assertEqual(item["total"], "8525.00")
 
