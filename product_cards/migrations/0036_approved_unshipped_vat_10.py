@@ -21,6 +21,10 @@ def apply_approved_vat(apps, schema_editor):
     Order = apps.get_model("core", "Order")
     InvoiceLine = apps.get_model("product_cards", "InvoiceLine")
     db = schema_editor.connection.alias
+    # A newly created CI/test database has no historical customer orders.
+    # Keep the strict 78-order safety check unchanged on populated databases.
+    if not Order.objects.using(db).exists():
+        return
     qs = (Order.objects.using(db).filter(
         pk__in=ORDER_IDS, is_active=True, vat_rate=Decimal("0"),
         musteri__ad__in=APPROVED_CUSTOMERS,
