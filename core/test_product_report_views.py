@@ -5,7 +5,8 @@ from types import SimpleNamespace
 from unittest.mock import patch
 
 from django.http import HttpResponse
-from django.template import engines
+from django.template import Context, Template, engines
+from django.utils import translation
 from django.test import RequestFactory, SimpleTestCase
 from django.urls import resolve, reverse
 
@@ -80,6 +81,30 @@ class ProductReportTests(SimpleTestCase):
         self.assertEqual(_valid_date("2026-11-10"), "2026-11-10")
         self.assertEqual(_valid_date("bad-date"), "")
         self.assertEqual(_valid_date("2026-02-30"), "")
+
+    def test_sort_values_remain_machine_readable_in_turkish_locale(self):
+        # Visible amounts are localized (1.234,56), but numeric data-sort
+        # attributes must use dot decimals for JavaScript Number().
+        source = engines["django"].get_template(
+            "reports/product_performance.html"
+        ).template.source
+        for field in ("revenue", "cost", "profit", "margin", "avg_price"):
+            self.assertIn(f"{{{{ r.{field}|unlocalize }}}}", source)
+
+        snippet = Template(
+            '{% load l10n %}'
+            '<td data-sort="{{ revenue|unlocalize }}">'
+            '{{ revenue|floatformat:2 }}</td>'
+            '<td data-sort="{{ profit|unlocalize }}">'
+            '{{ profit|floatformat:2 }}</td>'
+        )
+        with translation.override("tr"):
+            markup = snippet.render(Context({
+                "revenue": Decimal("1234567.89"),
+                "profit": Decimal("-2345.67"),
+            }))
+        self.assertIn('data-sort="1234567.89"', markup)
+        self.assertIn('data-sort="-2345.67"', markup)
 
     def test_route_and_template_resolve(self):
         self.assertEqual(
