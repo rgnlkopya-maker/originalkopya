@@ -1,6 +1,5 @@
 """Build BizimHesap AddInvoice JSON locally. This module performs no HTTP writes."""
 from decimal import Decimal, ROUND_HALF_UP
-from hashlib import sha256
 from .external_invoice_line_label import external_invoice_item_label
 
 CURRENCIES = {"TRY": "TL", "TL": "TL", "USD": "USD", "EUR": "EUR", "GBP": "GBP", "CHF": "CHF"}
@@ -67,7 +66,7 @@ def build_invoice_payload(invoice, lines, mapping, firm_id):
                     "): renk ve beden tamamlanmadan BizimHesap'a aktarılmaz."
                 )
                 continue
-            product_id = "MOLI-" + product_name + "-" + sha256(full_label.encode("utf-8")).hexdigest()[:12]
+            product_id = full_label
             product_description = full_label
         else:
             # Keep manual-line mapping unchanged; unrelated to this fix.
