@@ -25,6 +25,37 @@ CREATE INDEX IF NOT EXISTS product_cards_showroomorderlink_draft_item_id_idx
 """
 
 
+def create_table_if_missing(apps, schema_editor):
+    # Original SQL must remain unchanged for PostgreSQL.
+    if schema_editor.connection.vendor == "postgresql":
+        for statement in schema_editor.connection.ops.prepare_sql_script(CREATE_TABLE_IF_MISSING):
+            schema_editor.execute(statement)
+        return
+
+    # SQLite is used by the GitHub Actions test database. It cannot parse
+    # PostgreSQL IDENTITY or ALTER TABLE ADD COLUMN IF NOT EXISTS syntax.
+    schema_editor.execute("""
+        CREATE TABLE IF NOT EXISTS product_cards_showroomorderlink (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            created_at datetime NOT NULL,
+            draft_id bigint NOT NULL REFERENCES product_cards_showroomdraft(id)
+                DEFERRABLE INITIALLY DEFERRED,
+            draft_item_id bigint NULL REFERENCES product_cards_showroomdraftitem(id)
+                DEFERRABLE INITIALLY DEFERRED,
+            order_id bigint NOT NULL UNIQUE REFERENCES core_order(id)
+                DEFERRABLE INITIALLY DEFERRED
+        )
+    """)
+    schema_editor.execute("""
+        CREATE INDEX IF NOT EXISTS product_cards_showroomorderlink_draft_id_idx
+        ON product_cards_showroomorderlink (draft_id)
+    """)
+    schema_editor.execute("""
+        CREATE INDEX IF NOT EXISTS product_cards_showroomorderlink_draft_item_id_idx
+        ON product_cards_showroomorderlink (draft_item_id)
+    """)
+
+
 class Migration(migrations.Migration):
     dependencies = [
         ("product_cards", "0027_showroomdraft_pricing_operations"),
@@ -34,7 +65,7 @@ class Migration(migrations.Migration):
     operations = [
         migrations.SeparateDatabaseAndState(
             database_operations=[
-                migrations.RunSQL(CREATE_TABLE_IF_MISSING, migrations.RunSQL.noop),
+                migrations.RunPython(create_table_if_missing, migrations.RunPython.noop),
             ],
             state_operations=[
                 migrations.CreateModel(
