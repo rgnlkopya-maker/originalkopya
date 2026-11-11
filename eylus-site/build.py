@@ -38,18 +38,14 @@ def actions():
 def eyebrow(s): return '<div class="eyebrow">'+s+'</div>'
 def header(path):
     links = (
-        '<details class="nav-drop"><summary>Çözümler <span class="nav-caret" aria-hidden="true">⌄</span></summary>'
-        '<div class="nav-drop-panel"><a href="/tekstil/">Tüm Çözümler</a><a href="/tekstil/#sorular">Sorununu Seç · Çözümünü Gör</a></div></details>'
-        '<details class="nav-drop"><summary>Sektörler <span class="nav-caret" aria-hidden="true">⌄</span></summary>'
-        '<div class="nav-drop-panel"><a href="/tekstil/">Tekstil Üretimi</a><a href="/iletisim/">Diğer sektörler için görüşelim</a></div></details>'
-        '<a href="/urun/">Nasıl Çalışır?</a>'
+        '<a href="/tekstil/">Çözümler</a>'
         '<a href="/neden-eylus/">Hakkımızda</a>'
         f'<a class="mobile-signin" href="{DEMO}" target="_blank" rel="noopener noreferrer">Giriş Yap</a>'
     )
     chat_icon = '<svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11.5a7.9 7.9 0 0 1-8 8 9 9 0 0 1-3.7-.8L4 20l1.4-4.1A8 8 0 1 1 20 11.5Z"/><path d="M8.7 10.2c1 2.1 2.3 3.4 4.4 4.4"/></svg>'
     return f'''<a class="skip" href="#main">İçeriğe geç</a><header class="nav eylus-header"><div class="wrap nav-inner"><a class="wordmark" href="/" aria-label="Eylus ana sayfa"><img src="/assets/eylus-wordmark.png" width="1488" height="252" alt="EYLUS" decoding="async"></a><nav id="primary-nav" class="nav-links" aria-label="Ana menü">{links}</nav><div class="nav-cta"><a class="nav-login" href="{DEMO}" target="_blank" rel="noopener noreferrer" title="Eylus demo giriş ekranı">Giriş Yap</a><details class="eylus-nav-contact"><summary class="nav-write">{chat_icon}<span>Bize Yazın</span></summary><div class="eylus-contact-options eylus-contact-nav-options"><a href="https://www.instagram.com/eylustech/" target="_blank" rel="noopener noreferrer">Instagram <small>@eylustech</small></a><a href="https://wa.me/905368163125" target="_blank" rel="noopener noreferrer">WhatsApp <small>Mesaj gönder</small></a></div></details></div><button class="menu-toggle" aria-label="Menüyü aç veya kapat" aria-controls="primary-nav" aria-expanded="false" type="button">☰</button></div></header>'''
 def footer():
-    return f'''<footer class="footer eylus-footer"><div class="wrap"><div class="footer-top"><div class="eylus-footer-brand"><a class="wordmark" href="/" aria-label="Eylus ana sayfa"><img src="/assets/eylus-wordmark.png" width="1488" height="252" alt="EYLUS" loading="lazy" decoding="async"></a><p>Üretimin her aşaması kontrolünüzde.</p><small>İşletmenizin sipariş, üretim ve sevkiyat süreçlerini birlikte görün.</small></div><div class="footer-links"><div><strong>KEŞFEDİN</strong><a href="/tekstil/">Çözümler</a><a href="/tekstil/">Tekstil çözümü</a><a href="/demo/">Canlı demo</a></div><div><strong>EYLUS</strong><a href="/neden-eylus/">Neden Eylus?</a><a href="/iletisim/">İletişim</a><a href="{SOCIAL}" target="_blank" rel="noopener noreferrer">Instagram</a></div></div></div><div class="footer-bottom"><span>© 2026 Eylus</span><span>Üretim yönetim yazılımı</span><a href="/iletisim/#gizlilik">Site ve gizlilik bilgisi</a></div></div></footer>'''
+    return f'''<footer class="footer eylus-footer"><div class="wrap"><div class="footer-top"><div class="eylus-footer-brand"><a class="wordmark" href="/" aria-label="Eylus ana sayfa"><img src="/assets/eylus-wordmark.png" width="1488" height="252" alt="EYLUS" loading="lazy" decoding="async"></a><p>Üretimin her aşaması kontrolünüzde.</p><small>İşletmenizin sipariş, üretim ve sevkiyat süreçlerini birlikte görün.</small></div><div class="footer-links"><div><strong>KEŞFEDİN</strong><a href="/tekstil/">Çözümler</a><a href="/demo/">Canlı demo</a></div><div><strong>EYLUS</strong><a href="/neden-eylus/">Neden Eylus?</a><a href="/iletisim/">İletişim</a><a href="{SOCIAL}" target="_blank" rel="noopener noreferrer">Instagram</a></div></div></div><div class="footer-bottom"><span>© 2026 Eylus</span><span>Üretim yönetim yazılımı</span><a href="/iletisim/#gizlilik">Site ve gizlilik bilgisi</a></div></div></footer>'''
 def cta():
     return '<section class="wrap cta"><div>'+eyebrow('Eylus ile tanışın')+'<h2>Üretiminize birlikte<br>daha yakından bakalım.</h2><p>Önce ürünü keşfedin. Sonra işletmenize uyumunu konuşalım.</p></div><div class="actions">'+button('Demoyu incele','/demo/','light')+'</div></section>'
 def intro(label,title,description):
@@ -455,18 +451,49 @@ CSS += r'''
 @media(prefers-reduced-motion:reduce){.eylus-hero-button{transition:none}}
 '''
 
+# Clean hero and simplified navigation (approved 11 Nov 2026).
+CSS += r'''
+/* Keep only the clear message: headline and two actions. All former prompt chips,
+   explanatory paragraph and redundant transition strip have been removed in markup. */
+.eylus-hero-content{display:flex;flex-direction:column;gap:26px}
+.eylus-home-hero h1{margin:0!important;max-width:650px}
+.eylus-hero-actions{margin-top:0}
+.eylus-home-hero{min-height:600px}
+.eylus-hero-content{padding:74px 0}
+.eylus-header .nav-links{gap:32px}
+.eylus-footer .footer-links{gap:70px}
+@media (min-width:961px){
+ .eylus-home-hero{min-height:620px}
+ .eylus-hero-content{padding:74px 0;width:60%}
+ .eylus-hero-actions{max-width:680px}
+}
+@media (min-width:651px) and (max-width:960px){
+ .eylus-home-hero{min-height:560px}
+ .eylus-hero-content{padding:58px 0;gap:27px}
+}
+@media (max-width:650px){
+ .eylus-home-hero{padding-top:288px;min-height:0;background:#fff}
+ .eylus-hero-photo{height:330px}
+ .eylus-hero-photo:before{background:linear-gradient(180deg,rgba(255,255,255,0) 0%,rgba(255,255,255,0) 61%,rgba(255,255,255,.45) 83%,#fff 100%)}
+ .eylus-hero-content{padding:18px 0 49px;gap:26px}
+ .eylus-home-hero h1{font-size:clamp(43px,11vw,56px);line-height:1.02;margin:0!important}
+ .eylus-hero-actions{grid-template-columns:minmax(0,1fr);gap:11px}
+ .eylus-hero-button{min-height:76px}
+ .eylus-footer{border-top:1px solid #e8e3ee}
+}
+@media (max-width:370px){
+ .eylus-home-hero{padding-top:263px}
+ .eylus-hero-photo{height:304px}
+ .eylus-hero-content{padding-top:14px;gap:23px}
+}
+'''
+
 EYLUS_HOME_HERO = '''<section class="eylus-home-hero" aria-labelledby="eylus-hero-heading">
   <div class="eylus-hero-photo" aria-hidden="true">
     <img src="/assets/eylus-hero-workshop.webp" width="706" height="760" alt="" decoding="async" fetchpriority="high">
   </div>
   <div class="wrap eylus-hero-container"><div class="eylus-hero-content">
-    <div class="eylus-hero-prompts">
-      <div class="eylus-hero-prompt"><span class="eylus-prompt-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9h16l-2-5H6L4 9Z"/><path d="M5 9v11h14V9"/><path d="M3 9c1 3 3 3 4 0 1 3 3 3 4 0 1 3 3 3 4 0 1 3 3 3 4 0"/><path d="M10 20v-7h5v7"/></svg></span><span>İşyerinizde <b>•</b> atölyenizde <b>•</b> fabrikanızda <b>•</b> mağazanızda</span></div>
-      <div class="eylus-hero-prompt"><span class="eylus-prompt-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"><path d="m12 2 9 5-9 5-9-5 9-5Z"/><path d="M3 7v10l9 5 9-5V7"/><path d="M12 12v10"/></svg></span><span>siparişleri <b>•</b> üretimi <b>•</b> stoklarınızı <b>•</b> personelinizi</span></div>
-      <div class="eylus-hero-prompt"><span class="eylus-prompt-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="7" width="18" height="14" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M3 13h18"/></svg></span><span>evdeyken <b>•</b> seyahatteyken <b>•</b> tatildeyken</span></div>
-    </div>
     <h1 id="eylus-hero-heading">Nasıl takip<br><em>ediyorsunuz?</em></h1>
-    <p class="eylus-hero-description">Eylus, dağınık süreçleri tek merkezde toplar;<br class="eylus-desktop-break"> size özel çözümü birlikte kurgular.</p>
     <div class="eylus-hero-actions">
       <a class="eylus-hero-button eylus-hero-primary eylus-demo-request" href="https://wa.me/905368163125?text=Merhaba%2C%20Eylus%20icin%20demo%20talep%20ediyorum." target="_blank" rel="noopener noreferrer" aria-label="WhatsApp üzerinden Eylus demo talep et"><span class="eylus-hero-button-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11.5a7.9 7.9 0 0 1-8 8 9 9 0 0 1-3.7-.8L4 20l1.4-4.1A8 8 0 1 1 20 11.5Z"/><path d="M8.7 10.2c1 2.1 2.3 3.4 4.4 4.4"/></svg></span><span><strong>Demo Talep Et</strong><small>WhatsApp üzerinden hızlıca ulaşın</small></span><span class="eylus-hero-button-arrow" aria-hidden="true">↗</span></a>
       <a class="eylus-hero-button eylus-hero-secondary" href="/tekstil/"><span class="eylus-hero-button-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg></span><span><strong>Çözümleri İnceleyin</strong><small>Sorununuzu seçin, çözümümüzü görün</small></span></a>
@@ -474,8 +501,7 @@ EYLUS_HOME_HERO = '''<section class="eylus-home-hero" aria-labelledby="eylus-her
   </div></div>
 </section>'''
 
-EYLUS_HOME_TRUST = '''<section class="eylus-trust-strip" aria-label="Eylus yaklaşımı"><div class="wrap eylus-trust-inner"><span class="eylus-trust-mark" aria-hidden="true">✦</span><p><strong>Dağınık süreçlere tek merkezden bakın.</strong> Eylus, siparişten sevkiyata kadar işletmenizin iş akışlarını bir araya getirir.</p><a href="/tekstil/">Çözümleri keşfedin <span aria-hidden="true">↗</span></a></div></section>'''
-HOME = EYLUS_HOME_HERO + EYLUS_HOME_TRUST
+HOME = EYLUS_HOME_HERO
 PRODUCT = intro('Ürün','Bir siparişten<br>bütün üretime.','Siparişin bilgisi, üretimin hareketi ve teslimatın planı. Birbirinden kopuk değil, birlikte.')+'<section class="section"><div class="wrap">'+features()+'<div class="callout">Eylus’un işletmenizdeki kapsamını ve kullanacağınız modülleri birlikte değerlendirelim. Bu site otomatik teklif veya lisans taahhüdü oluşturmaz.</div></div></section>'+TOUR+cta()
 
 # Solution discovery page (public-facing; screenshot slots are intentionally empty until
