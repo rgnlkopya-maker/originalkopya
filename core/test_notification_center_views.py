@@ -41,8 +41,9 @@ class NotificationCenterTests(SimpleTestCase):
     @patch("core.notification_center_views.render", return_value=HttpResponse("ok"))
     @patch("core.notification_center_views.get_user_model")
     @patch("core.notification_center_views.Reminder.objects")
+    @patch("core.notification_center_views.PushSubscription.objects")
     @patch("core.notification_center_views.Notification.objects")
-    def test_manager_get_shows_actual_catalog(self, notices, reminders, users, render, permitted):
+    def test_manager_get_shows_actual_catalog(self, notices, devices, reminders, users, render, permitted):
         req = self.factory.get("/yonetim/bildirim-merkezi/")
         req.user = self.manager
         response = notification_center(req)
@@ -75,7 +76,12 @@ class NotificationCenterTests(SimpleTestCase):
 
     @patch("core.notification_center_views.is_manager", return_value=True)
     @patch("core.notification_center_views.NotificationPreference.objects.update_or_create")
-    def test_preferences_save_is_scoped_to_current_user(self, save, permitted):
+    @patch("core.notification_center_views.get_user_model")
+    def test_preferences_save_is_applied_to_all_active_users(self, users, save, permitted):
+        other_manager = SimpleNamespace(is_authenticated=True, is_active=True, pk=10)
+        users.return_value.objects.filter.return_value.iterator.return_value = iter([
+            self.manager, other_manager
+        ])
         req = self.factory.post("/yonetim/bildirim-merkezi/", {
             "action": "save_preferences",
             "material_missing_push": "on",
@@ -86,7 +92,10 @@ class NotificationCenterTests(SimpleTestCase):
         req._messages = __import__("django.contrib.messages.storage.fallback", fromlist=["FallbackStorage"]).FallbackStorage(req)
         result = notification_center(req)
         self.assertEqual(result.status_code, 302)
-        self.assertEqual(save.call_args.kwargs["user"], self.manager)
+        self.assertEqual(save.call_count, 2)
+        self.assertEqual(
+            {call.kwargs["user"].pk for call in save.call_args_list}, {9, 10}
+        )
         choices = save.call_args.kwargs["defaults"]["choices"]
         self.assertTrue(choices["invoice_failure"]["in_app"])
         self.assertNotIn("order_update", choices)
