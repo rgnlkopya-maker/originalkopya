@@ -596,6 +596,7 @@ class Notification(models.Model):
 
     title = models.CharField(max_length=255)
     message = models.TextField(blank=True, null=True)
+    destination_url = models.CharField(max_length=500, blank=True, default="")
 
     is_read = models.BooleanField(default=False)
     timestamp = models.DateTimeField(auto_now_add=True)
@@ -860,3 +861,16 @@ class NotificationPreference(models.Model):
 
     def __str__(self):
         return f"{self.user_id} bildirim tercihleri"
+
+
+
+class CustomerMonitorState(models.Model):
+    """Persistent snapshots for management-only customer-change notifications."""
+
+    key = models.CharField(max_length=40, unique=True)
+    payload = models.JSONField(default=dict, blank=True)
+    last_checked_on = models.DateField(null=True, blank=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"{self.key}: {self.last_checked_on or 'not checked'}"
