@@ -154,7 +154,7 @@
     <div class="modal-header"><h5 class="modal-title fw-bold" id="todoAlarmTitle"><i class="bi bi-alarm me-2 text-danger"></i>Yapılacak iş alarmı</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Kapat"></button></div>
     <div class="modal-body" id="todoAlarmBody"></div>
     <div class="modal-footer flex-wrap justify-content-between gap-2">
-      <div class="d-flex align-items-center gap-2"><label for="todoAlarmSnoozeMinutes" class="small text-muted mb-0">Ertele</label><select id="todoAlarmSnoozeMinutes" class="form-select form-select-sm" style="width:auto" aria-label="Alarmı erteleme süresi"><option value="5">5 dk</option><option value="10" selected>10 dk</option><option value="15">15 dk</option><option value="30">30 dk</option><option value="60">1 saat</option><option value="120">2 saat</option></select><button type="button" class="btn btn-outline-secondary" id="todoAlarmSnooze">Ertele</button></div>
+      <form method="post" id="todoAlarmSnoozeForm" class="d-flex align-items-center gap-2">{% csrf_token %}<label for="todoAlarmSnoozeMinutes" class="small text-muted mb-0">Ertele</label><select id="todoAlarmSnoozeMinutes" name="minutes" class="form-select form-select-sm" style="width:auto" aria-label="Alarmı erteleme süresi"><option value="5">5 dk</option><option value="10" selected>10 dk</option><option value="15">15 dk</option><option value="30">30 dk</option><option value="60">1 saat</option><option value="120">2 saat</option></select><button type="submit" class="btn btn-outline-secondary" id="todoAlarmSnooze">Ertele</button></form>
       <form method="post" id="todoAlarmCompleteForm">{% csrf_token %}<input type="hidden" name="action" value="finish"><button type="submit" class="btn btn-primary" id="todoAlarmComplete">Tamamlandı</button></form>
       <div class="alert alert-danger py-2 px-3 mb-0 w-100 d-none" id="todoAlarmActionError" role="alert" aria-live="assertive"></div>
     </div>
@@ -500,7 +500,7 @@ document.addEventListener("DOMContentLoaded",function(){
   const element=document.getElementById("todoAlarmModal"),body=document.getElementById("todoAlarmBody");
   if(!element||!body||typeof bootstrap==="undefined")return;
   const modal=bootstrap.Modal.getOrCreateInstance(element);
-  const snooze=document.getElementById("todoAlarmSnooze"),complete=document.getElementById("todoAlarmComplete"),completeForm=document.getElementById("todoAlarmCompleteForm");
+  const snooze=document.getElementById("todoAlarmSnooze"),snoozeForm=document.getElementById("todoAlarmSnoozeForm"),complete=document.getElementById("todoAlarmComplete"),completeForm=document.getElementById("todoAlarmCompleteForm");
   const api="{% url 'todo_pending_alarms' %}";
   const csrf=document.querySelector('input[name="csrfmiddlewaretoken"]')?.value||"";
   const lastShown=new Map();
@@ -519,6 +519,7 @@ document.addEventListener("DOMContentLoaded",function(){
       selected=rows.find(row=>now-(lastShown.get(row.id)||0)>=row.interval_minutes*60000);
       if(!selected)return;
       lastShown.set(selected.id,now);
+      snoozeForm.action=selected.snooze_url;
       completeForm.action=selected.complete_url;
       body.innerHTML='<div class="fw-bold mb-2">'+escapeHtml(selected.title)+'</div>'+
         (selected.note?'<p class="text-muted mb-2">'+escapeHtml(selected.note)+'</p>':"")+
@@ -549,21 +550,21 @@ document.addEventListener("DOMContentLoaded",function(){
     for(const [key,value] of Object.entries(extra||{}))form.append(key,value);
     try{
       const res=await fetch(url,{method:"POST",body:form,credentials:"same-origin",headers:{"X-Requested-With":"XMLHttpRequest","X-CSRFToken":csrf}});
-      // Popup completion returns explicit JSON, avoiding ambiguous redirects.
-      if(extra?.action==="finish"){
-        if(!res.ok||res.redirected)throw new Error("Tamamlama kaydedilemedi. Lütfen tekrar deneyin.");
-        const payload=await res.json();
-        if(!payload.ok||!payload.completed)throw new Error("Tamamlama onaylanamadı.");
-      }else if(!res.ok||res.redirected&&!new URL(res.url,window.location.href).pathname.startsWith("/yapilacaklar/")){
+      // Both alarm actions must confirm persisted state with JSON.
+      if(!res.ok||res.redirected){
         throw new Error(res.status===403?"Oturum veya güvenlik doğrulaması başarısız. Sayfayı yenileyin.":"İşlem kaydedilemedi. Lütfen tekrar deneyin.");
+      }
+      const payload=await res.json();
+      if(extra?.action==="finish"){
+        if(!payload.ok||!payload.completed)throw new Error("Tamamlama onaylanamadı.");
+      }else if(!payload.ok||!payload.snoozed||!payload.snoozed_until){
+        throw new Error("Alarm ertelemesi onaylanamadı.");
       }
       const finishedId=selected.id;
       lastShown.delete(finishedId);
       modal.hide();
       selected=null;
-      if(window.location.pathname.startsWith("/yapilacaklar/")&&!res.redirected){
-        window.location.reload();
-      }else if(window.location.pathname==="/yapilacaklar/"){
+      if(window.location.pathname==="/yapilacaklar/"){
         window.location.reload();
       }
     }catch(error){
@@ -573,7 +574,17 @@ document.addEventListener("DOMContentLoaded",function(){
       snooze.disabled=false;complete.disabled=false;if(snoozeMinutes)snoozeMinutes.disabled=false;
     }
   }
-  snooze.addEventListener("click",()=>action(selected?.snooze_url,{minutes:snoozeMinutes?.value||"10"}));
+  // Native form submission remains a fallback if the popup script fails.
+  snoozeForm.addEventListener("submit",event=>{
+    if(!selected)return;
+    event.preventDefault();
+    action(selected.snooze_url,{minutes:snoozeMinutes?.value||"10"});
+  });
+  completeForm.addEventListener("submit",event=>{
+    if(!selected)return;
+    event.preventDefault();
+    action(selected.complete_url,{action:"finish"});
+  });
 
   check();setInterval(check,30000);
   document.addEventListener("visibilitychange",()=>{if(!document.hidden)check()});
