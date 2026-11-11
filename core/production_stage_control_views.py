@@ -4,12 +4,13 @@ from app_settings.access import data_scope_value
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import get_user_model
 from django.core.paginator import Paginator
+from django.db.models import Sum
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.views.decorators.http import require_POST
 from datetime import timedelta
 
-from .models import Order, OrderEvent, ProductionStageControlExclusion
+from .models import ConsignmentMovement, ConsignmentStock, Order, OrderEvent, ProductionStageControlExclusion
 
 
 STAGES = {
@@ -61,7 +62,7 @@ def get_unshipped_inactive_orders(user):
         .exclude(siparis_tipi="MALZEME")
         .only(
             "id", "siparis_numarasi", "musteri__ad", "urun_kodu", "renk",
-            "beden", "siparis_tipi", "is_active", "sevkiyat_durum"
+            "beden", "adet", "siparis_tipi", "is_active", "sevkiyat_durum"
         )
         .order_by("-id")
     )
@@ -79,6 +80,7 @@ def get_unshipped_inactive_orders(user):
         "hazir_durum",
         "uretim_aktarimi", "uretim_aktarimı",
         "sevkiyat_durum",
+        "konsinye_durum",
     }
     for event in (
         OrderEvent.objects.filter(
@@ -90,6 +92,31 @@ def get_unshipped_inactive_orders(user):
         .order_by("order_id", "timestamp", "id")
     ):
         events_by_order[event.order_id].append(event)
+
+    # A consigned item is already with the customer; consumed consignment stock
+    # has fulfilled another order. Count both so partially consigned orders
+    # remain visible until their entire quantity is accounted for.
+    consignment_out = {
+        row["source_order_id"]: row["total"]
+        for row in (
+            ConsignmentStock.objects.filter(
+                source_order_id__in=order_ids, quantity_remaining__gt=0
+            )
+            .values("source_order_id")
+            .annotate(total=Sum("quantity_remaining"))
+        )
+    }
+    consignment_used = {
+        row["stock__source_order_id"]: row["total"]
+        for row in (
+            ConsignmentMovement.objects.filter(
+                stock__source_order_id__in=order_ids,
+                movement_type="USE",
+            )
+            .values("stock__source_order_id")
+            .annotate(total=Sum("quantity"))
+        )
+    }
 
     now = timezone.now()
     ProductionStageControlExclusion.objects.filter(
@@ -112,9 +139,14 @@ def get_unshipped_inactive_orders(user):
             if shipment_events
             else order.sevkiyat_durum == "gonderildi"
         )
+        # A completed consignment is not a stalled production order.
+        # Returned stock decreases the active balance, reopening monitoring
+        # for the missing quantity after the most recent consignment movement.
+        accounted_qty = consignment_out.get(order.id, 0) + consignment_used.get(order.id, 0)
+        fully_consigned = accounted_qty >= (order.adet or 1)
         temporarily_hidden = (order.id, "unshipped_3d_temp") in exclusions
         permanently_hidden = (order.id, "unshipped_7d") in exclusions
-        if not shipped and not temporarily_hidden and not permanently_hidden:
+        if not shipped and not fully_consigned and not temporarily_hidden and not permanently_hidden:
             last_event = events[-1]
             age = now - last_event.timestamp
             if age >= timedelta(days=3):
