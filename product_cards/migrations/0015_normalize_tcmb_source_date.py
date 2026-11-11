@@ -29,11 +29,23 @@ DROP FUNCTION IF EXISTS product_cards_normalize_source_date();
 '''
 
 
+def apply_postgres_normalization(apps, schema_editor):
+    # PL/pgSQL trigger syntax is PostgreSQL-only. SQLite CI databases do not
+    # need the trigger, but production PostgreSQL retains exactly the same SQL.
+    if schema_editor.connection.vendor == "postgresql":
+        schema_editor.execute(FORWARD_SQL)
+
+
+def reverse_postgres_normalization(apps, schema_editor):
+    if schema_editor.connection.vendor == "postgresql":
+        schema_editor.execute(REVERSE_SQL)
+
+
 class Migration(migrations.Migration):
     dependencies = [
         ("product_cards", "0014_repair_incomplete_financial_snapshots"),
     ]
 
     operations = [
-        migrations.RunSQL(FORWARD_SQL, REVERSE_SQL),
+        migrations.RunPython(apply_postgres_normalization, reverse_postgres_normalization),
     ]
