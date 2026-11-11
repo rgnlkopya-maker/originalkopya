@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load l10n %}
 {% block extra_css %}
 <style>
 .product-report{max-width:1740px;margin:0 auto;padding:22px 15px 48px;color:#193151}
@@ -98,19 +99,19 @@
         <tr>
           <td data-sort="{{ r.code|lower }}"><span class="code">{{ r.code }}</span><span class="sub">Özel {{ r.ozel }} · Tekli {{ r.tekli }} · Seri {{ r.seri }}</span></td>
           <td data-sort="{{ r.type_label|lower }}">{{ r.type_label }}</td>
-          <td data-sort="{{ r.orders }}" class="number">{{ r.orders }}</td>
-          <td data-sort="{{ r.quantity }}" class="number">{{ r.quantity }}</td>
-          <td data-sort="{{ r.customer_count }}" class="number">{{ r.customer_count }}</td>
+          <td data-sort="{{ r.orders|unlocalize }}" class="number">{{ r.orders }}</td>
+          <td data-sort="{{ r.quantity|unlocalize }}" class="number">{{ r.quantity }}</td>
+          <td data-sort="{{ r.customer_count|unlocalize }}" class="number">{{ r.customer_count }}</td>
           <td data-sort="{{ r.top_customer|lower }}">{{ r.top_customer }}<span class="sub">{{ r.top_customer_units }} adet</span></td>
           <td data-sort="{{ r.top_color|lower }}">{{ r.top_color }}<span class="sub">{{ r.top_color_units }} adet</span></td>
-          <td data-sort="{{ r.revenue }}" class="number">₺{{ r.revenue|floatformat:0 }}</td>
-          <td data-sort="{{ r.cost }}" class="number">₺{{ r.cost|floatformat:0 }}</td>
-          <td data-sort="{{ r.profit }}" class="number {% if r.in_loss %}negative{% else %}positive{% endif %}">₺{{ r.profit|floatformat:0 }}</td>
-          <td data-sort="{% if r.margin != None %}{{ r.margin }}{% else %}0{% endif %}" class="number">{% if r.margin != None %}%{{ r.margin|floatformat:1 }}{% else %}—{% endif %}</td>
-          <td data-sort="{% if r.avg_price != None %}{{ r.avg_price }}{% else %}0{% endif %}" class="number">{% if r.avg_price != None %}₺{{ r.avg_price|floatformat:0 }}{% else %}—{% endif %}</td>
+          <td data-sort="{{ r.revenue|unlocalize }}" class="number">₺{{ r.revenue|floatformat:0 }}</td>
+          <td data-sort="{{ r.cost|unlocalize }}" class="number">₺{{ r.cost|floatformat:0 }}</td>
+          <td data-sort="{{ r.profit|unlocalize }}" class="number {% if r.in_loss %}negative{% else %}positive{% endif %}">₺{{ r.profit|floatformat:0 }}</td>
+          <td data-sort="{% if r.margin != None %}{{ r.margin|unlocalize }}{% else %}0{% endif %}" class="number">{% if r.margin != None %}%{{ r.margin|floatformat:1 }}{% else %}—{% endif %}</td>
+          <td data-sort="{% if r.avg_price != None %}{{ r.avg_price|unlocalize }}{% else %}0{% endif %}" class="number">{% if r.avg_price != None %}₺{{ r.avg_price|floatformat:0 }}{% else %}—{% endif %}</td>
           <td data-sort="{{ r.first|date:'Y-m-d' }}" class="fine">{{ r.first|date:"d.m.Y"|default:"—" }}</td>
           <td data-sort="{{ r.last|date:'Y-m-d' }}" class="fine">{{ r.last|date:"d.m.Y"|default:"—" }}</td>
-          <td data-sort="{{ r.finance_missing }}">{% if r.finance_missing %}<span class="warn">{{ r.finance_missing }} kayıt eksik</span>{% else %}<span class="fine"><i class="bi bi-check-circle text-success"></i> Tamam</span>{% endif %}</td>
+          <td data-sort="{{ r.finance_missing|unlocalize }}">{% if r.finance_missing %}<span class="warn">{{ r.finance_missing }} kayıt eksik</span>{% else %}<span class="fine"><i class="bi bi-check-circle text-success"></i> Tamam</span>{% endif %}</td>
         </tr>
         {% endfor %}
       </tbody>
