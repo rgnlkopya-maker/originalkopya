@@ -88,7 +88,7 @@ def _notify_status(old, current):
         message = (
             f"{name} müşterisinin durumu {old_label} → {new_label} olarak değişti. "
             f"{reason} Son sevkiyat: {data['last_shipment']}. "
-            "Ayrıntılar için müşterinin performans sayfasını açın."
+            "Ayrıntılar için Müşteri Karşılaştırma Raporu'nu açın."
         )
         notify_management(
             "Müşteri Durumu Değişti",
