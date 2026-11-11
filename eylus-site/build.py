@@ -554,7 +554,7 @@ PRODUCT = intro('Ürün','Bir siparişten<br>bütün üretime.','Siparişin bilg
 # approved, redacted screenshots from the demo are added to eylus-site/screens/).
 SOLUTION_GROUPS = [
   ("operasyon", "Operasyon", [
-    ("operasyon-01", "Bir siparişin üretimde hangi aşamada olduğunu hemen görebiliyor musunuz?", "Siparişlerin son durumunu tek ekrandan görün", "Siparişinizin hangi aşamada olduğunu öğrenmek için atölyeyi aramanıza gerek kalmaz. Kesim, dikim, süsleme, malzeme eksikliği ve sevkiyat gibi güncel durumları; müşteri, model, beden ve teslim tarihiyle birlikte tek listede görüntüleyin. Arama ve filtreleme ile istediğiniz siparişi kolayca bulun.", "Sipariş Listesi"),
+    ("operasyon-01", "Siparişlerinizin üretimde hangi aşamada olduğunu tek ekrandan takip edebiliyor musunuz?", "Siparişlerin son durumunu tek ekrandan görün", "Siparişinizin hangi aşamada olduğunu öğrenmek için atölyeyi aramanıza gerek kalmaz. Kesim, dikim, süsleme, malzeme eksikliği ve sevkiyat gibi güncel durumları; müşteri, model, beden ve teslim tarihiyle birlikte tek listede görüntüleyin. Arama ve filtreleme ile istediğiniz siparişi kolayca bulun.", "Sipariş Listesi"),
     ("operasyon-02", "Üretimde eksik veya yanlış kaydedilen aşamaları fark edebiliyor musunuz?", "Aşama sorunlarını görün", "Önceki üretim aşaması eksik olan siparişleri bulun; işlemi kaydeden kişiyi inceleyin. Bu kayıt kesin kusur tespiti değildir.", "Üretim Kontrol Merkezi · Aşama Problemleri"),
     ("operasyon-03", "Üretimde günlerdir ilerlemeyen siparişleri zamanında fark ediyor musunuz?", "Hareketsiz işleri fark edin", "Üç gün veya daha uzun süredir hareket görülmeyen, henüz sevk edilmemiş siparişleri görün.", "Üretim Kontrol Merkezi · Hareketsiz Siparişler"),
     ("operasyon-04", "Bu hafta hangi siparişleri hangi gün teslim edeceğinizi biliyor musunuz?", "Sevkiyatı haftalık planlayın", "Beş günlük sevkiyat planını müşteri, ürün, renk ve beden detayları ve günlük notlarla takip edin.", "Sevkiyat Planı"),
@@ -675,12 +675,12 @@ def solution_page():
                 f'data-sol-item="{escape(key)}" data-sol-group="{escape(group_key)}" '
                 f'{"hidden" if not is_initial_group else ""}>'
                 f'<button type="button" class="sol-question" data-sol-question="{escape(key)}" '
-                f'aria-controls="sol-mobile-{escape(key)}" aria-expanded="{str(is_initial_item).lower()}">'
+                f'aria-controls="sol-mobile-{escape(key)}" aria-expanded="false">'
                 f'<span class="sol-question-index">{number:02}</span>'
                 f'<span class="sol-question-label">{escape(question)}</span>'
                 f'<span class="sol-question-chevron" aria-hidden="true">⌄</span></button>'
                 f'<div class="sol-mobile-panel" data-sol-mobile-panel="{escape(key)}" '
-                f'id="sol-mobile-{escape(key)}" {"hidden" if not is_initial_item else ""}>'
+                f'id="sol-mobile-{escape(key)}" hidden>'
                 f'{solution_content(key,title,description,module,True)}</div></article>'
             )
             desktop_panels.append(
@@ -811,6 +811,7 @@ JS += r'''
 const solCategories=[...document.querySelectorAll('[data-sol-category]')];
 const solQuestionButtons=[...document.querySelectorAll('[data-sol-question]')];
 const solItems=[...document.querySelectorAll('[data-sol-item]')];
+const solMobileMedia=window.matchMedia('(max-width: 900px)');
 let solSelected=solQuestionButtons[0]?.dataset.solQuestion||null;
 function solSetQuestion(key){
   solSelected=key;
@@ -830,15 +831,24 @@ function solSelectCategory(group){
   solCategories.forEach(btn=>btn.setAttribute('aria-pressed',String(btn.dataset.solCategory===group)));
   solItems.forEach(item=>{item.hidden=item.dataset.solGroup!==group;});
   const first=solItems.find(item=>item.dataset.solGroup===group);
-  solSetQuestion(first?.dataset.solItem||null);
+  solSetQuestion(solMobileMedia.matches?null:(first?.dataset.solItem||null));
 }
 solCategories.forEach(btn=>btn.addEventListener('click',()=>solSelectCategory(btn.dataset.solCategory)));
 solQuestionButtons.forEach(btn=>{
   btn.addEventListener('click',()=>{
     const key=btn.dataset.solQuestion;
-    const mobile=window.matchMedia('(max-width: 900px)').matches;
-    solSetQuestion(mobile&&solSelected===key?null:key);
+    solSetQuestion(solMobileMedia.matches&&solSelected===key?null:key);
   });
+});
+
+// Keep mobile initially collapsed; desktop retains the first active solution.
+if(solMobileMedia.matches)solSetQuestion(null);
+solMobileMedia.addEventListener('change',e=>{
+  if(e.matches){solSetQuestion(null);return;}
+  if(!solSelected){
+    const firstVisible=solItems.find(item=>!item.hidden);
+    solSetQuestion(firstVisible?.dataset.solItem||null);
+  }
 });
 
 // Responsive solution screenshot viewer: bounded dialog, zoom, tap-away and Escape to dismiss.
