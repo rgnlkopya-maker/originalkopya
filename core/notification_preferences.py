@@ -15,6 +15,10 @@ EVENTS = (
     ("tomorrow_shipping", "Yarın teslim edilecek siparişler", False, True),
     ("stalled_production", "Üretim 3 gün hareketsiz", False, True),
     ("payable_instruments", "Çek/senet vadesine 15 gün kaldı", True, True),
+    ("customer_status_changed", "Müşteri durum değişikliği", False, True),
+    ("customer_profit_leader", "En kârlı müşteri değişikliği", False, True),
+    ("customer_quantity_leader", "En fazla adet alan müşteri değişikliği", False, True),
+    ("customer_revenue_leader", "En yüksek cirolu müşteri değişikliği", False, True),
 )
 EVENTS_BY_KEY = {key: {"title": name, "critical": critical, "push_default": push}
                  for key, name, critical, push in EVENTS}
@@ -28,6 +32,10 @@ EVENT_TITLE_KEYS = {
     "Yarın Teslim Edilecek Siparişler": "tomorrow_shipping",
     "Üretim Aşaması Takıldı": "stalled_production",
     "Çek/Senet Vadesine 15 Gün Kaldı": "payable_instruments",
+    "Müşteri Durumu Değişti": "customer_status_changed",
+    "En Kârlı Müşteri Değişti": "customer_profit_leader",
+    "En Fazla Adet Alan Müşteri Değişti": "customer_quantity_leader",
+    "En Yüksek Ciroya Sahip Müşteri Değişti": "customer_revenue_leader",
 }
 
 
