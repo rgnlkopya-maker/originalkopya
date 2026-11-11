@@ -56,13 +56,6 @@ def footer():
       </div></div>
       <div class="footer-bottom">
         <span class="eylus-footer-copyright">© 2026 Eylus</span>
-        <nav class="eylus-footer-nav" aria-label="Alt bağlantılar">
-          <a href="/tekstil/">Çözümler</a>
-          <a href="/demo/">Canlı demo</a>
-          <a href="/neden-eylus/">Neden Eylus?</a>
-          <a href="/iletisim/">İletişim</a>
-          <a href="{SOCIAL}" target="_blank" rel="noopener noreferrer">Instagram</a>
-        </nav>
         <a class="eylus-footer-privacy" href="/iletisim/#gizlilik">Site ve gizlilik bilgisi</a>
       </div>
     </div></footer>'''
@@ -613,6 +606,19 @@ CSS += r'''
  .eylus-footer .eylus-footer-nav{gap:10px 14px}
  .eylus-footer .eylus-footer-nav a{font-size:11px}
  .eylus-footer .eylus-footer-privacy{font-size:10px}
+}
+'''
+
+# Minimal footer legal strip: only copyright and privacy link.
+CSS += r'''
+.eylus-footer .footer-bottom{
+ display:flex;flex-direction:row;justify-content:space-between;align-items:center;
+ flex-wrap:wrap;gap:10px 18px;
+}
+.eylus-footer .eylus-footer-copyright,
+.eylus-footer .eylus-footer-privacy{grid-column:auto;grid-row:auto}
+@media(max-width:650px){
+ .eylus-footer .footer-bottom{display:flex;flex-direction:row;justify-content:space-between;gap:10px}
 }
 '''
 
