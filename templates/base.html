@@ -564,7 +564,9 @@ document.addEventListener("DOMContentLoaded",function(){
       lastShown.delete(finishedId);
       modal.hide();
       selected=null;
-      if(window.location.pathname==="/yapilacaklar/"){
+      // Snoozing must preserve the current screen and any unsaved work.
+      // Completing a task from the todo list may refresh that list.
+      if(extra?.action==="finish" && window.location.pathname==="/yapilacaklar/"){
         window.location.reload();
       }
     }catch(error){
