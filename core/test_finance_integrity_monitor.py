@@ -133,6 +133,23 @@ class FinanceIntegrityTests(TestCase):
         self.assertIn("712:snapshot_profit_mismatch", problems)
 
     @patch("core.finance_integrity_monitor.calculate_finance_result")
+    def test_ignored_valid_financial_movement_is_reconciled(self, calculate):
+        order = sample_order(events=[
+            SimpleNamespace(
+                pk=94, stage="finans_hareketi", value="EK_MALIYET",
+                new_value='{"tl_amount":"500"}',
+            ),
+        ])
+        calculate.return_value = {
+            "is_final": True, "satis_tl": Decimal("18000"),
+            "maliyet_tl": Decimal("11000"), "kar_tl": Decimal("7000"),
+        }
+        problems = audit_financial_order(order)
+        self.assertIn("712:cost_reconciliation", problems)
+        self.assertIn("712:profit_reconciliation", problems)
+        self.assertNotIn("712:sale_reconciliation", problems)
+
+    @patch("core.finance_integrity_monitor.calculate_finance_result")
     def test_bad_or_unknown_finance_events(self, calculate):
         order = sample_order(events=[
             SimpleNamespace(pk=91, stage="finans_hareketi", value="MALIYET_DUZELT", new_value='{"tl_amount":"10"}'),
