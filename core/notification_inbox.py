@@ -16,6 +16,9 @@ _DESTINATIONS = {
 }
 
 def destination_for(notification):
+    explicit = (getattr(notification, "destination_url", "") or "").strip()
+    if explicit.startswith("/") and not explicit.startswith("//"):
+        return explicit
     if notification.order_id:
         return f"/order/{notification.order_id}/"
     return _DESTINATIONS.get(notification.title, "")
