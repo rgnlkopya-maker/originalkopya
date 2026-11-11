@@ -4,6 +4,7 @@ import re
 
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
+from django.urls import reverse
 from django.shortcuts import render, redirect, get_object_or_404
 from django.views.decorators.http import require_POST
 from .models import Notification, Order
@@ -15,7 +16,22 @@ _DESTINATIONS = {
     "Güvenlik Uyarısı": "/sistem-sagligi/",
 }
 
+_CUSTOMER_REPORT_TITLES = {
+    "Müşteri Durumu Değişti",
+    "En Kârlı Müşteri Değişti",
+    "En Fazla Adet Alan Müşteri Değişti",
+    "En Yüksek Ciroya Sahip Müşteri Değişti",
+    "En Düşük Kârlı Müşteri Değişti",
+    "En Az Adet Alan Müşteri Değişti",
+    "En Düşük Ciroya Sahip Müşteri Değişti",
+}
+
+
 def destination_for(notification):
+    # Apply the selected report destination to historical notifications too,
+    # even if they were stored with a customer-specific URL.
+    if notification.title in _CUSTOMER_REPORT_TITLES:
+        return reverse("customer_comparison_report")
     explicit = (getattr(notification, "destination_url", "") or "").strip()
     if explicit.startswith("/") and not explicit.startswith("//"):
         return explicit
