@@ -45,7 +45,8 @@ def notify_management(title, message, url, *, order=None, exclude_user_ids=()):
         notice_id = None
         if in_app:
             notice_id = Notification.objects.create(
-                user=recipient, order=order, title=title, message=message
+                user=recipient, order=order, title=title, message=message,
+                destination_url=url if url.startswith("/") and not url.startswith("//") else "",
             ).pk
 
         if push:
