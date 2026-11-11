@@ -488,12 +488,58 @@ CSS += r'''
 }
 '''
 
+# Approved homepage polish: more readable workshop photo, calmer CTAs, clear heading.
+CSS += r'''
+/* Final hero refinements: both actions are neutral, outlined and equally weighted. */
+.eylus-home-hero .eylus-hero-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;width:100%;max-width:680px}
+.eylus-home-hero .eylus-hero-actions>a{min-width:0;max-width:100%}
+.eylus-home-hero .eylus-hero-button{background:rgba(255,255,255,.97);border:1.5px solid #8b62c5;color:#4e2787;box-shadow:0 6px 20px rgba(58,32,99,.075);min-width:0;min-height:77px}
+.eylus-home-hero .eylus-hero-button:hover,.eylus-home-hero .eylus-hero-button:focus-visible{background:#f6f0ff;border-color:#6e3fac;color:#3c1a74;box-shadow:0 10px 25px rgba(81,44,143,.13)}
+.eylus-home-hero .eylus-hero-button-icon,.eylus-home-hero .eylus-hero-button-arrow{color:#6b38b3}
+.eylus-home-hero .eylus-hero-button small{color:#695982}
+.eylus-home-hero .eylus-hero-content{gap:28px}
+.eylus-home-hero .eylus-hero-content h1{line-height:1.035;max-width:690px}
+.eylus-home-hero .eylus-hero-photo img{filter:none}
+@media(min-width:961px){
+ .eylus-home-hero .eylus-hero-photo:before{background:linear-gradient(90deg,#fff 0%,rgba(255,255,255,.985) 10%,rgba(255,255,255,.89) 25%,rgba(255,255,255,.48) 45%,rgba(255,255,255,.03) 72%,transparent 100%)}
+ .eylus-home-hero .eylus-hero-content{padding-top:96px;padding-bottom:67px}
+ .eylus-home-hero h1{font-size:clamp(52px,5.1vw,70px)}
+}
+@media(min-width:651px) and (max-width:960px){
+ .eylus-home-hero .eylus-hero-photo:before{background:linear-gradient(90deg,rgba(255,255,255,.97) 0%,rgba(255,255,255,.88) 30%,rgba(255,255,255,.40) 68%,rgba(255,255,255,.13) 100%)}
+ .eylus-home-hero .eylus-hero-content{padding-top:72px;padding-bottom:43px}
+ .eylus-home-hero h1{font-size:clamp(49px,5.6vw,63px)}
+}
+@media(max-width:650px){
+ .eylus-home-hero{padding-top:319px}
+ .eylus-home-hero .eylus-hero-photo{height:365px}
+ .eylus-home-hero .eylus-hero-photo:before{background:linear-gradient(180deg,rgba(255,255,255,0) 0%,rgba(255,255,255,0) 70%,rgba(255,255,255,.18) 81%,rgba(255,255,255,.72) 94%,#fff 100%)}
+ .eylus-home-hero .eylus-hero-content{padding-top:18px;padding-bottom:39px;gap:23px}
+ .eylus-home-hero h1{font-size:clamp(36px,9.5vw,47px);letter-spacing:-.052em;line-height:1.065}
+ .eylus-home-hero .eylus-hero-actions{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:9px;max-width:100%}
+ .eylus-home-hero .eylus-hero-button{gap:7px;padding:11px 9px;min-height:68px;border-radius:13px}
+ .eylus-home-hero .eylus-hero-button-icon{width:23px;flex:0 0 23px}
+ .eylus-home-hero .eylus-hero-button-icon svg{width:21px;height:21px}
+ .eylus-home-hero .eylus-hero-button strong{font-size:12.5px;line-height:1.22;overflow-wrap:break-word}
+ .eylus-home-hero .eylus-hero-button small{display:none!important}
+ .eylus-home-hero .eylus-hero-button-arrow{font-size:14px;margin-left:auto}
+}
+@media(max-width:359px){
+ .eylus-home-hero{padding-top:290px}
+ .eylus-home-hero .eylus-hero-photo{height:332px}
+ .eylus-home-hero .eylus-hero-actions{grid-template-columns:minmax(0,1fr)!important}
+ .eylus-home-hero .eylus-hero-button{min-height:61px;padding:10px 14px}
+ .eylus-home-hero .eylus-hero-button strong{font-size:14px}
+ .eylus-home-hero h1{font-size:clamp(35px,10.6vw,40px)}
+}
+'''
+
 EYLUS_HOME_HERO = '''<section class="eylus-home-hero" aria-labelledby="eylus-hero-heading">
   <div class="eylus-hero-photo" aria-hidden="true">
     <img src="/assets/eylus-hero-workshop.webp" width="706" height="760" alt="" decoding="async" fetchpriority="high">
   </div>
   <div class="wrap eylus-hero-container"><div class="eylus-hero-content">
-    <h1 id="eylus-hero-heading">Nasıl takip<br><em>ediyorsunuz?</em></h1>
+    <h1 id="eylus-hero-heading">Süreçlerinizi<br><em>nasıl takip<br>ediyorsunuz?</em></h1>
     <div class="eylus-hero-actions">
       <a class="eylus-hero-button eylus-hero-primary eylus-demo-request" href="https://wa.me/905368163125?text=Merhaba%2C%20Eylus%20icin%20demo%20talep%20ediyorum." target="_blank" rel="noopener noreferrer" aria-label="WhatsApp üzerinden Eylus demo talep et"><span class="eylus-hero-button-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11.5a7.9 7.9 0 0 1-8 8 9 9 0 0 1-3.7-.8L4 20l1.4-4.1A8 8 0 1 1 20 11.5Z"/><path d="M8.7 10.2c1 2.1 2.3 3.4 4.4 4.4"/></svg></span><span><strong>Demo Talep Et</strong><small>WhatsApp üzerinden hızlıca ulaşın</small></span><span class="eylus-hero-button-arrow" aria-hidden="true">↗</span></a>
       <a class="eylus-hero-button eylus-hero-secondary" href="/tekstil/"><span class="eylus-hero-button-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg></span><span><strong>Çözümleri İnceleyin</strong><small>Sorununuzu seçin, çözümümüzü görün</small></span></a>
