@@ -22,6 +22,14 @@ EVENTS = (
     ("customer_profit_min_leader", "En düşük kârlı müşteri değişikliği", False, True),
     ("customer_quantity_min_leader", "En az adet alan müşteri değişikliği", False, True),
     ("customer_revenue_min_leader", "En düşük cirolu müşteri değişikliği", False, True),
+    ("product_revenue_max", "En yüksek cirolu ürün değişikliği", False, True),
+    ("product_revenue_min", "En düşük cirolu ürün değişikliği", False, True),
+    ("product_cost_max", "En yüksek maliyetli ürün değişikliği", False, True),
+    ("product_cost_min", "En düşük maliyetli ürün değişikliği", False, True),
+    ("product_profit_max", "En kârlı ürün değişikliği", False, True),
+    ("product_profit_min", "En düşük kârlı ürün değişikliği", False, True),
+    ("product_quantity_max", "En fazla sevk edilen ürün değişikliği", False, True),
+    ("product_quantity_min", "En az sevk edilen ürün değişikliği", False, True),
 )
 EVENTS_BY_KEY = {key: {"title": name, "critical": critical, "push_default": push}
                  for key, name, critical, push in EVENTS}
@@ -42,6 +50,14 @@ EVENT_TITLE_KEYS = {
     "En Düşük Kârlı Müşteri Değişti": "customer_profit_min_leader",
     "En Az Adet Alan Müşteri Değişti": "customer_quantity_min_leader",
     "En Düşük Ciroya Sahip Müşteri Değişti": "customer_revenue_min_leader",
+    "En Yüksek Cirolu Ürün Değişti": "product_revenue_max",
+    "En Düşük Cirolu Ürün Değişti": "product_revenue_min",
+    "En Yüksek Maliyetli Ürün Değişti": "product_cost_max",
+    "En Düşük Maliyetli Ürün Değişti": "product_cost_min",
+    "En Kârlı Ürün Değişti": "product_profit_max",
+    "En Düşük Kârlı Ürün Değişti": "product_profit_min",
+    "En Fazla Sevk Edilen Ürün Değişti": "product_quantity_max",
+    "En Az Sevk Edilen Ürün Değişti": "product_quantity_min",
 }
 
 
