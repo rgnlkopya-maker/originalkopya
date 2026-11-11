@@ -72,6 +72,16 @@ def scheduler_tick(request):
     except Exception:
         logger.exception("Scheduled product monitor failed")
 
+    # Independent finance integrity audit. No daily 20:00 summary:
+    # only newly detected financial data errors generate notifications.
+    # The audit enforces its own five-minute check and persistent deduplication.
+    try:
+        from .finance_integrity_monitor import process_finance_integrity
+        result = process_finance_integrity()
+        logger.info("Finance integrity: %s", result)
+    except Exception:
+        logger.exception("Scheduled finance integrity audit failed")
+
     now = timezone.localtime()
     outcomes = []
     for module, _ in BackupPolicy.MODULES:
