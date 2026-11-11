@@ -33,12 +33,14 @@ def apply_postgres_normalization(apps, schema_editor):
     # PL/pgSQL trigger syntax is PostgreSQL-only. SQLite CI databases do not
     # need the trigger, but production PostgreSQL retains exactly the same SQL.
     if schema_editor.connection.vendor == "postgresql":
-        schema_editor.execute(FORWARD_SQL)
+        for statement in schema_editor.connection.ops.prepare_sql_script(FORWARD_SQL):
+            schema_editor.execute(statement)
 
 
 def reverse_postgres_normalization(apps, schema_editor):
     if schema_editor.connection.vendor == "postgresql":
-        schema_editor.execute(REVERSE_SQL)
+        for statement in schema_editor.connection.ops.prepare_sql_script(REVERSE_SQL):
+            schema_editor.execute(statement)
 
 
 class Migration(migrations.Migration):
