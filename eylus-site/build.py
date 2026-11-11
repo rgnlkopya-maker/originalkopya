@@ -45,7 +45,27 @@ def header(path):
     chat_icon = '<svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11.5a7.9 7.9 0 0 1-8 8 9 9 0 0 1-3.7-.8L4 20l1.4-4.1A8 8 0 1 1 20 11.5Z"/><path d="M8.7 10.2c1 2.1 2.3 3.4 4.4 4.4"/></svg>'
     return f'''<a class="skip" href="#main">İçeriğe geç</a><header class="nav eylus-header"><div class="wrap nav-inner"><a class="wordmark" href="/" aria-label="Eylus ana sayfa"><img src="/assets/eylus-wordmark.png" width="1488" height="252" alt="EYLUS" decoding="async"></a><nav id="primary-nav" class="nav-links" aria-label="Ana menü">{links}</nav><div class="nav-cta"><a class="nav-login" href="{DEMO}" target="_blank" rel="noopener noreferrer" title="Eylus demo giriş ekranı">Giriş Yap</a><details class="eylus-nav-contact"><summary class="nav-write">{chat_icon}<span>Bize Yazın</span></summary><div class="eylus-contact-options eylus-contact-nav-options"><a href="https://www.instagram.com/eylustech/" target="_blank" rel="noopener noreferrer">Instagram <small>@eylustech</small></a><a href="https://wa.me/905368163125" target="_blank" rel="noopener noreferrer">WhatsApp <small>Mesaj gönder</small></a></div></details></div><button class="menu-toggle" aria-label="Menüyü aç veya kapat" aria-controls="primary-nav" aria-expanded="false" type="button">☰</button></div></header>'''
 def footer():
-    return f'''<footer class="footer eylus-footer"><div class="wrap"><div class="footer-top"><div class="eylus-footer-brand"><a class="wordmark" href="/" aria-label="Eylus ana sayfa"><img src="/assets/eylus-wordmark.png" width="1488" height="252" alt="EYLUS" loading="lazy" decoding="async"></a><p>Üretimin her aşaması kontrolünüzde.</p><small>İşletmenizin sipariş, üretim ve sevkiyat süreçlerini birlikte görün.</small></div><div class="footer-links"><div><strong>KEŞFEDİN</strong><a href="/tekstil/">Çözümler</a><a href="/demo/">Canlı demo</a></div><div><strong>EYLUS</strong><a href="/neden-eylus/">Neden Eylus?</a><a href="/iletisim/">İletişim</a><a href="{SOCIAL}" target="_blank" rel="noopener noreferrer">Instagram</a></div></div></div><div class="footer-bottom"><span>© 2026 Eylus</span><span>Üretim yönetim yazılımı</span><a href="/iletisim/#gizlilik">Site ve gizlilik bilgisi</a></div></div></footer>'''
+    return f'''<footer class="footer eylus-footer"><div class="wrap">
+      <div class="footer-top"><div class="eylus-footer-brand">
+        <a class="wordmark" href="/" aria-label="Eylus ana sayfa"><img src="/assets/eylus-wordmark.png" width="1488" height="252" alt="EYLUS" loading="lazy" decoding="async"></a>
+        <p>Üretimin her aşaması kontrolünüzde.</p>
+        <div class="eylus-footer-intro">
+          <p>Eylus, internet üzerinden çalışan bir üretim yönetim yazılımıdır. Siparişlerinizi, üretim aşamalarınızı ve sevkiyatlarınızı ofisten, telefonunuzdan veya seyahatteyken güncel olarak takip edebilirsiniz.</p>
+          <p>Atölyedeki personel ürünün QR kodunu okutarak yaptığı işlemi kolayca kaydeder; siz de üretimin hangi aşamada olduğunu anında görürsünüz.</p>
+        </div>
+      </div></div>
+      <div class="footer-bottom">
+        <span class="eylus-footer-copyright">© 2026 Eylus</span>
+        <nav class="eylus-footer-nav" aria-label="Alt bağlantılar">
+          <a href="/tekstil/">Çözümler</a>
+          <a href="/demo/">Canlı demo</a>
+          <a href="/neden-eylus/">Neden Eylus?</a>
+          <a href="/iletisim/">İletişim</a>
+          <a href="{SOCIAL}" target="_blank" rel="noopener noreferrer">Instagram</a>
+        </nav>
+        <a class="eylus-footer-privacy" href="/iletisim/#gizlilik">Site ve gizlilik bilgisi</a>
+      </div>
+    </div></footer>'''
 def cta():
     return '<section class="wrap cta"><div>'+eyebrow('Eylus ile tanışın')+'<h2>Üretiminize birlikte<br>daha yakından bakalım.</h2><p>Önce ürünü keşfedin. Sonra işletmenize uyumunu konuşalım.</p></div><div class="actions">'+button('Demoyu incele','/demo/','light')+'</div></section>'
 def intro(label,title,description):
@@ -553,6 +573,46 @@ CSS += r'''
 }
 @media(max-width:359px){
  .eylus-home-hero .eylus-hero-intro{font-size:13.5px;line-height:1.47;margin-bottom:17px}
+}
+'''
+
+# Center the Eylus introduction and move discover links to the copyright strip.
+CSS += r'''
+.eylus-footer{padding:57px 0 24px;background:#f9f8fc}
+.eylus-footer .footer-top{display:block;text-align:center;max-width:840px;margin:0 auto;padding:0 0 43px}
+.eylus-footer .eylus-footer-brand{display:flex;flex-direction:column;align-items:center;text-align:center;min-width:0}
+.eylus-footer .eylus-footer-brand .wordmark{display:inline-flex;justify-content:center;align-items:center}
+.eylus-footer .eylus-footer-brand .wordmark img{display:block;width:190px;max-width:100%;height:auto}
+.eylus-footer .eylus-footer-brand>p{font-size:22px;line-height:1.35;font-weight:760;color:#29233b;max-width:none;margin:22px auto 15px;letter-spacing:-.025em}
+.eylus-footer .eylus-footer-intro{width:100%;max-width:740px;margin:0 auto}
+.eylus-footer .eylus-footer-intro p{font-size:15px;font-weight:400;line-height:1.72;max-width:none;color:#625b6b;margin:0 auto 12px}
+.eylus-footer .eylus-footer-intro p:last-child{margin-bottom:0}
+.eylus-footer .footer-bottom{display:grid;grid-template-columns:max-content minmax(0,1fr) max-content;align-items:center;gap:22px;border-top:1px solid #e7e1ed;padding-top:21px;color:#756d80;font-size:11px}
+.eylus-footer .eylus-footer-nav{display:flex;justify-content:center;align-items:center;gap:10px 23px;flex-wrap:wrap;min-width:0}
+.eylus-footer .eylus-footer-nav a{font-size:12px;line-height:1.5;white-space:nowrap;color:#574c6c;transition:color .16s}
+.eylus-footer .eylus-footer-nav a:hover,.eylus-footer .eylus-footer-privacy:hover{color:#6239b4}
+.eylus-footer .eylus-footer-copyright,.eylus-footer .eylus-footer-privacy{white-space:nowrap}
+@media(max-width:1050px){
+ .eylus-footer .footer-bottom{grid-template-columns:1fr 1fr;gap:18px}
+ .eylus-footer .eylus-footer-nav{grid-column:1 / -1;grid-row:1;gap:12px 23px}
+ .eylus-footer .eylus-footer-copyright{grid-column:1;grid-row:2;text-align:left}
+ .eylus-footer .eylus-footer-privacy{grid-column:2;grid-row:2;text-align:right}
+}
+@media(max-width:650px){
+ .eylus-footer{padding:38px 0 20px}
+ .eylus-footer .footer-top{padding-bottom:32px}
+ .eylus-footer .eylus-footer-brand .wordmark img{width:159px}
+ .eylus-footer .eylus-footer-brand>p{font-size:19px;margin:17px auto 13px}
+ .eylus-footer .eylus-footer-intro{max-width:440px}
+ .eylus-footer .eylus-footer-intro p{font-size:13px;line-height:1.65;margin-bottom:13px}
+ .eylus-footer .footer-bottom{padding-top:19px;gap:20px 10px;font-size:10.5px}
+ .eylus-footer .eylus-footer-nav{gap:12px 18px}
+ .eylus-footer .eylus-footer-nav a{font-size:11.5px}
+}
+@media(max-width:360px){
+ .eylus-footer .eylus-footer-nav{gap:10px 14px}
+ .eylus-footer .eylus-footer-nav a{font-size:11px}
+ .eylus-footer .eylus-footer-privacy{font-size:10px}
 }
 '''
 
