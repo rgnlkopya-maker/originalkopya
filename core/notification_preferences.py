@@ -19,6 +19,9 @@ EVENTS = (
     ("customer_profit_leader", "En kârlı müşteri değişikliği", False, True),
     ("customer_quantity_leader", "En fazla adet alan müşteri değişikliği", False, True),
     ("customer_revenue_leader", "En yüksek cirolu müşteri değişikliği", False, True),
+    ("customer_profit_min_leader", "En düşük kârlı müşteri değişikliği", False, True),
+    ("customer_quantity_min_leader", "En az adet alan müşteri değişikliği", False, True),
+    ("customer_revenue_min_leader", "En düşük cirolu müşteri değişikliği", False, True),
 )
 EVENTS_BY_KEY = {key: {"title": name, "critical": critical, "push_default": push}
                  for key, name, critical, push in EVENTS}
@@ -36,6 +39,9 @@ EVENT_TITLE_KEYS = {
     "En Kârlı Müşteri Değişti": "customer_profit_leader",
     "En Fazla Adet Alan Müşteri Değişti": "customer_quantity_leader",
     "En Yüksek Ciroya Sahip Müşteri Değişti": "customer_revenue_leader",
+    "En Düşük Kârlı Müşteri Değişti": "customer_profit_min_leader",
+    "En Az Adet Alan Müşteri Değişti": "customer_quantity_min_leader",
+    "En Düşük Ciroya Sahip Müşteri Değişti": "customer_revenue_min_leader",
 }
 
 
