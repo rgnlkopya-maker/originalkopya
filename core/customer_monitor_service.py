@@ -21,6 +21,9 @@ LEADER_TYPES = {
     "profit": ("En Kârlı Müşteri Değişti", "en kârlı", "kâr", "TL"),
     "quantity": ("En Fazla Adet Alan Müşteri Değişti", "en fazla adet alan", "sevk edilen adet", "adet"),
     "revenue": ("En Yüksek Ciroya Sahip Müşteri Değişti", "en yüksek ciro yapan", "ciro", "TL"),
+    "profit_min": ("En Düşük Kârlı Müşteri Değişti", "en düşük kârı olan", "kâr", "TL"),
+    "quantity_min": ("En Az Adet Alan Müşteri Değişti", "en az adet alan", "sevk edilen adet", "adet"),
+    "revenue_min": ("En Düşük Ciroya Sahip Müşteri Değişti", "en düşük ciro yapan", "ciro", "TL"),
 }
 
 
@@ -90,7 +93,7 @@ def _notify_status(old, current):
         notify_management(
             "Müşteri Durumu Değişti",
             message,
-            reverse("customer_detail_report", args=[int(cid)]),
+            reverse("customer_comparison_report"),
         )
         sent += 1
     return sent
@@ -135,12 +138,17 @@ def _collect_leaders(rows):
     customers = dict(Musteri.objects.filter(pk__in=grouped.keys()).values_list("id", "ad"))
     leaders = {}
     for metric in LEADER_TYPES:
-        # Consistent tie break: oldest customer ID wins; ties never rotate.
-        winner_id = min(grouped, key=lambda cid: (-grouped[cid][metric], cid))
+        base_metric = metric.removesuffix("_min")
+        # A stable customer ID tie-break keeps both top and bottom rankings
+        # from switching solely because of queryset ordering.
+        if metric.endswith("_min"):
+            winner_id = min(grouped, key=lambda cid: (grouped[cid][base_metric], cid))
+        else:
+            winner_id = min(grouped, key=lambda cid: (-grouped[cid][base_metric], cid))
         leaders[metric] = {
             "id": winner_id,
             "name": customers.get(winner_id, f"Müşteri #{winner_id}"),
-            "value": str(grouped[winner_id][metric]),
+            "value": str(grouped[winner_id][base_metric]),
         }
     return leaders
 
@@ -153,6 +161,10 @@ def _notify_leaders(old, current):
         previous = old.get(metric)
         leader = current.get(metric)
         if not leader or not isinstance(leader, dict):
+            continue
+        # A newly introduced ranking needs its first baseline, not a false
+        # "leader changed" notification for existing users.
+        if not isinstance(previous, dict) or not previous:
             continue
         old_id = str(previous.get("id")) if isinstance(previous, dict) and previous else None
         if old_id == str(leader["id"]):
@@ -170,14 +182,14 @@ def _notify_leaders(old, current):
         notify_management(
             title,
             text,
-            reverse("customer_detail_report", args=[leader["id"]]),
+            reverse("customer_comparison_report"),
         )
         sent += 1
     return sent
 
 
 def process_customer_monitor(now=None):
-    """Status checked from 09:00; three ranking leaders checked from 20:00 (Istanbul)."""
+    """Status checked after 09:00; six ranking leaders checked after 20:00 (Istanbul)."""
     local = timezone.localtime(now or timezone.now())
     today = local.date()
     status_due = local.hour >= 9 and not CustomerMonitorState.objects.filter(
