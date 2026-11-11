@@ -4,7 +4,7 @@ from decimal import Decimal
 import json
 
 from django.contrib.auth.decorators import login_required
-from django.db.models import DateTimeField, OuterRef, Subquery, Sum
+from django.db.models import DateTimeField, OuterRef, Prefetch, Subquery, Sum
 from django.shortcuts import get_object_or_404, render
 from django.utils import timezone
 
@@ -33,7 +33,16 @@ def _shipment_finance_rows(start="", end="", customer_query="", customer_id=None
     )
     qs = (
         Order.objects
-        .select_related("musteri")
+        .select_related("musteri", "shipment_financial_snapshot")
+        .prefetch_related(
+            Prefetch(
+                "events",
+                queryset=OrderEvent.objects.filter(
+                    stage__in=["finans_hareketi", "sevkiyat_durum"],
+                ).order_by("timestamp", "id"),
+                to_attr="_finance_events_prefetched",
+            )
+        )
         .annotate(
             latest_stage=Subquery(latest_event.values("stage")),
             latest_value=Subquery(latest_event.values("value")),
