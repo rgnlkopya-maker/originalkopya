@@ -63,6 +63,15 @@ def scheduler_tick(request):
     except Exception:
         logger.exception("Scheduled customer monitor failed")
 
+    # Daily product rankings: 20:00 Istanbul; persistent DB snapshot prevents
+    # duplicate notifications on concurrent or repeated minute ticks.
+    try:
+        from .product_monitor_service import process_product_monitor
+        product_monitor_result = process_product_monitor()
+        logger.info("Scheduled product monitor: %s", product_monitor_result)
+    except Exception:
+        logger.exception("Scheduled product monitor failed")
+
     now = timezone.localtime()
     outcomes = []
     for module, _ in BackupPolicy.MODULES:
