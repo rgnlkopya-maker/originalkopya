@@ -534,12 +534,35 @@ CSS += r'''
 }
 '''
 
+# Give first-time visitors a concise description without crowding the mobile hero.
+CSS += r'''
+.eylus-home-hero .eylus-hero-content{gap:0}
+.eylus-home-hero .eylus-hero-content h1{margin:0 0 20px!important}
+.eylus-home-hero .eylus-hero-intro{font-size:17px;line-height:1.58;letter-spacing:-.01em;font-weight:450;color:#514a5c;max-width:580px;margin:0 0 26px;overflow-wrap:break-word}
+.eylus-home-hero .eylus-hero-actions{margin:0}
+@media(min-width:961px){
+ .eylus-home-hero .eylus-hero-content{padding-top:77px;padding-bottom:68px}
+ .eylus-home-hero .eylus-hero-intro{font-size:18px;line-height:1.55;margin-bottom:29px}
+}
+@media(min-width:651px) and (max-width:960px){
+ .eylus-home-hero .eylus-hero-intro{font-size:16.5px;margin-bottom:25px}
+}
+@media(max-width:650px){
+ .eylus-home-hero .eylus-hero-content h1{margin-bottom:13px!important}
+ .eylus-home-hero .eylus-hero-intro{font-size:14.5px;line-height:1.48;color:#5a5363;margin-bottom:21px;max-width:37ch}
+}
+@media(max-width:359px){
+ .eylus-home-hero .eylus-hero-intro{font-size:13.5px;line-height:1.47;margin-bottom:17px}
+}
+'''
+
 EYLUS_HOME_HERO = '''<section class="eylus-home-hero" aria-labelledby="eylus-hero-heading">
   <div class="eylus-hero-photo" aria-hidden="true">
     <img src="/assets/eylus-hero-workshop.webp" width="706" height="760" alt="" decoding="async" fetchpriority="high">
   </div>
   <div class="wrap eylus-hero-container"><div class="eylus-hero-content">
     <h1 id="eylus-hero-heading">Süreçlerinizi<br><em>nasıl takip<br>ediyorsunuz?</em></h1>
+    <p class="eylus-hero-intro">Eylus, üretim yapan işletmeler için geliştirilmiş bir yönetim yazılımıdır. Siparişlerinizi, üretim aşamalarınızı ve sevkiyatlarınızı tek sistemden takip edin.</p>
     <div class="eylus-hero-actions">
       <a class="eylus-hero-button eylus-hero-primary eylus-demo-request" href="https://wa.me/905368163125?text=Merhaba%2C%20Eylus%20icin%20demo%20talep%20ediyorum." target="_blank" rel="noopener noreferrer" aria-label="WhatsApp üzerinden Eylus demo talep et"><span class="eylus-hero-button-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11.5a7.9 7.9 0 0 1-8 8 9 9 0 0 1-3.7-.8L4 20l1.4-4.1A8 8 0 1 1 20 11.5Z"/><path d="M8.7 10.2c1 2.1 2.3 3.4 4.4 4.4"/></svg></span><span><strong>Demo Talep Et</strong><small>WhatsApp üzerinden hızlıca ulaşın</small></span><span class="eylus-hero-button-arrow" aria-hidden="true">↗</span></a>
       <a class="eylus-hero-button eylus-hero-secondary" href="/tekstil/"><span class="eylus-hero-button-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg></span><span><strong>Çözümleri İnceleyin</strong><small>Sorununuzu seçin, çözümümüzü görün</small></span></a>
