@@ -34,6 +34,10 @@ EVENT_CATALOG = (
     ("Yarın teslim edilecek siparişler", "Sevkiyat", "Patron ve müdür", "13.30 uygulama içi + Push", "core.todo_service"),
     ("Üretim 3 gün hareketsiz", "Üretim", "Patron ve müdür", "13.30 uygulama içi + Push", "core.todo_service"),
     ("Çek/senet vadesine 15 gün kaldı", "Finans", "Patron ve müdür", "13.30 uygulama içi + Push", "core.todo_service"),
+    ("Müşteri durum değişikliği", "Müşteri", "Patron ve müdür", "09.00 sonrası uygulama içi + Push", "core.customer_monitor_service"),
+    ("En kârlı müşteri liderliği değişikliği", "Müşteri", "Patron ve müdür", "20.00 uygulama içi + Push", "core.customer_monitor_service"),
+    ("En fazla adet alan müşteri liderliği değişikliği", "Müşteri", "Patron ve müdür", "20.00 uygulama içi + Push", "core.customer_monitor_service"),
+    ("En yüksek ciro liderliği değişikliği", "Müşteri", "Patron ve müdür", "20.00 uygulama içi + Push", "core.customer_monitor_service"),
 )
 
 
@@ -80,6 +84,10 @@ def notification_center(request):
             "flagged_stage": ("Bayraklı Siparişte Üretim Hareketi", "Örnek sipariş: Üretim aşaması güncellendi.", "/"),
             "backup_failed": ("Otomatik Yedekleme Başarısız", "Örnek yedek: Yedekleme başarısız oldu.", "/yonetim/yedekleme-merkezi/"),
             "security_lock": ("Güvenlik Uyarısı", "Örnek giriş: Güvenlik kontrolü gerekli.", "/"),
+            "customer_status_changed": ("Müşteri Durumu Değişti", "Örnek: Son sevkiyat süresi nedeniyle müşteri durumu değişti.", "/reports/musteri-karsilastirma/"),
+            "customer_profit_leader": ("En Kârlı Müşteri Değişti", "Örnek: Günlük lider sıralaması değişti.", "/reports/musteri-karsilastirma/"),
+            "customer_quantity_leader": ("En Fazla Adet Alan Müşteri Değişti", "Örnek: Günlük adet lideri değişti.", "/reports/musteri-karsilastirma/"),
+            "customer_revenue_leader": ("En Yüksek Ciroya Sahip Müşteri Değişti", "Örnek: Günlük ciro lideri değişti.", "/reports/musteri-karsilastirma/"),
             "generic": ("MoliApp Bildirim Testi", "Yönetim panelinden gönderilen deneme bildirimidir.", "/yonetim/bildirim-merkezi/"),
         }
         heading, message, destination = examples[event_key]
