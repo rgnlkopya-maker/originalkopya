@@ -1,0 +1,153 @@
+{% extends "base.html" %}
+{% block extra_css %}
+<style>
+.product-report{max-width:1740px;margin:0 auto;padding:22px 15px 48px;color:#193151}
+.pr-head{background:#fff;border:1px solid #e1e8f5;border-radius:19px;padding:22px 24px;box-shadow:0 5px 22px rgba(23,49,93,.04)}
+.pr-crumb{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:700;color:#61718d;margin-bottom:11px}
+.pr-crumb a{color:#315cb4;text-decoration:none}
+.pr-headline{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+.pr-head h1{margin:0;font-weight:850;font-size:25px;letter-spacing:-.4px}
+.pr-head p{color:#71819a;margin:7px 0 0;font-size:13px;max-width:850px}
+.pr-head .pr-link{white-space:nowrap;padding:9px 12px;border:1px solid #d6e3f6;border-radius:10px;background:#f7faff;text-decoration:none;color:#2855a7;font-size:12px;font-weight:750}
+.pr-filters{display:grid;grid-template-columns:minmax(160px,1.4fr) minmax(145px,1fr) minmax(145px,1fr) minmax(145px,1fr) auto;gap:9px;align-items:end;margin-top:19px}
+.pr-filter label{display:block;color:#61738f;font-weight:750;font-size:11px;margin-bottom:5px}
+.pr-filter input,.pr-filter select{width:100%;height:39px;border:1px solid #dce4f1;border-radius:10px;background:#fff;padding:7px 11px;font-size:13px;color:#203651}
+.pr-apply{height:39px;border:0;border-radius:10px;background:#315ed6;color:#fff;font-weight:750;padding:0 19px;font-size:13px}
+.pr-kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:16px 0}
+.pr-kpi{background:#fff;border:1px solid #e1e8f5;border-radius:15px;padding:16px 18px;box-shadow:0 4px 16px rgba(23,49,93,.035);min-width:0}
+.pr-kpi span{display:block;font-size:11px;color:#8190a6;font-weight:750;margin-bottom:8px}
+.pr-kpi strong{display:block;font-size:24px;line-height:1.18;color:#223a5b;font-weight:850;overflow-wrap:anywhere}
+.pr-kpi small{display:block;color:#8695a8;font-size:10px;margin-top:5px}
+.pr-kpi.warning{background:#fffdf8;border-color:#f2dfac}
+.pr-kpi.warning strong{color:#9b6419}
+.pr-note{font-size:12px;color:#5b7190;margin:7px 0 14px;padding:11px 14px;border:1px solid #dfe8f6;border-radius:11px;background:#f9fbfe}
+.pr-note strong{color:#355c9e}
+.pr-tablebox{border:1px solid #e1e8f5;background:#fff;border-radius:16px;overflow:auto;box-shadow:0 5px 22px rgba(23,49,93,.045)}
+.pr-table{border-collapse:separate;border-spacing:0;width:100%;min-width:1610px}
+.pr-table thead th{position:sticky;top:0;z-index:1;background:#f4f7fc;padding:13px 11px;font-size:11px;color:#647692;font-weight:800;text-align:left;white-space:nowrap;cursor:pointer;user-select:none}
+.pr-table thead th:hover{color:#315ed6}
+.pr-table td{padding:12px 11px;font-size:12px;border-top:1px solid #ecf0f6;vertical-align:middle}
+.pr-table tbody tr:hover td{background:#f9fbff}
+.pr-table .code{font-weight:850;color:#294ca6;font-size:13px}
+.pr-table .sub{display:block;color:#8997aa;font-size:10px;margin-top:5px}
+.pr-table .number{font-weight:750;font-variant-numeric:tabular-nums}
+.pr-table .positive{color:#16805a}
+.pr-table .negative{color:#b33f4e}
+.pr-table .warn{display:inline-flex;padding:4px 7px;background:#fff3e3;border:1px solid #f4d4a6;color:#a36213;font-weight:750;border-radius:7px;font-size:10px}
+.pr-table .fine{font-size:11px;color:#6c7d95}
+.pr-empty{text-align:center;padding:55px 15px;color:#7b8aa0;font-weight:650}
+.pr-bottom{font-size:11px;color:#7b8aa0;margin-top:12px}
+@media(max-width:1100px){.pr-filters{grid-template-columns:repeat(3,1fr)}.pr-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:620px){.product-report{padding:10px 7px 35px}.pr-head{padding:16px}.pr-head h1{font-size:20px}.pr-headline{display:block}.pr-head .pr-link{display:inline-block;margin-top:14px}.pr-filters{grid-template-columns:repeat(2,minmax(0,1fr))}.pr-filter:first-child{grid-column:1/-1}.pr-apply{grid-column:1/-1}.pr-kpis{gap:7px}.pr-kpi{padding:12px}.pr-kpi strong{font-size:19px}}
+</style>
+{% endblock %}
+{% block content %}
+<div class="product-report">
+  <div class="pr-head">
+    <div class="pr-crumb"><a href="{% url 'dashboard' %}">Raporlar</a><span>/</span><span>Ürün Performansı</span></div>
+    <div class="pr-headline">
+      <div>
+        <h1><i class="bi bi-box-seam me-2"></i>Ürün Performans Raporu</h1>
+        <p>Ürün kodu bazında hangi modellerin kaç adet sevk edildiğini, hangi müşterilerin aldığını, ciroyu, maliyeti ve kârlılığı karşılaştır.</p>
+      </div>
+      <a class="pr-link" href="{% url 'customer_comparison_report' %}"><i class="bi bi-people me-1"></i>Müşteri Raporu</a>
+    </div>
+    <form method="get" class="pr-filters">
+      <div class="pr-filter"><label for="productSearch">Ürün kodu</label><input id="productSearch" name="q" value="{{ q }}" placeholder="Örn. 8091, 7119"></div>
+      <div class="pr-filter"><label for="productType">Ürün türü</label><select id="productType" name="type"><option value="">Tüm ürün türleri</option>{% for value,label in product_types %}<option value="{{ value }}" {% if selected_type == value %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></div>
+      <div class="pr-filter"><label for="startDate">Sevkiyat başlangıcı</label><input id="startDate" type="date" name="start" value="{{ start }}"></div>
+      <div class="pr-filter"><label for="endDate">Sevkiyat bitişi</label><input id="endDate" type="date" name="end" value="{{ end }}"></div>
+      <button class="pr-apply" type="submit"><i class="bi bi-funnel me-1"></i>Uygula</button>
+    </form>
+  </div>
+
+  <div class="pr-kpis">
+    <div class="pr-kpi"><span>Sevk Edilen Ürün Modeli</span><strong>{{ totals.products }}</strong><small>Farklı ürün kodu</small></div>
+    <div class="pr-kpi"><span>Sevkiyat Kaydı</span><strong>{{ totals.orders }}</strong><small>Sipariş kaydı sayısı</small></div>
+    <div class="pr-kpi"><span>Sevk Edilen Adet</span><strong>{{ totals.quantity }}</strong><small>Toplam fiziksel ürün</small></div>
+    <div class="pr-kpi"><span>Toplam Ciro (TL)</span><strong>₺{{ totals.revenue|floatformat:0 }}</strong><small>Kesinleşmiş finans hareketleri dahil</small></div>
+    <div class="pr-kpi"><span>Toplam Maliyet (TL)</span><strong>₺{{ totals.cost|floatformat:0 }}</strong><small>Sevkiyat finans verisi</small></div>
+    <div class="pr-kpi"><span>Toplam Kâr (TL)</span><strong>₺{{ totals.profit|floatformat:0 }}</strong><small>Net sevkiyat finans sonucu</small></div>
+    <div class="pr-kpi"><span>Toplam Kâr Oranı</span><strong>{% if totals.margin != None %}%{{ totals.margin|floatformat:1 }}{% else %}—{% endif %}</strong><small>Kâr / ciro</small></div>
+    <div class="pr-kpi {% if totals.finance_missing %}warning{% endif %}"><span>Maliyeti Eksik Sevkiyat</span><strong>{{ totals.finance_missing }}</strong><small>Eksik maliyet kârı yanıltabilir</small></div>
+  </div>
+
+  <div class="pr-note"><i class="bi bi-info-circle me-1"></i><strong>Hesaplama kuralı:</strong> Yalnızca son durumu <b>Sevk Edildi</b> olan aktif siparişler dahil edilir. Adet, sipariş satırı sayısından ayrıdır. Tutarlar TL cinsindendir; değişiklikler sayfa yenilendiğinde güncellenir.</div>
+  <div class="pr-tablebox">
+    {% if rows %}
+    <table class="pr-table" id="productReportTable">
+      <thead><tr>
+        <th data-kind="text">Ürün kodu ↕</th>
+        <th data-kind="text">Tür ↕</th>
+        <th data-kind="number">Sipariş ↕</th>
+        <th data-kind="number">Adet ↕</th>
+        <th data-kind="number">Müşteri ↕</th>
+        <th data-kind="text">En çok alan müşteri ↕</th>
+        <th data-kind="text">En çok alınan renk ↕</th>
+        <th data-kind="number">Ciro ↕</th>
+        <th data-kind="number">Maliyet ↕</th>
+        <th data-kind="number">Kâr ↕</th>
+        <th data-kind="number">Kâr % ↕</th>
+        <th data-kind="number">Adet başı ciro ↕</th>
+        <th data-kind="date">İlk sevk ↕</th>
+        <th data-kind="date">Son sevk ↕</th>
+        <th data-kind="number">Maliyet kontrolü ↕</th>
+      </tr></thead>
+      <tbody>
+        {% for r in rows %}
+        <tr>
+          <td data-sort="{{ r.code|lower }}"><span class="code">{{ r.code }}</span><span class="sub">Özel {{ r.ozel }} · Tekli {{ r.tekli }} · Seri {{ r.seri }}</span></td>
+          <td data-sort="{{ r.type_label|lower }}">{{ r.type_label }}</td>
+          <td data-sort="{{ r.orders }}" class="number">{{ r.orders }}</td>
+          <td data-sort="{{ r.quantity }}" class="number">{{ r.quantity }}</td>
+          <td data-sort="{{ r.customer_count }}" class="number">{{ r.customer_count }}</td>
+          <td data-sort="{{ r.top_customer|lower }}">{{ r.top_customer }}<span class="sub">{{ r.top_customer_units }} adet</span></td>
+          <td data-sort="{{ r.top_color|lower }}">{{ r.top_color }}<span class="sub">{{ r.top_color_units }} adet</span></td>
+          <td data-sort="{{ r.revenue }}" class="number">₺{{ r.revenue|floatformat:0 }}</td>
+          <td data-sort="{{ r.cost }}" class="number">₺{{ r.cost|floatformat:0 }}</td>
+          <td data-sort="{{ r.profit }}" class="number {% if r.in_loss %}negative{% else %}positive{% endif %}">₺{{ r.profit|floatformat:0 }}</td>
+          <td data-sort="{% if r.margin != None %}{{ r.margin }}{% else %}0{% endif %}" class="number">{% if r.margin != None %}%{{ r.margin|floatformat:1 }}{% else %}—{% endif %}</td>
+          <td data-sort="{% if r.avg_price != None %}{{ r.avg_price }}{% else %}0{% endif %}" class="number">{% if r.avg_price != None %}₺{{ r.avg_price|floatformat:0 }}{% else %}—{% endif %}</td>
+          <td data-sort="{{ r.first|date:'Y-m-d' }}" class="fine">{{ r.first|date:"d.m.Y"|default:"—" }}</td>
+          <td data-sort="{{ r.last|date:'Y-m-d' }}" class="fine">{{ r.last|date:"d.m.Y"|default:"—" }}</td>
+          <td data-sort="{{ r.finance_missing }}">{% if r.finance_missing %}<span class="warn">{{ r.finance_missing }} kayıt eksik</span>{% else %}<span class="fine"><i class="bi bi-check-circle text-success"></i> Tamam</span>{% endif %}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div class="pr-empty"><i class="bi bi-box-seam d-block fs-3 mb-2"></i>Seçilen ölçütlerde sevk edilmiş ürün bulunamadı.</div>
+    {% endif %}
+  </div>
+  <div class="pr-bottom">Ürün kodları birleştirilirken baştaki/sondaki boşluklar temizlenir ve harfler büyük yazılır. Kâr rakamlarında eksik maliyet varsa uyarı gösterilir.</div>
+</div>
+<script>
+document.addEventListener("DOMContentLoaded",function(){
+  const table=document.getElementById("productReportTable");
+  if(!table)return;
+  const heads=table.querySelectorAll("thead th");
+  heads.forEach((head,index)=>{
+    head.addEventListener("click",()=>{
+      const ascending=head.dataset.ascending!=="1";
+      heads.forEach(h=>h.dataset.ascending="");
+      head.dataset.ascending=ascending?"1":"0";
+      const rows=Array.from(table.tBodies[0].rows);
+      const kind=head.dataset.kind;
+      rows.sort((a,b)=>{
+        let av=a.cells[index].dataset.sort||"";
+        let bv=b.cells[index].dataset.sort||"";
+        if(kind==="number"){
+          const na=Number(av)||0,nb=Number(bv)||0;
+          return ascending?na-nb:nb-na;
+        }
+        if(kind==="date"){
+          return ascending?av.localeCompare(bv):bv.localeCompare(av);
+        }
+        return ascending?av.localeCompare(bv,"tr"):bv.localeCompare(av,"tr");
+      });
+      rows.forEach(row=>table.tBodies[0].appendChild(row));
+    });
+  });
+});
+</script>
+{% endblock %}
