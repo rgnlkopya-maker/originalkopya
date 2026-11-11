@@ -38,6 +38,9 @@ EVENT_CATALOG = (
     ("En kârlı müşteri liderliği değişikliği", "Müşteri", "Patron ve müdür", "20.00 uygulama içi + Push", "core.customer_monitor_service"),
     ("En fazla adet alan müşteri liderliği değişikliği", "Müşteri", "Patron ve müdür", "20.00 uygulama içi + Push", "core.customer_monitor_service"),
     ("En yüksek ciro liderliği değişikliği", "Müşteri", "Patron ve müdür", "20.00 uygulama içi + Push", "core.customer_monitor_service"),
+    ("En düşük kâr liderliği değişikliği", "Müşteri", "Patron ve müdür", "20.00 uygulama içi + Push", "core.customer_monitor_service"),
+    ("En az adet alan müşteri değişikliği", "Müşteri", "Patron ve müdür", "20.00 uygulama içi + Push", "core.customer_monitor_service"),
+    ("En düşük ciro liderliği değişikliği", "Müşteri", "Patron ve müdür", "20.00 uygulama içi + Push", "core.customer_monitor_service"),
 )
 
 
@@ -88,6 +91,9 @@ def notification_center(request):
             "customer_profit_leader": ("En Kârlı Müşteri Değişti", "Örnek: Günlük lider sıralaması değişti.", "/reports/musteri-karsilastirma/"),
             "customer_quantity_leader": ("En Fazla Adet Alan Müşteri Değişti", "Örnek: Günlük adet lideri değişti.", "/reports/musteri-karsilastirma/"),
             "customer_revenue_leader": ("En Yüksek Ciroya Sahip Müşteri Değişti", "Örnek: Günlük ciro lideri değişti.", "/reports/musteri-karsilastirma/"),
+            "customer_profit_min_leader": ("En Düşük Kârlı Müşteri Değişti", "Örnek: En düşük kârlı müşteri değişti.", "/reports/musteri-karsilastirma/"),
+            "customer_quantity_min_leader": ("En Az Adet Alan Müşteri Değişti", "Örnek: En az sevk edilen ürün adedi değişti.", "/reports/musteri-karsilastirma/"),
+            "customer_revenue_min_leader": ("En Düşük Ciroya Sahip Müşteri Değişti", "Örnek: En düşük cirolu müşteri değişti.", "/reports/musteri-karsilastirma/"),
             "generic": ("MoliApp Bildirim Testi", "Yönetim panelinden gönderilen deneme bildirimidir.", "/yonetim/bildirim-merkezi/"),
         }
         heading, message, destination = examples[event_key]
