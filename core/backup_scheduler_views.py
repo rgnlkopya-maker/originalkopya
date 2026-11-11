@@ -53,6 +53,16 @@ def scheduler_tick(request):
         except Exception:
             logger.exception("Scheduled %s processing failed", label)
 
+    # Existing once-per-minute secure tick drives customer alerts too.
+    # Status transitions are evaluated after 09:00 and leader changes after
+    # 20:00 Istanbul time; persistent DB snapshots prevent duplicate sends.
+    try:
+        from .customer_monitor_service import process_customer_monitor
+        customer_monitor_result = process_customer_monitor()
+        logger.info("Scheduled customer monitor: %s", customer_monitor_result)
+    except Exception:
+        logger.exception("Scheduled customer monitor failed")
+
     now = timezone.localtime()
     outcomes = []
     for module, _ in BackupPolicy.MODULES:
