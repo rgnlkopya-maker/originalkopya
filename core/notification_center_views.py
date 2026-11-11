@@ -41,6 +41,14 @@ EVENT_CATALOG = (
     ("En düşük kâr liderliği değişikliği", "Müşteri", "Patron ve müdür", "20.00 uygulama içi + Push", "core.customer_monitor_service"),
     ("En az adet alan müşteri değişikliği", "Müşteri", "Patron ve müdür", "20.00 uygulama içi + Push", "core.customer_monitor_service"),
     ("En düşük ciro liderliği değişikliği", "Müşteri", "Patron ve müdür", "20.00 uygulama içi + Push", "core.customer_monitor_service"),
+    ("En yüksek cirolu ürün değişikliği", "Ürün", "Patron ve müdür", "20.00 uygulama içi + Push", "core.product_monitor_service"),
+    ("En düşük cirolu ürün değişikliği", "Ürün", "Patron ve müdür", "20.00 uygulama içi + Push", "core.product_monitor_service"),
+    ("En yüksek toplam maliyetli ürün değişikliği", "Ürün", "Patron ve müdür", "20.00 uygulama içi + Push", "core.product_monitor_service"),
+    ("En düşük toplam maliyetli ürün değişikliği", "Ürün", "Patron ve müdür", "20.00 uygulama içi + Push", "core.product_monitor_service"),
+    ("En kârlı ürün değişikliği", "Ürün", "Patron ve müdür", "20.00 uygulama içi + Push", "core.product_monitor_service"),
+    ("En düşük kârlı ürün değişikliği", "Ürün", "Patron ve müdür", "20.00 uygulama içi + Push", "core.product_monitor_service"),
+    ("En fazla sevk edilen ürün değişikliği", "Ürün", "Patron ve müdür", "20.00 uygulama içi + Push", "core.product_monitor_service"),
+    ("En az sevk edilen ürün değişikliği", "Ürün", "Patron ve müdür", "20.00 uygulama içi + Push", "core.product_monitor_service"),
 )
 
 
@@ -94,6 +102,14 @@ def notification_center(request):
             "customer_profit_min_leader": ("En Düşük Kârlı Müşteri Değişti", "Örnek: En düşük kârlı müşteri değişti.", "/reports/musteri-karsilastirma/"),
             "customer_quantity_min_leader": ("En Az Adet Alan Müşteri Değişti", "Örnek: En az sevk edilen ürün adedi değişti.", "/reports/musteri-karsilastirma/"),
             "customer_revenue_min_leader": ("En Düşük Ciroya Sahip Müşteri Değişti", "Örnek: En düşük cirolu müşteri değişti.", "/reports/musteri-karsilastirma/"),
+            "product_revenue_max": ("En Yüksek Cirolu Ürün Değişti", "Örnek: En yüksek cirolu ürün değişikliği.", "/reports/urun-performans/"),
+            "product_revenue_min": ("En Düşük Cirolu Ürün Değişti", "Örnek: En düşük cirolu ürün değişikliği.", "/reports/urun-performans/"),
+            "product_cost_max": ("En Yüksek Maliyetli Ürün Değişti", "Örnek: En yüksek toplam maliyetli ürün değişikliği.", "/reports/urun-performans/"),
+            "product_cost_min": ("En Düşük Maliyetli Ürün Değişti", "Örnek: En düşük toplam maliyetli ürün değişikliği.", "/reports/urun-performans/"),
+            "product_profit_max": ("En Kârlı Ürün Değişti", "Örnek: En kârlı ürün değişikliği.", "/reports/urun-performans/"),
+            "product_profit_min": ("En Düşük Kârlı Ürün Değişti", "Örnek: En düşük kârlı ürün değişikliği.", "/reports/urun-performans/"),
+            "product_quantity_max": ("En Fazla Sevk Edilen Ürün Değişti", "Örnek: En fazla sevk edilen ürün değişikliği.", "/reports/urun-performans/"),
+            "product_quantity_min": ("En Az Sevk Edilen Ürün Değişti", "Örnek: En az sevk edilen ürün değişikliği.", "/reports/urun-performans/"),
             "generic": ("MoliApp Bildirim Testi", "Yönetim panelinden gönderilen deneme bildirimidir.", "/yonetim/bildirim-merkezi/"),
         }
         heading, message, destination = examples[event_key]
