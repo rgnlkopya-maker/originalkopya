@@ -71,6 +71,46 @@ def _issue(issues, order, code, detail):
     }
 
 
+def _independent_finance_values(snapshot, events):
+    """Recalculate recognized financial movements separately from the UI helper.
+
+    Returns None when historical operational movements could change the final
+    shipment value; those cases are checked for missing/invalid data only.
+    """
+    if snapshot.satis_tl is None or snapshot.toplam_maliyet_tl is None:
+        return None
+    sale, cost = Decimal(snapshot.satis_tl), Decimal(snapshot.toplam_maliyet_tl)
+    for event in events:
+        if event.stage == "sevkiyat_durum":
+            if event.value != "gonderildi":
+                return None  # returns/re-ship have their own business semantics
+            continue
+        if event.stage != "finans_hareketi":
+            continue
+        if event.value not in FINANCIAL_MOVEMENT_LABELS:
+            return None  # legacy or unrecognized movement, audited separately
+        try:
+            data = json.loads(event.new_value or "")
+            amount = Decimal(str(data["tl_amount"]))
+            if not amount.is_finite() or amount < 0:
+                return None
+        except (ValueError, InvalidOperation, KeyError, TypeError, AttributeError):
+            return None  # invalid movement already gets its own warning
+        if event.value == "INDIRIM":
+            sale = max(Decimal("0"), sale - amount)
+        elif event.value == "EK_UCRET":
+            sale += amount
+        elif event.value == "FIYAT_DUZELT":
+            sale = max(Decimal("0"), amount)
+        elif event.value == "EK_MALIYET":
+            cost += amount
+        elif event.value == "MALIYET_INDIRIMI":
+            cost = max(Decimal("0"), cost - amount)
+        elif event.value == "NIHAI_MALIYET":
+            cost = max(Decimal("0"), amount)
+    return sale.quantize(CENT), cost.quantize(CENT)
+
+
 def audit_financial_order(order):
     """Use independent snapshot invariants; never repair or modify money."""
     issues = {}
@@ -120,6 +160,7 @@ def audit_financial_order(order):
         events = order.events.filter(
             stage__in=["finans_hareketi", "sevkiyat_durum"]
         ).order_by("timestamp", "id")
+    events = list(events)
     for event in events:
         if event.stage != "finans_hareketi":
             continue
@@ -149,6 +190,25 @@ def audit_financial_order(order):
             f"Sevkiyat finans hesaplaması başarısız: {type(exc).__name__}.",
         )
         return issues
+
+    # Cross-check the effective values after financial movement replay. This
+    # catches a valid price/cost movement being ignored by the UI calculation.
+    if result.get("is_final"):
+        independent = _independent_finance_values(snapshot, events)
+        if independent is not None:
+            expected_sale, expected_cost = independent
+            for field, actual, expected in (
+                ("satış", result.get("satis_tl"), expected_sale),
+                ("maliyet", result.get("maliyet_tl"), expected_cost),
+                ("kâr", result.get("kar_tl"), expected_sale - expected_cost),
+            ):
+                if actual is None or abs(Decimal(str(actual)) - expected) > CENT:
+                    code = {"satış": "sale_reconciliation", "maliyet": "cost_reconciliation", "kâr": "profit_reconciliation"}[field]
+                    _issue(
+                        issues, order, code,
+                        f"Finans hareketleri sonrası {field} hesabı uyuşmuyor. "
+                        f"Beklenen: {expected} TL, görünen: {actual} TL.",
+                    )
 
     if result.get("is_final") and result.get("satis_tl") is not None and result["satis_tl"] <= 0:
         _issue(
