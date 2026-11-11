@@ -84,6 +84,8 @@ def todo_complete(request, todo_id):
         # Keep the list checkbox's existing toggle behavior.
         item.completed_at = None if item.completed_at else timezone.now()
         item.save(update_fields=["completed_at"])
+    if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+        return JsonResponse({"ok": True, "completed": item.completed_at is not None})
     return redirect("todo_list")
 
 
@@ -100,6 +102,13 @@ def todo_snooze(request, todo_id):
     item.snoozed_until = timezone.now() + timedelta(minutes=minutes)
     item.last_notified_at = None
     item.save(update_fields=["snoozed_until", "last_notified_at"])
+    if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+        return JsonResponse({
+            "ok": True,
+            "snoozed": True,
+            "minutes": minutes,
+            "snoozed_until": item.snoozed_until.isoformat(),
+        })
     return redirect("todo_list")
 
 
