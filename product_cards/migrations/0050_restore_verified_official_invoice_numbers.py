@@ -11,6 +11,9 @@ VERIFIED_NUMBERS = {
 def restore_verified_numbers(apps, schema_editor):
     InvoiceDraft = apps.get_model("product_cards", "InvoiceDraft")
     db = schema_editor.connection.alias
+    # Fresh CI databases have no historical invoices to restore.
+    if not InvoiceDraft.objects.using(db).exists():
+        return
     for invoice_id, number in VERIFIED_NUMBERS.items():
         # Do not overwrite any number a user may have entered since verification.
         invoice = InvoiceDraft.objects.using(db).get(pk=invoice_id)
