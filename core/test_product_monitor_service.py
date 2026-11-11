@@ -139,7 +139,7 @@ class ProductMonitorTests(TestCase):
         rows.return_value = [
             shipped("A", 2, 1000, 1400, -400),
             shipped("B", 1, 500, 0, 500, missing_cost=False),
-            shipped("C", 1, 200, 0, 200, missing_cost=True),
+            shipped("C", 1, 1600, 0, 1600, missing_cost=True),
         ]
         process_product_monitor(local_time(12, 20))
         messages = [c.args[1] for c in notify.call_args_list]
