@@ -50,8 +50,8 @@ def footer():
         <a class="wordmark" href="/" aria-label="Eylus ana sayfa"><img src="/assets/eylus-wordmark.png" width="1488" height="252" alt="EYLUS" loading="lazy" decoding="async"></a>
         <p>Üretimin her aşaması kontrolünüzde.</p>
         <div class="eylus-footer-intro">
-          <p>“Bu sipariş nerede?”, “Neden hâlâ bitmedi?”, “Yarın ne sevk edeceğiz?” sorularını gün boyu çalışanlarınıza sormak zorunda kalmayın. Eylus ile hangi siparişin kesimde, dikimde veya süslemede olduğunu, nerede beklediğini ve hangi teslimatların yaklaştığını tek ekrandan görün. Atölyede, evde ya da seyahatte olun; işletmenizin güncel durumuna telefonunuzdan veya bilgisayarınızdan ulaşın.</p>
-          <p>Üstelik personeliniz uzun formlar doldurmaz; yaptığı işlemi ürünün QR kodunu okutarak kaydeder. Siz de üretimde aksayan işleri daha erken fark eder, teslimatları daha rahat planlar ve zamanında müdahale edersiniz. <strong>Daha az telefon trafiği, daha az son dakika sürprizi, daha fazla kontrol.</strong></p>
+          <p>İşletmenizde ne olup bittiğini öğrenmek için sürekli telefon açmayın. Eylus; sipariş, üretim, personel, sevkiyat ve maliyet bilgilerini tek yerde toplar.</p>
+          <p>Personeliniz QR okutarak işlemleri kolayca kaydeder; siz de gecikmeleri erken fark eder, işletmenizi nerede olursanız olun telefonunuzdan takip edersiniz.</p>
         </div>
       </div></div>
       <div class="footer-bottom">
