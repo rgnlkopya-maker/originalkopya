@@ -49,6 +49,26 @@ class TodoAlarmActionTests(TestCase):
         self.item.refresh_from_db()
         self.assertIsNotNone(self.item.snoozed_until)
 
+    def test_snooze_from_another_screen_stays_on_that_screen(self):
+        source = "/uretim-asama-kontrolu/?section=unshipped"
+        response = self.client.post(
+            reverse("todo_snooze", args=[self.item.pk]),
+            {"minutes": "10"},
+            HTTP_REFERER="http://testserver" + source,
+        )
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.url, "http://testserver" + source)
+        self.item.refresh_from_db()
+        self.assertIsNotNone(self.item.snoozed_until)
+
+    def test_snooze_refuses_external_redirect(self):
+        response = self.client.post(
+            reverse("todo_snooze", args=[self.item.pk]),
+            {"minutes": "10"},
+            HTTP_REFERER="https://untrusted.example/elsewhere",
+        )
+        self.assertRedirects(response, reverse("todo_list"))
+
     def test_completion_popup_confirms_save_and_does_not_reopen(self):
         url = reverse("todo_complete", args=[self.item.pk])
         for _ in range(2):
