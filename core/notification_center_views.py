@@ -49,6 +49,7 @@ EVENT_CATALOG = (
     ("En düşük kârlı ürün değişikliği", "Ürün", "Patron ve müdür", "20.00 uygulama içi + Push", "core.product_monitor_service"),
     ("En fazla sevk edilen ürün değişikliği", "Ürün", "Patron ve müdür", "20.00 uygulama içi + Push", "core.product_monitor_service"),
     ("En az sevk edilen ürün değişikliği", "Ürün", "Patron ve müdür", "20.00 uygulama içi + Push", "core.product_monitor_service"),
+    ("Sevkiyat finans veri hatası", "Finans", "Patron ve müdür", "Hata tespitinde uygulama içi + Push", "core.finance_integrity_monitor"),
 )
 
 
@@ -110,6 +111,7 @@ def notification_center(request):
             "product_profit_min": ("En Düşük Kârlı Ürün Değişti", "Örnek: En düşük kârlı ürün değişikliği.", "/reports/urun-performans/"),
             "product_quantity_max": ("En Fazla Sevk Edilen Ürün Değişti", "Örnek: En fazla sevk edilen ürün değişikliği.", "/reports/urun-performans/"),
             "product_quantity_min": ("En Az Sevk Edilen Ürün Değişti", "Örnek: En az sevk edilen ürün değişikliği.", "/reports/urun-performans/"),
+            "finance_integrity_error": ("Sevkiyat Finans Veri Hatası", "Örnek: Bir sevkiyatın maliyeti hesaplanamadı.", "/reports/sevkiyat-finans/"),
             "generic": ("MoliApp Bildirim Testi", "Yönetim panelinden gönderilen deneme bildirimidir.", "/yonetim/bildirim-merkezi/"),
         }
         heading, message, destination = examples[event_key]
