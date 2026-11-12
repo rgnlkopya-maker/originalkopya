@@ -202,6 +202,9 @@ def extract_public_business_contacts(website_url):
             policy = RobotFileParser()
             policy.set_url(base + "/robots.txt")
             policy.parse(robots.splitlines() if robots_status == 200 else [])
+            if not policy.can_fetch(USER_AGENT, base + "/"):
+                # A disallow instruction must never be bypassed with www.
+                return {}
 
             found = {}
             seen = set()
