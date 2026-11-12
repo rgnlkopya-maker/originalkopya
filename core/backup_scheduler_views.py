@@ -92,6 +92,17 @@ def scheduler_tick(request):
     except Exception:
         logger.exception("Scheduled prospect research failed")
 
+    # Export sales email automation is OFF by default. Never send unless a
+    # manager has approved a contact and sender credentials + compliance gates
+    # are all explicitly configured in Render.
+    try:
+        from sales_prospects.outreach import process_outreach_queue
+        outreach_result = process_outreach_queue()
+        if outreach_result.get("sent"):
+            logger.info("Approved export sales emails sent: %s", outreach_result["sent"])
+    except Exception:
+        logger.exception("Approved export sales email dispatch failed")
+
     now = timezone.localtime()
     outcomes = []
     for module, _ in BackupPolicy.MODULES:
