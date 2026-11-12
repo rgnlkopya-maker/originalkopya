@@ -1,5 +1,6 @@
 from django.conf import settings
 from django.db import models
+import re
 
 
 COUNTRIES = [
@@ -64,6 +65,11 @@ class Prospect(models.Model):
 
     class Meta:
         ordering = ("-created_at", "-id")
+
+    @property
+    def whatsapp_link(self):
+        digits = re.sub(r"\\D", "", self.whatsapp_number or "")
+        return "https://wa.me/" + digits if 9 <= len(digits) <= 15 else ""
 
     def __str__(self):
         return self.name
