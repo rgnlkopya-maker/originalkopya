@@ -5,7 +5,7 @@ from django.contrib.auth import get_user_model
 from django.test import SimpleTestCase, TestCase, RequestFactory
 from django.utils import timezone
 
-from .models import Prospect, SearchRun
+from .models import Prospect, SearchRun, OutreachEmail
 from .research import canonical_url, draft_for, _candidate_from_result, process_daily_search
 from .views import prospect_list
 
@@ -68,3 +68,71 @@ class ProspectResearchDBTests(TestCase):
         request.user = staff
         response = prospect_list(request)
         self.assertEqual(response.status_code, 403)
+
+
+
+class ExportOutreachSafetyTests(TestCase):
+    def setUp(self):
+        self.manager = get_user_model().objects.create_user(username="export_manager_test", password="safe-test-pass")
+        self.lead = Prospect.objects.create(
+            name="North America Eveningwear Boutique", country="US",
+            canonical_url="https://export-test.example.com",
+            website_url="https://export-test.example.com",
+            email="Sales@Example.com", contact_class="COMPANY", email_basis="US_B2B",
+            email_source_note="Checked business website and business classification.",
+            email_checked=True, message_draft="Hello, we make evening dresses. Moli Tekstil.",
+            status="APPROVED",
+        )
+
+    def test_unapproved_company_cannot_enter_queue(self):
+        from .outreach import queue_initial, eligible
+        self.assertFalse(eligible(self.lead)[0])
+        email, reason = queue_initial(self.lead, self.manager)
+        self.assertIsNone(email)
+        self.assertEqual(OutreachEmail.objects.count(), 0)
+
+    def test_only_approved_contact_is_queued_once(self):
+        from .outreach import queue_initial
+        self.lead.outreach_approved_at = timezone.now()
+        self.lead.outreach_approved_by = self.manager
+        self.lead.save(update_fields=["outreach_approved_at", "outreach_approved_by"])
+        msg, reason = queue_initial(self.lead, self.manager)
+        again, duplicate = queue_initial(self.lead, self.manager)
+        self.assertEqual(msg.pk, again.pk)
+        self.assertEqual(OutreachEmail.objects.count(), 1)
+        self.assertEqual(msg.email, "sales@example.com")
+
+    def test_country_classification_does_not_auto_allow_uk_sole_trader(self):
+        from .outreach import eligible
+        self.lead.country = "GB"
+        self.lead.contact_class = "PERSON"
+        self.lead.email_basis = "GB_CORP"
+        self.assertFalse(eligible(self.lead, require_approval=False)[0])
+
+    def test_suppression_blocks_future_email(self):
+        from .outreach import eligible, queue_initial, suppress
+        self.lead.outreach_approved_at = timezone.now()
+        self.lead.save(update_fields=["outreach_approved_at"])
+        msg, _ = queue_initial(self.lead, self.manager)
+        suppress("SALES@example.COM")
+        msg.refresh_from_db()
+        self.assertEqual(msg.status, "CANCELLED")
+        self.assertFalse(eligible(self.lead)[0])
+
+    @patch.dict(os.environ, {"MOLI_OUTREACH_ENABLED": ""})
+    def test_dispatcher_is_off_by_default(self):
+        from .outreach import process_outreach_queue
+        self.assertEqual(process_outreach_queue()["status"], "DISABLED")
+
+    def test_unsubscribe_link_is_a_signed_post_not_get(self):
+        from .outreach import unsubscribe_token, normalized_email
+        from django.urls import reverse
+        from .models import SuppressedEmail
+        token = unsubscribe_token("Sales@Example.com")
+        url = reverse("prospect_unsubscribe", args=[token])
+        view = self.client.get(url)
+        self.assertEqual(view.status_code, 200)
+        self.assertFalse(SuppressedEmail.objects.exists())
+        result = self.client.post(url, data={"List-Unsubscribe": "One-Click"})
+        self.assertEqual(result.status_code, 200)
+        self.assertTrue(SuppressedEmail.objects.filter(email="sales@example.com").exists())
