@@ -39,6 +39,7 @@ class Prospect(models.Model):
     note = models.TextField(blank=True, default="")
     message_draft = models.TextField(blank=True, default="")
     email = models.EmailField(max_length=254, blank=True, default="")
+    email_source_url = models.URLField(max_length=500, blank=True, default="")
     CONTACT_CLASS = [("UNKNOWN", "Belirsiz"), ("COMPANY", "Tüzel kişi / şirket"), ("PERSON", "Şahıs işletmesi")]
     contact_class = models.CharField(max_length=8, choices=CONTACT_CLASS, default="UNKNOWN")
     EMAIL_BASIS = [
