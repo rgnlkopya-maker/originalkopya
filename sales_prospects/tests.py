@@ -136,3 +136,55 @@ class ExportOutreachSafetyTests(TestCase):
         result = self.client.post(url, data={"List-Unsubscribe": "One-Click"})
         self.assertEqual(result.status_code, 200)
         self.assertTrue(SuppressedEmail.objects.filter(email="sales@example.com").exists())
+
+
+
+class ExportSalesViewTests(TestCase):
+    def setUp(self):
+        from django.contrib.auth.models import Group
+        from django.urls import reverse
+        self.manager = get_user_model().objects.create_user(username="export_view_manager", password="safe-test-pass")
+        group, _ = Group.objects.get_or_create(name="patron")
+        self.manager.groups.add(group)
+        self.client.force_login(self.manager)
+
+    def test_management_screen_renders_with_email_tools(self):
+        from django.urls import reverse
+        response = self.client.get(reverse("prospect_list"))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Toplu müşteri adayı")
+        self.assertContains(response, "E-posta gönderimi kapalı")
+
+    def test_csv_upload_adds_unapproved_leads_only(self):
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        from django.urls import reverse
+        content = (
+            "name,country,city,website,instagram,email,source_url\n"
+            "Example Bridal Shop,US,Chicago,https://bridal-test.example.com,,info@bridal-test.example.com,https://bridal-test.example.com\n"
+        ).encode("utf-8")
+        upload = SimpleUploadedFile("leads.csv", content, content_type="text/csv")
+        response = self.client.post(reverse("prospect_csv_import"), {"file": upload})
+        self.assertEqual(response.status_code, 302)
+        lead = Prospect.objects.get(name="Example Bridal Shop")
+        self.assertFalse(lead.email_checked)
+        self.assertEqual(lead.email_basis, "NONE")
+        self.assertIsNone(lead.outreach_approved_at)
+        self.assertEqual(OutreachEmail.objects.count(), 0)
+
+    def test_manager_approval_creates_queue_without_sending(self):
+        from django.urls import reverse
+        lead = Prospect.objects.create(
+            name="Approved Eveningwear", country="US",
+            canonical_url="https://approved-export.example.com",
+            website_url="https://approved-export.example.com",
+            email="buyer@approved-export.example.com", contact_class="COMPANY",
+            email_basis="US_B2B", email_checked=True,
+            email_source_note="Manual corporate business review on company website.",
+            message_draft="Hello! Moli Tekstil eveningwear.",
+        )
+        response = self.client.post(reverse("prospect_approve_outreach", args=[lead.pk]))
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(OutreachEmail.objects.count(), 1)
+        msg = OutreachEmail.objects.get()
+        self.assertEqual(msg.status, "QUEUED")
+        self.assertIsNone(msg.sent_at)
