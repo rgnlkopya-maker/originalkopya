@@ -26,7 +26,7 @@ from .published_contacts import VisibleContacts, CONTACT_PATH
 USER_AGENT = "MoliTekstilBusinessResearchBot/1.0"
 MAX_PAGE_BYTES = 650_000
 MAX_ROBOTS_BYTES = 55_000
-CONNECT_TIMEOUT = 6
+CONNECT_TIMEOUT = 4
 MAX_SITE_PAGES = 4
 CONTACT_WORDS = (
     "contact", "kontakt", "contatti", "contacto", "contactez",
