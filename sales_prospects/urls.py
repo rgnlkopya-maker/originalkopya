@@ -4,6 +4,8 @@ from . import views
 urlpatterns = [
     path("", views.prospect_list, name="prospect_list"),
     path("yeni/", views.prospect_new, name="prospect_new"),
+    path("csv-aktar/", views.import_prospect_csv, name="prospect_csv_import"),
+    path("csv-ornek/", views.prospect_csv_template, name="prospect_csv_template"),
     path("<int:pk>/", views.prospect_detail, name="prospect_detail"),
     path("<int:pk>/e-posta-onayla/", views.approve_outreach, name="prospect_approve_outreach"),
     path("<int:pk>/takip-onayla/", views.queue_outreach_followup, name="prospect_queue_followup"),
