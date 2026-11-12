@@ -19,6 +19,7 @@ from .forms import ProspectForm
 from .models import COUNTRIES, Prospect, SearchRun, OutreachEmail
 from .research import DAILY_LIMIT, SEARCHES, process_daily_search, canonical_url, draft_for
 from .outreach import eligible, queue_initial, queue_followup, config_status, email_from_token, suppress
+from .contact_enrichment import normalized_number, enrich_prospect_contact
 
 
 def _allowed(request):
@@ -247,6 +248,8 @@ def import_prospect_csv(request):
         website = (row.get("website") or "").strip()[:500]
         instagram = (row.get("instagram") or "").strip()[:500]
         raw_email = (row.get("email") or "").strip().casefold()[:254]
+        phone = normalized_number((row.get("phone") or row.get("phone_number") or "").strip())
+        whatsapp = normalized_number((row.get("whatsapp") or row.get("whatsapp_number") or "").strip())
         website_key = canonical_url(website)
         instagram_key = canonical_url(instagram)
         if not instagram_key.startswith("https://instagram.com/"):
@@ -268,7 +271,8 @@ def import_prospect_csv(request):
                 "website_url": website if website_key else "",
                 "instagram_url": instagram if instagram_key else "",
                 "source_url": (row.get("source_url") or "").strip()[:500] if canonical_url((row.get("source_url") or "").strip()) else "",
-                "email": raw_email, "message_draft": draft_for(name, country),
+                "email": raw_email, "phone_number": phone,
+                "whatsapp_number": whatsapp, "message_draft": draft_for(name, country),
                 "created_by": request.user,
                 "source": "MANUAL", "status": "NEW",
                 "note": "CSV ile eklendi; iletişim dayanağı ve e-posta kontrolü yapılmadı.",
@@ -291,6 +295,30 @@ def prospect_csv_template(request):
     response["Content-Disposition"] = 'attachment; filename="moli-yurtdisi-musteriler-ornek.csv"'
     response.write("\ufeff")
     writer = csv.writer(response)
-    writer.writerow(["name", "country", "city", "website", "instagram", "email", "source_url"])
-    writer.writerow(["Example Eveningwear Boutique", "US", "New York", "https://example.com", "", "", "https://example.com"])
+    writer.writerow(["name", "country", "city", "website", "instagram", "email", "phone", "whatsapp", "source_url"])
+    writer.writerow(["Example Eveningwear Boutique", "US", "New York", "https://example.com", "", "", "", "", "https://example.com"])
     return response
+
+
+
+@login_required
+@require_POST
+def scan_public_contacts(request, pk):
+    """One scoped on-demand scan of the retailer's own public website."""
+    if not _allowed(request):
+        return HttpResponseForbidden("Yetkiniz yok.")
+    from datetime import timedelta
+    lead = get_object_or_404(Prospect, pk=pk)
+    if lead.contact_scan_at and lead.contact_scan_at > timezone.now() - timedelta(minutes=15):
+        messages.info(request, "İletişim taraması yakın zamanda yapıldı. Tekrarlamak için 15 dakika geçmeli.")
+        return redirect("prospect_detail", pk=pk)
+    if not lead.website_url:
+        messages.warning(request, "İşletme web sitesi bağlantısı olmadan otomatik iletişim taraması yapılamaz.")
+        return redirect("prospect_detail", pk=pk)
+    count = enrich_prospect_contact(lead)
+    lead.refresh_from_db()
+    if count:
+        messages.success(request, f"İşletmenin web sitesinden {count} iletişim kanalı bulundu. Kaynak bağlantılarını kontrol edin.")
+    else:
+        messages.info(request, lead.contact_scan_note or "Herkese açık işletme iletişim bilgisi bulunamadı.")
+    return redirect("prospect_detail", pk=pk)
