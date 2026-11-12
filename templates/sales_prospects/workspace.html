@@ -182,7 +182,7 @@
       <article class="wg-panel wg-history-panel">
         <div class="wg-head">
           <h2><i class="bi bi-clock-history me-2"></i>Arama Geçmişi</h2>
-          <span class="wg-pill">Son 30 arama</span>
+          <span class="wg-pill">Tüm kayıtlar · sayfa {{ history_page.number }}/{{ history_page.paginator.num_pages }}</span>
         </div>
         <div class="wg-history">
           {% for history in recent_searches %}
@@ -197,6 +197,15 @@
           <div class="wg-empty">Henüz arama geçmişi yok. İlk araştırman burada görünecek.</div>
           {% endfor %}
         </div>
+        {% if history_page.paginator.num_pages > 1 %}
+        <div class="wg-bottom">
+          <span class="wg-sub">Geçmiş sayfası {{ history_page.number }} / {{ history_page.paginator.num_pages }}</span>
+          <div class="d-flex gap-2">
+            {% if history_page.has_previous %}<a class="wg-button secondary" href="?history_page={{ history_page.previous_page_number }}{% if active_search %}&history_id={{ active_search.pk }}{% endif %}">Önceki</a>{% endif %}
+            {% if history_page.has_next %}<a class="wg-button secondary" href="?history_page={{ history_page.next_page_number }}{% if active_search %}&history_id={{ active_search.pk }}{% endif %}">Sonraki</a>{% endif %}
+          </div>
+        </div>
+        {% endif %}
         {% if active_search %}
         <div class="wg-bottom">
           <span class="wg-sub">Bu aramada: {{ active_search.captured_count }} seçilen, {{ active_search.added_count }} yeni, {{ active_search.duplicate_count }} mükerrer, {{ active_search.skipped_count }} atlanan</span>
@@ -231,7 +240,8 @@
             <tbody>
             {% for lead in page %}
               <tr>
-                <td><a href="{% url 'prospect_detail' lead.pk %}">{{ lead.name|truncatechars:32 }}</a>{% if lead.city %}<div class="wg-sub">{{ lead.city }}</div>{% endif %}</td>
+                <td><a href="{% url 'prospect_detail' lead.pk %}">{{ lead.name|truncatechars:32 }}</a>{% if lead.city %}<div class="wg-sub">{{ lead.city }}</div>{% endif %}
+                <div class="wg-sub">{% if lead.contact_scan_at %}{{ lead.contact_scan_note|default:"İletişim bilgileri kontrol edildi"|truncatechars:38 }}{% elif lead.website_url %}İletişim araştırması sırada{% else %}Web sitesi belirtilmedi{% endif %}</div></td>
                 <td>{{ lead.country }}</td>
                 <td>{% if lead.instagram_url %}<a href="{{ lead.instagram_url }}" target="_blank" rel="noopener noreferrer"><i class="bi bi-instagram"></i> Aç</a>{% else %}—{% endif %}</td>
                 <td>{% if lead.email %}{{ lead.email|truncatechars:29 }}{% else %}—{% endif %}</td>
