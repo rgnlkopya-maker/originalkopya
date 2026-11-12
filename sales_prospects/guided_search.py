@@ -155,14 +155,13 @@ def import_selected_results(search, raw, creator):
                 "was_new": created,
             },
         )
-        if created:
+        if not hit_added:
+            # The same shop already belongs to this exact research session.
+            skipped += 1
+        elif created:
             new += 1
         else:
             duplicates += 1
-        if not hit_added:
-            # Re-importing the same selected result must not inflate the
-            # historical count or create duplicate search result rows.
-            skipped += 1
 
     search.captured_count += len(items)
     search.added_count += new
