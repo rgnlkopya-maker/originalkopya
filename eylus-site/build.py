@@ -60,6 +60,7 @@ def footer():
         <nav class="eylus-footer-legal" aria-label="Alt sayfa bağlantıları">
           <a class="eylus-footer-guide" href="/uretim-takip-programi/">Rehber</a>
           <a class="eylus-footer-stock" href="/stok-takip-programi/">Stok</a>
+          <a class="eylus-footer-orders" href="/siparis-takip-programi/">Sipariş</a>
           <a class="eylus-footer-privacy" href="/iletisim/#gizlilik">Site ve gizlilik bilgisi</a>
         </nav>
       </div>
@@ -983,6 +984,132 @@ STOCK_GUIDE = '''
 </article>
 '''
 
+
+# A focused search landing page for manufacturing order management, distinct
+# from stock quantity management and production-stage tracking.
+ORDER_ARTICLE_URL = '/siparis-takip-programi/'
+ORDER_GUIDE = '''
+<article class="guide-page">
+  <header class="guide-header">
+    <div class="wrap guide-header-inner">
+      <nav class="guide-breadcrumb" aria-label="İçerik yolu"><a href="/">Ana sayfa</a><span aria-hidden="true">/</span><span>Sipariş takip programı</span></nav>
+      <span class="guide-kicker">EYLUS REHBER · SİPARİŞ YÖNETİMİ</span>
+      <h1>Sipariş Takip Programı Nedir? <em>Üretim Siparişlerini ve Teslim Tarihlerini Nasıl Yönetirsiniz?</em></h1>
+      <p class="guide-deck">Hangi müşterinin hangi siparişi hazırlanıyor? Ürün kesimde mi, dikimde mi? Teslim tarihine kaç gün kaldı? Sipariş takip programı, üretici işletmelerin bu soruları tek bir kayıt üzerinden yanıtlamasına yardımcı olur.</p>
+      <div class="guide-header-actions">
+        <a href="#siparis-takip-nedir">Rehberi okuyun <span aria-hidden="true">↓</span></a>
+        <a href="/tekstil/">Eylus çözümlerini inceleyin <span aria-hidden="true">↗</span></a>
+      </div>
+    </div>
+  </header>
+  <div class="wrap guide-body">
+    <aside class="guide-side" aria-label="Yazı içeriği">
+      <p>BU YAZIDA</p>
+      <a href="#siparis-takip-nedir">Sipariş takip programı nedir?</a>
+      <a href="#siparis-kaydi">Sipariş kaydında gerekli bilgiler</a>
+      <a href="#siparis-durumlari">Üretim aşamaları nasıl izlenir?</a>
+      <a href="#teslim-tarihi">Teslim tarihi ve sevkiyat</a>
+      <a href="#siparis-foyu">Sipariş föyüyle çalışma</a>
+      <a href="#musteri-rapor">Müşteri ve raporlar</a>
+      <a href="#program-secerken">Program seçimi</a>
+      <a href="#siparis-sorular">Sık sorulan sorular</a>
+    </aside>
+    <div class="guide-copy">
+      <section id="siparis-takip-nedir" aria-labelledby="order-what">
+        <h2 id="order-what">Sipariş takip programı nedir?</h2>
+        <p><strong>Sipariş takip programı</strong>, müşteriden gelen siparişlerin ürün bilgilerini, miktarlarını, hazırlanma durumlarını ve teslim tarihlerini aynı sistemde tutan yazılımdır. Bir siparişin alınmasından tamamlanıp sevk edilmesine kadar geçen süreçte hangi işlemin yapıldığını ve sıradaki adımın ne olduğunu görmeyi kolaylaştırır.</p>
+        <p>Örneğin toptan tekstil üretiminde aynı modelin farklı renk ve bedenleri birden fazla müşteriye hazırlanabilir. Sipariş bilgileri deftere, mesajlaşma uygulamasına ve farklı Excel dosyalarına dağılırsa bir değişikliğin herkese zamanında ulaşması zorlaşır. Ortak sipariş kaydı, ekiplerin aynı bilgiden hareket etmesine yardımcı olur.</p>
+        <div class="guide-note"><strong>Önemli ayrım:</strong> İnternetten alışveriş yapan kişinin kargo numarasıyla paket sorgulaması, üretici firmanın sipariş yönetiminden farklıdır. Bu rehber, <strong>sipariş alıp üretim yapan işletmelerin</strong> iç süreçlerini ele alır.</div>
+      </section>
+
+      <section id="siparis-kaydi" aria-labelledby="order-fields">
+        <h2 id="order-fields">Sipariş kaydında hangi bilgiler bulunmalı?</h2>
+        <p>Bir siparişi yalnızca müşteri adı ve toplam adetle tanımlamak çoğu zaman yeterli değildir. Özellikle farklı model, renk ve beden seçenekleriyle çalışan atölyelerde küçük bir bilgi eksikliği yanlış üretime veya hatalı teslimata neden olabilir.</p>
+        <div class="guide-benefits">
+          <div><span>01 / MÜŞTERİ</span><h3>Kim için üretiliyor?</h3><p>Müşteri kaydı ve gerekiyorsa müşterinin kullandığı referans numarası, siparişin doğru kişi veya mağazayla eşleşmesini sağlar.</p></div>
+          <div><span>02 / ÜRÜN</span><h3>Ne üretilecek?</h3><p>Ürün kodu, renk, beden ve adet bilgileri, hangi modelden kaç parça hazırlanacağını açıkça tanımlar.</p></div>
+          <div><span>03 / TARİH</span><h3>Ne zaman teslim edilecek?</h3><p>Planlanan teslim tarihi işlerin önceliklendirilmesine ve sevkiyat hazırlığının zamanında yapılmasına yardımcı olur.</p></div>
+          <div><span>04 / AÇIKLAMA</span><h3>Özel bir talep var mı?</h3><p>İlgili notlar ve sipariş türü gibi ayrıntılar, üretime aktarılacak bilgilerin netleşmesini sağlar.</p></div>
+        </div>
+        <p>Eylus'ta siparişler müşteri, ürün kodu, renk, beden, adet, teslim tarihi ve açıklama gibi bilgilerle tutulabilir. Siparişlerin birbirinden ayrılması için sistemde kayıtlı sipariş numarası ve sipariş türü gibi alanlar da kullanılır. Bu bilgiler, bir siparişi açtığınızda ilgili üretim süreciyle birlikte değerlendirilebilir.</p>
+      </section>
+
+      <section id="siparis-durumlari" aria-labelledby="order-stages">
+        <h2 id="order-stages">Sipariş üretimde hangi aşamada, nasıl öğrenilir?</h2>
+        <p>Siparişin sisteme girilmesi başlangıçtır; üretim devam ederken aynı kaydın güncel tutulması gerekir. İşin kesimde, dikimde, süslemede veya sevke hazır durumda olduğunu görebilmek, yöneticiye telefonla bilgi toplamak yerine kayıt üzerinden ilerleme imkânı verir.</p>
+        <ol class="guide-steps">
+          <li><strong>Siparişi oluşturun.</strong><p>Müşteri ve ürün ayrıntılarını kaydedin. Teslim tarihini, üretim önceliği belirlemek için baştan görünür hale getirin.</p></li>
+          <li><strong>Üretime aktarın.</strong><p>İşlem sırasındaki değişiklikleri ilgili siparişle ilişkilendirin. Aynı ürünün farklı siparişlerini birbirine karıştırmayın.</p></li>
+          <li><strong>Aşamaları kaydedin.</strong><p>Kesim, dikim, süsleme ve hazır gibi aşamalarda yapılan hareketleri ürünün kaydına işleyin. Bilgilerin düzenli girilmesini sağlayın.</p></li>
+          <li><strong>Gecikme riskini kontrol edin.</strong><p>İlerlemesi durmuş işleri, eksik hareket kayıtlarını ve yaklaşan teslimatları birlikte inceleyin.</p></li>
+          <li><strong>Sevkiyat durumunu izleyin.</strong><p>Hazır ürünleri ve sevkiyat planını kontrol ederek müşteriye neyin hangi gün gönderileceğini değerlendirin.</p></li>
+        </ol>
+        <p>Eylus'ta personel ürünün QR kodunu okutarak üretim işlemlerini kaydedebilir. Yönetici, sipariş listesi ve aşama kontrol ekranlarında bu kayıtların son durumunu inceleyebilir. QR kod tek başına fiziksel işi yapmaz; doğru ve zamanında işlem kaydı gereklidir.</p>
+        <p>Bu konunun ayrıntılarını <a href="/uretim-takip-programi/">üretim takip programı rehberimizde</a> de bulabilirsiniz.</p>
+      </section>
+
+      <section id="teslim-tarihi" aria-labelledby="order-delivery">
+        <h2 id="order-delivery">Teslim tarihi yaklaşan siparişler nasıl takip edilir?</h2>
+        <p>Bir siparişin gecikmesini yalnızca teslim günü öğrenmek, müdahale seçeneklerini azaltır. Önemli olan, sipariş henüz üretimdeyken teslim tarihiyle mevcut aşamasını karşılaştırabilmektir. Böylece hazır olmayan ürünleri önceden tespit etmek ve işlerin sırasını gözden geçirmek mümkün olur.</p>
+        <p>Eylus'un sevkiyat planı, yaklaşan teslimatların bir arada görülmesine yardımcı olur. Siparişin teslim tarihi ile üretimde bulunduğu aşamayı birlikte değerlendiren yönetici, hangi işleri öncelikle kontrol etmesi gerektiğini belirleyebilir.</p>
+        <p>Burada otomatik olarak her gecikmenin önleneceğini söylemek doğru olmaz. Malzeme eksikliği, üretim kapasitesi veya müşteri değişiklikleri yine operasyonel karar gerektirir. Sipariş takip yazılımının katkısı, sorunların fark edilmesini kolaylaştıracak bilgiyi erişilebilir kılmasıdır.</p>
+      </section>
+
+      <section id="siparis-foyu" aria-labelledby="order-sheet">
+        <h2 id="order-sheet">Sipariş föyü ile sipariş takibi birlikte nasıl çalışır?</h2>
+        <p>Üretici firmalarda müşteriden gelen sipariş bazen bir föy, tablo veya belge üzerinden iletilir. Belgede yazan bilgilerin üretim sistemine eksik veya yanlış aktarılması, sonraki tüm aşamaları etkileyebilir. Bu yüzden siparişin sisteme alınmadan önce kontrol edilmesi önemlidir.</p>
+        <p>Eylus'un sipariş föyü iş akışında taslak ve onaylı kayıtlar ayrı değerlendirilebilir. Sipariş föyünden alınan müşteri, ürün kodu, renk, beden, adet ve teslim tarihi gibi bilgiler kontrol edildikten sonra sipariş oluşturma sürecine aktarılabilir. Böylece belgedeki talep ile üretime giren sipariş arasında bir kontrol adımı bulunur.</p>
+        <p>Bu yaklaşım özellikle çok satırlı siparişlerde yararlıdır. Aynı model için farklı renk ve bedenler istendiğinde her satırın doğru ürünle eşleşmesi gerekir. Belge aktarımı otomatik yapılıyor olsa da insan kontrolünün tamamen gereksiz hale geldiği varsayılmamalıdır.</p>
+      </section>
+
+      <section id="musteri-rapor" aria-labelledby="order-reports">
+        <h2 id="order-reports">Müşteri bazlı sipariş takibi ve raporlar</h2>
+        <p>İşletme sahibi yalnızca bugün üretimde kaç sipariş olduğunu değil, belirli bir müşterinin hangi siparişlerinin hazırlandığını da görmek isteyebilir. Tek bir müşteri için farklı model ve teslim tarihleri söz konusu olduğunda listeleme ve filtreleme önem kazanır.</p>
+        <p>Eylus'un sipariş listesi ve rapor ekranları, kayıtları müşteri ve ürün bilgileriyle birlikte incelemeye yardımcı olur. Siparişin üretim aşamasını ve sevkiyat durumunu aynı yönetim sürecinde değerlendirmek, birbirinden ayrı listelerin yarattığı karışıklığı azaltabilir.</p>
+        <p>Satış fiyatı, maliyet ve fatura gibi finansal bilgiler ayrı kontrol konularıdır. Sipariş takibi, tüm muhasebe işlemlerinin otomatik ve hatasız yapıldığı anlamına gelmez; ancak ilgili siparişin kayıtlı olması, bu işlemler arasında düzen kurulmasına yardımcı olur.</p>
+      </section>
+
+      <section id="program-secerken" aria-labelledby="order-checklist">
+        <h2 id="order-checklist">Sipariş takip programı seçerken nelere dikkat edilmeli?</h2>
+        <p>Yazılım seçerken farklı özellik başlıklarından önce günlük iş akışınıza bakın. Bir müşterinin siparişini açıp üretimden sevkiyata kadar kendi senaryonuzla denemek, özellik listesini okumaktan daha anlamlı sonuç verir.</p>
+        <ul class="guide-checklist">
+          <li><strong>Ürün ayrıntıları:</strong> Model, renk, beden, adet ve teslim tarihi aynı kayıtta tutuluyor mu?</li>
+          <li><strong>Üretimle ilişki:</strong> Siparişin kesim, dikim, süsleme ve hazır aşamaları görülebiliyor mu?</li>
+          <li><strong>Gecikme kontrolü:</strong> Hareket etmeyen işler ve yaklaşan teslimatlar kolayca bulunabiliyor mu?</li>
+          <li><strong>Personel kullanım kolaylığı:</strong> Çalışanların hareket kaydetmesi hızlı ve anlaşılır mı?</li>
+          <li><strong>Belge kontrolü:</strong> Sipariş föyüyle çalışılıyorsa bilgilerin kontrol edilerek aktarılması mümkün mü?</li>
+          <li><strong>Sevkiyat ve raporlama:</strong> Hazır işler, planlanan teslimatlar ve müşteri bazlı siparişler incelenebiliyor mu?</li>
+          <li><strong>Mobil erişim:</strong> Yetkili kullanıcılar ofis dışında da siparişlerin son durumuna ulaşabiliyor mu?</li>
+        </ul>
+        <p>Tekstil üretimiyle çalışıyorsanız aynı modelin birden fazla renk ve bedenle sipariş edilmesini örnek alın. Siparişi oluşturun, üretim hareketi kaydedin ve sevkiyat planında nasıl göründüğüne bakın. İşletmenize uygunluğu değerlendirmek için <a href="/demo/">Eylus canlı demosunu</a> inceleyebilirsiniz.</p>
+      </section>
+
+      <section id="siparis-sorular" aria-labelledby="order-faq">
+        <h2 id="order-faq">Sık sorulan sorular</h2>
+        <h3>Sipariş takip programı ile kargo takip sistemi aynı mı?</h3>
+        <p>Hayır. Kargo takibi gönderilmiş bir paketin taşıma durumuna odaklanır. Üretim odaklı sipariş takibi ise müşterinin talebinin alınması, üretimde ilerlemesi, hazırlanması ve sevkiyata planlanmasıyla ilgilenir.</p>
+        <h3>Sipariş takip programı Excel yerine kullanılabilir mi?</h3>
+        <p>Excel az sayıda sipariş için iş görebilir. Ancak aynı anda çok sayıda müşteri, model, renk, beden ve üretim hareketi takip edildiğinde ortak kayıtların güncel tutulması zorlaşabilir. Sipariş yazılımı bu bilgileri aynı iş akışında birleştirebilir.</p>
+        <h3>Sipariş takip sisteminde QR kod zorunlu mudur?</h3>
+        <p>Her sipariş takip sisteminde QR kod kullanmak zorunlu değildir. Eylus'ta QR kod, personelin üretim aşaması hareketlerini sipariş kaydına bağlayarak kaydetmesini kolaylaştırır.</p>
+        <h3>Sipariş takibi ile stok takibi arasındaki fark nedir?</h3>
+        <p>Sipariş takibi müşterinin istediği ürünlerin hazırlık ve teslim süreçlerini, stok takibi ise depolardaki mevcut ürün veya malzeme miktarlarını inceler. Stok konusu için <a href="/stok-takip-programi/">stok takip programı rehberimizi</a> okuyabilirsiniz.</p>
+      </section>
+
+      <section class="guide-last" aria-labelledby="order-cta">
+        <span class="guide-kicker">EYLUS İLE TANIŞIN</span>
+        <h2 id="order-cta">Siparişin nerede olduğunu sormak yerine görün.</h2>
+        <p>Sipariş kaydından üretim aşamalarına ve sevkiyat planına kadar Eylus'un iş akışını inceleyin; işletmenize uygunluğu kendi üretim düzeniniz üzerinden değerlendirin.</p>
+        <div class="guide-last-actions">
+          <a href="/tekstil/" class="guide-button-primary">Eylus çözümlerini görün <span aria-hidden="true">↗</span></a>
+          <a href="/demo/" class="guide-button-secondary">Canlı demoyu inceleyin <span aria-hidden="true">→</span></a>
+        </div>
+      </section>
+    </div>
+  </div>
+</article>
+'''
+
 HOME = EYLUS_HOME_HERO
 PRODUCT = intro('Ürün','Bir siparişten<br>bütün üretime.','Siparişin bilgisi, üretimin hareketi ve teslimatın planı. Birbirinden kopuk değil, birlikte.')+'<section class="section"><div class="wrap">'+features()+'<div class="callout">Eylus’un işletmenizdeki kapsamını ve kullanacağınız modülleri birlikte değerlendirelim. Bu site otomatik teklif veya lisans taahhüdü oluşturmaz.</div></div></section>'+TOUR+cta()
 
@@ -1332,6 +1459,7 @@ PAGES = {
  '/': ('Üretim Takip ve Yönetim Yazılımı', 'Eylus ile sipariş, üretim, personel, maliyet ve sevkiyat süreçlerinizi tek yerden yönetin. QR ile kolay veri girişi, telefon ve bilgisayardan anlık takip.', HOME),
  '/uretim-takip-programi/': ('Üretim Takip Programı Nedir?', 'Üretim takip programı nedir, QR kodla üretim nasıl izlenir? Sipariş, kesim, dikim ve sevkiyat takibini Eylus örneğiyle öğrenin.', PRODUCTION_GUIDE),
  '/stok-takip-programi/': ('Stok Takip Programı Nedir?', 'Stok takip programı nedir? Depo bazında ürün ve malzeme miktarlarını, giriş-çıkış, iade, sayım ve konsinye takibini Eylus örneğiyle öğrenin.', STOCK_GUIDE),
+ '/siparis-takip-programi/': ('Sipariş Takip Programı Nedir?', 'Sipariş takip programı nedir? Üretici işletmelerde sipariş kaydı, renk-beden bilgileri, QR ile üretim aşamaları ve teslimat planını öğrenin.', ORDER_GUIDE),
  '/urun/': ('Ürün ve üretim yönetimi', 'Sipariş, QR, üretim aşamaları, maliyet ve sevkiyat takibi. Eylus ürününü tanıyın.', PRODUCT),
  '/tekstil/': ('Üretim sorunlarına Eylus çözümleri', 'Sipariş takibi, gecikmeler, personel, sevkiyat, maliyet, fatura ve daha fazlası için Eylus çözümlerini keşfedin.', TEXTILE),
  '/neden-eylus/': ('Neden Eylus?', 'Üretimin içinden gelen bir yaklaşım. Eylus’un üretim yönetimi vizyonunu keşfedin.', WHY),
@@ -1390,6 +1518,18 @@ STOCK_GUIDE_STRUCTURED_DATA = {
     "datePublished": "2026-11-12"
 }
 
+ORDER_GUIDE_STRUCTURED_DATA = {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "Sipariş Takip Programı Nedir? Üretim Siparişlerini ve Teslim Tarihlerini Nasıl Yönetirsiniz?",
+    "description": "Sipariş kayıtları, üretim aşamaları, sipariş föyü ve sevkiyat planını üretici işletmeler için Eylus örneğiyle öğrenin.",
+    "mainEntityOfPage": SITE + ORDER_ARTICLE_URL,
+    "author": {"@id": SITE + "/#organization"},
+    "publisher": {"@id": SITE + "/#organization"},
+    "inLanguage": "tr-TR",
+    "datePublished": "2026-11-12"
+}
+
 def page(path,title,desc,body,noindex=False):
     page_title = f'{title} | Eylus'
     home_data = (f'<script type="application/ld+json">'
@@ -1398,7 +1538,8 @@ def page(path,title,desc,body,noindex=False):
     home_image = (f'<meta property="og:image" content="{SITE}/assets/eylus-hero-workshop.webp">'
                   f'<meta name="twitter:image" content="{SITE}/assets/eylus-hero-workshop.webp">') if path == '/' else ''
     article_schema = (GUIDE_STRUCTURED_DATA if path == ARTICLE_URL else
-                      STOCK_GUIDE_STRUCTURED_DATA if path == STOCK_ARTICLE_URL else None)
+                      STOCK_GUIDE_STRUCTURED_DATA if path == STOCK_ARTICLE_URL else
+                      ORDER_GUIDE_STRUCTURED_DATA if path == ORDER_ARTICLE_URL else None)
     guide_data = ('<script type="application/ld+json">'
                   + json.dumps(article_schema, ensure_ascii=False, separators=(',', ':'))
                   + '</script>') if article_schema else ''
