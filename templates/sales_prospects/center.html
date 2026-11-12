@@ -38,7 +38,7 @@
 .sp-formgrid .form-control,.sp-formgrid .form-select{border-radius:9px;border-color:#dce2eb;font-size:14px}
 .sp-error{border-radius:9px;background:#fff0ef;padding:10px 12px;color:#a62f32;font-size:12px}
 .sp-footer{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
-@media(max-width:750px){.sp-statrow{grid-template-columns:repeat(2,1fr)}.sp-formgrid{grid-template-columns:1fr}.sp-table{min-width:700px}.sp-wrap{padding:0 12px}.sp-top h1{font-size:23px}}
+@media(max-width:750px){.sp-statrow{grid-template-columns:repeat(2,1fr)}.sp-formgrid{grid-template-columns:1fr}.sp-table{min-width:850px}.sp-wrap{padding:0 12px}.sp-top h1{font-size:23px}}
 </style>
 <main class="sp-wrap">
   <div class="sp-top">
@@ -71,6 +71,13 @@
           <div><label for="{{ form.instagram_url.id_for_label }}">Instagram profili</label>{{ form.instagram_url }}{{ form.instagram_url.errors }}</div>
           <div><label for="{{ form.next_followup_on.id_for_label }}">Sonraki takip tarihi</label>{{ form.next_followup_on }}{{ form.next_followup_on.errors }}</div>
           <div class="sp-sidelabel"><i class="bi bi-shield-check me-1"></i>Durumu “Mesaj gönderildi” olarak işaretlemek yalnızca kayıt tutar; Instagram'a mesaj göndermez.</div>
+
+          <div class="wide sp-sidelabel"><strong><i class="bi bi-envelope-check me-1"></i> E-posta satış değerlendirmesi</strong><br>Mağaza e-postasını ve iletişime geçme dayanağını kaydedin. Bu bilgiler yönetici onayı olmadan gönderim başlatmaz.</div>
+          <div><label for="{{ form.email.id_for_label }}">Kurumsal e-posta adresi</label>{{ form.email }}{{ form.email.errors }}</div>
+          <div><label for="{{ form.contact_class.id_for_label }}">İşletme türü</label>{{ form.contact_class }}{{ form.contact_class.errors }}</div>
+          <div><label for="{{ form.email_basis.id_for_label }}">İletişim dayanağı</label>{{ form.email_basis }}{{ form.email_basis.errors }}</div>
+          <div class="d-flex align-items-center gap-2"><label class="mb-0" for="{{ form.email_checked.id_for_label }}">{{ form.email_checked }} Adres ve işletme kontrol edildi</label>{{ form.email_checked.errors }}</div>
+          <div class="wide"><label for="{{ form.email_source_note.id_for_label }}">Dayanak ve kaynak kanıtı</label>{{ form.email_source_note }}{{ form.email_source_note.errors }}<div class="sp-muted mt-1">ABD'de kurumsal B2B değerlendirmesini, Birleşik Krallık'ta tüzel kişi statüsünü; diğer pazarlarda varsa açık izni belgeleyin.</div></div>
           <div class="wide"><label for="{{ form.note.id_for_label }}">Görüşme notları</label>{{ form.note }}{{ form.note.errors }}</div>
           <div class="wide">
             <div class="d-flex justify-content-between align-items-center mb-2">
@@ -90,6 +97,27 @@
       </form>
     </div>
     {% if lead %}
+    <div class="sp-panel">
+      <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
+        <h6 class="fw-bold mb-0"><i class="bi bi-send me-2"></i>E-posta gönderim kontrolü</h6>
+        <span class="sp-chip {% if email_approved %}QUALIFIED{% else %}NEW{% endif %}">{% if email_approved %}Yönetici onaylı{% else %}Onay bekleniyor{% endif %}</span>
+      </div>
+      <p class="sp-muted mb-3">Bu bölüm yalnızca Moli Tekstil'in kurumsal satış e-postalarını yönetir. E-posta gönderimi şimdilik varsayılan olarak kapalıdır. Instagram/WhatsApp mesajı göndermez.</p>
+      {% if email_issue %}<div class="sp-sidelabel mb-3">Kontrol: {{ email_issue }}</div>{% endif %}
+      <div class="sp-actions">
+        <form method="post" action="{% url 'prospect_approve_outreach' lead.pk %}">{% csrf_token %}<button type="submit" class="sp-primary"><i class="bi bi-check2-circle me-1"></i>İlk e-postayı onayla ve kuyruğa al</button></form>
+        <form method="post" action="{% url 'prospect_queue_followup' lead.pk %}">{% csrf_token %}<button type="submit" class="sp-secondary"><i class="bi bi-arrow-repeat me-1"></i>Tek takip e-postası hazırla</button></form>
+        <form method="post" action="{% url 'prospect_stop_outreach' lead.pk %}" onsubmit="return confirm('Bu adrese bir daha satış e-postası gönderilmesin mi?')">{% csrf_token %}<button type="submit" class="sp-secondary text-danger"><i class="bi bi-slash-circle me-1"></i>İletişimi durdur</button></form>
+      </div>
+      {% if emails %}
+      <div class="table-responsive mt-3"><table class="sp-table">
+        <thead><tr><th>E-posta</th><th>Konu</th><th>Durum</th><th>Zaman</th></tr></thead>
+        <tbody>{% for msg in emails %}<tr><td>{{ msg.get_kind_display }}</td><td>{{ msg.subject }}</td><td><span class="sp-chip">{{ msg.get_status_display }}</span>{% if msg.error_message %}<div class="sp-muted">{{ msg.error_message }}</div>{% endif %}</td><td>{{ msg.sent_at|default:msg.created_at|date:"d.m.Y H:i" }}</td></tr>{% endfor %}</tbody>
+      </table></div>
+      {% endif %}
+    </div>
+    {% endif %}
+    {% if lead %}
       <div class="sp-panel">
         <h6 class="fw-bold">Araştırma kaydı</h6>
         <p class="sp-muted mb-2">Kaynak: {{ lead.get_source_display }} · Eklendi: {{ lead.created_at|date:"d.m.Y H:i" }}</p>
@@ -104,6 +132,13 @@
       <div class="sp-stat"><span>İncelenecek</span><strong>{{ counts.new }}</strong></div>
       <div class="sp-stat"><span>Mesaj gönderilen</span><strong>{{ counts.contacted }}</strong></div>
       <div class="sp-stat"><span>Yanıt / fırsat / müşteri</span><strong>{{ counts.responded }}</strong></div>
+    </div>
+    <div class="sp-panel">
+      <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
+        <div><strong><i class="bi bi-envelope me-2"></i>Otomatik ihracat e-postaları</strong><div class="sp-muted">Kuyrukta: {{ counts.mail_queued }} · Gönderildi: {{ counts.mail_sent }}</div></div>
+        <span class="sp-chip {% if mailing_enabled %}QUALIFIED{% else %}NEW{% endif %}">{% if mailing_enabled %}E-posta servisi aktif{% else %}E-posta gönderimi kapalı{% endif %}</span>
+      </div>
+      {% if mailing_pending %}<div class="sp-sidelabel mt-3">Gönderim başlayabilmesi için kurumsal SMTP bağlantısı, gönderen adresi, firma posta adresi, gizlilik bildirimi ve SPF/DKIM/DMARC kontrolleri tamamlanmalı. Ayarlar yalnızca Render ortam değişkenlerinden yapılır.</div>{% endif %}
     </div>
     <div class="sp-panel">
       <div class="sp-footer mb-3">
@@ -136,19 +171,20 @@
         <button class="sp-primary" type="submit">Filtrele</button><a class="sp-secondary" href="{% url 'prospect_list' %}">Temizle</a>
       </form>
       <div class="table-responsive"><table class="sp-table">
-        <thead><tr><th>Mağaza</th><th>Ülke</th><th>Kaynak</th><th>Durum</th><th>Eklenme</th><th>İşlem</th></tr></thead>
+        <thead><tr><th>Mağaza</th><th>Ülke</th><th>E-posta</th><th>Kaynak</th><th>Durum</th><th>Eklenme</th><th>İşlem</th></tr></thead>
         <tbody>
         {% for lead in page %}
         <tr>
           <td><a class="sp-lead" href="{% url 'prospect_detail' lead.pk %}">{{ lead.name }}</a>{% if lead.city %}<div class="sp-muted">{{ lead.city }}</div>{% endif %}</td>
           <td>{{ lead.get_country_display }}</td>
+          <td>{{ lead.email|default:"—" }}</td>
           <td>{{ lead.get_source_display }}</td>
           <td><span class="sp-chip {{ lead.status }}">{{ lead.get_status_display }}</span></td>
           <td>{{ lead.created_at|date:"d.m.Y" }}</td>
           <td><a class="sp-secondary" href="{% url 'prospect_detail' lead.pk %}">İncele <i class="bi bi-chevron-right"></i></a></td>
         </tr>
         {% empty %}
-        <tr><td colspan="6" class="text-center sp-muted py-4">Henüz müşteri adayı bulunmuyor. Üstteki arama bağlantılarını kullanabilir veya elle mağaza ekleyebilirsiniz.</td></tr>
+        <tr><td colspan="7" class="text-center sp-muted py-4">Henüz müşteri adayı bulunmuyor. Üstteki arama bağlantılarını kullanabilir veya elle mağaza ekleyebilirsiniz.</td></tr>
         {% endfor %}
         </tbody>
       </table></div>
