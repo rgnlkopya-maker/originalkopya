@@ -10,6 +10,18 @@ WhatsApp messages or Google result scraping**. Nothing is emailed by default.
 - Import up to 2,000 candidates per UTF-8 CSV file (2 MB maximum) or add manually.
 - Google search shortcuts for manual research.
 - Website, Instagram and public source links.
+- Separate public business phone, WhatsApp number and Instagram fields in the table and detail form.
+- Each auto-detected channel includes the exact source page for verification.
+- "Web sitesinden bilgileri bul" performs an on-demand scan of the business website.
+- Existing scheduled tick enriches at most one unscanned HTTPS business site per invocation.
+- Contact discovery only reads explicit tel:, wa.me, api.whatsapp.com and Instagram links
+  from a retailer's own homepage and at most one contact page.
+- HTTPS only, validates and pins public DNS addresses, disallows redirects,
+  honors robots.txt, limits HTML bytes and does not fetch Instagram or WhatsApp.
+- Explicit personal contact numbers are not inferred from unrelated text.
+- Manual business numbers override automated discoveries. Unavailable data remains blank.
+- UTF-8 CSV import accepts phone and whatsapp columns (also phone_number, whatsapp_number).
+
 - Email, legal basis, company type and reviewer evidence on each prospect.
 - Translated first-contact drafts (EN/DE/FR/ES/IT).
 - Manager-reviewed initial email queue and one follow-up no sooner than 7 days.
@@ -50,6 +62,8 @@ the message, not that the recipient read or received it.
 
 - Fully automated prospect discovery from free Google searches.
 - Automatic validation of company registration, consent or email deliverability.
+- Universal discovery of Instagram profiles or phone numbers where none are published by the business.
+- Phone/mobile classification without explicit source evidence (tel: can be a landline).
 - Automatic reply classification / inbox sync.
 - Automatically generated follow-ups without review.
 - Automated outreach to a thousand recipients daily.
