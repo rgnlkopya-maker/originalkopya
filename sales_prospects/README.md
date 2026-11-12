@@ -1,128 +1,86 @@
 # MoliApp — Yurt Dışı Müşteri Merkezi
 
-Internal export sales CRM. The application **does not automate Instagram DMs,
-WhatsApp messages or Google result scraping**. Nothing is emailed by default.
+## Current workflow (November 2026)
 
+Manager-only automated, page-by-page research for foreign eveningwear and
+bridal retailers. The manager chooses country, city, and search words, then
+clicks **20 mağaza sonucu araştır**. The server:
 
-## New Google-guided research workspace (November 2026)
+1. Calls a **third-party Google results provider, Serper.dev**, requesting
+   up to 20 ordinary organic web results on the next results page. It does
+   not scrape google.com directly or embed Google inside MoliApp.
+2. Persists the country + city + phrase as a \`GuidedSearch\`.
+3. Identical search terms on the next click resume page 2 (results 21–40),
+   then page 3, and so on. Different terms start a separate research history.
+   A search stops when the provider returns fewer than 20 organic results,
+   or after the page cap. Search rankings can move over time.
+4. Filters obviously irrelevant search results, stores new storefront domains
+   or Instagram profile URLs as **unverified** prospects, and skips duplicates.
+   The original search result source is tracked in \`GuidedSearchHit\`.
+5. Shows a live CRM table for each search, with counts of reviewed results,
+   new records, duplicates and skips, and all history sessions.
+6. Uses the existing secured scheduler to enrich **one unscanned business
+   website per tick**. It only reads published business links (mailto,
+   tel, wa.me and Instagram) from that website's homepage and at most one
+   contact page, when allowed by robots.txt.
+7. Leaves unverified or unavailable email/phone/Instagram/follower values
+   blank. Instagram follower count requires a lawful verified provider or
+   authorized Meta API access; it is **not** obtained from Instagram scraping.
+8. Never auto-sends email, Instagram DMs or WhatsApp messages just because
+   contact details are found.
 
-The management list view now uses \`templates/sales_prospects/workspace.html\`.
-This is **not** a Google iframe or a Google SERP scraping service: Google's
-main search page is not embeddable as an unrestricted browser.
+The Google-style SERP API is supplied by Serper (third-party, not an official
+Google API). Serper's advertised starter plan includes 2,500 free queries,
+subject to their current terms. **Do not request search results until**:
 
-Workflow:
-1. Select target country, city and product keywords on the MoliApp page.
-2. Click **Google'da Ara**. A new tab opens at normal Google Search. The
-   search is immediately recorded in \`GuidedSearch\` history, even when no
-   candidates are imported.
-3. Once, drag the **MoliApp'e Aktar** bookmarklet from the MoliApp research
-   panel to Chrome/Edge's bookmark bar. (Ctrl+Shift+B shows the bar.)
-4. On a Google results page, click that bookmarklet. It reads only visible
-   result titles/links and displays a user-controlled checklist. It doesn't
-   crawl Google, issue requests or visit third-party result sites.
-5. Confirm selected links. The browser returns to the MoliApp research panel
-   with the chosen links as a client-side fragment. Review them and click
-   **Seçilenleri Kaydet**; no import is automatic from a mere link visit.
-6. The backend saves up to 50 explicitly chosen links per operation, dedupes
-   canonical websites / Instagram profiles, adds them as unverified prospects,
-   links each to its \`GuidedSearchHit\`, and records additions, duplicates and
-   rejects in persistent, per-user search history.
-7. The existing authenticated scheduler fills missing public business
-   email (mailto), phone (tel), WhatsApp (wa.me) and Instagram links by
-   reading each shop's own site (home and at most one contact page), with
-   SSRF/robots/size restrictions. Not all websites provide these links.
-8. If the bookmarklet is unsupported by a browser/Google layout, paste one
-   business URL per line into the fallback field. CSV imports remain available.
+- Create a Serper account and obtain an API key.
+- In Render web-service environment set \`SERPER_API_KEY\` to the secret.
+- Deploy. Key must never be hardcoded into GitHub or visible in HTML.
+- Verify the provider's contract supports the intended data handling.
 
-The prior optional 20/day automatic Brave research cron call has been removed
-from the scheduler; this is a **human-directed** search workflow. Existing
-lead records, email approvals and outreach queues remain intact.
+The page clearly displays "Arama servisi bağlantısı eksik" and disables
+the button when \`SERPER_API_KEY\` is not configured. No fake results are
+generated. Google search itself remains accessible from the history entry
+as a link for independent human verification.
 
-### Limits
-- A Google result is not proof that a shop is a wholesale buyer.
-- Google may change result markup; the bookmarklet may need maintenance.
-- The system does not automatically get all Google search results.
-- No automatic email, Instagram DM or WhatsApp message is initiated by search.
-- The outbound email module remains disabled until sender configuration and
-  legal compliance checks are deliberately completed.
+### Operational notes
 
-## Available
+- Page size is 20 provider results, not a guaranteed 20 verified retail shops.
+- One web search can yield fewer than 20 eligible results.
+- Duplicate businesses seen on multiple pages are not added twice.
+- Matching by domain/profile is conservative, not a perfect company matcher.
+- Business email/phone enrichment happens in the existing scheduler, **not**
+  synchronously for every result. It may take several scheduler ticks.
+- Google search result order can change; the cursor is best effort.
+- Current integrations do not have permission to retrieve arbitrary
+  Instagram follower counts.
+- Existing approved outbound-email engine remains OFF by default and
+  uses separate manager consent/business-contact review.
+- Previous manual bookmarklet / link selection interface was superseded;
+  earlier prospect records are preserved.
+- Previous daily 20-lead Brave scheduler was disabled, to avoid background
+  search costs and unrelated client discovery.
 
-- Yönetim → Yurt Dışı Müşteri Merkezi (patron/müdür only).
-- Review candidates by country, source and status.
-- Import up to 2,000 candidates per UTF-8 CSV file (2 MB maximum) or add manually.
-- Google search shortcuts for manual research.
-- Website, Instagram and public source links.
-- Separate public business phone, WhatsApp number and Instagram fields in the table and detail form.
-- Each auto-detected channel includes the exact source page for verification.
-- "Web sitesinden bilgileri bul" performs an on-demand scan of the business website.
-- Existing scheduled tick enriches at most one unscanned HTTPS business site per invocation.
-- Contact discovery only reads explicit tel:, wa.me, api.whatsapp.com and Instagram links
-  from a retailer's own homepage and at most one contact page.
-- HTTPS only, validates and pins public DNS addresses, disallows redirects,
-  honors robots.txt, limits HTML bytes and does not fetch Instagram or WhatsApp.
-- Explicit personal contact numbers are not inferred from unrelated text.
-- Manual business numbers override automated discoveries. Unavailable data remains blank.
-- UTF-8 CSV import accepts phone and whatsapp columns (also phone_number, whatsapp_number).
+## Other functionality
 
-- Email, legal basis, company type and reviewer evidence on each prospect.
-- Translated first-contact drafts (EN/DE/FR/ES/IT).
-- Manager-reviewed initial email queue and one follow-up no sooner than 7 days.
-- Global opt-out suppression. RFC 8058 one-click signed unsubscribe endpoint.
-- Sending via authenticated SMTP, if and **only if** explicitly configured.
-- Approved leads and emails are tracked separately from actual MoliApp customers.
+- Management menu: Yönetim → Yurt Dışı Müşteri Merkezi
+- Manual prospect form and existing email/WhatsApp/Instagram detail buttons
+- CSV import (UTF-8, at most 2,000 lines, 2 MB), with no auto-marketing
+- User account role checks (patron/müdür)
+- Contact detail source URL and status review
+- E-mail approval queue, suppression list and signed opt-out endpoint
 
-## Sending is disabled until all checks are complete
+## Deploy and verification
 
-Render service environment variables, without committing credentials:
-
-- MOLI_OUTREACH_ENABLED=true — master switch, OFF by default.
-- MOLI_OUTREACH_DNS_VERIFIED=true — only after SPF, DKIM and DMARC setup has been verified.
-- MOLI_OUTREACH_FROM — verified sender address (e.g. export@company.example).
-- MOLI_OUTREACH_SMTP_HOST, MOLI_OUTREACH_SMTP_PORT=587
-- MOLI_OUTREACH_SMTP_USER, MOLI_OUTREACH_SMTP_PASSWORD
-- MOLI_OUTREACH_POSTAL_ADDRESS — actual business postal address, included in mail.
-- MOLI_OUTREACH_PUBLIC_URL — HTTPS root URL hosting unsubscribe endpoint.
-- MOLI_OUTREACH_PRIVACY_URL — public URL explaining data processing.
-- MOLI_OUTREACH_DAILY_LIMIT — defaults to 10, max 25 per local day.
-
-The authenticated existing scheduler dispatches only on business days,
-09:00–18:00 Europe/Istanbul. Each first contact needs explicit manager approval.
-Unknown or blocked email basis is always rejected.
-
-Allowed contact basis in this initial workflow:
-- Explicit marketing consent with documented evidence (all countries).
-- US: reviewed business company/contact for relevant B2B promotion.
-- GB: confirmed corporate subscriber/company with documented review.
-Sole traders in GB are *not* automatically eligible under the corporate basis.
-These technical gates do not replace jurisdiction-specific legal review.
-
-Delivery failures are **not retried automatically**, since a failed SMTP
-request can have an uncertain outcome. "Sent" means the provider accepted
-the message, not that the recipient read or received it.
-
-## What is not yet available
-
-- Fully automated prospect discovery from free Google searches.
-- Automatic validation of company registration, consent or email deliverability.
-- Universal discovery of Instagram profiles or phone numbers where none are published by the business.
-- Phone/mobile classification without explicit source evidence (tel: can be a landline).
-- Automatic reply classification / inbox sync.
-- Automatically generated follow-ups without review.
-- Automated outreach to a thousand recipients daily.
-
-The previous optional Brave Search connector remains disabled unless its
-approved API key is deliberately configured; the visible interface does not
-require it. A different properly licensed business source can replace it.
-
-## Migration and checks
-
-The production web service has an existing migration-on-build setup.
-Run the usual production deploy, then:
+Ensure Django migrations 0004, 0005 and 0006 are applied during the normal
+MoliApp deployment, then run:
 
     python manage.py check
     python manage.py makemigrations --check --dry-run
     python manage.py test sales_prospects --verbosity 2
 
-Do not activate sending before confirming the sender address, business contact
-data source, country-specific legal requirements and unsubscribe behavior.
+For a production smoke test, enter a specific city and clothing niche, click
+"20 mağaza sonucu araştır", verify the first page and search history. Click
+again with identical terms, verify the next page and no duplicate lead IDs.
+Check each selected website's contact source URL after enrichment. Do not
+treat the presence of published business contact details as advertising consent.
