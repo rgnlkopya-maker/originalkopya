@@ -25,6 +25,7 @@ class ContactExtractionTests(SimpleTestCase):
 
     def test_contact_parser_uses_explicit_business_links(self):
         html = (
+            '<a href="mailto:sales@fashion-store.com">E-mail shop</a>'
             '<a href="tel:+49 (30) 1234 5678">Call the boutique</a>'
             '<a href="https://wa.me/491701234567">WhatsApp shop</a>'
             '<a href="https://www.instagram.com/atelier_eveningwear/">Instagram</a>'
@@ -34,6 +35,7 @@ class ContactExtractionTests(SimpleTestCase):
         parser = ContactLinks("https://fashion-store.com/", "fashion-store.com")
         parser.feed(html)
         self.assertEqual(parser.phone, "+493012345678")
+        self.assertEqual(parser.email, "sales@fashion-store.com")
         self.assertEqual(parser.whatsapp, "491701234567")
         self.assertEqual(parser.instagram, "https://instagram.com/atelier_eveningwear")
         self.assertEqual(parser.contact_paths, ["/kontakt"])
@@ -49,7 +51,7 @@ class ContactExtractionTests(SimpleTestCase):
         get.side_effect = [
             (404, "", "text/plain"),
             (200, '<a href="/contact">Contact</a><a href="https://instagram.com/Atelier123">Instagram</a>', "text/html"),
-            (200, '<a href="tel:+44 20 1234 5678">Shop telephone</a><a href="https://wa.me/447700900123">WhatsApp</a>', "text/html"),
+            (200, '<a href="mailto:orders@fashion-store.com">Email</a><a href="tel:+44 20 1234 5678">Shop telephone</a><a href="https://wa.me/447700900123">WhatsApp</a>', "text/html"),
         ]
         info = extract_public_business_contacts("https://fashion-store.com/")
         self.assertEqual(info["instagram_url"], "https://instagram.com/atelier123")
@@ -57,6 +59,8 @@ class ContactExtractionTests(SimpleTestCase):
         self.assertEqual(info["phone_number"], "+442012345678")
         self.assertEqual(info["phone_source_url"], "https://fashion-store.com/contact")
         self.assertEqual(info["whatsapp_number"], "447700900123")
+        self.assertEqual(info["email"], "orders@fashion-store.com")
+        self.assertEqual(info["email_source_url"], "https://fashion-store.com/contact")
         self.assertEqual(get.call_count, 3)
 
     @patch("sales_prospects.contact_enrichment.public_address", return_value="8.8.8.8")
@@ -84,6 +88,8 @@ class ContactWorkflowTests(TestCase):
     @patch("sales_prospects.contact_enrichment.extract_public_business_contacts")
     def test_scan_keeps_manually_entered_channels(self, extractor):
         extractor.return_value = {
+            "email": "sales@fashion-store.com",
+            "email_source_url": "https://fashion-store.com/contact",
             "phone_number": "+442012345678",
             "phone_source_url": "https://fashion-store.com/contact",
             "whatsapp_number": "447700900123",
