@@ -4,6 +4,7 @@ from . import views, guided_views
 urlpatterns = [
     path("", views.prospect_list, name="prospect_list"),
     path("arama/<int:history_id>/", views.prospect_list, name="prospect_list_with_history"),
+    path("sonraki-20/", guided_views.automatic_next_batch, name="prospect_automatic_batch"),
     path("arama-baslat/", guided_views.start, name="prospect_guided_start"),
     path("secili-sonuclari-aktar/", guided_views.import_results, name="prospect_guided_import"),
     path("yeni/", views.prospect_new, name="prospect_new"),
