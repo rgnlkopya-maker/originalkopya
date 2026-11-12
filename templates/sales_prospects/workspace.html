@@ -1,87 +1,79 @@
 {% extends "base.html" %}
 {% block content %}
 <style>
-.wg{max-width:1580px;padding:0 22px 42px;margin:18px auto;color:#25334b}
-.wg *{box-sizing:border-box}
-.wg-top{display:flex;justify-content:space-between;gap:18px;align-items:center;flex-wrap:wrap;margin-bottom:20px}
-.wg-eyebrow{font-size:11px;font-weight:800;letter-spacing:.13em;text-transform:uppercase;color:#765db8}
-.wg h1{font-size:25px;font-weight:800;letter-spacing:-.6px;margin:4px 0 5px;color:#202c47}
-.wg h2{font-size:16px;font-weight:800;color:#25314b;margin:0}
-.wg-sub{font-size:13px;color:#69768b}
-.wg-pill{padding:6px 10px;border-radius:100px;font-size:11px;color:#485376;font-weight:700;background:#f1f0fc}
-.wg-panel{background:#fff;border:1px solid #e3e6ef;border-radius:16px;padding:19px;box-shadow:0 3px 15px #182c4410}
-.wg-button{display:inline-flex;align-items:center;justify-content:center;gap:7px;padding:10px 14px;font-size:13px;font-weight:750;border-radius:10px;cursor:pointer;text-decoration:none;border:1px solid #dddce8;white-space:nowrap}
-.wg-button.primary{background:#5945ad;border-color:#5945ad;color:#fff}
-.wg-button.primary:hover{background:#483591;color:#fff}
-.wg-button.secondary{color:#37466a;background:#fff}
-.wg-button.secondary:hover{color:#37466a;background:#f7f6fc}
-.wg-button:disabled{opacity:.5;cursor:not-allowed}
-.wg-stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:17px}
-.wg-stat{padding:14px 17px;border:1px solid #e6e9f1;border-radius:12px;background:#fff}
-.wg-stat span{font-size:11px;color:#758097;font-weight:700}
-.wg-stat strong{font-size:25px;font-weight:800;color:#2b3953;display:block}
-.wg-grid{display:grid;grid-template-columns:minmax(340px,41%) minmax(0,1fr);gap:16px;align-items:start}
-.wg-left,.wg-right{display:flex;flex-direction:column;gap:16px;min-width:0}
-.wg-head{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:14px}
-.wg-fields{display:grid;grid-template-columns:1fr 1fr;gap:11px}
-.wg-field label{display:block;font-size:11px;color:#5d6882;font-weight:800;margin-bottom:5px}
-.wg-field input,.wg-field select,.wg-field textarea,.wg-filter input,.wg-filter select{width:100%;border:1px solid #d9dfeb;border-radius:9px;background:#fff;color:#25334b;padding:10px 11px;font-size:13px;outline:none;min-height:39px}
-.wg-field input:focus,.wg-field select:focus,.wg-field textarea:focus{border-color:#7360c1;box-shadow:0 0 0 3px #6552b720}
-.wg-field.wide{grid-column:1/-1}
-.wg-field textarea{min-height:96px;resize:vertical}
-.wg-toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:13px}
-.wg-notice{padding:12px 13px;background:#f7f7fe;border:1px solid #e8e5fa;border-radius:10px;font-size:12px;line-height:1.6;color:#5e6582}
-.wg-note-warn{background:#fff9ef;border-color:#f4e6c7;color:#795d25}
-.wg-browser{border:1px solid #dee1ec;border-radius:13px;overflow:hidden;background:#fafbfe;margin-top:14px}
-.wg-browser-header{background:#f3f4f9;border-bottom:1px solid #e2e5ed;padding:9px 12px;display:flex;gap:7px;align-items:center}
-.wg-dot{height:8px;width:8px;border-radius:50%;background:#c7ccda;display:inline-block}
-.wg-address{margin-left:5px;background:#fff;border:1px solid #e5e8ef;border-radius:7px;color:#7c8697;font-size:11px;flex:1;padding:7px 10px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
-.wg-browser-body{padding:15px}
-.wg-google{font-weight:750;letter-spacing:-1.5px;font-size:24px;margin:2px 0 12px}
-.wg-g1{color:#4285f4}.wg-g2{color:#ea4335}.wg-g3{color:#fbbc05}.wg-g4{color:#34a853}
-.wg-guide{display:flex;flex-direction:column;gap:9px;font-size:12px;color:#6a7691}
-.wg-step{display:flex;gap:10px;align-items:start}
-.wg-step b{flex-shrink:0;width:22px;height:22px;display:grid;place-items:center;border-radius:50%;background:#ece9fb;color:#5945ad;font-size:11px}
-.wg-bookmark{border-style:dashed!important;border-color:#9f94d0!important;background:#faf9ff!important;color:#5341a4!important;cursor:grab}
-.wg-list{max-height:340px;overflow:auto;margin:10px 0 0;border:1px solid #e5e8f0;border-radius:10px}
-.wg-list label{display:flex;align-items:flex-start;gap:10px;padding:11px 12px;border-bottom:1px solid #eef0f5;cursor:pointer;font-size:12px}
-.wg-list label:last-child{border:0}
-.wg-list input{margin-top:3px;accent-color:#624bb9}
-.wg-list strong{display:block;font-size:12px;color:#31446c}
-.wg-list small{display:block;color:#8490a3;word-break:break-all}
-.wg-table-scroll{overflow-x:auto}
-.wg-table{width:100%;border-collapse:collapse;font-size:12px}
-.wg-table th{font-size:11px;text-align:left;color:#7a8697;font-weight:800;white-space:nowrap;padding:10px 8px;border-bottom:1px solid #e7eaf0}
-.wg-table td{padding:11px 8px;border-bottom:1px solid #eef0f5;white-space:nowrap;vertical-align:middle}
-.wg-table tr:last-child td{border-bottom:0}
-.wg-table td a{color:#51409c;text-decoration:none;font-weight:700}
-.wg-table td a:hover{text-decoration:underline}
-.wg-tag{font-size:10px;font-weight:750;padding:5px 8px;border-radius:7px;background:#f2f0fa;color:#624f9f}
-.wg-history{display:grid;gap:8px;max-height:340px;overflow-y:auto}
-.wg-hist{border:1px solid #edf0f6;padding:10px 12px;border-radius:10px;display:flex;gap:10px;justify-content:space-between;align-items:center;text-decoration:none;color:#283a58}
-.wg-hist:hover,.wg-hist.active{background:#f7f5fe;border-color:#cfc7f3;color:#283a58}
-.wg-hist strong{font-size:12px;display:block}
-.wg-hist small{font-size:11px;color:#758099}
-.wg-hist em{font-style:normal;text-align:right;color:#6551a3;font-size:12px;font-weight:800}
-.wg-filter{display:flex;gap:8px;flex-wrap:wrap;align-items:end}
-.wg-filter input{max-width:190px}
-.wg-filter select{max-width:155px}
-.wg-bottom{display:flex;gap:9px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin-top:13px}
-.wg-empty{padding:25px 12px;text-align:center;color:#8791a5;font-size:13px}
-@media(max-width:1020px){.wg-grid{grid-template-columns:1fr}.wg-left{display:contents}.wg-right{display:contents}.wg .wg-research{order:1}.wg .wg-results{order:2}.wg .wg-history-panel{order:3}.wg .wg-import-panel{order:4}}
-@media(max-width:660px){.wg{padding:0 11px 25px}.wg h1{font-size:21px}.wg-stats{grid-template-columns:repeat(2,minmax(0,1fr))}.wg-panel{padding:13px}.wg-fields{grid-template-columns:1fr}.wg-field.wide{grid-column:auto}.wg-filter input,.wg-filter select{max-width:unset;flex:1}.wg-table{min-width:890px}}
+.xt{max-width:1680px;margin:22px auto 50px;padding:0 20px;color:#22304a}
+.xt *{box-sizing:border-box}
+.xt-header,.xt-head,.xt-split,.xt-foot{display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap}
+.xt-header{margin-bottom:18px}
+.xt-eyebrow{letter-spacing:.15em;text-transform:uppercase;color:#7057b0;font-weight:800;font-size:11px}
+.xt h1{font-size:26px;margin:5px 0 5px;font-weight:850;color:#24314b}
+.xt h2{font-size:16px;font-weight:800;color:#263452;margin:0}
+.xt-text{font-size:12px;color:#71809a;line-height:1.55}
+.xt-grid{display:grid;grid-template-columns:minmax(320px,36%) minmax(0,1fr);gap:16px;align-items:start}
+.xt-left,.xt-right{display:flex;flex-direction:column;gap:15px;min-width:0}
+.xt-card{background:#fff;border:1px solid #e2e7f0;border-radius:15px;padding:19px;box-shadow:0 3px 18px #2635570b;min-width:0}
+.xt-head{margin-bottom:14px}
+.xt-head small{font-weight:650;font-size:11px;color:#6b7390}
+.xt-badge{font-size:10px;font-weight:850;background:#edeafa;border-radius:100px;padding:6px 10px;color:#5c4ba1}
+.xt-pill{background:#f3f4fa;padding:7px 9px;border-radius:8px;font-size:11px;font-weight:650;color:#68768d}
+.xt-input label{display:block;font-size:12px;font-weight:750;margin:0 0 6px;color:#445373}
+.xt-input input,.xt-input select{width:100%;padding:10px 12px;min-height:40px;border-radius:9px;border:1px solid #d9e0ec;background:#fff;color:#283855;font-size:13px}
+.xt-input input:focus,.xt-input select:focus{outline:none;border-color:#7354c5;box-shadow:0 0 0 3px #7454c51a}
+.xt-fields{display:grid;grid-template-columns:1fr 1fr;gap:11px}
+.xt-wide{grid-column:1/-1}
+.xt-btn{display:inline-flex;align-items:center;justify-content:center;text-align:center;text-decoration:none;border:1px solid #dce2eb;border-radius:10px;background:white;color:#344466;font-weight:800;font-size:12px;cursor:pointer;padding:10px 14px;gap:7px}
+.xt-btn:hover{background:#f4f5fa;color:#344466}
+.xt-btn.primary{background:#5945ae;color:white;border-color:#5945ae}
+.xt-btn.primary:hover{background:#493493;color:#fff}
+.xt-btn:disabled{cursor:not-allowed;opacity:.45}
+.xt-btn.full{width:100%;padding:13px}
+.xt-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:13px}
+.xt-stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:16px}
+.xt-stat{border:1px solid #e5e8ef;border-radius:12px;padding:14px 15px;background:#fff}
+.xt-stat span{display:block;font-size:11px;color:#78859b;font-weight:700}
+.xt-stat strong{display:block;font-size:26px;line-height:1.2;color:#273a58;font-weight:850;margin-top:5px}
+.xt-progress{background:#f7f6fc;border:1px solid #e9e6f5;padding:13px;border-radius:11px;margin-top:14px}
+.xt-progress-title{font-size:12px;font-weight:850;color:#493882}
+.xt-progress-data{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:12px 0}
+.xt-progress-data div{background:white;border-radius:9px;padding:10px;text-align:center}
+.xt-progress-data strong{display:block;font-size:22px;color:#2e405f}
+.xt-progress-data span{font-size:10px;color:#76839a}
+.xt-alert{border-radius:10px;background:#fff9ea;border:1px solid #f0e1bd;padding:12px;color:#806125;font-size:12px;line-height:1.6}
+.xt-steps{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.xt-steps>div{border:1px solid #edeefa;border-radius:10px;background:#fafaff;padding:11px}
+.xt-steps b{font-size:12px;color:#4f3d99}
+.xt-steps p{font-size:11px;color:#75809a;margin:6px 0 0}
+.xt-table-wrap{width:100%;overflow-x:auto}
+.xt-table{width:100%;border-collapse:collapse;font-size:12px}
+.xt-table th{color:#6e7d93;text-align:left;font-size:11px;font-weight:850;padding:12px 9px;border-bottom:1px solid #dfe5ed;white-space:nowrap}
+.xt-table td{padding:12px 9px;border-bottom:1px solid #eef1f6;vertical-align:top}
+.xt-table a{color:#5443a4;font-weight:700;text-decoration:none}
+.xt-table a:hover{text-decoration:underline}
+.xt-table .xt-name{min-width:145px;font-weight:800}
+.xt-empty{padding:30px 14px;text-align:center;font-size:13px;color:#8490a2}
+.xt-filter{display:flex;align-items:end;flex-wrap:wrap;gap:8px;margin:15px 0}
+.xt-filter input,.xt-filter select{font-size:12px;border:1px solid #dfe4ee;border-radius:9px;padding:9px;min-height:37px;max-width:180px;color:#334461}
+.xt-history{display:flex;flex-direction:column;gap:8px}
+.xt-h-item{padding:11px;border:1px solid #ebedf3;border-radius:11px;text-decoration:none;display:flex;justify-content:space-between;gap:10px;color:#2d3f5c}
+.xt-h-item.active,.xt-h-item:hover{background:#f8f6fe;border-color:#d1c8f0;color:#2d3f5c}
+.xt-h-item strong{font-size:12px;display:block}
+.xt-h-item small{font-size:10px;color:#7a849b;display:block;margin-top:4px}
+.xt-h-item em{font-style:normal;color:#5b45ae;font-size:14px;font-weight:850;white-space:nowrap}
+.xt-mobile-note{font-size:11px;color:#8290a7}
+@media(max-width:1080px){.xt-grid{grid-template-columns:1fr}.xt-left,.xt-right{display:contents}.xt-search{order:1}.xt-result{order:2}.xt-history-card{order:3}.xt-import{order:4}.xt-communication{order:5}}
+@media(max-width:720px){.xt{padding:0 11px;margin-top:12px}.xt h1{font-size:22px}.xt-stats{grid-template-columns:repeat(2,minmax(0,1fr))}.xt-card{padding:13px}.xt-steps{grid-template-columns:1fr}.xt-table{min-width:900px}.xt-filter input,.xt-filter select{max-width:unset;flex:1}.xt-progress-data strong{font-size:18px}}
 </style>
 
-<main class="wg">
-  <div class="wg-top">
+<main class="xt">
+  <div class="xt-header">
     <div>
-      <div class="wg-eyebrow">Moli Tekstil / İhracat / Araştırma</div>
+      <div class="xt-eyebrow">Moli Tekstil · İhracat · Potansiyel müşteriler</div>
       <h1><i class="bi bi-globe2 me-2"></i>Yurt Dışı Müşteri Merkezi</h1>
-      <div class="wg-sub">Google aramasını sen yönet; seçtiğin mağazaları ve arama geçmişini MoliApp kaydetsin.</div>
+      <div class="xt-text">Sen aramayı belirle, MoliApp her basışta sıradaki 20 sonucu incelesin.</div>
     </div>
-    <div class="d-flex flex-wrap gap-2">
-      <a href="{% url 'prospect_new' %}" class="wg-button secondary"><i class="bi bi-plus-circle"></i> Mağaza ekle</a>
-      <a href="{% url 'prospect_csv_template' %}" class="wg-button secondary"><i class="bi bi-file-earmark-arrow-down"></i> CSV örnek</a>
+    <div class="xt-actions">
+      <a href="{% url 'prospect_new' %}" class="xt-btn"><i class="bi bi-plus-circle"></i> Elle mağaza ekle</a>
+      <a href="{% url 'prospect_csv_template' %}" class="xt-btn"><i class="bi bi-filetype-csv"></i> CSV örneği</a>
     </div>
   </div>
 
@@ -89,358 +81,195 @@
   <div class="alert {% if 'error' in message.tags %}alert-danger{% elif 'warning' in message.tags %}alert-warning{% else %}alert-success{% endif %} py-2">{{ message }}</div>
   {% endfor %}
 
-  <div class="wg-stats">
-    <div class="wg-stat"><span>Toplu müşteri adayı</span><strong>{{ counts.all }}</strong></div>
-    <div class="wg-stat"><span>İncelenecek</span><strong>{{ counts.new }}</strong></div>
-    <div class="wg-stat"><span>İletişim kurulan</span><strong>{{ counts.contacted }}</strong></div>
-    <div class="wg-stat"><span>Yanıt / fırsat / müşteri</span><strong>{{ counts.responded }}</strong></div>
+  <div class="xt-stats">
+    <div class="xt-stat"><span>Toplam mağaza</span><strong>{{ counts.all }}</strong></div>
+    <div class="xt-stat"><span>İncelenecek</span><strong>{{ counts.new }}</strong></div>
+    <div class="xt-stat"><span>İletişim kurulan</span><strong>{{ counts.contacted }}</strong></div>
+    <div class="xt-stat"><span>Yanıt / potansiyel müşteri</span><strong>{{ counts.responded }}</strong></div>
   </div>
 
-  <div class="wg-grid">
-    <section class="wg-left">
-      <article class="wg-panel wg-research">
-        <div class="wg-head">
-          <h2><i class="bi bi-search me-2"></i>1. Google'da mağaza ara</h2>
-          <span class="wg-pill">Aramayı sen kontrol ediyorsun</span>
+  <div class="xt-grid">
+    <section class="xt-left">
+      <div class="xt-card xt-search">
+        <div class="xt-head">
+          <h2><i class="bi bi-search me-2"></i>Mağaza araştırması</h2>
+          <span class="xt-badge">Her basışta en fazla 20 sonuç</span>
         </div>
-
-        <form id="wg-search-form" method="post" action="{% url 'prospect_guided_start' %}">
+        <form id="xt-automatic-search" method="post" action="{% url 'prospect_automatic_batch' %}">
           {% csrf_token %}
-          <div class="wg-fields">
-            <div class="wg-field"><label for="wg-country">Ülke</label>
-              <select id="wg-country" name="country" required>
-                {% for code,label in countries %}<option value="{{ code }}" {% if search_form.country.value == code %}selected{% endif %}>{{ label }}</option>{% endfor %}
-              </select></div>
-            <div class="wg-field"><label for="wg-city">Şehir / bölge</label>
-              <input id="wg-city" name="city" maxlength="100" placeholder="Berlin" value="{{ search_form.city.value|default_if_none:'' }}"></div>
-            <div class="wg-field wide"><label for="wg-query">Arama kelimeleri</label>
-              <input id="wg-query" name="query" maxlength="200" minlength="3" required placeholder="evening dress boutique" value="{{ search_form.query.value|default_if_none:'' }}"></div>
+          <div class="xt-fields">
+            <div class="xt-input">
+              <label for="xt-country">Ülke</label>
+              <select name="country" id="xt-country" required>
+                {% for code,label in countries %}
+                <option value="{{ code }}" {% if search_form.country.value == code %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="xt-input">
+              <label for="xt-city">Şehir / bölge</label>
+              <input name="city" id="xt-city" maxlength="100" value="{{ search_form.city.value|default_if_none:'' }}" placeholder="Berlin">
+            </div>
+            <div class="xt-input xt-wide">
+              <label for="xt-query">Arama kelimesi</label>
+              <input name="query" id="xt-query" required minlength="3" maxlength="200" value="{{ search_form.query.value|default_if_none:'' }}" placeholder="evening dress boutique">
+            </div>
           </div>
-          <div class="wg-toolbar">
-            <button type="submit" class="wg-button primary" id="wg-go"><i class="bi bi-google"></i> Google'da Ara <i class="bi bi-box-arrow-up-right"></i></button>
-            {% if active_search %}<a class="wg-button secondary" href="{{ active_search.google_url }}" target="_blank" rel="noopener noreferrer"><i class="bi bi-arrow-clockwise"></i> Bu aramayı aç</a>{% endif %}
+          <div class="xt-actions">
+            <button id="xt-search-button" class="xt-btn primary full" type="submit" {% if not search_provider_configured %}disabled title="Serper API bağlantısı gerekli"{% endif %}>
+              <i class="bi bi-search"></i> {% if active_search and not active_search.exhausted %}Sonraki 20 sonucu araştır{% else %}20 mağaza sonucu araştır{% endif %}
+            </button>
           </div>
         </form>
-
-        <div class="wg-browser">
-          <div class="wg-browser-header">
-            <span class="wg-dot"></span><span class="wg-dot"></span><span class="wg-dot"></span>
-            <span class="wg-address">google.com/search — MoliApp araştırma paneli</span>
-          </div>
-          <div class="wg-browser-body">
-            <div class="wg-google"><span class="wg-g1">G</span><span class="wg-g2">o</span><span class="wg-g3">o</span><span class="wg-g1">g</span><span class="wg-g4">l</span><span class="wg-g2">e</span></div>
-            <div class="wg-guide">
-              <div class="wg-step"><b>1</b><div>Yukarıdaki aramayla Google'ı ayrı sekmede aç. Arama <strong>Arama Geçmişi</strong>ne kaydedilir.</div></div>
-              <div class="wg-step"><b>2</b><div>Bir kereye mahsus aşağıdaki <strong>MoliApp'e Aktar</strong> bağlantısını Chrome/Edge yer imleri çubuğuna sürükle.</div></div>
-              <div class="wg-step"><b>3</b><div>Google sonuçları açıkken yer imine tıkla; almak istediğin mağazaları seçip <strong>Tamam</strong> de.</div></div>
-              <div class="wg-step"><b>4</b><div>MoliApp'e dönen sonuçları kontrol edip <strong>Seçilenleri Kaydet</strong> de. Mükerrer mağazalar elenir.</div></div>
-            </div>
-            <div class="wg-toolbar">
-              <a id="wg-bookmarklet" class="wg-button wg-bookmark" href="#" title="Bunu sürükleyip yer imleri çubuğuna bırak"><i class="bi bi-bookmark-plus"></i> MoliApp'e Aktar</a>
-              <small class="wg-sub">İlk kullanımda yer imi olarak ekle. Google sekmesinde çalıştır.</small>
-            </div>
-          </div>
+        {% if not search_provider_configured %}
+        <div class="xt-alert mt-3">
+          <strong><i class="bi bi-plug me-1"></i> Arama servisi bağlantısı eksik.</strong>
+          Google sonuçlarını MoliApp'e otomatik aktarabilmek için Serper'den ücretsiz API anahtarı alıp Render'a <strong>SERPER_API_KEY</strong> olarak eklememiz gerekiyor.
+          Bağlantı olmadan gerçek sonuç varmış gibi kayıt oluşturulmaz.
+          <div class="mt-2"><a href="https://serper.dev" target="_blank" rel="noopener noreferrer">Serper hesabını aç <i class="bi bi-box-arrow-up-right"></i></a></div>
         </div>
-        <div class="wg-notice mt-3">Google, normal arama sayfasının başka sitelerin içinde açılmasını engelliyor. Bu nedenle arama yeni sekmede gerçekleşir. MoliApp yalnızca <strong>senin seçtiğin</strong> sonuç bağlantılarını kaydeder; Google sonuçlarını sunucudan otomatik taramaz.</div>
-      </article>
-
-      <article class="wg-panel wg-import-panel" id="wg-import-panel">
-        <div class="wg-head">
-          <h2><i class="bi bi-check2-square me-2"></i>2. Seçilen mağazaları aktar</h2>
-          {% if active_search %}<span class="wg-pill">Arama #{{ active_search.pk }}</span>{% else %}<span class="wg-pill">Önce arama başlat</span>{% endif %}
-        </div>
-        {% if active_search %}
-          <div class="wg-notice">Aktarılacak arama: <strong>{{ active_search.query }}</strong> · {{ active_search.get_country_display }}{% if active_search.city %} / {{ active_search.city }}{% endif %}</div>
         {% else %}
-          <div class="wg-notice wg-note-warn">Başlamak için üstte bir ülke seçip Google'da Ara'ya bas. Ardından Google'da seçtiğin mağazaları buraya alabilirsin.</div>
+        <div class="xt-progress-title mt-3"><i class="bi bi-check-circle me-1"></i>Arama servisi bağlı · Google sonuçları üçüncü taraf API ile alınır</div>
         {% endif %}
-
-        <form action="{% url 'prospect_guided_import' %}" method="post" id="wg-import-form">
-          {% csrf_token %}
-          <input type="hidden" name="search_id" value="{{ active_search.pk|default:'' }}" id="wg-search-id">
-          <input type="hidden" name="results_json" id="wg-results-json">
-          <div id="wg-browser-results" hidden>
-            <div class="wg-sub mt-3" id="wg-preview-summary"></div>
-            <div class="wg-list" id="wg-result-list"></div>
-            <div class="wg-toolbar">
-              <button type="button" class="wg-button secondary" id="wg-select-all">Tümünü seç</button>
-              <button type="button" class="wg-button secondary" id="wg-clear-all">Seçimi kaldır</button>
-            </div>
+        {% if active_search %}
+        <div class="xt-progress">
+          <div class="xt-progress-title">{{ active_search.query }} · {{ active_search.get_country_display }}{% if active_search.city %} / {{ active_search.city }}{% endif %}</div>
+          <div class="xt-progress-data">
+            <div><strong>{{ active_search.captured_count }}</strong><span>İncelenen sonuç</span></div>
+            <div><strong>{{ active_search.added_count }}</strong><span>Yeni mağaza</span></div>
+            <div><strong>{{ active_search.duplicate_count }}</strong><span>Tekrar eden</span></div>
           </div>
-          <div class="wg-field mt-3" id="wg-manual-area">
-            <label for="wg-urls">Alternatif: Google'dan bağlantıları yapıştır</label>
-            <textarea id="wg-urls" name="result_urls" placeholder="https://example-boutique.com&#10;Mağaza Adı | https://another-boutique.com"></textarea>
-            <small class="wg-sub">Her satıra bir mağaza web sitesi veya Instagram profil bağlantısı yazabilirsin. Bir seferde en fazla 50 mağaza.</small>
+          <div class="xt-text">
+            {% if active_search.exhausted %}Bu aramanın erişilebilir sonuçları tamamlandı. Farklı şehir veya arama kelimesi gir.
+            {% else %}Bir sonraki aramada <strong>{{ active_search.next_page }}. sonuç sayfası</strong> incelenecek.
+            {% endif %}
+            {% if active_search.last_error %}<div class="text-danger mt-2">{{ active_search.last_error }}</div>{% endif %}
           </div>
-          <div class="wg-toolbar">
-            <button type="submit" class="wg-button primary" id="wg-save" {% if not active_search %}disabled{% endif %}><i class="bi bi-cloud-arrow-down"></i> Seçilenleri Kaydet</button>
-            <span class="wg-sub">Kayıtlar incelenecek olarak açılır; otomatik mesaj gönderilmez.</span>
-          </div>
-        </form>
-      </article>
-
-      <article class="wg-panel wg-history-panel">
-        <div class="wg-head">
-          <h2><i class="bi bi-clock-history me-2"></i>Arama Geçmişi</h2>
-          <span class="wg-pill">Tüm kayıtlar · sayfa {{ history_page.number }}/{{ history_page.paginator.num_pages }}</span>
+          <a href="{{ active_search.google_url }}" target="_blank" rel="noopener noreferrer" class="xt-mobile-note mt-2 d-inline-block">Bu aramayı Google'da ayrıca görüntüle <i class="bi bi-box-arrow-up-right"></i></a>
         </div>
-        <div class="wg-history">
+        {% endif %}
+      </div>
+
+      <div class="xt-card xt-history-card">
+        <div class="xt-head">
+          <h2><i class="bi bi-clock-history me-2"></i>Arama geçmişi</h2>
+          <span class="xt-badge">Sayfa {{ history_page.number }}/{{ history_page.paginator.num_pages }}</span>
+        </div>
+        <div class="xt-history">
           {% for history in recent_searches %}
-          <a class="wg-hist {% if active_search.pk == history.pk %}active{% endif %}" href="{% url 'prospect_list_with_history' history.pk %}">
+          <a class="xt-h-item {% if active_search.pk == history.pk %}active{% endif %}" href="{% url 'prospect_list_with_history' history.pk %}">
             <div>
-              <strong>{{ history.query|truncatechars:60 }}</strong>
-              <small>{{ history.get_country_display }}{% if history.city %} · {{ history.city }}{% endif %} · {{ history.created_at|date:"d.m.Y H:i" }}{% if history.created_by %} · {{ history.created_by.username }}{% endif %}</small>
+              <strong>{{ history.query|truncatechars:64 }}</strong>
+              <small>{{ history.get_country_display }}{% if history.city %} · {{ history.city }}{% endif %} · {{ history.created_at|date:"d.m.Y H:i" }}</small>
+              <small>Son sayfa: {{ history.next_page|add:"-1" }} · İncelenen: {{ history.captured_count }}{% if history.exhausted %} · Bitti{% endif %}</small>
             </div>
-            <em>+{{ history.added_count }}<br><small>{{ history.captured_count }} seçilen</small></em>
+            <em>+{{ history.added_count }}</em>
           </a>
           {% empty %}
-          <div class="wg-empty">Henüz arama geçmişi yok. İlk araştırman burada görünecek.</div>
+          <div class="xt-empty">Henüz arama yapılmadı. İlk taramanın geçmişi burada oluşacak.</div>
           {% endfor %}
         </div>
         {% if history_page.paginator.num_pages > 1 %}
-        <div class="wg-bottom">
-          <span class="wg-sub">Geçmiş sayfası {{ history_page.number }} / {{ history_page.paginator.num_pages }}</span>
-          <div class="d-flex gap-2">
-            {% if history_page.has_previous %}<a class="wg-button secondary" href="?history_page={{ history_page.previous_page_number }}{% if active_search %}&history_id={{ active_search.pk }}{% endif %}">Önceki</a>{% endif %}
-            {% if history_page.has_next %}<a class="wg-button secondary" href="?history_page={{ history_page.next_page_number }}{% if active_search %}&history_id={{ active_search.pk }}{% endif %}">Sonraki</a>{% endif %}
-          </div>
+        <div class="xt-foot mt-3">
+          {% if history_page.has_previous %}<a class="xt-btn" href="?history_page={{ history_page.previous_page_number }}{% if active_search %}&history_id={{ active_search.pk }}{% endif %}">Önceki</a>{% endif %}
+          {% if history_page.has_next %}<a class="xt-btn" href="?history_page={{ history_page.next_page_number }}{% if active_search %}&history_id={{ active_search.pk }}{% endif %}">Sonraki</a>{% endif %}
         </div>
         {% endif %}
-        {% if active_search %}
-        <div class="wg-bottom">
-          <span class="wg-sub">Bu aramada: {{ active_search.captured_count }} seçilen, {{ active_search.added_count }} yeni, {{ active_search.duplicate_count }} mükerrer, {{ active_search.skipped_count }} atlanan</span>
-          <a class="wg-button secondary" target="_blank" rel="noopener noreferrer" href="{{ active_search.google_url }}">Google aramasını yeniden aç</a>
-        </div>
-        {% endif %}
-      </article>
+      </div>
+
+      <div class="xt-card xt-import">
+        <div class="xt-head"><h2><i class="bi bi-file-earmark-spreadsheet me-2"></i>CSV ile toplu aktarım</h2></div>
+        <div class="xt-text mb-3">Hazır müşteri listen varsa ayrı ayrı girmeden içe aktarabilirsin.</div>
+        <form method="post" action="{% url 'prospect_csv_import' %}" enctype="multipart/form-data" class="xt-actions">
+          {% csrf_token %}
+          <input type="file" name="file" accept=".csv,text/csv" class="form-control form-control-sm" required>
+          <button type="submit" class="xt-btn">CSV yükle</button>
+        </form>
+      </div>
     </section>
 
-    <section class="wg-right">
-      <article class="wg-panel wg-results">
-        <div class="wg-head">
-          <div><h2><i class="bi bi-people me-2"></i>Mağaza Listesi</h2>
-            <div class="wg-sub mt-1">{% if scope == "search" and active_search %}Seçili aramanın kaydedilmiş sonuçları{% else %}MoliApp'teki tüm yurt dışı adaylar{% endif %}</div>
+    <section class="xt-right">
+      <div class="xt-card xt-result">
+        <div class="xt-head">
+          <div>
+            <h2><i class="bi bi-table me-2"></i>Bulunan mağazalar</h2>
+            <div class="xt-text mt-1">{% if active_search %}{{ active_search.get_country_display }} · {{ active_search.query }} aramasının tüm kayıtları{% else %}Tüm kayıtlı yurt dışı mağazalar{% endif %}</div>
           </div>
-          <div class="d-flex gap-2">
-            <a class="wg-button secondary" href="{% url 'prospect_list' %}">Tümünü göster</a>
-            {% if active_search %}<a class="wg-button secondary" href="{% url 'prospect_list_with_history' active_search.pk %}">Bu arama</a>{% endif %}
+          <div class="xt-actions m-0">
+            <a href="{% url 'prospect_list' %}" class="xt-btn">Tüm mağazalar</a>
+            {% if active_search %}<a href="{% url 'prospect_list_with_history' active_search.pk %}" class="xt-btn">Bu arama</a>{% endif %}
           </div>
         </div>
-
-        <form method="get" class="wg-filter mb-3" action="{% if active_search and scope == 'search' %}{% url 'prospect_list_with_history' active_search.pk %}{% else %}{% url 'prospect_list' %}{% endif %}">
-          <input name="q" value="{{ term }}" placeholder="Mağaza, şehir veya e-posta">
+        <div class="xt-steps">
+          <div><b>1 · Mağaza bul</b><p>En fazla 20 arama sonucu incelenir.</p></div>
+          <div><b>2 · İletişimi araştır</b><p>Web sitesindeki herkese açık işletme bağlantıları taranır.</p></div>
+          <div><b>3 · Listeye ekle</b><p>Tekrarlananlar atlanır, eksik bilgiler boş kalır.</p></div>
+        </div>
+        <form method="get" action="{% if active_search %}{% url 'prospect_list_with_history' active_search.pk %}{% else %}{% url 'prospect_list' %}{% endif %}" class="xt-filter">
+          <input name="q" value="{{ term }}" placeholder="Mağaza / e-posta ara">
           <select name="country"><option value="">Tüm ülkeler</option>{% for code,label in countries %}<option value="{{ code }}" {% if selected_country == code %}selected{% endif %}>{{ label }}</option>{% endfor %}</select>
           <select name="status"><option value="">Tüm durumlar</option>{% for code,label in statuses %}<option value="{{ code }}" {% if selected_status == code %}selected{% endif %}>{{ label }}</option>{% endfor %}</select>
-          <button class="wg-button secondary" type="submit"><i class="bi bi-funnel"></i> Filtrele</button>
+          <button type="submit" class="xt-btn"><i class="bi bi-funnel"></i> Filtrele</button>
         </form>
-
-        <div class="wg-table-scroll">
-          <table class="wg-table">
-            <thead><tr><th>Mağaza</th><th>Ülke</th><th>Instagram</th><th>E-posta</th><th>Telefon</th><th>WhatsApp</th><th>Durum</th><th></th></tr></thead>
+        <div class="xt-table-wrap">
+          <table class="xt-table">
+            <thead><tr><th>Mağaza</th><th>Ülke</th><th>Instagram</th><th>Takipçi</th><th>E-posta</th><th>Telefon</th><th>WhatsApp</th><th>İletişim taraması</th></tr></thead>
             <tbody>
             {% for lead in page %}
-              <tr>
-                <td><a href="{% url 'prospect_detail' lead.pk %}">{{ lead.name|truncatechars:32 }}</a>{% if lead.city %}<div class="wg-sub">{{ lead.city }}</div>{% endif %}
-                <div class="wg-sub">{% if lead.contact_scan_at %}{{ lead.contact_scan_note|default:"İletişim bilgileri kontrol edildi"|truncatechars:38 }}{% elif lead.website_url %}İletişim araştırması sırada{% else %}Web sitesi belirtilmedi{% endif %}</div></td>
-                <td>{{ lead.country }}</td>
-                <td>{% if lead.instagram_url %}<a href="{{ lead.instagram_url }}" target="_blank" rel="noopener noreferrer"><i class="bi bi-instagram"></i> Aç</a>{% else %}—{% endif %}</td>
-                <td>{% if lead.email %}{{ lead.email|truncatechars:29 }}{% else %}—{% endif %}</td>
-                <td>{% if lead.phone_number %}<a href="tel:{{ lead.phone_number }}">{{ lead.phone_number }}</a>{% else %}—{% endif %}</td>
-                <td>{% if lead.whatsapp_link %}<a href="{{ lead.whatsapp_link }}" target="_blank" rel="noopener noreferrer"><i class="bi bi-whatsapp"></i> Aç</a>{% else %}—{% endif %}</td>
-                <td><span class="wg-tag">{{ lead.get_status_display }}</span></td>
-                <td><a href="{% url 'prospect_detail' lead.pk %}">İncele</a></td>
-              </tr>
+            <tr>
+              <td class="xt-name">
+                <a href="{% url 'prospect_detail' lead.pk %}">{{ lead.name|truncatechars:34 }}</a>
+                {% if lead.website_url %}<div class="xt-text"><a href="{{ lead.website_url }}" target="_blank" rel="noopener noreferrer">Web sitesi <i class="bi bi-box-arrow-up-right"></i></a></div>{% endif %}
+                {% if lead.city %}<div class="xt-text">{{ lead.city }}</div>{% endif %}
+              </td>
+              <td>{{ lead.country }}</td>
+              <td>{% if lead.instagram_url %}<a href="{{ lead.instagram_url }}" target="_blank" rel="noopener noreferrer"><i class="bi bi-instagram"></i> Aç</a>{% else %}—{% endif %}</td>
+              <td>{% if lead.instagram_followers != None %}{{ lead.instagram_followers }}{% else %}—{% endif %}</td>
+              <td>{% if lead.email %}<span title="{{ lead.email }}">{{ lead.email|truncatechars:26 }}</span>{% else %}—{% endif %}</td>
+              <td>{% if lead.phone_number %}<a href="tel:{{ lead.phone_number }}">{{ lead.phone_number }}</a>{% else %}—{% endif %}</td>
+              <td>{% if lead.whatsapp_link %}<a href="{{ lead.whatsapp_link }}" target="_blank" rel="noopener noreferrer"><i class="bi bi-whatsapp"></i> Aç</a>{% else %}—{% endif %}</td>
+              <td>{% if lead.contact_scan_at %}<span class="xt-pill" title="{{ lead.contact_scan_note }}">{{ lead.contact_scan_note|truncatechars:38 }}</span>{% elif lead.website_url %}<span class="xt-pill">Araştırılacak</span>{% else %}<span class="xt-pill">Web sitesi yok</span>{% endif %}</td>
+            </tr>
             {% empty %}
-              <tr><td colspan="8"><div class="wg-empty">Henüz bu aramada kayıtlı mağaza yok. Google'da arayıp sonuçları seçtikten sonra burada listelenecekler.</div></td></tr>
+            <tr><td colspan="8" class="xt-empty">Bu aramada kayıtlı mağaza yok. Sol taraftan 20 mağaza araştırması başlatabilirsin.</td></tr>
             {% endfor %}
             </tbody>
           </table>
         </div>
         {% if page.paginator.num_pages > 1 %}
-        <div class="wg-bottom">
-          <span class="wg-sub">Sayfa {{ page.number }} / {{ page.paginator.num_pages }}</span>
-          <div class="d-flex gap-2">
-          {% if page.has_previous %}<a class="wg-button secondary" href="?q={{ term|urlencode }}&country={{ selected_country|urlencode }}&status={{ selected_status|urlencode }}&page={{ page.previous_page_number }}">Önceki</a>{% endif %}
-          {% if page.has_next %}<a class="wg-button secondary" href="?q={{ term|urlencode }}&country={{ selected_country|urlencode }}&status={{ selected_status|urlencode }}&page={{ page.next_page_number }}">Sonraki</a>{% endif %}
+        <div class="xt-foot mt-3">
+          <span class="xt-text">Sayfa {{ page.number }} / {{ page.paginator.num_pages }}</span>
+          <div class="xt-actions m-0">
+          {% if page.has_previous %}<a class="xt-btn" href="?history_id={{ active_search.pk|default:'' }}&q={{ term|urlencode }}&country={{ selected_country|urlencode }}&status={{ selected_status|urlencode }}&page={{ page.previous_page_number }}">Önceki</a>{% endif %}
+          {% if page.has_next %}<a class="xt-btn" href="?history_id={{ active_search.pk|default:'' }}&q={{ term|urlencode }}&country={{ selected_country|urlencode }}&status={{ selected_status|urlencode }}&page={{ page.next_page_number }}">Sonraki</a>{% endif %}
           </div>
         </div>
         {% endif %}
-      </article>
+      </div>
 
-      <article class="wg-panel">
-        <div class="wg-head">
-          <h2><i class="bi bi-file-earmark-spreadsheet me-2"></i>Toplu müşteri adayı aktarımı</h2>
-          <span class="wg-pill">CSV</span>
+      <div class="xt-card xt-communication">
+        <div class="xt-head">
+          <h2><i class="bi bi-envelope-check me-2"></i>Satış iletişimi</h2>
+          <span class="xt-badge">{% if mailing_enabled %}E-posta sistemi açık{% else %}E-posta gönderimi kapalı{% endif %}</span>
         </div>
-        <div class="wg-sub mb-3">Hazır CSV dosyan varsa burada yükle. Önceden kayıtlı mağazalar ikinci kez eklenmez.</div>
-        <form method="post" action="{% url 'prospect_csv_import' %}" enctype="multipart/form-data" class="d-flex gap-2 flex-wrap align-items-center">
-          {% csrf_token %}
-          <input type="file" name="file" accept=".csv,text/csv" class="form-control form-control-sm" style="max-width:300px" required>
-          <button type="submit" class="wg-button secondary"><i class="bi bi-upload"></i> CSV yükle</button>
-        </form>
-      </article>
-      <article class="wg-panel">
-        <div class="wg-head"><h2><i class="bi bi-envelope me-2"></i>Satış iletişimi</h2>
-          <span class="wg-pill">{% if mailing_enabled %}Gönderim sistemi aktif{% else %}E-posta gönderimi kapalı{% endif %}</span></div>
-        <p class="wg-sub mb-0">Bulunan e-posta, telefon ve WhatsApp bilgileri otomatik pazarlama izni anlamına gelmez. Gönderim yalnızca ayrıca uygunluğu kontrol edilmiş, yönetici tarafından onaylanmış kayıtlarda ve kurumsal e-posta servisi bağlandıktan sonra yapılabilir.</p>
-        <div class="wg-sub mt-2">E-posta kuyruğu: {{ counts.mail_queued }} · Gönderilmiş: {{ counts.mail_sent }}</div>
-      </article>
+        <p class="xt-text mb-2">Mağaza bulmak otomatik mesaj göndermek değildir. Alıcıların iletişim uygunluğu kontrol edilmeden e-posta veya WhatsApp gönderilmez.</p>
+        <div class="xt-foot">
+          <span class="xt-text">E-posta kuyruğu: {{ counts.mail_queued }} · Gönderildi: {{ counts.mail_sent }}</span>
+          <span class="xt-text">Instagram takipçi sayısı yalnızca izinli ve doğrulanmış bir veri kaynağı varsa gösterilir.</span>
+        </div>
+      </div>
     </section>
   </div>
 </main>
 
 <script>
 (function(){
-  'use strict';
-  var landing=window.location.origin+"{% url 'prospect_list' %}";
-  var form=document.getElementById('wg-search-form');
-  var importForm=document.getElementById('wg-import-form');
-  var linksInput=document.getElementById('wg-urls');
-  var resultsJson=document.getElementById('wg-results-json');
-  var resultsBox=document.getElementById('wg-browser-results');
-  var resultsList=document.getElementById('wg-result-list');
-  var summary=document.getElementById('wg-preview-summary');
-  var candidates=[];
-
-  // This bookmarklet only runs when a human opens a Google results page and
-  // clicks it. It never searches Google or visits result pages automatically.
-  function googleResultPicker(returnUrl){
-    try {
-      if(!/(^|\.)google\./i.test(location.hostname)||location.pathname.indexOf('/search')!==0){
-        alert("Önce Google'da bir mağaza araması açın.");return;
-      }
-      var results=[];
-      var seen={};
-      document.querySelectorAll('a').forEach(function(a){
-        var h=a.querySelector('h3');
-        if(!h || !a.href)return;
-        var title=(h.innerText||h.textContent||'').trim();
-        if(!title)return;
-        try {
-          var u=new URL(a.href,location.href);
-          if(/(^|\.)google\./i.test(u.hostname)&&u.pathname==='/url'){
-            var redirect=u.searchParams.get('q')||u.searchParams.get('url');
-            if(redirect)u=new URL(redirect);
-          }
-          if(!/^https?:$/.test(u.protocol))return;
-          if(/(^|\.)(google\.[a-z.]+|youtube\.com|youtu\.be|pinterest\.com|facebook\.com|tiktok\.com)$/i.test(u.hostname))return;
-          var cleaned=u.origin+u.pathname;
-          if(seen[cleaned])return;
-          seen[cleaned]=1;
-          results.push({name:title.slice(0,180),url:cleaned.slice(0,500)});
-        }catch(e){}
-      });
-      if(!results.length){alert('Bu sayfada aktarılabilecek mağaza bağlantısı bulunamadı. Bağlantıları MoliApp’e yapıştırabilirsiniz.');return;}
-      results=results.slice(0,50);
-      var overlay=document.createElement('div');
-      overlay.id='moli-picker-overlay';
-      overlay.style.cssText='position:fixed!important;inset:0!important;z-index:2147483647!important;background:rgba(22,25,47,.76)!important;display:flex!important;align-items:center!important;justify-content:center!important;padding:18px!important';
-      var panel=document.createElement('div');
-      panel.style.cssText='background:#fff!important;color:#29344e!important;border-radius:15px!important;max-width:690px!important;width:100%!important;padding:20px!important;font:14px Arial,sans-serif!important;box-sizing:border-box!important;max-height:86vh!important;display:flex!important;flex-direction:column!important';
-      var heading=document.createElement('div');heading.style.cssText='font-size:19px!important;font-weight:bold!important;margin-bottom:8px!important';heading.textContent='MoliApp · Google sonuçlarını seç';
-      var desc=document.createElement('div');desc.style.cssText='font-size:12px!important;color:#62708a!important;margin-bottom:12px!important';desc.textContent='Yalnızca bu sayfada görünen bağlantılar. İstemediğiniz sonuçların işaretini kaldırın.';
-      var list=document.createElement('div');list.style.cssText='overflow-y:auto!important;flex:1!important;border:1px solid #e4e7ee!important;border-radius:9px!important';
-      results.forEach(function(result){
-        var label=document.createElement('label');label.style.cssText='display:flex!important;gap:10px!important;padding:10px!important;border-bottom:1px solid #eef0f6!important;cursor:pointer!important;align-items:flex-start!important';
-        var check=document.createElement('input');check.type='checkbox';check.checked=true;check.style.cssText='margin-top:4px!important';
-        check.setAttribute('data-moli-check','1');
-        var copy=document.createElement('span');copy.style.cssText='word-break:break-word!important;color:#29344e!important;font-size:12px!important';
-        var title=document.createElement('strong');title.textContent=result.name;title.style.cssText='display:block!important;margin-bottom:4px!important';
-        var url=document.createElement('small');url.textContent=result.url;url.style.cssText='color:#7e899d!important';
-        copy.appendChild(title);copy.appendChild(url);label.appendChild(check);label.appendChild(copy);list.appendChild(label);
-      });
-      var buttons=document.createElement('div');buttons.style.cssText='display:flex!important;justify-content:flex-end!important;gap:9px!important;margin-top:14px!important';
-      function button(label,background,color){
-        var b=document.createElement('button');b.textContent=label;b.type='button';b.style.cssText='padding:11px 15px!important;background:'+background+'!important;color:'+color+'!important;border:0!important;border-radius:9px!important;cursor:pointer!important;font-size:13px!important;font-weight:bold!important';return b;
-      }
-      var close=button('Vazgeç','#eef0f5','#3b4966');
-      close.onclick=function(){overlay.remove()};
-      var ok=button('Tamam · MoliApp’e Aktar','#5945ad','#fff');
-      ok.onclick=function(){
-        var chosen=[];
-        list.querySelectorAll('label').forEach(function(row,i){
-          if(row.querySelector('input').checked)chosen.push(results[i]);
-        });
-        if(!chosen.length){alert('En az bir mağaza seçin.');return;}
-        var packed=encodeURIComponent(JSON.stringify({query:new URL(location.href).searchParams.get('q')||'',items:chosen}));
-        if(packed.length>15000){alert('Çok fazla bağlantı seçildi. Daha az sonuç deneyin.');return;}
-        window.location.assign(returnUrl+'#moli-import='+packed);
-      };
-      buttons.appendChild(close);buttons.appendChild(ok);
-      panel.appendChild(heading);panel.appendChild(desc);panel.appendChild(list);panel.appendChild(buttons);overlay.appendChild(panel);
-      document.body.appendChild(overlay);
-    }catch(err){alert('Google sonuçları okunamadı. Mağaza bağlantılarını MoliApp’e yapıştırabilirsiniz.');}
-  }
-
-  var bookmark=document.getElementById('wg-bookmarklet');
-  bookmark.href='javascript:('+googleResultPicker.toString()+')('+JSON.stringify(landing)+');';
-  bookmark.addEventListener('click',function(ev){
-    ev.preventDefault();
-    alert('Bu bağlantıyı Chrome/Edge yer imleri çubuğuna sürükle. Google sonuçları açıkken yer imine bas. Yer imleri çubuğunu Ctrl+Shift+B ile açabilirsin.');
-  });
-
-  function drawSelections(){
-    resultsList.textContent='';
-    candidates.forEach(function(item){
-      var label=document.createElement('label');
-      var box=document.createElement('input');box.type='checkbox';box.checked=item.selected!==false;
-      box.addEventListener('change',function(){item.selected=box.checked;syncSelection()});
-      var block=document.createElement('span');
-      var strong=document.createElement('strong');strong.textContent=item.name||item.url;
-      var small=document.createElement('small');small.textContent=item.url;
-      block.appendChild(strong);block.appendChild(small);label.appendChild(box);label.appendChild(block);resultsList.appendChild(label);
-    });
-    resultsBox.hidden=!candidates.length;
-    syncSelection();
-  }
-  function syncSelection(){
-    var selected=candidates.filter(function(x){return x.selected!==false}).map(function(x){return {name:x.name,url:x.url}});
-    resultsJson.value=selected.length?JSON.stringify(selected):'';
-    summary.textContent=selected.length+' mağaza seçildi · ' + candidates.length+' Google sonucu önizleniyor.';
-  }
-  var hash=window.location.hash||'';
-  if(hash.indexOf('#moli-import=')===0){
-    try{
-      var incoming=JSON.parse(decodeURIComponent(hash.slice('#moli-import='.length)));
-      if(incoming && Array.isArray(incoming.items)){
-        candidates=incoming.items.slice(0,50).filter(function(x){return x&&typeof x.url==='string'&&typeof x.name==='string'});
-        drawSelections();
-        linksInput.value='';
-        if(candidates.length)document.getElementById('wg-import-panel').scrollIntoView({behavior:'smooth'});
-      }
-    }catch(err){alert('Google sonuçları okunamadı; mağaza bağlantılarını yapıştırabilirsin.');}
-    window.history.replaceState(null,'',window.location.pathname+window.location.search);
-  }
-  document.getElementById('wg-select-all').addEventListener('click',function(){candidates.forEach(function(x){x.selected=true});drawSelections()});
-  document.getElementById('wg-clear-all').addEventListener('click',function(){candidates.forEach(function(x){x.selected=false});drawSelections()});
-  linksInput.addEventListener('input',function(){
-    if(linksInput.value.trim())resultsJson.value='';
-    else if(candidates.length)syncSelection();
-  });
-  importForm.addEventListener('submit',function(ev){
-    if(!document.getElementById('wg-search-id').value){ev.preventDefault();alert('Önce Google araması başlatmalısın.');return;}
-    if(!resultsJson.value.trim()&&!linksInput.value.trim()){ev.preventDefault();alert('Aktarmak için mağaza seç veya web bağlantılarını yapıştır.')}
-  });
-
-  form.addEventListener('submit',function(ev){
-    if(!form.checkValidity())return;
-    if(!window.fetch)return;
-    ev.preventDefault();
-    var q=document.getElementById('wg-query').value.trim();
-    var city=document.getElementById('wg-city').value.trim();
-    var country=document.getElementById('wg-country');
-    var countryName=country.options[country.selectedIndex].text;
-    var googleUrl='https://www.google.com/search?q='+encodeURIComponent([q,city,countryName].filter(Boolean).join(' '))+'&num=20';
-    var googleTab=window.open(googleUrl,'_blank');
-    if(googleTab)googleTab.opener=null;
-    var button=document.getElementById('wg-go');button.disabled=true;
-    fetch(form.action,{
-      method:'POST',body:new FormData(form),credentials:'same-origin',
-      headers:{'X-Requested-With':'XMLHttpRequest','Accept':'application/json'}
-    }).then(function(response){return response.json().then(function(data){if(!response.ok)throw Error(data.error||'Arama kaydedilemedi.');return data})})
-      .then(function(data){
-        window.location.assign("{% url 'prospect_list' %}?history_id="+encodeURIComponent(data.id));
-      }).catch(function(err){button.disabled=false;alert(err.message||'Arama kaydedilemedi. Yeniden dene.');});
+  var f=document.getElementById('xt-automatic-search');
+  var b=document.getElementById('xt-search-button');
+  if(f&&b)f.addEventListener('submit',function(){
+    if(!f.checkValidity())return;
+    b.disabled=true;
+    b.innerText='20 sonuç araştırılıyor...';
   });
 })();
 </script>
