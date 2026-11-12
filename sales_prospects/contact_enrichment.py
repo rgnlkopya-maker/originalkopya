@@ -322,10 +322,10 @@ def scan_one_pending_prospect():
     the same shop repeatedly. Only existing prospect records are considered.
     No personal-number guessing or social-platform scraping.
     """
-    # Retry previously failed scans twice, at most once per six hours.
-    # Never retry successful scans, and always prioritize new shop records.
+    # Rescan legacy records once after parser upgrade (attempts=0). Then
+    # retry genuine failures no more than twice, six hours apart.
     retry_cutoff = timezone.now() - timedelta(hours=6)
-    pending = Q(contact_scan_at__isnull=True) | (
+    pending = Q(contact_scan_at__isnull=True) | Q(contact_scan_attempts=0) | (
         Q(contact_scan_attempts__lt=3)
         & Q(contact_scan_at__lt=retry_cutoff)
         & (
