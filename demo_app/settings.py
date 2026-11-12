@@ -48,6 +48,7 @@ INSTALLED_APPS = [
     "app_settings.apps.AppSettingsConfig",
     "planning.apps.PlanningConfig",
     "inventory.apps.InventoryConfig",
+    "sales_prospects.apps.SalesProspectsConfig",
 ]
 
 MIDDLEWARE = [
