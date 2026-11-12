@@ -9,6 +9,7 @@ import logging
 import os
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
+from urllib.parse import urlencode
 
 from django.db import transaction
 from django.utils import timezone
@@ -199,6 +200,6 @@ def find_or_start(user, country, city, query):
         return existing
     return GuidedSearch.objects.create(
         created_by=user, country=country, city=city, query=query,
-        google_url=google_url_for(query, country, city),
+        google_url="https://www.google.com/search?" + urlencode({"q": search_phrase(query, country, city), "num": PAGE_SIZE}),
         search_provider="SERPER",
     )
