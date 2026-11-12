@@ -9,6 +9,7 @@ from app_settings.access import has_full_access
 from .forms import GuidedSearchForm
 from .guided_search import google_url_for, import_selected_results
 from .models import GuidedSearch
+from .automatic_search import find_or_start, run_next_page, SearchUnavailable, is_configured
 
 
 def _allowed(request):
@@ -78,4 +79,55 @@ def import_results(request):
             summary["new"], summary["duplicates"], summary["skipped"],
         ),
     )
+    return redirect("prospect_list_with_history", history_id=search.pk)
+
+
+
+@login_required
+@require_POST
+def automatic_next_batch(request):
+    """Search and save up to 20 new candidate results without manual selection."""
+    if not _allowed(request):
+        return HttpResponseForbidden("Yetkiniz yok.")
+    form = GuidedSearchForm(request.POST)
+    if not form.is_valid():
+        messages.error(request, "Ülke, şehir veya arama kelimesi geçersiz.")
+        return redirect("prospect_list")
+    if not is_configured():
+        messages.warning(
+            request,
+            "Otomatik Google sonuçları henüz bağlanmadı. "
+            "Serper hesabından ücretsiz API anahtarı oluşturulup "
+            "Render'a SERPER_API_KEY olarak eklenmeli."
+        )
+        return redirect("prospect_list")
+
+    query = form.cleaned_data["query"]
+    country = form.cleaned_data["country"]
+    city = form.cleaned_data["city"]
+    search = find_or_start(request.user, country, city, query)
+    request.session["active_guided_search_id"] = search.pk
+    try:
+        result = run_next_page(search, request.user)
+    except SearchUnavailable as exc:
+        messages.error(request, str(exc))
+        return redirect("prospect_list_with_history", history_id=search.pk)
+    except Exception:
+        import logging
+        logging.getLogger(__name__).exception("Guided automated search failed")
+        messages.error(request, "Arama işlenirken beklenmeyen bir hata oluştu; sayfa ilerlemedi.")
+        return redirect("prospect_list_with_history", history_id=search.pk)
+
+    if result["status"] == "EXHAUSTED":
+        messages.info(request, "Bu aramanın erişilebilir sonuç sayfaları tamamlandı. Yeni şehir veya arama kelimesi seç.")
+    else:
+        messages.success(
+            request,
+            "Google sonuç sayfası {} işlendi: {} sonuç incelendi · {} yeni mağaza · "
+            "{} mükerrer · {} uygun olmayan/atlanmış. "
+            "İşletmelerin iletişim bağlantıları sırayla araştırılır; mesaj gönderilmedi.".format(
+                result["page"], result["seen"], result["new"],
+                result["duplicates"], result["skipped"],
+            ),
+        )
     return redirect("prospect_list_with_history", history_id=search.pk)
