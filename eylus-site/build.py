@@ -62,6 +62,7 @@ def footer():
           <a class="eylus-footer-stock" href="/stok-takip-programi/">Stok</a>
           <a class="eylus-footer-orders" href="/siparis-takip-programi/">Sipariş</a>
           <a class="eylus-footer-personnel" href="/personel-takip-programi/">Personel</a>
+          <a class="eylus-footer-work" href="/is-takip-programi/">İş</a>
           <a class="eylus-footer-privacy" href="/iletisim/#gizlilik">Site ve gizlilik bilgisi</a>
         </nav>
       </div>
@@ -1237,6 +1238,131 @@ PERSONNEL_GUIDE = '''
 </article>
 '''
 
+
+# Evergreen work tracking SEO guide: separate personal tasks from production operations.
+WORK_ARTICLE_URL = '/is-takip-programi/'
+WORK_GUIDE = '''
+<article class="guide-page">
+  <header class="guide-header">
+    <div class="wrap guide-header-inner">
+      <nav class="guide-breadcrumb" aria-label="İçerik yolu"><a href="/">Ana sayfa</a><span aria-hidden="true">/</span><span>İş takip programı</span></nav>
+      <span class="guide-kicker">EYLUS REHBER · İŞ VE OPERASYON TAKİBİ</span>
+      <h1>İş Takip Programı Nedir? <em>Yapılacak İşleri ve Üretimdeki Gecikmeleri Nasıl Yönetirsiniz?</em></h1>
+      <p class="guide-deck">Bugün hangi iş yapılmalı? Hangi hatırlatma bekliyor? Hangi üretim siparişi günlerdir ilerlemiyor? Bir iş takip programının temel amacı bu soruları farklı mesajlarda aramak yerine düzenli kayıtlardan yanıtlamaktır.</p>
+      <div class="guide-header-actions">
+        <a href="#is-takip-nedir">Rehberi okuyun <span aria-hidden="true">↓</span></a>
+        <a href="/tekstil/">Eylus çözümlerini inceleyin <span aria-hidden="true">↗</span></a>
+      </div>
+    </div>
+  </header>
+  <div class="wrap guide-body">
+    <aside class="guide-side" aria-label="Yazı içeriği">
+      <p>BU YAZIDA</p>
+      <a href="#is-takip-nedir">İş takip programı nedir?</a>
+      <a href="#yapilacak-isler">Yapılacak işler ve tarihler</a>
+      <a href="#hatirlatma-alarm">Hatırlatma ve alarm</a>
+      <a href="#uretimde-is-takibi">Üretimde iş ve aşama takibi</a>
+      <a href="#geciken-isler">Geciken ve hareketsiz işler</a>
+      <a href="#is-ve-siparis">İş ve sipariş takibi farkı</a>
+      <a href="#is-takip-secimi">Program seçerken</a>
+      <a href="#is-takip-sorular">Sık sorulan sorular</a>
+    </aside>
+    <div class="guide-copy">
+      <section id="is-takip-nedir" aria-labelledby="work-what">
+        <h2 id="work-what">İş takip programı nedir?</h2>
+        <p><strong>İş takip programı</strong>, yapılması gereken işlerin kaydedilmesine, tarihlerinin izlenmesine ve tamamlanma durumlarının kontrol edilmesine yardımcı olan yazılımdır. Kimi işletme için bir yapılacaklar listesi yeterliyken, üretim yapan firmalarda müşteri siparişleri, üretim aşamaları ve teslimatlar da iş takibinin parçasıdır.</p>
+        <p>Örneğin bir atölye yöneticisinin aynı gün malzeme eksiklerini kontrol etmesi, müşteriye dönüş yapması ve yarın sevk edilecek siparişleri gözden geçirmesi gerekebilir. Bunlar farklı türde işlerdir. Hepsini akılda tutmaya çalışmak yerine tek tek kayıt altına almak, öncelikleri belirlemeyi kolaylaştırır.</p>
+        <div class="guide-note"><strong>Önemli ayrım:</strong> Kişisel yapılacaklar listesi ile işletme genelindeki üretim takibi aynı işlev değildir. Eylus'ta kişisel iş hatırlatmaları ve siparişlerin üretim aşaması kontrolü farklı ekranlarda ele alınır.</div>
+      </section>
+
+      <section id="yapilacak-isler" aria-labelledby="work-todo">
+        <h2 id="work-todo">Yapılacak işler nasıl düzenlenir?</h2>
+        <p>Günlük işlerin takibinde ilk adım, yapılacak işi herkesin anlayacağı kadar açık tanımlamaktır. “Müşteriye bak” gibi belirsiz bir not yerine “Model 8020 teslim tarihi için müşteriye dönüş yap” gibi somut bir ifade, işin tamamlanıp tamamlanmadığını kontrol etmeyi kolaylaştırır.</p>
+        <p>İş kaydı oluştururken bir başlık, gerekiyorsa açıklama ve hedef tarih kullanılabilir. Ardından açık işlerle tamamlanan işlerin ayrılması, aynı konuya tekrar tekrar dönmeyi azaltır. Tarihsiz küçük işler de gerektiğinde listede tutulabilir.</p>
+        <div class="guide-benefits">
+          <div><span>01 / KAYIT</span><h3>Yapılacaklar listesi</h3><p>Kısa başlık ve açıklamayla unutulmaması gereken işleri ayrı kayıtlara dönüştürün.</p></div>
+          <div><span>02 / ÖNCELİK</span><h3>Tarih bazlı görünüm</h3><p>Geciken, bugün yapılacak, yaklaşan ve tarihi olmayan işleri farklı gruplarda değerlendirin.</p></div>
+          <div><span>03 / TAKİP</span><h3>Tamamlandı bilgisi</h3><p>Yapılan işleri açık listeden ayırın; hangi kaydın tamamlandığını görün.</p></div>
+          <div><span>04 / KONTROL</span><h3>Eksik işleri belirleme</h3><p>Gün sonunda halen açık kalan işleri sonraki çalışma planına dahil edin.</p></div>
+        </div>
+        <p>Eylus'un <strong>Yapılacaklar</strong> bölümünde kullanıcı kendi işlerini başlık, not ve isteğe bağlı tarih ile kaydedebilir. Liste geciken, bugün, yaklaşan, tarihi olmayan ve tamamlanan işler olarak gruplandırılır. Bu bölüm, her çalışana otomatik iş dağıtan bir ekip proje yönetim sistemi olarak tanıtılmamalıdır; kişisel yapılacakların kaydına odaklanır.</p>
+      </section>
+
+      <section id="hatirlatma-alarm" aria-labelledby="work-alarm">
+        <h2 id="work-alarm">İş hatırlatmaları ve alarm sistemi ne işe yarar?</h2>
+        <p>Bir görevi listeye yazmak her zaman yeterli olmaz. Özellikle gün içinde farklı konularla ilgilenen işletme sahiplerinin, belirli saatte yapılacak işleri hatırlatmaya ihtiyacı olabilir. Tarih ve saatli bir hatırlatma bu amaçla kullanılır.</p>
+        <p>Eylus'ta bir yapılacak işe gelecek bir tarih ve saat belirlenerek alarm oluşturulabilir. Alarm aralıkları seçilebilir; kullanıcı bir işi tamamladığında veya uygun bir süre ertelediğinde kayıt buna göre güncellenir. Böylece tamamlanmış bir işin halen yapılacakmış gibi takip edilmesi önlenebilir.</p>
+        <p>Bildirimlerin cihaza ulaşması internet bağlantısına, tarayıcı izinlerine ve telefonun bildirim desteğine bağlı olabilir. Bu nedenle önemli işletme kararları için tek bir bildirim kanalına güvenmek yerine ilgili ekranı düzenli kontrol etmek de yerinde olur.</p>
+      </section>
+
+      <section id="uretimde-is-takibi" aria-labelledby="work-production">
+        <h2 id="work-production">Üretim yapan işletmelerde iş takibi nasıl çalışır?</h2>
+        <p>Bir tekstil üreticisinde yapılacaklar listesi günlük hatırlatmalar için kullanışlıdır; fakat asıl üretim işi bir siparişin kesimden dikime, süslemeden sevkiyata ilerlemesidir. Bu nedenle üretim işlerini yönetirken kişisel görev kaydının yanında siparişin gerçek aşama hareketlerini takip etmek gerekir.</p>
+        <ol class="guide-steps">
+          <li><strong>Sipariş bilgisini netleştirin.</strong><p>Müşteri, ürün kodu, renk, beden, adet ve teslim tarihini tek kayıtta tutun.</p></li>
+          <li><strong>Üretim aşamalarını görünür kılın.</strong><p>Kesim, dikim, süsleme ve hazır gibi işlem adımlarındaki hareketleri siparişle ilişkilendirin.</p></li>
+          <li><strong>İşlem kayıtlarını kontrol edin.</strong><p>Hangi aşamanın başladığını veya bittiğini ve ilgili hareketi kimin kaydettiğini gerektiğinde inceleyin.</p></li>
+          <li><strong>Sevkiyata yaklaşan işleri değerlendirin.</strong><p>Teslim tarihi yaklaşan ürünlerde mevcut üretim aşamasını gözden geçirerek öncelik verin.</p></li>
+        </ol>
+        <p>Eylus'un üretim takibinde personel, ürüne ait QR kodu kullanarak üretim hareketini siparişe kaydedebilir. Yönetici sipariş listesi ve aşama kontrol ekranlarından işin son durumunu değerlendirebilir. Ayrıntılı akış için <a href="/uretim-takip-programi/">üretim takip programı rehberimize</a bakabilirsiniz.</p>
+      </section>
+
+      <section id="geciken-isler" aria-labelledby="work-stalled">
+        <h2 id="work-stalled">Geciken ve hareketsiz işler nasıl fark edilir?</h2>
+        <p>Bir işin listede bulunması, mutlaka ilerlediği anlamına gelmez. Üretim siparişi açıldıktan sonra günlerce hareket kaydedilmiyorsa teslimat riski artabilir. Bu nedenle işletme sahibi yalnızca toplam sipariş sayısını değil, son işlem tarihi gibi bilgileri de kontrol etmelidir.</p>
+        <p>Eylus'un <strong>Üretim Aşaması Kontrolü</strong> ekranında üretimde hareketsiz kalan siparişler incelenebilir. Aşama kayıtlarında başlangıç veya bitiş gibi eksik adımlar da araştırılabilir. Bu bilgiler, üretimde gerçekten bir gecikme olup olmadığını anlamak için kontrol noktası oluşturur.</p>
+        <p>Sistem, son üretim hareketinin üzerinden belirli süre geçen ve sevk edilmemiş işleri tespit etmeye yönelik kontroller içerir. Örneğin üç gün veya daha uzun süre hareket görmeyen siparişler için inceleme listesi oluşturulabilir. Ancak kaydın eksik olması fiziksel olarak hiçbir işlem yapılmadığını kesin olarak kanıtlamaz; ilgili personel ve iş akışıyla doğrulama gerekir.</p>
+        <p>Yetkili yöneticiler için yaklaşan teslimatlara ve bekleyen işlere ilişkin bildirim mekanizmaları da bulunabilir. Bu bildirimler, doğru veri girişine ve uygulamanın çalışma koşullarına bağlıdır; her sorunu kendiliğinden çözen otomatik planlama olarak düşünülmemelidir.</p>
+      </section>
+
+      <section id="is-ve-siparis" aria-labelledby="work-order-difference">
+        <h2 id="work-order-difference">İş takip programı ile sipariş takip programı arasındaki fark nedir?</h2>
+        <p><strong>İş takip programı</strong> daha genel bir kavramdır: bir yöneticinin hatırlatması, yapılacak kontrol veya üretimdeki bir iş adımı bu kapsama girebilir. <strong>Sipariş takip programı</strong> ise müşterinin belirli bir ürüne ilişkin talebinin alınmasından teslimata kadar olan süreci izler.</p>
+        <p>Örneğin “Yarın müşteriye telefon et” kişisel bir yapılacak iştir. “Müşterinin model 7119 siparişi dikimde bekliyor” ise siparişin üretim durumuyla ilgili bilgidir. Bu ayrım, hangi konunun yapılacaklar listesinde, hangi konunun üretim ekranında takip edileceğini belirlemeyi kolaylaştırır.</p>
+        <p>Müşteri, ürün ve teslim tarihlerini içeren iş akışı hakkında daha fazla bilgi için <a href="/siparis-takip-programi/">sipariş takip programı rehberini</a inceleyebilirsiniz.</p>
+      </section>
+
+      <section id="is-takip-secimi" aria-labelledby="work-checklist">
+        <h2 id="work-checklist">İş takip programı seçerken nelere dikkat edilmeli?</h2>
+        <p>İş takibi için yazılım seçerken önce neyi takip etmek istediğinizi belirleyin. Sadece kişisel hatırlatmalar mı, ekip görevleri mi, müşteri siparişleri mi, yoksa üretimin her aşaması mı? Bu farklı ihtiyaçların tek bir başlık altında değerlendirilmesi yanlış beklenti yaratabilir.</p>
+        <ul class="guide-checklist">
+          <li><strong>İş tanımı:</strong> Görev başlığı ve açıklaması yeterince açık kaydedilebiliyor mu?</li>
+          <li><strong>Tarih ve hatırlatma:</strong> İşe tarih eklenebiliyor ve uygun zamanda hatırlatma kurulabiliyor mu?</li>
+          <li><strong>Tamamlanma takibi:</strong> Açık ve tamamlanmış işler ayrı görülebiliyor mu?</li>
+          <li><strong>Üretim akışı:</strong> Müşteri siparişinin hangi üretim aşamasında olduğu incelenebiliyor mu?</li>
+          <li><strong>Hareketsiz işler:</strong> Uzun süredir işlem kaydı olmayan siparişler bulunabiliyor mu?</li>
+          <li><strong>Yetkilendirme:</strong> Kullanıcı yalnızca erişmesi gereken görev ve işletme bilgilerini mi görebiliyor?</li>
+          <li><strong>Mobil kullanım:</strong> İşletme dışında olunan anlarda gerekli kayıtlara erişilebiliyor mu?</li>
+        </ul>
+        <p>Bir deneme yaparken iki farklı senaryo kullanın: Önce tarihli kişisel bir hatırlatma oluşturup tamamlayın; sonra bir üretim siparişinin son aşamasını ve gecikme riskini kontrol edin. Bu iki senaryonun da çalışma biçiminize uygun olması, uzun özellik listelerinden daha iyi bir karşılaştırma sunar.</p>
+      </section>
+
+      <section id="is-takip-sorular" aria-labelledby="work-faq">
+        <h2 id="work-faq">Sık sorulan sorular</h2>
+        <h3>İş takip programı sadece yapılacaklar listesi midir?</h3>
+        <p>Hayır. Bazı programlar sadece kişisel görevleri izler; bazıları ekip projelerine, bazıları üretim siparişlerine odaklanır. İşletmenin ihtiyacına göre uygun kapsam seçilmelidir.</p>
+        <h3>İş takibi üretim gecikmelerini otomatik önler mi?</h3>
+        <p>Hayır. Yazılım, bekleyen işleri fark etmeyi kolaylaştırır. Gecikmeye neden olan malzeme, kapasite veya süreç sorunları yine işletme tarafından değerlendirilmelidir.</p>
+        <h3>Personel performansı yalnızca işlem kayıtlarından ölçülebilir mi?</h3>
+        <p>Tek başına doğru olmaz. Bir hareketi sisteme kimin kaydettiği faydalı bir bilgidir; ancak işin zorluğu, görev dağılımı ve gerçek üretim koşulları da dikkate alınmalıdır. Personel süreçleri hakkında <a href="/personel-takip-programi/">personel takip programı rehberini</a okuyabilirsiniz.</p>
+        <h3>İş takip programına telefondan erişilebilir mi?</h3>
+        <p>Programın altyapısına bağlıdır. Eylus, yetkili kullanıcıların internet bağlantısıyla telefon veya bilgisayardan ilgili işletme ekranlarını incelemesine imkân tanır.</p>
+      </section>
+
+      <section class="guide-last" aria-labelledby="work-cta">
+        <span class="guide-kicker">EYLUS İLE TANIŞIN</span>
+        <h2 id="work-cta">Yapılacakları ve üretimde bekleyen işleri daha görünür hale getirin.</h2>
+        <p>Yapılacaklar, siparişler, üretim aşamaları ve sevkiyat planını işletmenizin gerçek iş akışı üzerinden değerlendirin.</p>
+        <div class="guide-last-actions">
+          <a href="/tekstil/" class="guide-button-primary">Eylus çözümlerini görün <span aria-hidden="true">↗</span></a>
+          <a href="/demo/" class="guide-button-secondary">Canlı demoyu inceleyin <span aria-hidden="true">→</span></a>
+        </div>
+      </section>
+    </div>
+  </div>
+</article>
+'''
+
 HOME = EYLUS_HOME_HERO
 PRODUCT = intro('Ürün','Bir siparişten<br>bütün üretime.','Siparişin bilgisi, üretimin hareketi ve teslimatın planı. Birbirinden kopuk değil, birlikte.')+'<section class="section"><div class="wrap">'+features()+'<div class="callout">Eylus’un işletmenizdeki kapsamını ve kullanacağınız modülleri birlikte değerlendirelim. Bu site otomatik teklif veya lisans taahhüdü oluşturmaz.</div></div></section>'+TOUR+cta()
 
@@ -1588,6 +1714,7 @@ PAGES = {
  '/stok-takip-programi/': ('Stok Takip Programı Nedir?', 'Stok takip programı nedir? Depo bazında ürün ve malzeme miktarlarını, giriş-çıkış, iade, sayım ve konsinye takibini Eylus örneğiyle öğrenin.', STOCK_GUIDE),
  '/siparis-takip-programi/': ('Sipariş Takip Programı Nedir?', 'Sipariş takip programı nedir? Üretici işletmelerde sipariş kaydı, renk-beden bilgileri, QR ile üretim aşamaları ve teslimat planını öğrenin.', ORDER_GUIDE),
  '/personel-takip-programi/': ('Personel Takip Programı Nedir?', 'Personel takip programı nedir? Puantaj, giriş-çıkış, mesai, izin ve üretim ekibinin iş takibini Eylus örneğiyle öğrenin.', PERSONNEL_GUIDE),
+ '/is-takip-programi/': ('İş Takip Programı Nedir?', 'İş takip programı nedir? Yapılacaklar, hatırlatmalar, geciken üretim işleri ve sipariş aşamalarını Eylus örneğiyle öğrenin.', WORK_GUIDE),
  '/urun/': ('Ürün ve üretim yönetimi', 'Sipariş, QR, üretim aşamaları, maliyet ve sevkiyat takibi. Eylus ürününü tanıyın.', PRODUCT),
  '/tekstil/': ('Üretim sorunlarına Eylus çözümleri', 'Sipariş takibi, gecikmeler, personel, sevkiyat, maliyet, fatura ve daha fazlası için Eylus çözümlerini keşfedin.', TEXTILE),
  '/neden-eylus/': ('Neden Eylus?', 'Üretimin içinden gelen bir yaklaşım. Eylus’un üretim yönetimi vizyonunu keşfedin.', WHY),
@@ -1670,6 +1797,18 @@ PERSONNEL_GUIDE_STRUCTURED_DATA = {
     "datePublished": "2026-11-12"
 }
 
+WORK_GUIDE_STRUCTURED_DATA = {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "İş Takip Programı Nedir? Yapılacak İşleri ve Üretimdeki Gecikmeleri Nasıl Yönetirsiniz?",
+    "description": "İş takip programı, kişisel yapılacaklar, hatırlatmalar ve üretimde hareketsiz kalan işlerin Eylus'ta nasıl izlendiğini öğrenin.",
+    "mainEntityOfPage": SITE + WORK_ARTICLE_URL,
+    "author": {"@id": SITE + "/#organization"},
+    "publisher": {"@id": SITE + "/#organization"},
+    "inLanguage": "tr-TR",
+    "datePublished": "2026-11-12"
+}
+
 def page(path,title,desc,body,noindex=False):
     page_title = f'{title} | Eylus'
     home_data = (f'<script type="application/ld+json">'
@@ -1680,7 +1819,8 @@ def page(path,title,desc,body,noindex=False):
     article_schema = (GUIDE_STRUCTURED_DATA if path == ARTICLE_URL else
                       STOCK_GUIDE_STRUCTURED_DATA if path == STOCK_ARTICLE_URL else
                       ORDER_GUIDE_STRUCTURED_DATA if path == ORDER_ARTICLE_URL else
-                      PERSONNEL_GUIDE_STRUCTURED_DATA if path == PERSONNEL_ARTICLE_URL else None)
+                      PERSONNEL_GUIDE_STRUCTURED_DATA if path == PERSONNEL_ARTICLE_URL else
+                      WORK_GUIDE_STRUCTURED_DATA if path == WORK_ARTICLE_URL else None)
     guide_data = ('<script type="application/ld+json">'
                   + json.dumps(article_schema, ensure_ascii=False, separators=(',', ':'))
                   + '</script>') if article_schema else ''
