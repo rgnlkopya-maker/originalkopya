@@ -33,6 +33,7 @@ class Prospect(models.Model):
     whatsapp_source_url = models.URLField(max_length=500, blank=True, default="")
     instagram_source_url = models.URLField(max_length=500, blank=True, default="")
     contact_scan_at = models.DateTimeField(null=True, blank=True)
+    contact_scan_attempts = models.PositiveSmallIntegerField(default=0)
     contact_scan_note = models.CharField(max_length=250, blank=True, default="")
     source_url = models.URLField(max_length=500, blank=True)
     canonical_url = models.CharField(max_length=500, unique=True)
