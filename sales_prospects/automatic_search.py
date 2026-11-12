@@ -21,6 +21,14 @@ from .research import RETAIL_TERMS, draft_for
 LOGGER = logging.getLogger(__name__)
 SERPER_ENDPOINT = "https://google.serper.dev/search"
 PAGE_SIZE = 20
+# Search results are not all potential wholesale buyers. Ignore known
+# directories, aggregators and mass-market marketplaces, not boutiques.
+NON_RETAILER_HOSTS = {
+    "yelp.com", "top10berlin.de", "tripadvisor.com", "trustpilot.com",
+    "yellowpages.com", "pagesjaunes.fr", "gelbeseiten.de", "11880.com",
+    "zalando.de", "en.zalando.de", "aboutyou.de", "en.aboutyou.de",
+    "next.de", "etsy.com", "amazon.de",
+}
 MAX_PAGES = 30
 COUNTRY_EN = {
     "DE": "Germany", "FR": "France", "GB": "United Kingdom",
@@ -93,6 +101,10 @@ def _store_one(search, item, user):
     link = str(item.get("link") or "").strip()
     canonical = canonical_store_url(link)
     if not canonical:
+        return "skipped"
+    from urllib.parse import urlsplit
+    host = (urlsplit(canonical).hostname or "").lower()
+    if host in NON_RETAILER_HOSTS or any(host.endswith("." + blocked) for blocked in NON_RETAILER_HOSTS):
         return "skipped"
     title = clean_title(item.get("title"), canonical)
     snippet = str(item.get("snippet") or "").strip()[:1000]
