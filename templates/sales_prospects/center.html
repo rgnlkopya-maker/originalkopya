@@ -135,6 +135,7 @@
           {% if not lead.phone_number and not lead.whatsapp_number and not lead.instagram_url %}<span class="sp-muted">Henüz iletişim bağlantısı kaydedilmedi.</span>{% endif %}
         </div>
         <div class="sp-muted mt-3">Son tarama: {{ lead.contact_scan_at|date:"d.m.Y H:i"|default:"Yapılmadı" }}{% if lead.contact_scan_note %} · {{ lead.contact_scan_note }}{% endif %}</div>
+        {% if lead.email_source_url %}<div class="sp-muted mt-1">E-posta kaynağı: <a href="{{ lead.email_source_url }}" rel="noopener noreferrer" target="_blank">{{ lead.email_source_url|truncatechars:95 }}</a></div>{% endif %}
         {% if lead.phone_source_url %}<div class="sp-muted mt-1">Telefon kaynağı: <a href="{{ lead.phone_source_url }}" rel="noopener noreferrer" target="_blank">{{ lead.phone_source_url|truncatechars:95 }}</a></div>{% endif %}
         {% if lead.whatsapp_source_url %}<div class="sp-muted mt-1">WhatsApp kaynağı: <a href="{{ lead.whatsapp_source_url }}" rel="noopener noreferrer" target="_blank">{{ lead.whatsapp_source_url|truncatechars:95 }}</a></div>{% endif %}
         {% if lead.instagram_source_url %}<div class="sp-muted mt-1">Instagram kaynağı: <a href="{{ lead.instagram_source_url }}" rel="noopener noreferrer" target="_blank">{{ lead.instagram_source_url|truncatechars:95 }}</a></div>{% endif %}
