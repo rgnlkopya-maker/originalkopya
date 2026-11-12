@@ -70,6 +70,19 @@ class ProspectForm(forms.ModelForm):
     def save(self, commit=True):
         instance = super().save(commit=False)
         instance.canonical_url = self.cleaned_data["canonical_url"]
+        # Manually changed contact details must not keep an old website's
+        # provenance or a stale scan timestamp.
+        for key, evidence in (
+            ("phone_number", "phone_source_url"),
+            ("whatsapp_number", "whatsapp_source_url"),
+            ("instagram_url", "instagram_source_url"),
+        ):
+            if key in self.changed_data:
+                setattr(instance, evidence, "")
+        if "website_url" in self.changed_data:
+            instance.contact_scan_at = None
+            instance.contact_scan_note = ""
+
         if not instance.message_draft:
             instance.message_draft = draft_for(instance.name, instance.country)
         if commit:
