@@ -624,11 +624,13 @@ CSS += r'''
 '''
 
 
-# Natural internal link from the product page to the evergreen guide.
+# Small contextual guide link below the Solutions page, before the contact CTA.
 CSS += r'''
-.product-guide-link{margin:28px 0 3px;font-size:13px;line-height:1.7;color:#6d647c}
-.product-guide-link a{color:#60399e;font-weight:700;text-decoration:underline;text-underline-offset:4px}
-.product-guide-link a:hover{color:#39206b}
+.sol-guide-link{display:flex;align-items:center;justify-content:space-between;gap:16px 26px;flex-wrap:wrap;border-top:1px solid #ece6f2;padding:20px 0 14px;margin:7px auto 0;color:#756a80;font-size:13px;line-height:1.65}
+.sol-guide-link p{margin:0;font-size:13px;line-height:1.65;color:#70667c}
+.sol-guide-link a{color:#5e369e;font-size:13px;font-weight:700;text-decoration:underline;text-underline-offset:4px}
+.sol-guide-link a:hover{color:#3f2375}
+@media(max-width:650px){.sol-guide-link{padding-top:18px;gap:11px}.sol-guide-link a,.sol-guide-link p{font-size:12.5px}}
 '''
 
 # Lightweight guide design: readable typography, indexable semantic content,
@@ -853,7 +855,7 @@ PRODUCTION_GUIDE = '''
 </article>
 '''
 HOME = EYLUS_HOME_HERO
-PRODUCT = intro('Ürün','Bir siparişten<br>bütün üretime.','Siparişin bilgisi, üretimin hareketi ve teslimatın planı. Birbirinden kopuk değil, birlikte.')+'<section class="section"><div class="wrap">'+features()+'<p class="product-guide-link">Üretim takibinin nasıl çalıştığını merak ediyor musunuz? <a href="/uretim-takip-programi/">Üretim takip programı rehberini okuyun <span aria-hidden="true">→</span></a></p><div class="callout">Eylus’un işletmenizdeki kapsamını ve kullanacağınız modülleri birlikte değerlendirelim. Bu site otomatik teklif veya lisans taahhüdü oluşturmaz.</div></div></section>'+TOUR+cta()
+PRODUCT = intro('Ürün','Bir siparişten<br>bütün üretime.','Siparişin bilgisi, üretimin hareketi ve teslimatın planı. Birbirinden kopuk değil, birlikte.')+'<section class="section"><div class="wrap">'+features()+'<div class="callout">Eylus’un işletmenizdeki kapsamını ve kullanacağınız modülleri birlikte değerlendirelim. Bu site otomatik teklif veya lisans taahhüdü oluşturmaz.</div></div></section>'+TOUR+cta()
 
 # Solution discovery page (public-facing; screenshot slots are intentionally empty until
 # approved, redacted screenshots from the demo are added to eylus-site/screens/).
@@ -1012,6 +1014,8 @@ def solution_page():
         + '<button type="button" data-sol-image-zoom class="sol-dialog-zoom">Yakınlaştır</button>'
         + '<button type="button" data-sol-image-close class="sol-dialog-close" aria-label="Görseli kapat">×</button>'
         + '</div></div><div class="sol-dialog-viewport"><img alt=""></div></dialog>'
+        + '<div class="wrap sol-guide-link"><p>Üretim takip sistemi hakkında daha fazla bilgi mi arıyorsunuz?</p>'
+        + '<a href="/uretim-takip-programi/">Üretim takip programı rehberini okuyun <span aria-hidden="true">→</span></a></div>'
         + cta()
     )
 
