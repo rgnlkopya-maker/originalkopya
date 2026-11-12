@@ -61,6 +61,7 @@ def footer():
           <a class="eylus-footer-guide" href="/uretim-takip-programi/">Rehber</a>
           <a class="eylus-footer-stock" href="/stok-takip-programi/">Stok</a>
           <a class="eylus-footer-orders" href="/siparis-takip-programi/">Sipariş</a>
+          <a class="eylus-footer-personnel" href="/personel-takip-programi/">Personel</a>
           <a class="eylus-footer-privacy" href="/iletisim/#gizlilik">Site ve gizlilik bilgisi</a>
         </nav>
       </div>
@@ -1110,6 +1111,132 @@ ORDER_GUIDE = '''
 </article>
 '''
 
+
+# Personnel management article: public SEO content anchored in genuine product functions.
+PERSONNEL_ARTICLE_URL = '/personel-takip-programi/'
+PERSONNEL_GUIDE = '''
+<article class="guide-page">
+  <header class="guide-header">
+    <div class="wrap guide-header-inner">
+      <nav class="guide-breadcrumb" aria-label="İçerik yolu"><a href="/">Ana sayfa</a><span aria-hidden="true">/</span><span>Personel takip programı</span></nav>
+      <span class="guide-kicker">EYLUS REHBER · PERSONEL VE PUANTAJ</span>
+      <h1>Personel Takip Programı Nedir? <em>Puantaj, Mesai ve Üretim Ekibini Nasıl Yönetirsiniz?</em></h1>
+      <p class="guide-deck">Bugün kim çalışıyor? Kim giriş veya çıkış kaydını eksik bıraktı? Fazla mesai ne kadar? Üretimde hangi işlemi kim kaydetti? Personel takip programı, bu sorulara kayıt üzerinden cevap arayan işletmeler için tasarlanır.</p>
+      <div class="guide-header-actions">
+        <a href="#personel-takip-nedir">Rehberi okuyun <span aria-hidden="true">↓</span></a>
+        <a href="/tekstil/">Eylus çözümlerini inceleyin <span aria-hidden="true">↗</span></a>
+      </div>
+    </div>
+  </header>
+  <div class="wrap guide-body">
+    <aside class="guide-side" aria-label="Yazı içeriği">
+      <p>BU YAZIDA</p>
+      <a href="#personel-takip-nedir">Personel takip programı nedir?</a>
+      <a href="#personel-puantaj">Puantaj ve giriş-çıkış</a>
+      <a href="#personel-mesai">Geç kalma ve fazla mesai</a>
+      <a href="#personel-qr">QR ve cihaz kayıtları</a>
+      <a href="#personel-uretim">Üretim aşaması sorumluluğu</a>
+      <a href="#personel-izin">İzin ve personel kayıtları</a>
+      <a href="#personel-maas">Maaş ve puantaj farkı</a>
+      <a href="#personel-secimi">Program seçim kriterleri</a>
+      <a href="#personel-sorular">Sık sorulan sorular</a>
+    </aside>
+    <div class="guide-copy">
+      <section id="personel-takip-nedir" aria-labelledby="personnel-intro">
+        <h2 id="personnel-intro">Personel takip programı nedir?</h2>
+        <p><strong>Personel takip programı</strong>, çalışanların iş günü kayıtlarını, çalışma saatlerini, izin durumlarını ve yetkilerini düzenli biçimde yönetmeye yardımcı olan yazılımdır. Üretim işletmelerinde personelin hangi görevde çalıştığı ve iş akışına hangi hareketleri kaydettiği de önemli olabilir.</p>
+        <p>Bir atölyede kesim, dikim, süsleme ve sevkiyat ekiplerinin farklı sorumlulukları bulunur. İşletme sahibi personelin her gün hangi saatte işe başladığını öğrenmek için ayrı listelere bakıyor, üretim hareketlerini de çalışanlardan sözlü olarak topluyorsa zaman kaybeder. Kayıtların ortak bir sistemde bulunması, günlük kontrolü kolaylaştırır.</p>
+        <div class="guide-note"><strong>Kısaca:</strong> Personel takibi yalnızca çalışan adlarının listelendiği bir tablo değildir. Puantaj, izin, fazla mesai ve görev yetkilerinin tutarlı biçimde izlenmesini de kapsar.</div>
+      </section>
+
+      <section id="personel-puantaj" aria-labelledby="personnel-attendance">
+        <h2 id="personnel-attendance">Dijital puantaj ve personel giriş-çıkış takibi</h2>
+        <p>Puantaj, personelin belirli bir iş günündeki çalışma durumunu kayıt altına alır. Giriş ve çıkış saatleri, izinli veya raporlu olunan günler ve eksik kayıtlar bu sürecin parçalarıdır. Dijital puantajda kayıtlar tek bir tabloda tutulabildiği için geçmiş günleri incelemek ve ay sonu kontrolü yapmak kolaylaşır.</p>
+        <p>Eylus'un puantaj yapısında personel bazında günlük giriş ve çıkış kayıtları bulunur. Yöneticiler, yetkileri kapsamında ilgili tarihlerin kayıtlarını inceleyebilir. Personelin giriş yapıp çıkış yapmayı unuttuğu durumlar da ayrıca değerlendirilmesi gereken kayıtlar olarak işaretlenebilir.</p>
+        <p>Bununla birlikte dijital bir zaman kaydı, çalışanın o saatler boyunca fiilen hangi işi yaptığını tek başına ispatlamaz. Puantaj bilgisi, gerektiğinde yöneticinin incelemesi ve işletmenin çalışma kurallarıyla birlikte değerlendirilmelidir.</p>
+      </section>
+
+      <section id="personel-mesai" aria-labelledby="personnel-overtime">
+        <h2 id="personnel-overtime">Geç kalma, erken çıkış ve fazla mesai nasıl izlenir?</h2>
+        <p>Çalışanın giriş ve çıkış saatleri tek başına yeterli olmayabilir. İşletmenin çalışma saatlerine göre geç kalma, erken ayrılma veya fazla mesai gibi durumların da değerlendirilmesi gerekir. Bu hesapların nasıl yapıldığı işletmenin kurallarına ve ilgili mevzuata bağlıdır.</p>
+        <ol class="guide-steps">
+          <li><strong>Giriş ve çıkış saatlerini kaydedin.</strong><p>Personelin o gün için oluşturduğu zaman kayıtlarını ilgili kişiyle ve tarihle ilişkilendirin.</p></li>
+          <li><strong>İşyeri çalışma düzenini tanımlayın.</strong><p>Giriş ve çıkış zamanlarını kurumun kullandığı normal çalışma saatleriyle karşılaştırın.</p></li>
+          <li><strong>İstisnaları inceleyin.</strong><p>Eksik çıkış kaydı, izinli gün veya olağan dışı süre gibi durumları ay sonundan önce kontrol edin.</p></li>
+          <li><strong>Raporları gözden geçirin.</strong><p>Geç kalma, erken çıkış ve mesai sürelerini kişi ve dönem bazında değerlendirip gerekli düzeltmeleri yapın.</p></li>
+        </ol>
+        <p>Eylus'ta personelin günlük kayıtları üzerinden geç kalma, erken çıkış ve fazla mesai sürelerinin hesaplanmasına yönelik alanlar bulunur. Kayıtların doğru yorumlanması için mesai kuralları, izin türleri ve eksik veriler ayrıca kontrol edilmelidir. Programın hesapladığı süre, tek başına hukuki ücret veya hak ediş kararı anlamına gelmez.</p>
+      </section>
+
+      <section id="personel-qr" aria-labelledby="personnel-qr">
+        <h2 id="personnel-qr">QR kod ve onaylı cihazla personel takibi</h2>
+        <p>Kâğıt puantaj çizelgesinde çalışanların giriş ve çıkışlarını sonradan toplamak zaman alabilir. Mobil bir kayıt ekranı, yetkili personelin gerekli bilgileri kendisi girmesini kolaylaştırabilir. Bunun güvenilir olabilmesi için kimlik, cihaz ve gerektiğinde işyeri konumu gibi kontrollerin süreçle birlikte tasarlanması önemlidir.</p>
+        <p>Eylus'un puantaj iş akışında işyerine ait QR doğrulaması, cihaz onayı ve konumla ilgili kontroller bulunur. Bu kontroller, kayıtların işyeri kuralları çerçevesinde oluşturulmasına yardımcı olur. Ancak telefonun konum doğruluğu veya bağlantı koşulları değişebileceğinden, sorunlu kayıtları inceleme yolu da bulunmalıdır.</p>
+        <p>Burada iki farklı QR kullanımı olduğunu unutmamak gerekir: <strong>personel puantajı</strong> giriş-çıkış kaydına, <strong>üretim QR işlemleri</strong> ise siparişin kesim, dikim veya süsleme aşamalarına ilişkindir. Bir işlem kaydı, diğerinin otomatik olarak yapıldığı anlamına gelmez.</p>
+      </section>
+
+      <section id="personel-uretim" aria-labelledby="personnel-production">
+        <h2 id="personnel-production">Üretim atölyelerinde personel bazlı iş takibi</h2>
+        <p>Üretim yapan işletmeler için çalışanların yalnızca saatlerini bilmek yeterli değildir. Siparişin hangi aşamada olduğunu ve bu aşamaya ilişkin kaydı kimin oluşturduğunu görmek de iş akışı kontrolü açısından önemlidir.</p>
+        <p>Eylus'ta kesim, dikim, süsleme, hazır ve sevkiyat gibi üretim görevleri tanımlanabilir. Ürüne ait QR işlemleri siparişle ilişkilendirilerek kaydedilir. Yetkili yöneticiler, aşama hareketleriyle personel kayıtlarını birlikte inceleyebilir; eksik veya uyumsuz görünen hareketleri araştırabilir.</p>
+        <p>Bir işlemi sisteme kaydeden kişinin belirlenmesi, her üretim hatasının kesin olarak o kişiden kaynaklandığını göstermez. Doğru yaklaşım, olay kaydını sorumluluk incelemesi için başlangıç noktası olarak kullanmaktır. <a href="/uretim-takip-programi/">Üretim takip programı rehberimizde</a> bu aşamaları daha ayrıntılı anlattık.</p>
+      </section>
+
+      <section id="personel-izin" aria-labelledby="personnel-leave">
+        <h2 id="personnel-leave">İzin, rapor ve personel özlük kayıtları</h2>
+        <p>Bir çalışanın belirli bir gün neden giriş kaydı bulunmadığını anlamak için izin ve rapor bilgisi önem taşır. Puantajda çalışılan günlerle izinli veya raporlu günlerin ayrılması, eksik kayıtların yanlış yorumlanmasını önlemeye yardımcı olur.</p>
+        <p>Eylus'un personel ve puantaj altyapısında günlük çalışma durumu için izinli, yıllık izin ve raporlu gibi kayıt türleri vardır. Personel profilinde işe başlama ve işten ayrılma tarihi gibi özlük alanları da tutulabilir. Bu bilgiler, yetkili kişilerin yönetim süreçlerinde kullanılmak üzere düzenlenmiştir.</p>
+        <p>Personel verileri kişisel veri niteliği taşıyabilir. Bu nedenle işletme, hangi bilgiyi hangi amaçla tuttuğunu belirlemeli; yalnızca yetkili kişilere erişim vermeli ve yürürlükteki kişisel veri koruma yükümlülüklerini dikkate almalıdır.</p>
+      </section>
+
+      <section id="personel-maas" aria-labelledby="personnel-payroll">
+        <h2 id="personnel-payroll">Personel takip programı ile maaş yönetimi aynı mı?</h2>
+        <p>Hayır. Puantaj ve mesai takibi çalışılan zaman ve devam durumunu ele alırken maaş yönetimi ücret tanımlarını, ödeme planlarını ve ödemeleri inceler. İlişkili olsalar da aynı işlem değildirler; puantaj kaydını görmek, maaşın kendiliğinden ve eksiksiz ödendiği anlamına gelmez.</p>
+        <p>Eylus'ta puantajdan ayrı bir maaş yönetimi bölümü bulunur. Yetkili kullanıcılar dönem, ücret tanımı, ödeme planı ve ödeme kayıtlarını burada değerlendirebilir. Maaş ekranları personel bilgilerinin hassasiyeti nedeniyle daha sınırlı erişimle ele alınmalıdır.</p>
+        <p>Bir yazılım seçerken bordro, SGK bildirimi veya resmî muhasebe entegrasyonu gibi özelliklerin mevcut olduğunu varsaymak yerine her birini ayrıca doğrulayın. Eylus'un personel ve maaş ekranlarını işletmenizin ihtiyaçlarına göre incelemeniz daha sağlıklı olur.</p>
+      </section>
+
+      <section id="personel-secimi" aria-labelledby="personnel-checklist">
+        <h2 id="personnel-checklist">Personel takip programı seçerken nelere dikkat edilmeli?</h2>
+        <p>Bir personel takip sisteminin başarılı olabilmesi için yöneticinin rapor alması kadar çalışanların kaydı kolay yapabilmesi de gerekir. Yazılımı değerlendirirken kendi atölyenizin günlük işleyişinden örneklerle ilerleyin.</p>
+        <ul class="guide-checklist">
+          <li><strong>Giriş-çıkış kaydı:</strong> Personelin çalışma günleri ve saatleri kolayca incelenebiliyor mu?</li>
+          <li><strong>Eksik kayıtlar:</strong> Unutulan çıkış işlemleri ve olağan dışı süreler belirlenebiliyor mu?</li>
+          <li><strong>Puantaj ve mesai:</strong> Geç kalma, erken çıkış ve fazla mesai bilgileri ayrı görülebiliyor mu?</li>
+          <li><strong>İzin durumları:</strong> İzin, rapor ve çalışma günleri birbirinden ayrılabiliyor mu?</li>
+          <li><strong>Yetkilendirme:</strong> Yöneticiler ile personel için uygun erişim sınırları var mı?</li>
+          <li><strong>Üretimle ilişki:</strong> Üretim aşaması hareketlerini kaydeden kişi görülebiliyor mu?</li>
+          <li><strong>Mobil kullanım:</strong> Çalışanın kayıt işlemi günlük işini gereksiz yere zorlaştırıyor mu?</li>
+        </ul>
+        <p>Programı denemek için bir personelin tam iş gününü örnek alın: giriş kaydını, çıkış kaydını, gerekiyorsa fazla mesaisini ve o gün üretimde kaydettiği işlemleri inceleyin. Ardından yönetici olarak aynı günün özetini bulmaya çalışın.</p>
+      </section>
+
+      <section id="personel-sorular" aria-labelledby="personnel-faq">
+        <h2 id="personnel-faq">Sık sorulan sorular</h2>
+        <h3>Personel takip programı sadece büyük fabrikalar için mi?</h3>
+        <p>Hayır. Küçük ve orta ölçekli atölyelerde de çalışma saatleri, izinler ve üretim aşaması kayıtları yönetilmek zorundadır. Önemli olan kullanılan programın iş yüküne ve ekibin çalışma biçimine uygun olmasıdır.</p>
+        <h3>Puantaj programı fazla mesai ücretini otomatik öder mi?</h3>
+        <p>Hayır. Puantajda mesai süresi hesaplanması ödeme işleminin yapıldığı anlamına gelmez. Ücret ve ödeme kayıtları ayrı süreçlerde kontrol edilmelidir.</p>
+        <h3>QR kodla personel takibi ile üretim takibi aynı şey mi?</h3>
+        <p>Hayır. Puantaj QR işlemi personelin işe giriş sürecini doğrulamaya yönelikken üretim QR işlemi ürünün ilgili aşamasındaki kaydı tutar. İki işlem türü farklı amaçlara hizmet eder.</p>
+        <h3>Personel takip programı sipariş yönetimiyle birlikte kullanılabilir mi?</h3>
+        <p>Evet. Üretim işletmelerinde personel ve sipariş süreçlerinin birlikte değerlendirilmesi faydalıdır. Müşteri siparişlerini nasıl izleyeceğinizi <a href="/siparis-takip-programi/">sipariş takip programı rehberimizde</a> anlattık.</p>
+      </section>
+
+      <section class="guide-last" aria-labelledby="personnel-cta">
+        <span class="guide-kicker">EYLUS İLE TANIŞIN</span>
+        <h2 id="personnel-cta">Personeli, puantajı ve üretimi aynı işletme düzeninde görün.</h2>
+        <p>Personel, puantaj, üretim aşamaları ve rapor ekranlarını iş akışınıza göre değerlendirin. Eylus'un işletmeniz için uygun olup olmadığını örnekler üzerinden inceleyin.</p>
+        <div class="guide-last-actions">
+          <a href="/tekstil/" class="guide-button-primary">Eylus çözümlerini görün <span aria-hidden="true">↗</span></a>
+          <a href="/demo/" class="guide-button-secondary">Canlı demoyu inceleyin <span aria-hidden="true">→</span></a>
+        </div>
+      </section>
+    </div>
+  </div>
+</article>
+'''
+
 HOME = EYLUS_HOME_HERO
 PRODUCT = intro('Ürün','Bir siparişten<br>bütün üretime.','Siparişin bilgisi, üretimin hareketi ve teslimatın planı. Birbirinden kopuk değil, birlikte.')+'<section class="section"><div class="wrap">'+features()+'<div class="callout">Eylus’un işletmenizdeki kapsamını ve kullanacağınız modülleri birlikte değerlendirelim. Bu site otomatik teklif veya lisans taahhüdü oluşturmaz.</div></div></section>'+TOUR+cta()
 
@@ -1460,6 +1587,7 @@ PAGES = {
  '/uretim-takip-programi/': ('Üretim Takip Programı Nedir?', 'Üretim takip programı nedir, QR kodla üretim nasıl izlenir? Sipariş, kesim, dikim ve sevkiyat takibini Eylus örneğiyle öğrenin.', PRODUCTION_GUIDE),
  '/stok-takip-programi/': ('Stok Takip Programı Nedir?', 'Stok takip programı nedir? Depo bazında ürün ve malzeme miktarlarını, giriş-çıkış, iade, sayım ve konsinye takibini Eylus örneğiyle öğrenin.', STOCK_GUIDE),
  '/siparis-takip-programi/': ('Sipariş Takip Programı Nedir?', 'Sipariş takip programı nedir? Üretici işletmelerde sipariş kaydı, renk-beden bilgileri, QR ile üretim aşamaları ve teslimat planını öğrenin.', ORDER_GUIDE),
+ '/personel-takip-programi/': ('Personel Takip Programı Nedir?', 'Personel takip programı nedir? Puantaj, giriş-çıkış, mesai, izin ve üretim ekibinin iş takibini Eylus örneğiyle öğrenin.', PERSONNEL_GUIDE),
  '/urun/': ('Ürün ve üretim yönetimi', 'Sipariş, QR, üretim aşamaları, maliyet ve sevkiyat takibi. Eylus ürününü tanıyın.', PRODUCT),
  '/tekstil/': ('Üretim sorunlarına Eylus çözümleri', 'Sipariş takibi, gecikmeler, personel, sevkiyat, maliyet, fatura ve daha fazlası için Eylus çözümlerini keşfedin.', TEXTILE),
  '/neden-eylus/': ('Neden Eylus?', 'Üretimin içinden gelen bir yaklaşım. Eylus’un üretim yönetimi vizyonunu keşfedin.', WHY),
@@ -1530,6 +1658,18 @@ ORDER_GUIDE_STRUCTURED_DATA = {
     "datePublished": "2026-11-12"
 }
 
+PERSONNEL_GUIDE_STRUCTURED_DATA = {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "Personel Takip Programı Nedir? Puantaj, Mesai ve Üretim Ekibini Nasıl Yönetirsiniz?",
+    "description": "Personel takibi, dijital puantaj, giriş-çıkış, izin, mesai ve üretimde görev kayıtlarını Eylus örneğiyle öğrenin.",
+    "mainEntityOfPage": SITE + PERSONNEL_ARTICLE_URL,
+    "author": {"@id": SITE + "/#organization"},
+    "publisher": {"@id": SITE + "/#organization"},
+    "inLanguage": "tr-TR",
+    "datePublished": "2026-11-12"
+}
+
 def page(path,title,desc,body,noindex=False):
     page_title = f'{title} | Eylus'
     home_data = (f'<script type="application/ld+json">'
@@ -1539,7 +1679,8 @@ def page(path,title,desc,body,noindex=False):
                   f'<meta name="twitter:image" content="{SITE}/assets/eylus-hero-workshop.webp">') if path == '/' else ''
     article_schema = (GUIDE_STRUCTURED_DATA if path == ARTICLE_URL else
                       STOCK_GUIDE_STRUCTURED_DATA if path == STOCK_ARTICLE_URL else
-                      ORDER_GUIDE_STRUCTURED_DATA if path == ORDER_ARTICLE_URL else None)
+                      ORDER_GUIDE_STRUCTURED_DATA if path == ORDER_ARTICLE_URL else
+                      PERSONNEL_GUIDE_STRUCTURED_DATA if path == PERSONNEL_ARTICLE_URL else None)
     guide_data = ('<script type="application/ld+json">'
                   + json.dumps(article_schema, ensure_ascii=False, separators=(',', ':'))
                   + '</script>') if article_schema else ''
