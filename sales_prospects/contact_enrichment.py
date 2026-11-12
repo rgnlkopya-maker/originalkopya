@@ -128,6 +128,7 @@ class ContactLinks(HTMLParser):
         self.base_url = base_url
         self.host = host
         self.phone = ""
+        self.email = ""
         self.whatsapp = ""
         self.instagram = ""
         self.contact_paths = []
@@ -138,6 +139,12 @@ class ContactLinks(HTMLParser):
         attrs = dict(attrs)
         href = (attrs.get("href") or "").strip()
         if not href:
+            return
+        if href.lower().startswith("mailto:") and not self.email:
+            candidate = unquote(href[7:].split("?", 1)[0]).strip().lower()
+            if (len(candidate) <= 254 and
+                    re.fullmatch(r"[a-z0-9._%+\-]+@[a-z0-9.\-]+\.[a-z]{2,}", candidate)):
+                self.email = candidate
             return
         if href.lower().startswith("tel:") and not self.phone:
             self.phone = normalized_number(href[4:].split("?", 1)[0])
@@ -190,12 +197,19 @@ def extract_public_business_contacts(website_url):
         page_url = base + path
         parser = ContactLinks(page_url, host)
         parser.feed(html)
-        for key, value in (("phone_number", parser.phone),
+        for key, value in (("email", parser.email),
+                           ("phone_number", parser.phone),
                            ("whatsapp_number", parser.whatsapp),
                            ("instagram_url", parser.instagram)):
             if value and not found.get(key):
                 found[key] = value
-                found[key.replace("_number", "").replace("_url", "") + "_source_url"] = page_url
+                source_field = {
+                    "email": "email_source_url",
+                    "phone_number": "phone_source_url",
+                    "whatsapp_number": "whatsapp_source_url",
+                    "instagram_url": "instagram_source_url",
+                }[key]
+                found[source_field] = page_url
         if index == 0:
             paths.extend(x for x in parser.contact_paths if x != "/" and x not in paths[:1])
     return found
@@ -215,24 +229,25 @@ def enrich_prospect_contact(lead):
         lead.save(update_fields=["contact_scan_at", "contact_scan_note"])
         return 0
     updates = []
-    for field in ("phone_number", "whatsapp_number", "instagram_url"):
+    for field in ("email", "phone_number", "whatsapp_number", "instagram_url"):
         value = contacts.get(field, "")
         if value and not getattr(lead, field):
             setattr(lead, field, value)
             updates.append(field)
-            source_field = {"phone_number": "phone_source_url",
+            source_field = {"email": "email_source_url",
+                            "phone_number": "phone_source_url",
                             "whatsapp_number": "whatsapp_source_url",
                             "instagram_url": "instagram_source_url"}[field]
             setattr(lead, source_field, contacts.get(source_field, "")[:500])
             updates.append(source_field)
     lead.contact_scan_note = (
-        ", ".join({"phone_number": "Telefon", "whatsapp_number": "WhatsApp",
+        ", ".join({"email": "E-posta", "phone_number": "Telefon", "whatsapp_number": "WhatsApp",
                    "instagram_url": "Instagram"}[field]
-                  for field in ("phone_number", "whatsapp_number", "instagram_url")
+                  for field in ("email", "phone_number", "whatsapp_number", "instagram_url")
                   if field in updates) + " bulundu."
     ) if updates else "Herkese açık işletme iletişim bağlantısı bulunamadı."
     lead.save(update_fields=["contact_scan_at", "contact_scan_note", *updates])
-    return len([x for x in updates if x in ("phone_number", "whatsapp_number", "instagram_url")])
+    return len([x for x in updates if x in ("email", "phone_number", "whatsapp_number", "instagram_url")])
 
 
 
