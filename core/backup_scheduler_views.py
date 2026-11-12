@@ -82,15 +82,8 @@ def scheduler_tick(request):
     except Exception:
         logger.exception("Scheduled finance integrity audit failed")
 
-    # Optional daily prospect research (09:00 Istanbul, max 20 new leads).
-    # Disabled unless an approved web-search API key is configured; never sends DMs.
-    try:
-        from sales_prospects.research import process_daily_search
-        prospect_result = process_daily_search()
-        if prospect_result["status"] not in ("NOT_CONFIGURED", "TOO_EARLY"):
-            logger.info("Scheduled prospect research: %s", prospect_result)
-    except Exception:
-        logger.exception("Scheduled prospect research failed")
+    # Prospect discovery is now manager-guided using Google browser searches.
+    # Do not run the old automatic Brave prospect discovery schedule.
 
     # Discover publicly displayed phone, WhatsApp and Instagram business links
     # for at most one previously unscanned shop per scheduled tick. This never
