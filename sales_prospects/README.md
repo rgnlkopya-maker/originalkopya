@@ -3,6 +3,49 @@
 Internal export sales CRM. The application **does not automate Instagram DMs,
 WhatsApp messages or Google result scraping**. Nothing is emailed by default.
 
+
+## New Google-guided research workspace (November 2026)
+
+The management list view now uses \`templates/sales_prospects/workspace.html\`.
+This is **not** a Google iframe or a Google SERP scraping service: Google's
+main search page is not embeddable as an unrestricted browser.
+
+Workflow:
+1. Select target country, city and product keywords on the MoliApp page.
+2. Click **Google'da Ara**. A new tab opens at normal Google Search. The
+   search is immediately recorded in \`GuidedSearch\` history, even when no
+   candidates are imported.
+3. Once, drag the **MoliApp'e Aktar** bookmarklet from the MoliApp research
+   panel to Chrome/Edge's bookmark bar. (Ctrl+Shift+B shows the bar.)
+4. On a Google results page, click that bookmarklet. It reads only visible
+   result titles/links and displays a user-controlled checklist. It doesn't
+   crawl Google, issue requests or visit third-party result sites.
+5. Confirm selected links. The browser returns to the MoliApp research panel
+   with the chosen links as a client-side fragment. Review them and click
+   **Seçilenleri Kaydet**; no import is automatic from a mere link visit.
+6. The backend saves up to 50 explicitly chosen links per operation, dedupes
+   canonical websites / Instagram profiles, adds them as unverified prospects,
+   links each to its \`GuidedSearchHit\`, and records additions, duplicates and
+   rejects in persistent, per-user search history.
+7. The existing authenticated scheduler fills missing public business
+   email (mailto), phone (tel), WhatsApp (wa.me) and Instagram links by
+   reading each shop's own site (home and at most one contact page), with
+   SSRF/robots/size restrictions. Not all websites provide these links.
+8. If the bookmarklet is unsupported by a browser/Google layout, paste one
+   business URL per line into the fallback field. CSV imports remain available.
+
+The prior optional 20/day automatic Brave research cron call has been removed
+from the scheduler; this is a **human-directed** search workflow. Existing
+lead records, email approvals and outreach queues remain intact.
+
+### Limits
+- A Google result is not proof that a shop is a wholesale buyer.
+- Google may change result markup; the bookmarklet may need maintenance.
+- The system does not automatically get all Google search results.
+- No automatic email, Instagram DM or WhatsApp message is initiated by search.
+- The outbound email module remains disabled until sender configuration and
+  legal compliance checks are deliberately completed.
+
 ## Available
 
 - Yönetim → Yurt Dışı Müşteri Merkezi (patron/müdür only).
