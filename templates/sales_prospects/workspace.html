@@ -226,7 +226,7 @@
               <td>{% if lead.instagram_url %}<a href="{{ lead.instagram_url }}" target="_blank" rel="noopener noreferrer"><i class="bi bi-instagram"></i> Aç</a>{% else %}—{% endif %}</td>
               <td>{% if lead.instagram_followers != None %}{{ lead.instagram_followers }}{% else %}—{% endif %}</td>
               <td>{% if lead.email %}<span title="{{ lead.email }}">{{ lead.email|truncatechars:26 }}</span>{% else %}—{% endif %}</td>
-              <td>{% if lead.phone_number %}<a href="tel:{{ lead.phone_number }}">{{ lead.phone_number }}</a>{% else %}—{% endif %}</td>
+              <td>{% if lead.phone_number %}<a href="tel:{{ lead.phone_number }}">{{ lead.phone_number }}</a>{% elif not lead.website_url %}<span class="xt-text">Web sitesi yok</span>{% elif not lead.contact_scan_at %}<span class="xt-text">Araştırılacak</span>{% elif "güvenli şekilde okunamadı" in lead.contact_scan_note %}<span class="xt-text" title="İşletme sitesine erişim başarısız">Siteye erişilemedi</span>{% else %}<span class="xt-text">Bulunamadı</span>{% endif %}</td>
               <td>{% if lead.whatsapp_link %}<a href="{{ lead.whatsapp_link }}" target="_blank" rel="noopener noreferrer"><i class="bi bi-whatsapp"></i> Aç</a>{% else %}—{% endif %}</td>
               <td>{% if lead.contact_scan_at %}<span class="xt-pill" title="{{ lead.contact_scan_note }}">{{ lead.contact_scan_note|truncatechars:38 }}</span>{% elif lead.website_url %}<span class="xt-pill">Araştırılacak</span>{% else %}<span class="xt-pill">Web sitesi yok</span>{% endif %}</td>
             </tr>
