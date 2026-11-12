@@ -12,7 +12,6 @@ from django.core import signing
 from django.core.mail import EmailMessage, get_connection
 from django.db import transaction
 from django.utils import timezone
-from django.utils.dateparse import parse_datetime
 
 from .models import OutreachEmail, Prospect, SuppressedEmail
 
@@ -62,6 +61,13 @@ def queue_initial(lead, manager):
     allowed, reason = eligible(lead)
     if not allowed:
         return None, reason
+    if lead.status == "CONTACTED" or lead.last_contacted_at:
+        return None, "Daha önce iletişim kurulan mağazaya yeni ilk tanıtım gönderilemez."
+    email = normalized_email(lead.email)
+    if OutreachEmail.objects.filter(
+        email__iexact=email, kind="INITIAL", status__in=("QUEUED", "SENDING", "SENT")
+    ).exclude(prospect=lead).exists():
+        return None, "Bu e-posta adresi başka bir mağaza kaydında zaten kullanılmış."
     item, created = OutreachEmail.objects.get_or_create(
         prospect=lead, kind="INITIAL",
         defaults={
@@ -148,7 +154,7 @@ def _smtp_email(item, lead):
     token = unsubscribe_token(item.email)
     unsubscribe = base + "/yonetim/yurtdisi-musteriler/e-posta-cikis/" + quote(token, safe="") + "/"
     footer = (
-        "\n\n---\nMoli Tekstil\n" + public_address
+        "\n\n---\nCommercial introduction from Moli Tekstil\n" + public_address
         + "\nPrivacy: " + privacy_url
         + "\nStop commercial emails: " + unsubscribe
     )
