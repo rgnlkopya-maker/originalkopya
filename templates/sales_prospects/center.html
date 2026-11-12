@@ -143,25 +143,19 @@
     <div class="sp-panel">
       <div class="sp-footer mb-3">
         <div>
-          <div class="fw-bold"><i class="bi bi-search me-2"></i>Günlük müşteri araştırması</div>
-          <div class="sp-muted">Hedef: en fazla {{ daily_limit }} yeni aday/gün · Saat 09.00'dan sonra · Aynı mağaza yeniden eklenmez</div>
+          <div class="fw-bold"><i class="bi bi-cloud-arrow-down me-2"></i>Toplu müşteri adayı aktarımı</div>
+          <div class="sp-muted">Tek dosyayla en fazla 2.000 mağazayı içe aktarın. Mağazalar otomatik onaylanmaz ve e-posta gönderilmez.</div>
         </div>
-        <form method="post" action="{% url 'prospect_search_today' %}">{% csrf_token %}
-          <button class="sp-primary" type="submit" {% if not api_configured or today_run and today_run.status != 'ERROR' %}disabled{% endif %}>
-            <i class="bi bi-search me-1"></i>Bugünkü araştırmayı çalıştır
-          </button>
-        </form>
+        <a class="sp-secondary" href="{% url 'prospect_csv_template' %}"><i class="bi bi-download me-1"></i>Örnek CSV indir</a>
       </div>
-      {% if not api_configured %}
-      <div class="sp-sidelabel"><i class="bi bi-info-circle me-1"></i> Otomatik araştırma henüz etkin değil: Render ortam değişkenlerine <strong>BRAVE_SEARCH_API_KEY</strong> eklenmesi gerekiyor. Bu bağlantı olmadan gerçek mağaza kaydı oluşturulmaz.</div>
-      {% elif today_run %}
-      <div class="sp-sidelabel">Bugünkü durum: <strong>{{ today_run.get_status_display }}</strong> · {{ today_run.created_count }} yeni aday · Ülkeler: {{ today_run.searched_countries|default:"—" }}{% if today_run.error_message %} · {{ today_run.error_message }}{% endif %}</div>
-      {% else %}
-      <div class="sp-sidelabel">Arama hazır. Mevcut zamanlayıcı bugün saat 09.00'dan sonra bir kez araştırma yapar.</div>
-      {% endif %}
-      <div class="sp-muted mt-3 mb-1">Araştırma için hazır ülke aramaları:</div>
+      <form method="post" action="{% url 'prospect_csv_import' %}" enctype="multipart/form-data" class="sp-inline">
+        {% csrf_token %}
+        <div class="sp-field"><label for="sp-csv-file">CSV dosyası (UTF-8, en fazla 2 MB)</label><input class="form-control" id="sp-csv-file" type="file" name="file" accept=".csv,text/csv" required></div>
+        <button class="sp-primary" type="submit"><i class="bi bi-upload me-1"></i>İçe aktar</button>
+      </form>
+      <div class="sp-sidelabel mt-3"><i class="bi bi-info-circle me-1"></i>Google'da ücretsiz araştırma bağlantıları aşağıdadır. Google'ın standart arama sayfası, MoliApp'e otomatik veri aktaran bir API değildir. Kesintisiz otomatik araştırma henüz etkinleştirilmedi; kaynak sağlayıcı ve kullanım izni ayrıca belirlenecek.</div>
+      <div class="sp-muted mt-3 mb-1">Google'da ülkeye göre mağaza ara:</div>
       <div class="sp-actions">{% for item in search_links %}<a class="sp-secondary" href="{{ item.url }}" target="_blank" rel="noopener noreferrer">{{ item.country }} <i class="bi bi-box-arrow-up-right"></i></a>{% endfor %}</div>
-      <div class="sp-muted mt-3">Adaylar herkese açık arama motoru sonuçlarından gelir ve doğrulanmış müşteri sayılmaz. Otomatik Instagram gezintisi, DM, takip veya mesaj gönderimi yapılmaz.</div>
     </div>
     <div class="sp-panel">
       <form method="get" class="sp-inline mb-3">
