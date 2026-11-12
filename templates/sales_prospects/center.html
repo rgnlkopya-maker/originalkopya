@@ -1,0 +1,175 @@
+{% extends "base.html" %}
+{% block content %}
+<style>
+.sp-wrap{max-width:1450px;margin:22px auto 55px;padding:0 20px;color:#23334e}
+.sp-top{display:flex;justify-content:space-between;align-items:center;gap:15px;flex-wrap:wrap;margin-bottom:20px}
+.sp-top h1{font-size:26px;font-weight:800;margin:4px 0;color:#1e2c46}
+.sp-muted{color:#6b778e;font-size:13px}
+.sp-tag{font-size:11px;text-transform:uppercase;letter-spacing:1.4px;font-weight:800;color:#6b5ab5}
+.sp-panel{border:1px solid #e3e8f0;border-radius:16px;background:#fff;box-shadow:0 4px 18px #1e28400a;padding:21px;margin-bottom:17px}
+.sp-statrow{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:13px}
+.sp-stat{border:1px solid #e1e6f0;border-radius:14px;background:#fafbff;padding:17px}
+.sp-stat strong{display:block;font-size:28px;color:#172b4c}
+.sp-stat span{font-size:12px;color:#738096;font-weight:600}
+.sp-actions{display:flex;gap:9px;align-items:center;flex-wrap:wrap}
+.sp-primary{border:0;border-radius:10px;background:#5748a7;color:#fff;padding:10px 17px;text-decoration:none;font-size:13px;font-weight:700}
+.sp-primary:hover{color:#fff;background:#43378a}
+.sp-secondary{border:1px solid #dce2ec;border-radius:10px;background:#fff;color:#314268;padding:9px 15px;text-decoration:none;font-size:13px;font-weight:700}
+.sp-secondary:hover{background:#f0f3fa;color:#314268}
+.sp-primary:disabled{opacity:.45;cursor:not-allowed}
+.sp-inline{display:flex;gap:12px;flex-wrap:wrap;align-items:end}
+.sp-inline .sp-field{flex:1;min-width:160px}
+.sp-field label{display:block;font-size:12px;font-weight:750;margin:0 0 6px;color:#425169}
+.sp-field .form-control,.sp-field .form-select{border-color:#dce2eb;border-radius:9px;font-size:13px;min-height:39px}
+.sp-table{width:100%;border-collapse:collapse;font-size:13px}
+.sp-table th{font-weight:750;color:#718098;font-size:12px;padding:12px 10px;border-bottom:1px solid #dfe5ee;white-space:nowrap}
+.sp-table td{padding:13px 10px;border-bottom:1px solid #eef1f6;vertical-align:middle}
+.sp-table tr:last-child td{border:0}
+.sp-table a.sp-lead{font-weight:750;color:#263b66;text-decoration:none}
+.sp-table a.sp-lead:hover{text-decoration:underline}
+.sp-chip{border-radius:7px;font-size:11px;padding:5px 8px;background:#eceffa;color:#354a76;font-weight:700;white-space:nowrap}
+.sp-chip.NEW{background:#fff5df;color:#96650d}.sp-chip.CONTACTED{background:#e9f4ff;color:#21659f}
+.sp-chip.CUSTOMER,.sp-chip.QUALIFIED,.sp-chip.REPLIED{background:#e5f8ef;color:#157b50}
+.sp-chip.REJECTED{background:#f4f4f4;color:#7b7f86}
+.sp-sidelabel{padding:11px 12px;border-radius:10px;background:#f5f7fc;border:1px solid #e9edf5;font-size:12px;color:#465570}
+.sp-formgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+.sp-formgrid .wide{grid-column:1/-1}
+.sp-formgrid label{font-size:12px;font-weight:750;color:#425169;margin-bottom:6px}
+.sp-formgrid .form-control,.sp-formgrid .form-select{border-radius:9px;border-color:#dce2eb;font-size:14px}
+.sp-error{border-radius:9px;background:#fff0ef;padding:10px 12px;color:#a62f32;font-size:12px}
+.sp-footer{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+@media(max-width:750px){.sp-statrow{grid-template-columns:repeat(2,1fr)}.sp-formgrid{grid-template-columns:1fr}.sp-table{min-width:700px}.sp-wrap{padding:0 12px}.sp-top h1{font-size:23px}}
+</style>
+<main class="sp-wrap">
+  <div class="sp-top">
+    <div>
+      <div class="sp-tag">Moli Tekstil / Uluslararası Satış</div>
+      <h1><i class="bi bi-globe2 me-2"></i>{% if form %}{{ form_title }}{% else %}Yurt Dışı Müşteri Merkezi{% endif %}</h1>
+      <div class="sp-muted">{% if form %}Mağaza kaydı, iletişim taslağı ve görüşme takibi{% else %}Toptan abiye satın alabilecek mağazaları araştırın, değerlendirin ve takip edin.{% endif %}</div>
+    </div>
+    <div class="sp-actions">
+      {% if form %}<a class="sp-secondary" href="{% url 'prospect_list' %}"><i class="bi bi-arrow-left"></i> Listeye dön</a>
+      {% else %}<a class="sp-primary" href="{% url 'prospect_new' %}"><i class="bi bi-plus-lg"></i> Yeni aday ekle</a>{% endif %}
+    </div>
+  </div>
+
+  {% for message in messages %}
+    <div class="alert {% if 'error' in message.tags %}alert-danger{% elif 'warning' in message.tags %}alert-warning{% else %}alert-success{% endif %} py-2">{{ message }}</div>
+  {% endfor %}
+
+  {% if form %}
+    <div class="sp-panel">
+      <form method="post">
+        {% csrf_token %}
+        {% if form.non_field_errors %}<div class="sp-error mb-3">{{ form.non_field_errors }}</div>{% endif %}
+        <div class="sp-formgrid">
+          <div><label for="{{ form.name.id_for_label }}">Mağaza adı</label>{{ form.name }}{{ form.name.errors }}</div>
+          <div><label for="{{ form.country.id_for_label }}">Ülke</label>{{ form.country }}{{ form.country.errors }}</div>
+          <div><label for="{{ form.city.id_for_label }}">Şehir</label>{{ form.city }}{{ form.city.errors }}</div>
+          <div><label for="{{ form.status.id_for_label }}">Görüşme durumu</label>{{ form.status }}{{ form.status.errors }}</div>
+          <div><label for="{{ form.website_url.id_for_label }}">Web sitesi</label>{{ form.website_url }}{{ form.website_url.errors }}</div>
+          <div><label for="{{ form.instagram_url.id_for_label }}">Instagram profili</label>{{ form.instagram_url }}{{ form.instagram_url.errors }}</div>
+          <div><label for="{{ form.next_followup_on.id_for_label }}">Sonraki takip tarihi</label>{{ form.next_followup_on }}{{ form.next_followup_on.errors }}</div>
+          <div class="sp-sidelabel"><i class="bi bi-shield-check me-1"></i>Durumu “Mesaj gönderildi” olarak işaretlemek yalnızca kayıt tutar; Instagram'a mesaj göndermez.</div>
+          <div class="wide"><label for="{{ form.note.id_for_label }}">Görüşme notları</label>{{ form.note }}{{ form.note.errors }}</div>
+          <div class="wide">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+              <label class="mb-0" for="{{ form.message_draft.id_for_label }}">Tanıtım mesajı taslağı</label>
+              <button class="sp-secondary" type="button" id="sp-copy-draft"><i class="bi bi-clipboard me-1"></i>Mesajı kopyala</button>
+            </div>
+            {{ form.message_draft }}{{ form.message_draft.errors }}
+            <div class="sp-muted mt-2">Boş bırakırsanız mağazanın ülkesine göre hazır taslak oluşturulur. Mesaj göndermeden önce mutlaka gözden geçirin.</div>
+          </div>
+        </div>
+        <div class="sp-actions mt-4">
+          <button class="sp-primary" type="submit"><i class="bi bi-check-lg me-1"></i>Kaydet</button>
+          <a class="sp-secondary" href="{% url 'prospect_list' %}">Vazgeç</a>
+          {% if lead and lead.instagram_url %}<a class="sp-secondary" target="_blank" rel="noopener noreferrer" href="{{ lead.instagram_url }}"><i class="bi bi-instagram me-1"></i>Instagram'a git</a>{% endif %}
+          {% if lead and lead.website_url %}<a class="sp-secondary" target="_blank" rel="noopener noreferrer" href="{{ lead.website_url }}">Web sitesini aç</a>{% endif %}
+        </div>
+      </form>
+    </div>
+    {% if lead %}
+      <div class="sp-panel">
+        <h6 class="fw-bold">Araştırma kaydı</h6>
+        <p class="sp-muted mb-2">Kaynak: {{ lead.get_source_display }} · Eklendi: {{ lead.created_at|date:"d.m.Y H:i" }}</p>
+        {% if lead.source_url %}<p class="mb-2 small">Kaynak bağlantı: <a target="_blank" rel="noopener noreferrer" href="{{ lead.source_url }}">{{ lead.source_url|truncatechars:95 }}</a></p>{% endif %}
+        {% if lead.source_snippet %}<p class="sp-muted mb-0">Arama özeti: {{ lead.source_snippet }}</p>{% endif %}
+        {% if lead.last_contacted_at %}<p class="sp-muted mt-2 mb-0">İletişim kaydı: {{ lead.last_contacted_at|date:"d.m.Y H:i" }}</p>{% endif %}
+      </div>
+    {% endif %}
+  {% else %}
+    <div class="sp-statrow mb-3">
+      <div class="sp-stat"><span>Toplam aday</span><strong>{{ counts.all }}</strong></div>
+      <div class="sp-stat"><span>İncelenecek</span><strong>{{ counts.new }}</strong></div>
+      <div class="sp-stat"><span>Mesaj gönderilen</span><strong>{{ counts.contacted }}</strong></div>
+      <div class="sp-stat"><span>Yanıt / fırsat / müşteri</span><strong>{{ counts.responded }}</strong></div>
+    </div>
+    <div class="sp-panel">
+      <div class="sp-footer mb-3">
+        <div>
+          <div class="fw-bold"><i class="bi bi-search me-2"></i>Günlük müşteri araştırması</div>
+          <div class="sp-muted">Hedef: en fazla {{ daily_limit }} yeni aday/gün · Saat 09.00'dan sonra · Aynı mağaza yeniden eklenmez</div>
+        </div>
+        <form method="post" action="{% url 'prospect_search_today' %}">{% csrf_token %}
+          <button class="sp-primary" type="submit" {% if not api_configured or today_run and today_run.status != 'ERROR' %}disabled{% endif %}>
+            <i class="bi bi-search me-1"></i>Bugünkü araştırmayı çalıştır
+          </button>
+        </form>
+      </div>
+      {% if not api_configured %}
+      <div class="sp-sidelabel"><i class="bi bi-info-circle me-1"></i> Otomatik araştırma henüz etkin değil: Render ortam değişkenlerine <strong>BRAVE_SEARCH_API_KEY</strong> eklenmesi gerekiyor. Bu bağlantı olmadan gerçek mağaza kaydı oluşturulmaz.</div>
+      {% elif today_run %}
+      <div class="sp-sidelabel">Bugünkü durum: <strong>{{ today_run.get_status_display }}</strong> · {{ today_run.created_count }} yeni aday · Ülkeler: {{ today_run.searched_countries|default:"—" }}{% if today_run.error_message %} · {{ today_run.error_message }}{% endif %}</div>
+      {% else %}
+      <div class="sp-sidelabel">Arama hazır. Mevcut zamanlayıcı bugün saat 09.00'dan sonra bir kez araştırma yapar.</div>
+      {% endif %}
+      <div class="sp-muted mt-3 mb-1">Araştırma için hazır ülke aramaları:</div>
+      <div class="sp-actions">{% for item in search_links %}<a class="sp-secondary" href="{{ item.url }}" target="_blank" rel="noopener noreferrer">{{ item.country }} <i class="bi bi-box-arrow-up-right"></i></a>{% endfor %}</div>
+      <div class="sp-muted mt-3">Adaylar herkese açık arama motoru sonuçlarından gelir ve doğrulanmış müşteri sayılmaz. Otomatik Instagram gezintisi, DM, takip veya mesaj gönderimi yapılmaz.</div>
+    </div>
+    <div class="sp-panel">
+      <form method="get" class="sp-inline mb-3">
+        <div class="sp-field"><label for="sp-search">Mağaza / şehir ara</label><input class="form-control" id="sp-search" name="q" value="{{ term }}" placeholder="Mağaza adı veya şehir"></div>
+        <div class="sp-field"><label for="sp-country">Ülke</label><select id="sp-country" name="country" class="form-select"><option value="">Tüm ülkeler</option>{% for code,label in countries %}<option value="{{ code }}" {% if code == selected_country %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></div>
+        <div class="sp-field"><label for="sp-status">Durum</label><select id="sp-status" name="status" class="form-select"><option value="">Tüm durumlar</option>{% for code,label in statuses %}<option value="{{ code }}" {% if code == selected_status %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></div>
+        <button class="sp-primary" type="submit">Filtrele</button><a class="sp-secondary" href="{% url 'prospect_list' %}">Temizle</a>
+      </form>
+      <div class="table-responsive"><table class="sp-table">
+        <thead><tr><th>Mağaza</th><th>Ülke</th><th>Kaynak</th><th>Durum</th><th>Eklenme</th><th>İşlem</th></tr></thead>
+        <tbody>
+        {% for lead in page %}
+        <tr>
+          <td><a class="sp-lead" href="{% url 'prospect_detail' lead.pk %}">{{ lead.name }}</a>{% if lead.city %}<div class="sp-muted">{{ lead.city }}</div>{% endif %}</td>
+          <td>{{ lead.get_country_display }}</td>
+          <td>{{ lead.get_source_display }}</td>
+          <td><span class="sp-chip {{ lead.status }}">{{ lead.get_status_display }}</span></td>
+          <td>{{ lead.created_at|date:"d.m.Y" }}</td>
+          <td><a class="sp-secondary" href="{% url 'prospect_detail' lead.pk %}">İncele <i class="bi bi-chevron-right"></i></a></td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="6" class="text-center sp-muted py-4">Henüz müşteri adayı bulunmuyor. Üstteki arama bağlantılarını kullanabilir veya elle mağaza ekleyebilirsiniz.</td></tr>
+        {% endfor %}
+        </tbody>
+      </table></div>
+      {% if page.paginator.num_pages > 1 %}
+      <nav class="sp-footer mt-3"><div class="sp-muted">Sayfa {{ page.number }} / {{ page.paginator.num_pages }}</div><div class="sp-actions">
+        {% if page.has_previous %}<a class="sp-secondary" href="?country={{ selected_country|urlencode }}&status={{ selected_status|urlencode }}&q={{ term|urlencode }}&page={{ page.previous_page_number }}">Önceki</a>{% endif %}
+        {% if page.has_next %}<a class="sp-secondary" href="?country={{ selected_country|urlencode }}&status={{ selected_status|urlencode }}&q={{ term|urlencode }}&page={{ page.next_page_number }}">Sonraki</a>{% endif %}
+      </div></nav>{% endif %}
+    </div>
+  {% endif %}
+</main>
+<script>
+document.addEventListener('DOMContentLoaded',function(){
+  const button=document.getElementById('sp-copy-draft');
+  if(!button)return;
+  button.addEventListener('click',async function(){
+    const el=document.getElementById('{{ form.message_draft.id_for_label|default:"id_message_draft"|escapejs }}');
+    if(!el)return;
+    try{await navigator.clipboard.writeText(el.value);button.textContent='Kopyalandı';}
+    catch(_){el.focus();el.select();button.textContent='Metni seçtim, kopyalayın';}
+  });
+});
+</script>
+{% endblock %}
