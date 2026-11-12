@@ -73,6 +73,7 @@ class ProspectForm(forms.ModelForm):
         # Manually changed contact details must not keep an old website's
         # provenance or a stale scan timestamp.
         for key, evidence in (
+            ("email", "email_source_url"),
             ("phone_number", "phone_source_url"),
             ("whatsapp_number", "whatsapp_source_url"),
             ("instagram_url", "instagram_source_url"),
