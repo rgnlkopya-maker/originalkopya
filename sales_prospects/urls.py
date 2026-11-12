@@ -1,8 +1,11 @@
 from django.urls import path
-from . import views
+from . import views, guided_views
 
 urlpatterns = [
     path("", views.prospect_list, name="prospect_list"),
+    path("arama/<int:history_id>/", views.prospect_list, name="prospect_list_with_history"),
+    path("arama-baslat/", guided_views.start, name="prospect_guided_start"),
+    path("secili-sonuclari-aktar/", guided_views.import_results, name="prospect_guided_import"),
     path("yeni/", views.prospect_new, name="prospect_new"),
     path("csv-aktar/", views.import_prospect_csv, name="prospect_csv_import"),
     path("csv-ornek/", views.prospect_csv_template, name="prospect_csv_template"),
