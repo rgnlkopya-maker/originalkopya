@@ -81,7 +81,7 @@ def _fetch_serper_page(api_key, query, country, city, page):
         raise SearchUnavailable("Arama servisine ulaşılamadı. Servis ayarlarını kontrol edin.") from exc
     except (URLError, TimeoutError, ValueError, OSError) as exc:
         raise SearchUnavailable("Arama servisine bağlanılamadı; tekrar deneyebilirsiniz.") from exc
-    items = data.get("organic")
+    items = data.get("organic", [])
     if not isinstance(items, list):
         raise SearchUnavailable("Arama servisi beklenmeyen bir sonuç biçimi döndürdü.")
     return items[:PAGE_SIZE]
