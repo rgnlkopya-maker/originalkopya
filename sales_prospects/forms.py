@@ -1,6 +1,6 @@
 from django import forms
 import re
-from .models import Prospect
+from .models import Prospect, COUNTRIES
 from .research import canonical_url, draft_for
 
 
@@ -88,3 +88,11 @@ class ProspectForm(forms.ModelForm):
         if commit:
             instance.save()
         return instance
+
+
+
+class GuidedSearchForm(forms.Form):
+    """Choose Google search words; never launch automated scraping."""
+    country = forms.ChoiceField(choices=COUNTRIES)
+    city = forms.CharField(required=False, max_length=100, strip=True)
+    query = forms.CharField(min_length=3, max_length=200, strip=True)
