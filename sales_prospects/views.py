@@ -1,4 +1,6 @@
 import os
+import csv
+import io
 from urllib.parse import quote_plus
 
 from django.contrib import messages
@@ -9,11 +11,13 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.views.decorators.http import require_GET, require_http_methods, require_POST
 from django.views.decorators.csrf import csrf_exempt
+from django.core.validators import validate_email
+from django.core.exceptions import ValidationError
 
 from app_settings.access import has_full_access
 from .forms import ProspectForm
 from .models import COUNTRIES, Prospect, SearchRun, OutreachEmail
-from .research import DAILY_LIMIT, SEARCHES, process_daily_search
+from .research import DAILY_LIMIT, SEARCHES, process_daily_search, canonical_url, draft_for
 from .outreach import eligible, queue_initial, queue_followup, config_status, email_from_token, suppress
 
 
@@ -209,3 +213,80 @@ def unsubscribe_public(request, token):
         "Unsubscribe</button></form></main></html>",
         content_type="text/html",
     )
+
+
+
+@login_required
+@require_POST
+def import_prospect_csv(request):
+    """Import opted-in or publicly sourced B2B leads for review, never auto-approve."""
+    if not _allowed(request):
+        return HttpResponseForbidden("Yetkiniz yok.")
+    upload = request.FILES.get("file")
+    if not upload or upload.size > 2 * 1024 * 1024:
+        messages.error(request, "UTF-8 CSV dosyası seçin (en fazla 2 MB).")
+        return redirect("prospect_list")
+    try:
+        content = upload.read().decode("utf-8-sig")
+        reader = csv.DictReader(io.StringIO(content))
+        if not reader.fieldnames or not {"name", "country"}.issubset(set(reader.fieldnames)):
+            raise ValueError("CSV'de name ve country sütunları bulunmalı.")
+    except (UnicodeError, csv.Error, ValueError):
+        messages.error(request, "CSV okunamadı: UTF-8 formatı ve name/country başlıklarını kontrol edin.")
+        return redirect("prospect_list")
+
+    added = 0
+    skipped = 0
+    for i, row in enumerate(reader):
+        if i >= 2000:
+            skipped += 1
+            break
+        name = (row.get("name") or "").strip()[:180]
+        country = (row.get("country") or "").strip().upper()
+        country = {"UK": "GB", "USA": "US"}.get(country, country)
+        website = (row.get("website") or "").strip()[:500]
+        instagram = (row.get("instagram") or "").strip()[:500]
+        raw_email = (row.get("email") or "").strip().casefold()[:254]
+        key = canonical_url(instagram or website)
+        if not name or country not in dict(COUNTRIES) or not key:
+            skipped += 1
+            continue
+        if raw_email:
+            try:
+                validate_email(raw_email)
+            except ValidationError:
+                raw_email = ""
+        _, created = Prospect.objects.get_or_create(
+            canonical_url=key,
+            defaults={
+                "name": name, "country": country,
+                "city": (row.get("city") or "").strip()[:100],
+                "website_url": website if canonical_url(website) else "",
+                "instagram_url": instagram if canonical_url(instagram).startswith("https://instagram.com/") else "",
+                "source_url": (row.get("source_url") or "").strip()[:500],
+                "email": raw_email, "message_draft": draft_for(name, country),
+                "created_by": request.user,
+                "source": "MANUAL", "status": "NEW",
+                "note": "CSV ile eklendi; iletişim dayanağı ve e-posta kontrolü yapılmadı.",
+            },
+        )
+        if created:
+            added += 1
+        else:
+            skipped += 1
+    messages.success(request, f"CSV aktarıldı: {added} yeni aday, {skipped} atlanan / mükerrer kayıt. Hiçbir e-posta gönderilmedi.")
+    return redirect("prospect_list")
+
+
+@login_required
+@require_GET
+def prospect_csv_template(request):
+    if not _allowed(request):
+        return HttpResponseForbidden("Yetkiniz yok.")
+    response = HttpResponse(content_type="text/csv; charset=utf-8")
+    response["Content-Disposition"] = 'attachment; filename="moli-yurtdisi-musteriler-ornek.csv"'
+    response.write("\ufeff")
+    writer = csv.writer(response)
+    writer.writerow(["name", "country", "city", "website", "instagram", "email", "source_url"])
+    writer.writerow(["Example Eveningwear Boutique", "US", "New York", "https://example.com", "", "", "https://example.com"])
+    return response
