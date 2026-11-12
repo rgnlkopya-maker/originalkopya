@@ -92,6 +92,17 @@ def scheduler_tick(request):
     except Exception:
         logger.exception("Scheduled prospect research failed")
 
+    # Discover publicly displayed phone, WhatsApp and Instagram business links
+    # for at most one previously unscanned shop per scheduled tick. This never
+    # sends messages and never fetches private/social-network profile pages.
+    try:
+        from sales_prospects.contact_enrichment import scan_one_pending_prospect
+        contact_result = scan_one_pending_prospect()
+        if contact_result.get("status") == "DONE":
+            logger.info("Shop contact enrichment: %s", contact_result)
+    except Exception:
+        logger.exception("Shop contact enrichment failed")
+
     # Export sales email automation is OFF by default. Never send unless a
     # manager has approved a contact and sender credentials + compliance gates
     # are all explicitly configured in Render.
