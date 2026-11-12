@@ -623,6 +623,93 @@ CSS += r'''
 }
 '''
 
+
+# Lightweight guide design: readable typography, indexable semantic content,
+# purposeful internal links, no fabricated screenshots or third-party scripts.
+CSS += r'''
+.home-knowledge{padding:76px 0 84px;background:linear-gradient(180deg,#fff 0%,#f8f6fd 100%);border-bottom:1px solid #ede8f5}
+.home-knowledge-inner{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(280px,.65fr);gap:75px;align-items:center}
+.home-knowledge-kicker,.guide-kicker{display:block;color:#6841aa;font-size:11px;font-weight:800;letter-spacing:.14em}
+.home-knowledge h2{font-size:clamp(28px,3.2vw,41px);letter-spacing:-.045em;line-height:1.17;margin:16px 0 19px}
+.home-knowledge p{font-size:15px;line-height:1.78;color:#635c6d;max-width:710px;margin:0 0 23px}
+.home-knowledge-links{display:flex;gap:20px 25px;flex-wrap:wrap;align-items:center}
+.home-knowledge-links a{font-size:13px;font-weight:750;color:#5e2f9f;line-height:1.5}
+.home-knowledge-links .home-knowledge-main-link{border-bottom:1px solid #906dc2;padding-bottom:4px}
+.home-knowledge-links .home-knowledge-quiet-link{color:#655975}
+.home-knowledge-links a:hover{color:#3d167e}
+.home-knowledge-facts{border:1px solid #e9e1f3;background:#fff;border-radius:17px;padding:9px 25px;box-shadow:0 12px 40px #30224909}
+.home-knowledge-facts div{display:grid;grid-template-columns:36px 1fr;gap:4px 11px;padding:19px 0;border-bottom:1px solid #ece8f2}
+.home-knowledge-facts div:last-child{border-bottom:0}
+.home-knowledge-facts span{grid-row:span 2;color:#846abe;font-size:13px;font-weight:750}
+.home-knowledge-facts strong{font-size:14px;color:#282039}
+.home-knowledge-facts small{font-size:12px;line-height:1.6;color:#766e7e}
+.guide-page{background:#fff;color:#292439}
+.guide-header{background:linear-gradient(125deg,#fff 18%,#f4f0fd 100%);border-bottom:1px solid #ebe4f3;padding:54px 0 66px}
+.guide-header-inner{max-width:1100px}
+.guide-breadcrumb{display:flex;gap:10px;align-items:center;color:#7d718d;font-size:12px;margin:0 0 37px}
+.guide-breadcrumb a:hover{color:#5928a1}
+.guide-header h1{max-width:980px;font-size:clamp(36px,4.7vw,62px);letter-spacing:-.053em;line-height:1.12;margin:17px 0 25px;font-weight:740}
+.guide-header h1 em{font-style:normal;color:#6840b4}
+.guide-deck{font-size:clamp(16px,1.7vw,19px);line-height:1.7;color:#5e566b;max-width:780px;margin:0}
+.guide-header-actions{display:flex;gap:16px 28px;flex-wrap:wrap;margin-top:29px}
+.guide-header-actions a{font-size:13px;font-weight:740;color:#62359e}
+.guide-body{display:grid;grid-template-columns:225px minmax(0,790px);justify-content:space-between;gap:55px;padding-top:64px;padding-bottom:65px}
+.guide-side{position:sticky;top:117px;align-self:start;border-left:1px solid #e7e0f0;padding:10px 0 10px 17px;display:grid;gap:13px}
+.guide-side p{font-size:10px;letter-spacing:.13em;font-weight:850;color:#8b71b3;margin:0 0 7px}
+.guide-side a{font-size:12px;line-height:1.45;color:#6f657c}
+.guide-side a:hover{color:#592b9e}
+.guide-copy{min-width:0}
+.guide-copy>section{scroll-margin-top:110px;margin-bottom:55px}
+.guide-copy h2{font-size:clamp(25px,2.6vw,34px);line-height:1.26;letter-spacing:-.035em;margin:0 0 19px}
+.guide-copy h3{font-size:19px;line-height:1.45;letter-spacing:-.022em;margin:26px 0 7px}
+.guide-copy p{font-size:15px;line-height:1.83;color:#585366;margin:0 0 18px}
+.guide-copy strong{color:#30263f;font-weight:730}
+.guide-copy a:not(.guide-button-primary):not(.guide-button-secondary){color:#633caa;text-decoration:underline;text-underline-offset:3px}
+.guide-note{background:#f6f3fc;border-left:3px solid #865dbe;border-radius:0 10px 10px 0;padding:20px 23px;color:#51465f;font-size:14px;line-height:1.8;margin:24px 0}
+.guide-steps{padding-left:25px;margin:25px 0}
+.guide-steps li{padding:0 0 14px 9px;margin-bottom:15px}
+.guide-steps li::marker{color:#6d42b1;font-weight:800}
+.guide-steps strong{font-size:16px}
+.guide-steps p{margin:8px 0 0}
+.guide-benefits{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:13px;margin:26px 0}
+.guide-benefits div{border:1px solid #e9e2f1;background:#fbfafd;border-radius:12px;padding:23px}
+.guide-benefits span{color:#936aca;font-size:12px;font-weight:800}
+.guide-benefits h3{font-size:17px;margin:12px 0 9px}
+.guide-benefits p{font-size:13px;margin:0;line-height:1.75}
+.guide-checklist{padding-left:23px;margin:22px 0}
+.guide-checklist li{font-size:15px;line-height:1.75;color:#585366;padding:0 0 11px 4px}
+.guide-checklist li::marker{color:#774cb0}
+.guide-last{background:#f6f2fc;border:1px solid #e9e0f2;border-radius:18px;padding:35px}
+.guide-last h2{font-size:27px;margin:15px 0}
+.guide-last-actions{display:flex;gap:12px;flex-wrap:wrap;margin-top:24px}
+.guide-button-primary,.guide-button-secondary{display:inline-flex;align-items:center;justify-content:center;gap:14px;padding:13px 17px;border-radius:9px;font-size:13px;font-weight:750;min-height:47px}
+.guide-button-primary{background:#6237a6;color:#fff}
+.guide-button-primary:hover{background:#512b91}
+.guide-button-secondary{background:#fff;color:#57338d;border:1px solid #b6a4d2}
+.guide-button-secondary:hover{background:#f7f3ff}
+@media(max-width:900px){
+ .home-knowledge-inner{grid-template-columns:1fr;gap:25px}
+ .home-knowledge-facts{max-width:670px}
+ .guide-body{grid-template-columns:1fr;gap:0;padding-top:38px}
+ .guide-side{display:none}
+}
+@media(max-width:650px){
+ .home-knowledge{padding:49px 0 56px}
+ .home-knowledge p{font-size:14px}
+ .home-knowledge-facts{padding:3px 20px}
+ .guide-header{padding:33px 0 44px}
+ .guide-breadcrumb{margin-bottom:25px}
+ .guide-header h1{font-size:clamp(33px,9vw,45px);line-height:1.16}
+ .guide-header-actions{gap:14px 23px}
+ .guide-copy>section{margin-bottom:44px}
+ .guide-copy p,.guide-checklist li{font-size:14px}
+ .guide-benefits{grid-template-columns:1fr}
+ .guide-last{padding:26px 20px}
+ .guide-last-actions{flex-direction:column}
+ .guide-last-actions a{width:100%}
+}
+'''
+
 EYLUS_HOME_HERO = '''<section class="eylus-home-hero" aria-labelledby="eylus-hero-heading">
   <div class="eylus-hero-photo" aria-hidden="true">
     <img src="/assets/eylus-hero-workshop.webp" width="706" height="760" alt="" decoding="async" fetchpriority="high">
@@ -637,7 +724,128 @@ EYLUS_HOME_HERO = '''<section class="eylus-home-hero" aria-labelledby="eylus-her
   </div></div>
 </section>'''
 
-HOME = EYLUS_HOME_HERO
+
+# Helpful evergreen guide; a separate crawlable page rather than a long homepage hero.
+ARTICLE_URL = '/uretim-takip-programi/'
+HOME_READING_BANNER = '''
+<section class="home-knowledge" aria-labelledby="home-knowledge-title">
+  <div class="wrap home-knowledge-inner">
+    <div class="home-knowledge-copy">
+      <span class="home-knowledge-kicker">EYLUS REHBER</span>
+      <h2 id="home-knowledge-title">Üretim takip programı ne işe yarar?</h2>
+      <p>Bir siparişin nerede olduğunu öğrenmek için atölyeyi aramak zorunda değilsiniz. Üretim takip programı; sipariş, üretim aşaması ve teslimat bilgilerini aynı akışta toplar. Eylus’ta personel, ürünün QR kodunu okutarak yaptığı işlemi kaydeder; yönetici ise geciken işleri, yaklaşan teslimatları ve üretimin son durumunu telefonundan veya bilgisayarından inceleyebilir.</p>
+      <div class="home-knowledge-links">
+        <a href="/uretim-takip-programi/" class="home-knowledge-main-link">Üretim takip programı rehberini okuyun <span aria-hidden="true">↗</span></a>
+        <a href="/urun/" class="home-knowledge-quiet-link">Eylus’un özelliklerini keşfedin <span aria-hidden="true">→</span></a>
+      </div>
+    </div>
+    <div class="home-knowledge-facts" aria-label="Üretim takibinin temel adımları">
+      <div><span>01</span><strong>Sipariş kaydı</strong><small>Model, renk, beden ve teslim tarihi bir arada</small></div>
+      <div><span>02</span><strong>Üretim hareketi</strong><small>QR ile kayıt, aşama bazlı görünürlük</small></div>
+      <div><span>03</span><strong>Sevkiyat planı</strong><small>Yaklaşan işleri zamanında değerlendirme</small></div>
+    </div>
+  </div>
+</section>
+'''
+
+PRODUCTION_GUIDE = '''
+<article class="guide-page">
+  <header class="guide-header">
+    <div class="wrap guide-header-inner">
+      <nav class="guide-breadcrumb" aria-label="İçerik yolu"><a href="/">Ana sayfa</a><span aria-hidden="true">/</span><span>Üretim takip programı</span></nav>
+      <span class="guide-kicker">EYLUS REHBER · ÜRETİM YÖNETİMİ</span>
+      <h1>Üretim Takip Programı Nedir? <em>Siparişten Sevkiyata Üretiminizi Nasıl Yönetirsiniz?</em></h1>
+      <p class="guide-deck">Siparişiniz atölyede hangi aşamada? Hangi işler gecikiyor, yarın ne sevk edilecek? Üretim takip programı bu soruların cevaplarını tek yerde görmenizi sağlar.</p>
+      <div class="guide-header-actions">
+        <a href="#uretim-takip-nedir">Rehberi okuyun <span aria-hidden="true">↓</span></a>
+        <a href="/tekstil/">Eylus çözümlerini inceleyin <span aria-hidden="true">↗</span></a>
+      </div>
+    </div>
+  </header>
+  <div class="wrap guide-body">
+    <aside class="guide-side" aria-label="Yazı içeriği">
+      <p>BU YAZIDA</p>
+      <a href="#uretim-takip-nedir">Üretim takip programı nedir?</a>
+      <a href="#uretim-takip-adimlar">Nasıl çalışır?</a>
+      <a href="#qr-ile-uretim">QR kod ile üretim takibi</a>
+      <a href="#yoneticiye-faydasi">İşletme sahibine faydaları</a>
+      <a href="#program-secerken">Program seçerken nelere bakmalı?</a>
+      <a href="#uretim-takip-sorular">Sık sorulan sorular</a>
+    </aside>
+    <div class="guide-copy">
+      <section id="uretim-takip-nedir" aria-labelledby="guide-what">
+        <h2 id="guide-what">Üretim takip programı nedir?</h2>
+        <p><strong>Üretim takip programı</strong>, bir işletmenin aldığı siparişleri, üretimde yapılan işlemleri ve teslimat sürecini dijital ortamda izlemek için kullanılan yazılımdır. Hangi ürünün hangi aşamada olduğu, ne zaman teslim edileceği ve nerede beklediği aynı kayıtta görülebilir.</p>
+        <p>Örneğin bir tekstil atölyesinde model, renk, beden ve adet bilgileriyle açılan sipariş önce kesime, sonra dikime ve süslemeye ilerler. Bu hareketler farklı defterlerde veya mesajlarda tutulursa işletme sahibi güncel durumu öğrenmek için çalışanları tek tek aramak zorunda kalır. Dijital üretim takibi, bu dağınık bilgileri tek bir akışta toplar.</p>
+        <div class="guide-note"><strong>Kısaca:</strong> Üretim takip yazılımı yalnızca “kaç siparişimiz var?” sorusunu değil, “hangi sipariş şimdi nerede ve sıradaki işimiz ne?” sorusunu yanıtlamaya yardımcı olur.</div>
+      </section>
+
+      <section id="uretim-takip-adimlar" aria-labelledby="guide-how">
+        <h2 id="guide-how">Üretim takip programı nasıl çalışır?</h2>
+        <p>İyi bir sistemin başlangıç noktası sipariştir. Siparişin üretim bilgileriyle bağlantısı kurulduğunda takip, personel için günlük bir kayıt işlemine; yönetici için ise güncel bir iş görünümüne dönüşür.</p>
+        <ol class="guide-steps">
+          <li><strong>Siparişi açın.</strong><p>Müşteri, ürün kodu, renk, beden, adet ve teslim tarihini kaydedin. Siparişe ait bilgiler tek dosyada toplansın.</p></li>
+          <li><strong>Üretim hareketlerini kaydedin.</strong><p>Ürün kesimden dikime, dikimden süslemeye ilerledikçe ilgili işlemler siparişe işlensin. Böylece bilgi sözlü aktarıma bağlı kalmasın.</p></li>
+          <li><strong>Bekleyen işleri kontrol edin.</strong><p>Uzun süredir ilerlemeyen siparişleri ve eksik aşama kayıtlarını inceleyin. Gecikmenin büyümesini beklemeden ilgili işin durumunu değerlendirin.</p></li>
+          <li><strong>Sevkiyatı planlayın.</strong><p>Yaklaşan teslimatları ve hazır siparişleri birlikte görerek hangi ürünün hangi gün çıkacağını organize edin.</p></li>
+        </ol>
+      </section>
+
+      <section id="qr-ile-uretim" aria-labelledby="guide-qr">
+        <h2 id="guide-qr">QR kod ile üretim takibi neyi kolaylaştırır?</h2>
+        <p>Üretim takibinin işe yaraması, sahadaki kayıtların düzenli yapılmasına bağlıdır. Her hareketin sonradan bilgisayara yazılması istenirse takip ek bir iş yüküne dönüşebilir.</p>
+        <p>Eylus'ta personel, ürüne ait <strong>QR kodunu okutarak</strong> ilgili üretim işlemini kaydeder. Bu kayıt siparişle eşleşir; yetkili kişiler de siparişin son aşamasını uygulamada görebilir. Amaç, personeli uzun formlarla oyalamadan atölyedeki gerçek hareketi kayıt altına almaktır.</p>
+        <p>QR kod bir sihirli otomasyon değildir: İşlemin doğru aşamada, doğru kişi tarafından kaydedilmesi yine önemlidir. Eylus bu nedenle eksik aşama kayıtları ve uzun süre hareketsiz kalan işler için ayrıca kontrol ekranları sunar.</p>
+      </section>
+
+      <section id="yoneticiye-faydasi" aria-labelledby="guide-benefits">
+        <h2 id="guide-benefits">Üretim takip sisteminin işletme sahibine faydaları</h2>
+        <div class="guide-benefits">
+          <div><span>01</span><h3>Daha az telefon trafiği</h3><p>“Siparişim nerede?” sorusunun cevabını her seferinde atölyeden istemek yerine sipariş kaydını inceleyin.</p></div>
+          <div><span>02</span><h3>Gecikmeleri daha erken fark etme</h3><p>Hareketsiz işleri, eksik üretim hareketlerini ve yaklaşan teslimatları bir arada değerlendirin.</p></div>
+          <div><span>03</span><h3>Sevkiyatın daha planlı ilerlemesi</h3><p>Haftalık teslimat görünümüyle hangi müşteriye ne zaman ürün çıkacağını takip edin.</p></div>
+          <div><span>04</span><h3>Her yerden kontrol</h3><p>İnternet bağlantısıyla ofisten, evden veya seyahatteyken telefon ve bilgisayar üzerinden kayıtları inceleyin.</p></div>
+        </div>
+        <p>Takip yalnızca üretim aşamasıyla sınırlı kalmamalıdır. Eylus'un sipariş, sevkiyat, maliyet ve rapor ekranları; yöneticinin üretim kararlarını farklı bilgilerle birlikte değerlendirmesine yardımcı olur. İşletmenin ihtiyacına göre diğer modülleri de <a href="/tekstil/">Çözümler sayfasında</a> inceleyebilirsiniz.</p>
+      </section>
+
+      <section id="program-secerken" aria-labelledby="guide-checklist">
+        <h2 id="guide-checklist">Üretim takip programı seçerken nelere dikkat edilmeli?</h2>
+        <p>Her işletmenin üretim akışı farklıdır. Yalnızca ekran görüntüsüne bakmak yerine yazılımı kendi siparişleriniz üzerinden değerlendirin:</p>
+        <ul class="guide-checklist">
+          <li><strong>Üretim akışı:</strong> Kullanılan aşamalar kesim, dikim ve son işlemler gibi kendi süreçlerinizle uyumlu mu?</li>
+          <li><strong>Personel için kullanım kolaylığı:</strong> İşlem kaydı sahada hızlı ve anlaşılır mı?</li>
+          <li><strong>Sipariş ayrıntıları:</strong> Model, renk, beden, adet ve teslim tarihini birlikte takip edebiliyor musunuz?</li>
+          <li><strong>Gecikme kontrolü:</strong> Uzun süredir ilerlemeyen işler ve eksik kayıtlar bulunabiliyor mu?</li>
+          <li><strong>Mobil erişim:</strong> İşletme dışında olduğunuzda telefonunuzdan güncel durumu görebiliyor musunuz?</li>
+        </ul>
+        <p>Özellikle tekstil üretiminde numune ile seri siparişler, renk–beden dağılımları ve teslimat tarihleri birlikte yönetilir. Seçilen programın bu günlük gerçekleri karşılayıp karşılamadığını bir <a href="/demo/">canlı demo</a> üzerinden incelemek, uzun özellik listelerinden daha yararlı olacaktır.</p>
+      </section>
+
+      <section id="uretim-takip-sorular" aria-labelledby="guide-faq">
+        <h2 id="guide-faq">Sık sorulan sorular</h2>
+        <h3>Üretim takip programı ile stok takip programı aynı mı?</h3>
+        <p>Hayır. Stok takip programları ağırlıklı olarak eldeki ürün ve malzeme hareketlerine odaklanır. Üretim takip programı ise siparişin hangi işlemden geçtiğini, nerede beklediğini ve teslimat sürecini görünür kılar. Bazı yazılımlar iki ihtiyacı birlikte karşılayabilir.</p>
+        <h3>Üretim takip programı sadece bilgisayarda mı kullanılır?</h3>
+        <p>Bu, yazılımın altyapısına bağlıdır. Eylus internet üzerinden çalışır; yetkili kullanıcılar, bağlantı ve erişim izinleri bulunduğunda telefon veya bilgisayardan işletmenin kayıtlarını inceleyebilir.</p>
+        <h3>QR kod okutmak bütün üretim işlemlerini otomatik bitirir mi?</h3>
+        <p>Hayır. QR kod, ilgili ürüne ve üretim kaydına hızlı erişmek için kullanılır. Personelin yaptığı işlemin doğru biçimde kaydedilmesi gerekir; sistem bu bilgilerle üretim durumunu günceller.</p>
+      </section>
+
+      <section class="guide-last" aria-labelledby="guide-cta-heading">
+        <span class="guide-kicker">EYLUS İLE TANIŞIN</span>
+        <h2 id="guide-cta-heading">Siparişinizin nerede olduğunu sormak yerine görün.</h2>
+        <p>Üretim sürecini işletmenizin gerçek akışına göre değerlendirin. Eylus'un sipariş, QR, üretim aşaması ve sevkiyat ekranlarını inceleyin.</p>
+        <div class="guide-last-actions">
+          <a href="/tekstil/" class="guide-button-primary">Eylus çözümlerini görün <span aria-hidden="true">↗</span></a>
+          <a href="/demo/" class="guide-button-secondary">Canlı demoyu inceleyin <span aria-hidden="true">→</span></a>
+        </div>
+      </section>
+    </div>
+  </div>
+</article>
+'''
+HOME = EYLUS_HOME_HERO + HOME_READING_BANNER
 PRODUCT = intro('Ürün','Bir siparişten<br>bütün üretime.','Siparişin bilgisi, üretimin hareketi ve teslimatın planı. Birbirinden kopuk değil, birlikte.')+'<section class="section"><div class="wrap">'+features()+'<div class="callout">Eylus’un işletmenizdeki kapsamını ve kullanacağınız modülleri birlikte değerlendirelim. Bu site otomatik teklif veya lisans taahhüdü oluşturmaz.</div></div></section>'+TOUR+cta()
 
 # Solution discovery page (public-facing; screenshot slots are intentionally empty until
@@ -984,6 +1192,7 @@ DEMO_PAGE = intro('Canlı demo','Önce görün.<br>Sonra kendi üretiminizi dü�
 CONTACT = intro('İletişim','Sizin üretiminizi<br>konuşalım.','Ne üretiyorsunuz, siparişlerinizi nasıl takip ediyorsunuz, en çok nerede zorlanıyorsunuz? Buradan başlayalım.')+'<section class="section"><div class="wrap split"><div><h2>Bir mesajla başlayın.</h2><p>Firma adınızı, üretim alanınızı ve öncelikli ihtiyacınızı paylaşın. Kendi iş akışınız üzerinden Eylus’u değerlendirelim.</p><div class="message">Merhaba, Eylus’u işletmemiz için incelemek istiyoruz. Üretim alanımız: … En çok ihtiyaç duyduğumuz takip konusu: … Görüşme planlayabilir miyiz?</div><p class="note">Yukarıdaki metin yalnızca mesaj örneğidir; otomatik gönderilmez.</p></div><div class="contact-card">'+eyebrow('Eylus — doğrudan iletişim')+f'<strong class="contact-handle">@eylustech</strong><p>Eylus Instagram hesabından mesaj göndererek demo erişimi veya görüşme talep edebilirsiniz.</p>'+button('Instagram’dan yazın',SOCIAL,'purple',True)+'<p class="note" style="margin:20px 0 0">Instagram yeni sekmede açılır ve mesaj göndermek için hesabınıza giriş yapmanız gerekebilir. Bu sitede form veya takvim kaydı oluşturulmaz.</p></div></div></section><section class="section soft" id="gizlilik"><div class="wrap privacy"><h2>Site ve gizlilik bilgisi</h2><p>Bu tanıtım sitesine reklam izleme kodu, analitik çerezi veya bilgi toplama formu eklenmemiştir. Gösterilen siparişler ve sayılar temsili verilerdir.</p><p>Siteyi sunan altyapı, hizmetin çalışması ve güvenliği için teknik erişim kayıtları tutabilir. Instagram ve demo bağlantıları ayrı ortamlara yönlendirir; bu ortamların veri işleme koşulları ayrıdır.</p><p>İletişim kurarken ilk aşamada işletmenizi ve ihtiyacınızı kısaca anlatmanız yeterlidir. Gerçek müşteri listesi, personel bilgisi veya finansal belge göndermeyin.</p></div></section>'
 PAGES = {
  '/': ('Üretim Takip ve Yönetim Yazılımı', 'Eylus ile sipariş, üretim, personel, maliyet ve sevkiyat süreçlerinizi tek yerden yönetin. QR ile kolay veri girişi, telefon ve bilgisayardan anlık takip.', HOME),
+ '/uretim-takip-programi/': ('Üretim Takip Programı Nedir?', 'Üretim takip programı nedir, QR kodla üretim nasıl izlenir? Sipariş, kesim, dikim ve sevkiyat takibini Eylus örneğiyle öğrenin.', PRODUCTION_GUIDE),
  '/urun/': ('Ürün ve üretim yönetimi', 'Sipariş, QR, üretim aşamaları, maliyet ve sevkiyat takibi. Eylus ürününü tanıyın.', PRODUCT),
  '/tekstil/': ('Üretim sorunlarına Eylus çözümleri', 'Sipariş takibi, gecikmeler, personel, sevkiyat, maliyet, fatura ve daha fazlası için Eylus çözümlerini keşfedin.', TEXTILE),
  '/neden-eylus/': ('Neden Eylus?', 'Üretimin içinden gelen bir yaklaşım. Eylus’un üretim yönetimi vizyonunu keşfedin.', WHY),
@@ -1017,6 +1226,19 @@ HOME_STRUCTURED_DATA = {
         }
     ]
 }
+
+GUIDE_STRUCTURED_DATA = {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "Üretim Takip Programı Nedir? Siparişten Sevkiyata Üretiminizi Nasıl Yönetirsiniz?",
+    "description": "Üretim takip programının işleyişini, QR kodla üretim aşamalarını ve sevkiyat takibini Eylus örneğiyle öğrenin.",
+    "mainEntityOfPage": SITE + ARTICLE_URL,
+    "author": {"@id": SITE + "/#organization"},
+    "publisher": {"@id": SITE + "/#organization"},
+    "inLanguage": "tr-TR",
+    "datePublished": "2026-11-12"
+}
+
 def page(path,title,desc,body,noindex=False):
     page_title = f'{title} | Eylus'
     home_data = (f'<script type="application/ld+json">'
@@ -1024,7 +1246,10 @@ def page(path,title,desc,body,noindex=False):
                  + '</script>') if path == '/' else ''
     home_image = (f'<meta property="og:image" content="{SITE}/assets/eylus-hero-workshop.webp">'
                   f'<meta name="twitter:image" content="{SITE}/assets/eylus-hero-workshop.webp">') if path == '/' else ''
-    return f'''<!doctype html><html lang="tr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{escape(page_title)}</title><meta name="description" content="{escape(desc,quote=True)}"><meta name="theme-color" content="#6450d8"><meta name="referrer" content="strict-origin-when-cross-origin"><meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'none'; object-src 'none'; base-uri 'self'; form-action 'none'"><meta name="robots" content="{'noindex,follow' if noindex else 'index,follow'}"><link rel="canonical" href="{SITE}{path}"><meta property="og:type" content="website"><meta property="og:site_name" content="Eylus"><meta property="og:locale" content="tr_TR"><meta property="og:title" content="{escape(page_title,quote=True)}"><meta property="og:description" content="{escape(desc,quote=True)}"><meta property="og:url" content="{SITE}{path}"><meta name="twitter:card" content="summary_large_image" >{home_image}{home_data}<meta name="eylus-release" content="{CACHE_VERSION}"><link rel="icon" type="image/png" sizes="96x96" href="/assets/eylus-brand-icon.png"><link rel="stylesheet" href="/assets/site.css?v={CACHE_VERSION}"><script src="/assets/site.js?v={CACHE_VERSION}" defer></script></head><body>{header(path)}<main id="main">{body}</main>{footer()}</body></html>'''
+    guide_data = ('<script type="application/ld+json">'
+                  + json.dumps(GUIDE_STRUCTURED_DATA, ensure_ascii=False, separators=(',', ':'))
+                  + '</script>') if path == ARTICLE_URL else ''
+    return f'''<!doctype html><html lang="tr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{escape(page_title)}</title><meta name="description" content="{escape(desc,quote=True)}"><meta name="theme-color" content="#6450d8"><meta name="referrer" content="strict-origin-when-cross-origin"><meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'none'; object-src 'none'; base-uri 'self'; form-action 'none'"><meta name="robots" content="{'noindex,follow' if noindex else 'index,follow'}"><link rel="canonical" href="{SITE}{path}"><meta property="og:type" content="website"><meta property="og:site_name" content="Eylus"><meta property="og:locale" content="tr_TR"><meta property="og:title" content="{escape(page_title,quote=True)}"><meta property="og:description" content="{escape(desc,quote=True)}"><meta property="og:url" content="{SITE}{path}"><meta name="twitter:card" content="summary_large_image" >{home_image}{home_data}{guide_data}<meta name="eylus-release" content="{CACHE_VERSION}"><link rel="icon" type="image/png" sizes="96x96" href="/assets/eylus-brand-icon.png"><link rel="stylesheet" href="/assets/site.css?v={CACHE_VERSION}"><script src="/assets/site.js?v={CACHE_VERSION}" defer></script></head><body>{header(path)}<main id="main">{body}</main>{footer()}</body></html>'''
 for path,(title,desc,body) in PAGES.items():
     dest=OUT / path.strip('/') / 'index.html'
     dest.parent.mkdir(parents=True,exist_ok=True)
