@@ -168,7 +168,9 @@ def extract_public_business_contacts(website_url):
         raise ValueError("Tarama için HTTPS kullanan bir işletme web sitesi gerekli.")
     ip = public_address(host)
     base = "https://" + host
-    robots_status, robots, _ = safe_get(host, ip, "/robots.txt", MAX_ROBOTS_BYTES)
+    robots_status, robots, robots_type = safe_get(host, ip, "/robots.txt", MAX_ROBOTS_BYTES)
+    if robots_status == 200 and "text/plain" not in robots_type:
+        raise ValueError("robots.txt format not verifiable")
     if robots_status not in (200, 404):
         raise ValueError("robots.txt erişimi doğrulanamadı; tarama yapılmadı.")
     policy = RobotFileParser()
@@ -208,7 +210,7 @@ def enrich_prospect_contact(lead):
         return 0
     try:
         contacts = extract_public_business_contacts(lead.website_url)
-    except (ValueError, OSError, TimeoutError, ssl.SSLError, http.client.HTTPException) as exc:
+    except (ValueError, OSError, TimeoutError, UnicodeError, ssl.SSLError, http.client.HTTPException):
         lead.contact_scan_note = "İşletme sitesi güvenli şekilde okunamadı; bilgileri elle kontrol edin."
         lead.save(update_fields=["contact_scan_at", "contact_scan_note"])
         return 0
