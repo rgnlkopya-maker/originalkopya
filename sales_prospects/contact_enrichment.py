@@ -16,14 +16,18 @@ from urllib.robotparser import RobotFileParser
 
 from django.utils import timezone
 from django.db import transaction
+from django.db.models import Q
+from datetime import timedelta
 
 from .research import canonical_url
 from .models import Prospect
+from .published_contacts import VisibleContacts, CONTACT_PATH
 
 USER_AGENT = "MoliTekstilBusinessResearchBot/1.0"
-MAX_PAGE_BYTES = 180_000
+MAX_PAGE_BYTES = 650_000
 MAX_ROBOTS_BYTES = 55_000
-CONNECT_TIMEOUT = 4
+CONNECT_TIMEOUT = 6
+MAX_SITE_PAGES = 4
 CONTACT_WORDS = (
     "contact", "kontakt", "contatti", "contacto", "contactez",
     "iletisim", "iletişim", "reach-us", "get-in-touch", "impressum",
@@ -169,58 +173,115 @@ class ContactLinks(HTMLParser):
 
 
 def extract_public_business_contacts(website_url):
-    """Return found public business channel links with the precise source page."""
-    host = business_host(website_url)
-    if not host:
+    """Find public shop contacts on homepage + linked Kontakt/Impressum pages.
+
+    Direct HTTPS and https://www variants are tried separately because many
+    sites redirect from bare domain to www. We never follow arbitrary redirects;
+    each candidate has its own validated DNS pin, verified TLS and robots rules.
+    """
+    initial_host = business_host(website_url)
+    if not initial_host:
         raise ValueError("Tarama için HTTPS kullanan bir işletme web sitesi gerekli.")
-    ip = public_address(host)
-    base = "https://" + host
-    robots_status, robots, robots_type = safe_get(host, ip, "/robots.txt", MAX_ROBOTS_BYTES)
-    if robots_status == 200 and "text/plain" not in robots_type:
-        raise ValueError("robots.txt format not verifiable")
-    if robots_status not in (200, 404):
-        raise ValueError("robots.txt erişimi doğrulanamadı; tarama yapılmadı.")
-    policy = RobotFileParser()
-    policy.set_url(base + "/robots.txt")
-    policy.parse(robots.splitlines() if robots_status == 200 else [])
-    found = {}
-    paths = ["/"]
-    for index in range(2):
-        if index >= len(paths):
-            break
-        path = paths[index]
-        if not policy.can_fetch(USER_AGENT, base + path):
+    other = initial_host[4:] if initial_host.startswith("www.") else "www." + initial_host
+    variants = [initial_host, other]
+    blocked = []
+
+    for host in variants:
+        if not business_host("https://" + host):
             continue
-        status, html, media = safe_get(host, ip, path)
-        if status != 200 or "text/html" not in media:
+        try:
+            ip = public_address(host)
+            base = "https://" + host
+            robots_status, robots, robots_type = safe_get(host, ip, "/robots.txt", MAX_ROBOTS_BYTES)
+            if robots_status == 200 and "text/plain" not in robots_type:
+                blocked.append("robots.txt doğrulanamadı")
+                continue
+            if robots_status not in (200, 404):
+                blocked.append("robots.txt okunamadı")
+                continue
+            policy = RobotFileParser()
+            policy.set_url(base + "/robots.txt")
+            policy.parse(robots.splitlines() if robots_status == 200 else [])
+
+            found = {}
+            seen = set()
+            paths = ["/"]
+            received_page = False
+            while paths and len(seen) < MAX_SITE_PAGES:
+                path = paths.pop(0)
+                if path in seen or not policy.can_fetch(USER_AGENT, base + path):
+                    continue
+                seen.add(path)
+                try:
+                    status, html, media = safe_get(host, ip, path)
+                except (ValueError, OSError, TimeoutError, UnicodeError, ssl.SSLError, http.client.HTTPException):
+                    # A broken optional page must not erase valid homepage data.
+                    continue
+                if status != 200 or "text/html" not in media:
+                    continue
+                received_page = True
+                page_url = base + path
+                links = ContactLinks(page_url, host)
+                links.feed(html)
+                visible = VisibleContacts(is_contact_page=bool(CONTACT_PATH.search(path)))
+                visible.feed(html)
+                text_contacts = visible.get_contacts()
+
+                channels = {
+                    "email": links.email or text_contacts.get("email", ""),
+                    "phone_number": links.phone or text_contacts.get("phone_number", ""),
+                    "whatsapp_number": links.whatsapp,
+                    "instagram_url": links.instagram,
+                }
+                for key, value in channels.items():
+                    if value and key not in found:
+                        found[key] = value
+                        found[{
+                            "email": "email_source_url",
+                            "phone_number": "phone_source_url",
+                            "whatsapp_number": "whatsapp_source_url",
+                            "instagram_url": "instagram_source_url",
+                        }[key]] = page_url
+
+                if len([c for c in ("phone_number", "email", "whatsapp_number", "instagram_url") if c in found]) == 4:
+                    break
+
+                # Follow only clearly labelled on-site contact/imprint links;
+                # never crawl product pages or visit external domains.
+                if path == "/":
+                    ranked = sorted(
+                        links.contact_paths,
+                        key=lambda p: (
+                            0 if CONTACT_PATH.search(p) else 1,
+                            0 if "kontakt" in p.lower() or "contact" in p.lower() else 1,
+                        ),
+                    )
+                    for target in ranked[:8]:
+                        if target not in seen and target not in paths:
+                            paths.append(target)
+                    for target in ("/kontakt", "/contact", "/impressum"):
+                        if len(paths) >= 8:
+                            break
+                        if target not in seen and target not in paths:
+                            paths.append(target)
+
+            if received_page:
+                return found
+        except (ValueError, OSError, TimeoutError, UnicodeError, ssl.SSLError, http.client.HTTPException):
+            blocked.append("İşletme alan adına erişilemedi")
             continue
-        page_url = base + path
-        parser = ContactLinks(page_url, host)
-        parser.feed(html)
-        for key, value in (("email", parser.email),
-                           ("phone_number", parser.phone),
-                           ("whatsapp_number", parser.whatsapp),
-                           ("instagram_url", parser.instagram)):
-            if value and not found.get(key):
-                found[key] = value
-                source_field = {
-                    "email": "email_source_url",
-                    "phone_number": "phone_source_url",
-                    "whatsapp_number": "whatsapp_source_url",
-                    "instagram_url": "instagram_source_url",
-                }[key]
-                found[source_field] = page_url
-        if index == 0:
-            paths.extend(x for x in parser.contact_paths if x != "/" and x not in paths[:1])
-    return found
+
+    raise ValueError("İşletmenin HTTPS sayfaları veya robots.txt erişilebilir değil.")
+
 
 
 def enrich_prospect_contact(lead):
     """Fill missing fields only; never overwrite verified/manual values."""
     lead.contact_scan_at = timezone.now()
+    lead.contact_scan_attempts = min(lead.contact_scan_attempts + 1, 65535)
     if not lead.website_url:
         lead.contact_scan_note = "Web sitesi bulunmadığından taranamadı."
-        lead.save(update_fields=["contact_scan_at", "contact_scan_note"])
+        lead.save(update_fields=["contact_scan_at", "contact_scan_note", "contact_scan_attempts"])
         return 0
     try:
         contacts = extract_public_business_contacts(lead.website_url)
@@ -246,7 +307,7 @@ def enrich_prospect_contact(lead):
                   for field in ("email", "phone_number", "whatsapp_number", "instagram_url")
                   if field in updates) + " bulundu."
     ) if updates else "Herkese açık işletme iletişim bağlantısı bulunamadı."
-    lead.save(update_fields=["contact_scan_at", "contact_scan_note", *updates])
+    lead.save(update_fields=["contact_scan_at", "contact_scan_note", "contact_scan_attempts", *updates])
     return len([x for x in updates if x in ("email", "phone_number", "whatsapp_number", "instagram_url")])
 
 
@@ -258,12 +319,22 @@ def scan_one_pending_prospect():
     the same shop repeatedly. Only existing prospect records are considered.
     No personal-number guessing or social-platform scraping.
     """
+    # Retry previously failed scans twice, at most once per six hours.
+    # Never retry successful scans, and always prioritize new shop records.
+    retry_cutoff = timezone.now() - timedelta(hours=6)
+    pending = Q(contact_scan_at__isnull=True) | (
+        Q(contact_scan_attempts__lt=3)
+        & Q(contact_scan_at__lt=retry_cutoff)
+        & (
+            Q(contact_scan_note__startswith="İşletme sitesi güvenli şekilde okunamadı")
+            | Q(contact_scan_note__startswith="Otomatik iletişim taraması başlatıldı")
+        )
+    )
     with transaction.atomic():
         lead = (Prospect.objects.select_for_update(skip_locked=True)
-                .filter(contact_scan_at__isnull=True,
-                        website_url__startswith="https://")
+                .filter(pending, website_url__startswith="https://")
                 .exclude(status="REJECTED")
-                .order_by("created_at", "pk").first())
+                .order_by("contact_scan_at", "created_at", "pk").first())
         if lead is None:
             return {"status": "EMPTY", "found": 0}
         lead.contact_scan_at = timezone.now()
