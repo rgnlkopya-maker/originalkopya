@@ -55,7 +55,7 @@ def _fetch_serper_page(api_key, query, country, city, page):
     payload = json.dumps({
         "q": search_phrase(query, country, city),
         "num": PAGE_SIZE, "page": page,
-        "gl": "uk" if country == "GB" else country.lower(),
+        "gl": "uk" if country == "GB" else (country.lower() if country in COUNTRY_EN else "us"),
         "hl": SEARCH_LANG.get(country, "en"),
     }).encode("utf-8")
     request = Request(
@@ -105,7 +105,7 @@ def _store_one(search, item, user):
         "name": title,
         "country": search.country,
         "city": search.city,
-        "website_url": "" if is_instagram else link[:500],
+        "website_url": "" if is_instagram else ("https://" + canonical.split("://", 1)[1])[:500],
         "instagram_url": canonical if is_instagram else "",
         "instagram_source_url": link[:500] if is_instagram else "",
         "source_url": link[:500],
@@ -144,19 +144,22 @@ def run_next_page(search, user):
             "Google sonuçlarının otomatik aktarımı henüz bağlı değil. "
             "Render'da SERPER_API_KEY tanımlanmalı."
         )
+    try:
+        return _run_locked_page(search, user, key)
+    except SearchUnavailable as exc:
+        GuidedSearch.objects.filter(pk=search.pk).update(last_error=str(exc)[:400])
+        raise
+
+
+def _run_locked_page(search, user, key):
     with transaction.atomic():
         locked = GuidedSearch.objects.select_for_update().get(pk=search.pk)
         if locked.exhausted or locked.next_page > MAX_PAGES:
             return {"status": "EXHAUSTED", "seen": 0, "new": 0, "duplicates": 0, "skipped": 0, "page": locked.next_page}
         page_number = locked.next_page
-        try:
-            rows = _fetch_serper_page(
-                key, locked.query, locked.country, locked.city, page_number
-            )
-        except SearchUnavailable as exc:
-            locked.last_error = str(exc)[:400]
-            locked.save(update_fields=["last_error"])
-            raise
+        rows = _fetch_serper_page(
+            key, locked.query, locked.country, locked.city, page_number
+        )
         counts = {"new": 0, "duplicates": 0, "skipped": 0}
         for row in rows:
             kind = _store_one(locked, row, user)
