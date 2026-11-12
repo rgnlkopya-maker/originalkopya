@@ -247,7 +247,11 @@ def import_prospect_csv(request):
         website = (row.get("website") or "").strip()[:500]
         instagram = (row.get("instagram") or "").strip()[:500]
         raw_email = (row.get("email") or "").strip().casefold()[:254]
-        key = canonical_url(instagram or website)
+        website_key = canonical_url(website)
+        instagram_key = canonical_url(instagram)
+        if not instagram_key.startswith("https://instagram.com/"):
+            instagram_key = ""
+        key = instagram_key or website_key
         if not name or country not in dict(COUNTRIES) or not key:
             skipped += 1
             continue
@@ -261,9 +265,9 @@ def import_prospect_csv(request):
             defaults={
                 "name": name, "country": country,
                 "city": (row.get("city") or "").strip()[:100],
-                "website_url": website if canonical_url(website) else "",
-                "instagram_url": instagram if canonical_url(instagram).startswith("https://instagram.com/") else "",
-                "source_url": (row.get("source_url") or "").strip()[:500],
+                "website_url": website if website_key else "",
+                "instagram_url": instagram if instagram_key else "",
+                "source_url": (row.get("source_url") or "").strip()[:500] if canonical_url((row.get("source_url") or "").strip()) else "",
                 "email": raw_email, "message_draft": draft_for(name, country),
                 "created_by": request.user,
                 "source": "MANUAL", "status": "NEW",
