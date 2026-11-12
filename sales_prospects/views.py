@@ -15,8 +15,8 @@ from django.core.validators import validate_email
 from django.core.exceptions import ValidationError
 
 from app_settings.access import has_full_access
-from .forms import ProspectForm
-from .models import COUNTRIES, Prospect, SearchRun, OutreachEmail
+from .forms import ProspectForm, GuidedSearchForm
+from .models import COUNTRIES, Prospect, SearchRun, OutreachEmail, GuidedSearch
 from .research import DAILY_LIMIT, SEARCHES, process_daily_search, canonical_url, draft_for
 from .outreach import eligible, queue_initial, queue_followup, config_status, email_from_token, suppress
 from .contact_enrichment import normalized_number, enrich_prospect_contact
@@ -28,10 +28,27 @@ def _allowed(request):
 
 @login_required
 @require_GET
-def prospect_list(request):
+def prospect_list(request, history_id=None):
+    """Rebuilt export research workspace; old prospect records are preserved."""
     if not _allowed(request):
         return HttpResponseForbidden("Yurt Dışı Müşteri Merkezi yalnız patron ve müdür içindir.")
+
+    from django.db.models import Q
+    searches = GuidedSearch.objects.select_related("created_by").order_by("-created_at", "-id")
+    selected_id = history_id or request.GET.get("history_id") or request.session.get("active_guided_search_id")
+    try:
+        selected_id = int(selected_id)
+    except (TypeError, ValueError):
+        selected_id = 0
+    active_search = searches.filter(pk=selected_id).first()
+
     base = Prospect.objects.all()
+    scope = request.GET.get("scope", "search" if history_id else "all")
+    if scope == "search" and active_search:
+        base = base.filter(guided_hits__search=active_search).distinct()
+    else:
+        scope = "all"
+
     status = request.GET.get("status", "")
     country = request.GET.get("country", "")
     term = request.GET.get("q", "").strip()[:80]
@@ -44,10 +61,12 @@ def prospect_list(request):
     else:
         country = ""
     if term:
-        from django.db.models import Q
-        base = base.filter(Q(name__icontains=term) | Q(city__icontains=term))
-    page = Paginator(base, 25).get_page(request.GET.get("page"))
-    today_run = SearchRun.objects.filter(run_date=timezone.localdate()).first()
+        base = base.filter(
+            Q(name__icontains=term) | Q(city__icontains=term) |
+            Q(email__icontains=term)
+        )
+
+    page = Paginator(base.order_by("-created_at", "-id"), 25).get_page(request.GET.get("page"))
     mailing_enabled, dns_ready, missing_mail_settings = config_status()
     counts = {
         "all": Prospect.objects.count(),
@@ -55,21 +74,22 @@ def prospect_list(request):
         "mail_sent": OutreachEmail.objects.filter(status="SENT").count(),
         "new": Prospect.objects.filter(status="NEW").count(),
         "contacted": Prospect.objects.filter(status="CONTACTED").count(),
-        "responded": Prospect.objects.filter(status__in=("REPLIED", "QUALIFIED", "CUSTOMER")).count(),
+        "responded": Prospect.objects.filter(
+            status__in=("REPLIED", "QUALIFIED", "CUSTOMER")
+        ).count(),
     }
-    search_links = [
-        {"country": label, "url": "https://www.google.com/search?q=" + quote_plus(query)}
-        for code, query in SEARCHES[:5]
-        for key, label in COUNTRIES if code == key
-    ]
-    return render(request, "sales_prospects/center.html", {
+    return render(request, "sales_prospects/workspace.html", {
         "page": page, "counts": counts, "countries": COUNTRIES,
         "statuses": Prospect.STATUS, "selected_status": status,
-        "selected_country": country, "term": term, "today_run": today_run,
-        "api_configured": bool(os.environ.get("BRAVE_SEARCH_API_KEY", "").strip()),
-        "daily_limit": DAILY_LIMIT, "search_links": search_links,
+        "selected_country": country, "term": term, "scope": scope,
+        "active_search": active_search, "recent_searches": searches[:30],
+        "search_form": GuidedSearchForm(initial={
+            "country": active_search.country if active_search else "DE",
+            "city": active_search.city if active_search else "",
+            "query": active_search.query if active_search else "evening dress boutique",
+        }),
         "mailing_enabled": mailing_enabled and dns_ready and not missing_mail_settings,
-        "mailing_pending": (not mailing_enabled or not dns_ready or bool(missing_mail_settings)),
+        "mailing_pending": not mailing_enabled or not dns_ready or bool(missing_mail_settings),
     })
 
 
