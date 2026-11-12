@@ -1,53 +1,71 @@
 # MoliApp — Yurt Dışı Müşteri Merkezi
 
-This is an internal **lead research and CRM** module. It does not sign in to
-Instagram, scrape Instagram, follow accounts or send Instagram DMs.
+Internal export sales CRM. The application **does not automate Instagram DMs,
+WhatsApp messages or Google result scraping**. Nothing is emailed by default.
 
-## Ready immediately
+## Available
 
-- Management menu: Yönetim → Yurt Dışı Müşteri Merkezi
-- Patron / müdür only
-- Manually create, search, review and update business prospects
-- Website / Instagram links, source evidence and follow-up dates
-- Curated EN/DE/FR/ES/IT first-contact drafts with one-click copy
-- Contact status is **manual**, not proof that a DM was delivered
-- Deduplication of business domains and indexed Instagram profile URLs
+- Yönetim → Yurt Dışı Müşteri Merkezi (patron/müdür only).
+- Review candidates by country, source and status.
+- Import up to 2,000 candidates per UTF-8 CSV file (2 MB maximum) or add manually.
+- Google search shortcuts for manual research.
+- Website, Instagram and public source links.
+- Email, legal basis, company type and reviewer evidence on each prospect.
+- Translated first-contact drafts (EN/DE/FR/ES/IT).
+- Manager-reviewed initial email queue and one follow-up no sooner than 7 days.
+- Global opt-out suppression. RFC 8058 one-click signed unsubscribe endpoint.
+- Sending via authenticated SMTP, if and **only if** explicitly configured.
+- Approved leads and emails are tracked separately from actual MoliApp customers.
 
-## Optional daily automated research (09:00 Europe/Istanbul)
+## Sending is disabled until all checks are complete
 
-An *approved web-search* provider is required. Configure the secret
-`BRAVE_SEARCH_API_KEY` on the existing Render web service. Never paste an API
-key into the repository, page HTML, or chat.
+Render service environment variables, without committing credentials:
 
-The existing authenticated minute scheduler calls
-`sales_prospects.research.process_daily_search()`. It:
-1. Does nothing without `BRAVE_SEARCH_API_KEY`.
-2. Creates at most one run per local date after 09:00.
-3. Rotates country-specific searches across 12 target markets.
-4. Uses Brave Search's web index **only**, not Instagram scraping.
-5. Saves at most 20 previously unseen, *unverified* businesses/day.
-6. Doesn't invent empty results or auto-send any messages.
-7. Allows a manager to retry a failed daily run manually.
+- MOLI_OUTREACH_ENABLED=true — master switch, OFF by default.
+- MOLI_OUTREACH_DNS_VERIFIED=true — only after SPF, DKIM and DMARC setup has been verified.
+- MOLI_OUTREACH_FROM — verified sender address (e.g. export@company.example).
+- MOLI_OUTREACH_SMTP_HOST, MOLI_OUTREACH_SMTP_PORT=587
+- MOLI_OUTREACH_SMTP_USER, MOLI_OUTREACH_SMTP_PASSWORD
+- MOLI_OUTREACH_POSTAL_ADDRESS — actual business postal address, included in mail.
+- MOLI_OUTREACH_PUBLIC_URL — HTTPS root URL hosting unsubscribe endpoint.
+- MOLI_OUTREACH_PRIVACY_URL — public URL explaining data processing.
+- MOLI_OUTREACH_DAILY_LIMIT — defaults to 10, max 25 per local day.
 
-Brave search API: `https://api.search.brave.com/res/v1/web/search`
-(header `X-Subscription-Token`), HTTP requests and error handling remain
-server-side. Provider subscriptions and fees are managed separately.
+The authenticated existing scheduler dispatches only on business days,
+09:00–18:00 Europe/Istanbul. Each first contact needs explicit manager approval.
+Unknown or blocked email basis is always rejected.
 
-## Deployment
+Allowed contact basis in this initial workflow:
+- Explicit marketing consent with documented evidence (all countries).
+- US: reviewed business company/contact for relevant B2B promotion.
+- GB: confirmed corporate subscriber/company with documented review.
+Sole traders in GB are *not* automatically eligible under the corporate basis.
+These technical gates do not replace jurisdiction-specific legal review.
 
-The new Django app `sales_prospects` has an initial migration. Ensure
-`python manage.py migrate` runs before opening the page (using the existing
-MoliApp migration/deploy procedure).
+Delivery failures are **not retried automatically**, since a failed SMTP
+request can have an uncertain outcome. "Sent" means the provider accepted
+the message, not that the recipient read or received it.
 
-Check with:
-```sh
-python manage.py check
-python manage.py makemigrations --check --dry-run
-python manage.py test sales_prospects --verbosity 2
-```
+## What is not yet available
 
-## Scope boundaries
+- Fully automated prospect discovery from free Google searches.
+- Automatic validation of company registration, consent or email deliverability.
+- Automatic reply classification / inbox sync.
+- Automatically generated follow-ups without review.
+- Automated outreach to a thousand recipients daily.
 
-The code never creates or edits a MoliApp order or accounting customer,
-never sends Instagram DMs, and never treats a search result as a confirmed
-wholesale retailer without review.
+The previous optional Brave Search connector remains disabled unless its
+approved API key is deliberately configured; the visible interface does not
+require it. A different properly licensed business source can replace it.
+
+## Migration and checks
+
+The production web service has an existing migration-on-build setup.
+Run the usual production deploy, then:
+
+    python manage.py check
+    python manage.py makemigrations --check --dry-run
+    python manage.py test sales_prospects --verbosity 2
+
+Do not activate sending before confirming the sender address, business contact
+data source, country-specific legal requirements and unsubscribe behavior.
