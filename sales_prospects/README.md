@@ -84,3 +84,28 @@ For a production smoke test, enter a specific city and clothing niche, click
 again with identical terms, verify the next page and no duplicate lead IDs.
 Check each selected website's contact source URL after enrichment. Do not
 treat the presence of published business contact details as advertising consent.
+
+
+## Business contact improvement (12 November 2026)
+Research showed two common failure modes: unscanned candidates appeared with
+empty phone cells, and the old crawler only recognized explicit \`tel:\` links
+on at most two pages. The follow-up release now:
+- Marks phone rows **Araştırılacak**, **Siteye erişilemedi** or **Bulunamadı**
+  based on actual scan status, never assuming a blank equals "no phone exists".
+- Reads the homepage plus up to three first-party contact/imprint URLs, using
+  public page text, labelled phone fields, \`tel:\`, JSON-LD schema.org telephone,
+  and already-supported WhatsApp/Instagram/mailto links.
+- Recognizes public German telephone formats such as +49 30 96080500 and
+  0159 0629 1129, without extracting arbitrary digit strings from product pages.
+- Tries the www/non-www HTTPS hostname when one redirects, with validated
+  public DNS, pinned TLS and **host-specific robots.txt** checks; external
+  redirects and social media scraping remain disallowed.
+- Rechecks existing legacy CRM records once after deployment and retries
+  genuine fetch failures at most twice, six hours apart.
+- Skips common directory/marketplace results (Yelp, Top10Berlin, Zalando,
+  AboutYou and others) in future automated boutique searches. Existing
+  records are not deleted.
+- Does not send messages and never treats a found contact as marketing consent.
+Any website that blocks automated access or does not publish a contact number
+may still have an empty phone field. Check the recorded source URL for each
+automatically filled contact.
