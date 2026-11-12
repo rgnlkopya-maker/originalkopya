@@ -59,6 +59,7 @@ def footer():
         <span class="eylus-footer-copyright">© 2026 Eylus</span>
         <nav class="eylus-footer-legal" aria-label="Alt sayfa bağlantıları">
           <a class="eylus-footer-guide" href="/uretim-takip-programi/">Rehber</a>
+          <a class="eylus-footer-stock" href="/stok-takip-programi/">Stok</a>
           <a class="eylus-footer-privacy" href="/iletisim/#gizlilik">Site ve gizlilik bilgisi</a>
         </nav>
       </div>
@@ -864,6 +865,124 @@ PRODUCTION_GUIDE = '''
   </div>
 </article>
 '''
+
+# Separate crawlable article on warehouse inventory, distinct from production tracking.
+STOCK_ARTICLE_URL = '/stok-takip-programi/'
+STOCK_GUIDE = '''
+<article class="guide-page">
+  <header class="guide-header">
+    <div class="wrap guide-header-inner">
+      <nav class="guide-breadcrumb" aria-label="İçerik yolu"><a href="/">Ana sayfa</a><span aria-hidden="true">/</span><span>Stok takip programı</span></nav>
+      <span class="guide-kicker">EYLUS REHBER · STOK VE LOJİSTİK</span>
+      <h1>Stok Takip Programı Nedir? <em>Depodaki Ürün ve Malzemeleri Nasıl Yönetirsiniz?</em></h1>
+      <p class="guide-deck">Hangi depoda kaç ürün var? Bir malzeme ne zaman girip çıktı? Müşteriye konsinye verilen ürünlerden ne kadar kaldı? Düzenli stok takibi bu soruların cevaplarını kayıt altına alır.</p>
+      <div class="guide-header-actions">
+        <a href="#stok-takip-nedir">Rehberi okuyun <span aria-hidden="true">↓</span></a>
+        <a href="/tekstil/">Eylus çözümlerini inceleyin <span aria-hidden="true">↗</span></a>
+      </div>
+    </div>
+  </header>
+  <div class="wrap guide-body">
+    <aside class="guide-side" aria-label="Yazı içeriği">
+      <p>BU YAZIDA</p>
+      <a href="#stok-takip-nedir">Stok takip programı nedir?</a>
+      <a href="#hangi-stoklar">Malzeme ve ürün stoğu</a>
+      <a href="#stok-hareketleri">Stok giriş ve çıkışları</a>
+      <a href="#depo-yonetimi">Birden fazla depo</a>
+      <a href="#konsinye-stok">Konsinye ürünler</a>
+      <a href="#stok-ve-uretim">Üretim takibinden farkı</a>
+      <a href="#stok-programi-secimi">Seçim kriterleri</a>
+      <a href="#stok-sik-sorulanlar">Sık sorulan sorular</a>
+    </aside>
+    <div class="guide-copy">
+      <section id="stok-takip-nedir" aria-labelledby="stock-what">
+        <h2 id="stock-what">Stok takip programı nedir?</h2>
+        <p><strong>Stok takip programı</strong>, işletmedeki ürün ve malzemelerin miktarlarını, hangi depoda bulunduklarını ve yapılan giriş-çıkış hareketlerini dijital olarak izlemek için kullanılan yazılımdır. Sadece mevcut adedi değil, bu adede hangi kayıtların sonucunda ulaşıldığını da görmeyi amaçlar.</p>
+        <p>Bir tekstil atölyesi düşünün: Üretimde kullanılan malzemeler, tamamlanan ürünler ve farklı depolara yerleştirilen modeller aynı gün içinde hareket edebilir. Bu bilgiler yalnızca kâğıtta veya birbirinden bağımsız dosyalarda tutulduğunda, gerçek stok miktarını öğrenmek zorlaşır. Düzenli bir stok sistemi, depodaki fiziksel kontrolle sistem kaydını karşılaştırmayı kolaylaştırır.</p>
+        <div class="guide-note"><strong>Önemli:</strong> Stok miktarının güvenilir olması için hareketlerin zamanında ve doğru kaydedilmesi gerekir. Hiçbir yazılım, fiziksel sayımın veya doğru veri girişinin yerini tek başına tutmaz.</div>
+      </section>
+
+      <section id="hangi-stoklar" aria-labelledby="stock-types">
+        <h2 id="stock-types">Malzeme ve hazır ürün stokları neden ayrı takip edilir?</h2>
+        <p>Üretim yapan bir işletmenin stoğu yalnızca müşteriye gönderilmeye hazır üründen oluşmaz. Kumaş, astar, aksesuar gibi üretim malzemeleri ile bitmiş ürünler farklı operasyonel sorulara cevap verir. Bir malzemenin depoda bulunması, o üründen sevke hazır adet olduğu anlamına gelmez.</p>
+        <div class="guide-benefits">
+          <div><span>01 / MALZEME</span><h3>Üretimde kullanılan malzemeler</h3><p>Hangi depoda hangi malzemeden ne kadar bulunduğunu ve son hareketlerini kontrol edin. Üretim başlamadan önce eksikleri araştırın.</p></div>
+          <div><span>02 / HAZIR ÜRÜN</span><h3>Depodaki tamamlanmış ürünler</h3><p>Ürün koduna göre mevcut adetleri ayrı görün. Sipariş hazırlarken sistem kaydını fiziksel stokla karşılaştırın.</p></div>
+        </div>
+        <p>Eylus'un depo yapısında malzeme stokları ile ürün stokları ayrı kayıtlarda tutulur. Yetkili kullanıcılar depo detayında her iki grubu inceleyebilir. Bu yaklaşım, depodaki bir ürünün adediyle üretimde kullanılacak bir malzemenin miktarını birbirine karıştırmamaya yardımcı olur.</p>
+      </section>
+
+      <section id="stok-hareketleri" aria-labelledby="stock-moves">
+        <h2 id="stock-moves">Stok giriş, çıkış, iade ve sayım hareketleri nasıl kaydedilir?</h2>
+        <p>Bir stok takip sisteminde en önemli konu, sayının kendisinden çok o sayıyı değiştiren hareketlerdir. Depoya yeni bir ürün geldiğinde giriş, depodan ürün ayrıldığında çıkış kaydı oluşturulur. İade ve sayım düzeltmesi gibi işlemler de normal hareketlerden ayrı değerlendirilmelidir.</p>
+        <ol class="guide-steps">
+          <li><strong>Depoyu belirleyin.</strong><p>İşlem hangi depoda gerçekleştiyse o depoyu seçin. Böylece aynı ürünün farklı depolardaki miktarları birbirine karışmaz.</p></li>
+          <li><strong>Ürün veya malzemeyi bulun.</strong><p>Ürün kodu, malzeme kodu veya adıyla doğru kayda ulaşın. Yanlış kart seçimi stok farklarına neden olabilir.</p></li>
+          <li><strong>Hareket türünü ve miktarı girin.</strong><p>Giriş, çıkış, iade veya sayım düzeltmesi işlemini gerçek hareketle eşleştirin. Gerekiyorsa açıklama ekleyin.</p></li>
+          <li><strong>Son durumu karşılaştırın.</strong><p>İşlemden önceki miktar ile sonraki miktarı inceleyin. Fiziksel sayım farklı sonuç veriyorsa nedeni araştırın.</p></li>
+        </ol>
+        <p>Eylus'un stok kayıtlarında ürün ve malzeme hareketleri ilgili depoyla ilişkilendirilir. Program, miktarın eksiye düşmesini engelleyen kontroller de uygular. Bu kontrol yanlış kaydı tamamen önlemez; ancak geçersiz stok miktarlarının oluşmasına karşı yararlı bir sınırdır.</p>
+      </section>
+
+      <section id="depo-yonetimi" aria-labelledby="stock-warehouse">
+        <h2 id="stock-warehouse">Birden fazla depoda stok yönetimi nasıl yapılır?</h2>
+        <p>Toplam stok miktarı tek başına yeterli olmayabilir. Ürünün hangi depoda bulunduğu, son giriş veya çıkışın nerede kaydedildiği ve ihtiyaç duyulan malzemenin hangi depodan alınacağı da önemlidir. Bu nedenle çok depolu işletmelerde miktarın depo bazında görülebilmesi gerekir.</p>
+        <p>Eylus'taki <strong>Depolar</strong> ekranında aktif depolar listelenir. Depo detaylarında mevcut ürün ve malzeme stokları ayrı incelenebilir. İlgili kayıt, ürün kodu veya malzeme bilgisiyle aranabilir. Böylece kontrol edilmesi gereken stok için doğru depoya yönelmek kolaylaşır.</p>
+        <p>Program seçerken depo bazlı görünüm ile depolar arası otomatik transfer özelliğini aynı şey sanmamak gerekir. Her işletmenin ihtiyaç duyduğu hareketler ve onay kuralları farklıdır. Kullanacağınız iş akışını gerçek bir senaryoyla değerlendirmek daha doğrudur.</p>
+      </section>
+
+      <section id="konsinye-stok" aria-labelledby="stock-consignment">
+        <h2 id="stock-consignment">Konsinye stok takibi ne işe yarar?</h2>
+        <p>Konsinye verilen ürünler işletmenin kendi deposunda bulunmasa bile müşteri ve ürün bazında izlenmesi gereken kayıtlardır. Hangi müşteriye hangi ürünün gönderildiği, kalan miktar ve sonradan gerçekleşen hareketler takip edilmediğinde eldeki stokla müşterideki stok karışabilir.</p>
+        <p>Özellikle toptan tekstil satışında model, renk ve beden ayrıntıları önemlidir. Eylus'un <strong>Konsinye Ürünler</strong> bölümünde müşteriyle ilişkilendirilmiş ürünler, kaynak sipariş ve kalan adet bilgisi izlenebilir. İlgili yetkiye sahip kişiler hareket geçmişini de inceleyebilir.</p>
+        <p>Konsinye ile normal depo stoklarını ayrı düşünmek, satış ve yeni sipariş planlamasında daha sağlıklı kararlar alınmasına yardımcı olur. Her iki kayıt da güncel tutulduğunda, stok hakkında farklı kişilerin farklı sayılar söylemesi ihtimali azalır.</p>
+      </section>
+
+      <section id="stok-ve-uretim" aria-labelledby="stock-production-difference">
+        <h2 id="stock-production-difference">Stok takip programı ile üretim takip programı arasındaki fark</h2>
+        <p><strong>Stok takip programı</strong> ağırlıklı olarak “Hangi depoda kaç adet var, ne girip çıktı?” sorularını yanıtlar. <strong>Üretim takip programı</strong> ise “Hangi sipariş kesimde, hangisi dikimde, ne zaman sevk edilecek?” gibi üretim aşamalarını görünür kılar. Stok miktarı ile üretim aşaması aynı bilgi değildir.</p>
+        <p>Bir sipariş üretimde ilerliyor olabilir ama henüz hazır ürün stoğuna girmemiştir. Depoda ürün bulunması da o ürüne ilişkin her siparişin tamamlandığı anlamına gelmez. Bu iki süreci birlikte değerlendiren işletmeler, stok ve teslimat kararlarını daha az varsayımla alabilir.</p>
+        <p>İlgileniyorsanız <a href="/uretim-takip-programi/">üretim takip programı rehberinde</a> siparişten sevkiyata aşama takibini anlatıyoruz. Eylus'ta QR ile üretim hareketi kaydı ayrı bir süreçtir; depo giriş ve çıkışlarının tümünün otomatik olarak QR okutmayla yapıldığı varsayılmamalıdır.</p>
+      </section>
+
+      <section id="stok-programi-secimi" aria-labelledby="stock-choice">
+        <h2 id="stock-choice">Stok takip yazılımı seçerken nelere bakmalı?</h2>
+        <p>Bir işletmede işlevsel olan program, başka bir işletmenin gereksinimlerini karşılamayabilir. Karar vermeden önce gerçek depo akışınızı düşünün ve aşağıdaki soruların karşılığını ürün üzerinde inceleyin.</p>
+        <ul class="guide-checklist">
+          <li><strong>Depo bazlı kayıt:</strong> Ürün ve malzeme miktarları her depo için ayrı gösteriliyor mu?</li>
+          <li><strong>Hareket geçmişi:</strong> Giriş, çıkış, iade ve sayım düzeltmelerini ayrı inceleyebiliyor musunuz?</li>
+          <li><strong>Malzeme ve ürün ayrımı:</strong> Üretim malzemelerini tamamlanmış ürünlerden ayrı takip edebiliyor musunuz?</li>
+          <li><strong>Konsinye ürünler:</strong> Müşteriye bırakılan ürünler ve kalan adetleri görülebiliyor mu?</li>
+          <li><strong>Yetkilendirme:</strong> Her kullanıcı yalnızca göreviyle ilgili stok işlemlerine mi erişiyor?</li>
+          <li><strong>Sipariş ve üretim ilişkisi:</strong> Stok kayıtlarını üretim ve sevkiyat süreçleriyle birlikte değerlendirebiliyor musunuz?</li>
+        </ul>
+        <p>Programı değerlendirirken belirli bir ürünün hangi depoda bulunduğunu arayın; ardından bir giriş ve çıkış hareketinin nasıl kaydedildiğini inceleyin. Konsinye işlem yapıyorsanız müşteride kalan ürünleri de kontrol edin. Böylece bir özellik listesi yerine kendi işletmenize uygunluğu test etmiş olursunuz.</p>
+      </section>
+
+      <section id="stok-sik-sorulanlar" aria-labelledby="stock-faq">
+        <h2 id="stock-faq">Sık sorulan sorular</h2>
+        <h3>Excel ile stok takibi yapmak yeterli değil mi?</h3>
+        <p>Az sayıda ürün ve seyrek hareket için Excel yeterli olabilir. Çok depolu, çok kullanıcılı işletmelerde hareket geçmişi, yetki ve güncel miktar kontrolü zorlaşabilir. Bir stok programı bilgileri aynı kayıt düzeninde tutmaya yardımcı olur.</p>
+        <h3>Stok takip programı fiziksel sayım ihtiyacını ortadan kaldırır mı?</h3>
+        <p>Hayır. Fiziksel sayım, hatalı girişleri ve kayıt dışı hareketleri fark etmek için gereklidir. Program sayım farklarının daha düzenli incelenmesini sağlar.</p>
+        <h3>Stok takip sisteminde QR kod kullanmak zorunlu mu?</h3>
+        <p>Hayır. Bu, kullanılan programın iş akışına bağlıdır. Eylus'ta QR kod temel olarak üretim aşaması hareketlerinde kullanılır; depo stokları ayrıca kendi stok ekranlarında takip edilir.</p>
+      </section>
+
+      <section class="guide-last" aria-labelledby="stock-cta">
+        <span class="guide-kicker">EYLUS İLE TANIŞIN</span>
+        <h2 id="stock-cta">Stok ve üretim süreçlerinizi birlikte değerlendirin.</h2>
+        <p>Depolar, konsinye ürünler, siparişler ve üretim takibine yönelik Eylus çözümlerini inceleyin. İşletmenizin ihtiyaçlarını birlikte konuşalım.</p>
+        <div class="guide-last-actions">
+          <a href="/tekstil/" class="guide-button-primary">Eylus çözümlerini görün <span aria-hidden="true">↗</span></a>
+          <a href="/demo/" class="guide-button-secondary">Canlı demoyu inceleyin <span aria-hidden="true">→</span></a>
+        </div>
+      </section>
+    </div>
+  </div>
+</article>
+'''
+
 HOME = EYLUS_HOME_HERO
 PRODUCT = intro('Ürün','Bir siparişten<br>bütün üretime.','Siparişin bilgisi, üretimin hareketi ve teslimatın planı. Birbirinden kopuk değil, birlikte.')+'<section class="section"><div class="wrap">'+features()+'<div class="callout">Eylus’un işletmenizdeki kapsamını ve kullanacağınız modülleri birlikte değerlendirelim. Bu site otomatik teklif veya lisans taahhüdü oluşturmaz.</div></div></section>'+TOUR+cta()
 
@@ -1212,6 +1331,7 @@ CONTACT = intro('İletişim','Sizin üretiminizi<br>konuşalım.','Ne üretiyors
 PAGES = {
  '/': ('Üretim Takip ve Yönetim Yazılımı', 'Eylus ile sipariş, üretim, personel, maliyet ve sevkiyat süreçlerinizi tek yerden yönetin. QR ile kolay veri girişi, telefon ve bilgisayardan anlık takip.', HOME),
  '/uretim-takip-programi/': ('Üretim Takip Programı Nedir?', 'Üretim takip programı nedir, QR kodla üretim nasıl izlenir? Sipariş, kesim, dikim ve sevkiyat takibini Eylus örneğiyle öğrenin.', PRODUCTION_GUIDE),
+ '/stok-takip-programi/': ('Stok Takip Programı Nedir?', 'Stok takip programı nedir? Depo bazında ürün ve malzeme miktarlarını, giriş-çıkış, iade, sayım ve konsinye takibini Eylus örneğiyle öğrenin.', STOCK_GUIDE),
  '/urun/': ('Ürün ve üretim yönetimi', 'Sipariş, QR, üretim aşamaları, maliyet ve sevkiyat takibi. Eylus ürününü tanıyın.', PRODUCT),
  '/tekstil/': ('Üretim sorunlarına Eylus çözümleri', 'Sipariş takibi, gecikmeler, personel, sevkiyat, maliyet, fatura ve daha fazlası için Eylus çözümlerini keşfedin.', TEXTILE),
  '/neden-eylus/': ('Neden Eylus?', 'Üretimin içinden gelen bir yaklaşım. Eylus’un üretim yönetimi vizyonunu keşfedin.', WHY),
@@ -1258,6 +1378,18 @@ GUIDE_STRUCTURED_DATA = {
     "datePublished": "2026-11-12"
 }
 
+STOCK_GUIDE_STRUCTURED_DATA = {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "Stok Takip Programı Nedir? Depodaki Ürün ve Malzemeleri Nasıl Yönetirsiniz?",
+    "description": "Depo, ürün ve malzeme stok takibini; giriş-çıkış, sayım ve konsinye süreçlerini Eylus örneğiyle öğrenin.",
+    "mainEntityOfPage": SITE + STOCK_ARTICLE_URL,
+    "author": {"@id": SITE + "/#organization"},
+    "publisher": {"@id": SITE + "/#organization"},
+    "inLanguage": "tr-TR",
+    "datePublished": "2026-11-12"
+}
+
 def page(path,title,desc,body,noindex=False):
     page_title = f'{title} | Eylus'
     home_data = (f'<script type="application/ld+json">'
@@ -1265,9 +1397,11 @@ def page(path,title,desc,body,noindex=False):
                  + '</script>') if path == '/' else ''
     home_image = (f'<meta property="og:image" content="{SITE}/assets/eylus-hero-workshop.webp">'
                   f'<meta name="twitter:image" content="{SITE}/assets/eylus-hero-workshop.webp">') if path == '/' else ''
+    article_schema = (GUIDE_STRUCTURED_DATA if path == ARTICLE_URL else
+                      STOCK_GUIDE_STRUCTURED_DATA if path == STOCK_ARTICLE_URL else None)
     guide_data = ('<script type="application/ld+json">'
-                  + json.dumps(GUIDE_STRUCTURED_DATA, ensure_ascii=False, separators=(',', ':'))
-                  + '</script>') if path == ARTICLE_URL else ''
+                  + json.dumps(article_schema, ensure_ascii=False, separators=(',', ':'))
+                  + '</script>') if article_schema else ''
     return f'''<!doctype html><html lang="tr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{escape(page_title)}</title><meta name="description" content="{escape(desc,quote=True)}"><meta name="theme-color" content="#6450d8"><meta name="referrer" content="strict-origin-when-cross-origin"><meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'none'; object-src 'none'; base-uri 'self'; form-action 'none'"><meta name="robots" content="{'noindex,follow' if noindex else 'index,follow'}"><link rel="canonical" href="{SITE}{path}"><meta property="og:type" content="website"><meta property="og:site_name" content="Eylus"><meta property="og:locale" content="tr_TR"><meta property="og:title" content="{escape(page_title,quote=True)}"><meta property="og:description" content="{escape(desc,quote=True)}"><meta property="og:url" content="{SITE}{path}"><meta name="twitter:card" content="summary_large_image" >{home_image}{home_data}{guide_data}<meta name="eylus-release" content="{CACHE_VERSION}"><link rel="icon" type="image/png" sizes="96x96" href="/assets/eylus-brand-icon.png"><link rel="stylesheet" href="/assets/site.css?v={CACHE_VERSION}"><script src="/assets/site.js?v={CACHE_VERSION}" defer></script></head><body>{header(path)}<main id="main">{body}</main>{footer()}</body></html>'''
 for path,(title,desc,body) in PAGES.items():
     dest=OUT / path.strip('/') / 'index.html'
