@@ -123,3 +123,45 @@ class OutreachEmail(models.Model):
         constraints = [
             models.UniqueConstraint(fields=["prospect", "kind"], name="unique_export_message_kind")
         ]
+
+
+class GuidedSearch(models.Model):
+    """A manager-controlled Google search session and its actual import counts."""
+
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL,
+        related_name="export_guided_searches",
+    )
+    country = models.CharField(max_length=8, choices=COUNTRIES)
+    city = models.CharField(max_length=100, blank=True, default="")
+    query = models.CharField(max_length=300)
+    google_url = models.URLField(max_length=1100)
+    captured_count = models.PositiveIntegerField(default=0)
+    added_count = models.PositiveIntegerField(default=0)
+    duplicate_count = models.PositiveIntegerField(default=0)
+    skipped_count = models.PositiveIntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
+    last_import_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ("-created_at", "-id")
+
+    def __str__(self):
+        return self.query
+
+
+class GuidedSearchHit(models.Model):
+    """A result a manager selected, retained for search-history auditing."""
+
+    search = models.ForeignKey(GuidedSearch, on_delete=models.CASCADE, related_name="hits")
+    prospect = models.ForeignKey(Prospect, on_delete=models.CASCADE, related_name="guided_hits")
+    original_url = models.URLField(max_length=500)
+    original_title = models.CharField(max_length=180, blank=True, default="")
+    was_new = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ("id",)
+        constraints = [
+            models.UniqueConstraint(fields=("search", "prospect"), name="unique_guided_search_prospect")
+        ]
