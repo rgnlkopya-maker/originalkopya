@@ -63,6 +63,7 @@ def footer():
           <a class="eylus-footer-orders" href="/siparis-takip-programi/">Sipariş</a>
           <a class="eylus-footer-personnel" href="/personel-takip-programi/">Personel</a>
           <a class="eylus-footer-work" href="/is-takip-programi/">İş</a>
+          <a class="eylus-footer-invoice" href="/fatura-programi/">Fatura</a>
           <a class="eylus-footer-privacy" href="/iletisim/#gizlilik">Site ve gizlilik bilgisi</a>
         </nav>
       </div>
@@ -1363,6 +1364,147 @@ WORK_GUIDE = '''
 </article>
 '''
 
+
+# Focused invoicing and invoice-draft article based on the existing order-linked module.
+INVOICE_ARTICLE_URL = '/fatura-programi/'
+INVOICE_GUIDE = '''
+<article class="guide-page">
+  <header class="guide-header">
+    <div class="wrap guide-header-inner">
+      <nav class="guide-breadcrumb" aria-label="İçerik yolu"><a href="/">Ana sayfa</a><span aria-hidden="true">/</span><span>Fatura programı</span></nav>
+      <span class="guide-kicker">EYLUS REHBER · FATURA VE SİPARİŞ YÖNETİMİ</span>
+      <h1>Fatura Programı Nedir? <em>Siparişten Fatura Taslağına Süreç Nasıl Yönetilir?</em></h1>
+      <p class="guide-deck">Hangi sipariş faturaya aktarıldı? Hangi müşterinin taslağı hazır? Muhasebe sistemindeki kayıt oluşturuldu mu? Üretim yapan işletmeler için fatura süreci, yalnızca belge hazırlamaktan daha fazlasıdır.</p>
+      <div class="guide-header-actions">
+        <a href="#fatura-programi-nedir">Rehberi okuyun <span aria-hidden="true">↓</span></a>
+        <a href="/tekstil/">Eylus çözümlerini inceleyin <span aria-hidden="true">↗</span></a>
+      </div>
+    </div>
+  </header>
+  <div class="wrap guide-body">
+    <aside class="guide-side" aria-label="Yazı içeriği">
+      <p>BU YAZIDA</p>
+      <a href="#fatura-programi-nedir">Fatura programı nedir?</a>
+      <a href="#siparisten-faturaya">Siparişten taslak faturaya</a>
+      <a href="#fatura-satirlari">Fatura satırları ve KDV</a>
+      <a href="#manuel-fatura">Manuel fatura ve proforma</a>
+      <a href="#cari-eslestirme">Cari müşteri eşleştirme</a>
+      <a href="#muhasebe-aktarimi">Muhasebe entegrasyonları</a>
+      <a href="#e-fatura-farki">E-fatura ile taslak farkı</a>
+      <a href="#fatura-takibi">Fatura durumlarının takibi</a>
+      <a href="#fatura-programi-secimi">Program seçerken</a>
+      <a href="#fatura-sorular">Sık sorulan sorular</a>
+    </aside>
+    <div class="guide-copy">
+      <section id="fatura-programi-nedir" aria-labelledby="invoice-what">
+        <h2 id="invoice-what">Fatura programı nedir?</h2>
+        <p><strong>Fatura programı</strong>, müşterilere düzenlenecek satış belgelerinin bilgilerinin hazırlanmasına, fatura satırlarının kontrol edilmesine ve fatura kayıtlarının izlenmesine yardımcı olan yazılımdır. Bazı sistemler e-fatura veya e-arşiv düzenleme yeteneğine sahipken bazıları yalnızca taslakları hazırlar ve muhasebe programına aktarır. Bu özelliklerin birbirinden ayrılması önemlidir.</p>
+        <p>Bir tekstil üreticisinde siparişler model, renk, beden ve adet bazında oluşur. Müşterinin aldığı ürünlerin fatura listesine yeniden elle yazılması, eksik veya fazla satır yazma riskini artırabilir. Sipariş bilgisinden fatura taslağı hazırlanması, aynı verinin tekrar girilmesini azaltmaya yardımcı olur.</p>
+        <div class="guide-note"><strong>Önemli ayrım:</strong> Eylus, üretim ve sipariş yönetimiyle bağlantılı <strong>fatura taslağı ve muhasebe aktarım</strong> akışı sunar. Eylus'un tek başına GİB üzerinden resmî e-fatura veya e-arşiv belge düzenlediği varsayılmamalıdır.</div>
+      </section>
+
+      <section id="siparisten-faturaya" aria-labelledby="invoice-order">
+        <h2 id="invoice-order">Siparişten fatura taslağı nasıl hazırlanır?</h2>
+        <p>Üretim ve sevkiyat kayıtlarıyla bağlantısı olmayan fatura hazırlama sürecinde, hangi üründen kaç adet gönderildiğini bulmak zaman alabilir. Siparişin sistemde tanımlı olması bu işi kolaylaştırır: ilgili sipariş fatura hazırlama akışına alınabilir ve satır bilgileri üzerinden kontrol yapılabilir.</p>
+        <ol class="guide-steps">
+          <li><strong>İlgili siparişi açın.</strong><p>Müşteri, ürün kodu, renk, beden, adet, satış fiyatı ve para birimi gibi bilgilerin doğru olduğundan emin olun.</p></li>
+          <li><strong>Fatura taslağına aktarın.</strong><p>Faturaya dahil edilmesi gereken siparişi seçip müşteriyle ilişkili fatura kaydında değerlendirin.</p></li>
+          <li><strong>Satırları ve tutarları kontrol edin.</strong><p>Fiyat, miktar, açıklama, KDV oranı ve toplam gibi alanları belgenin hazırlanma amacına göre gözden geçirin.</p></li>
+          <li><strong>Muhasebe kaydını ayrıca doğrulayın.</strong><p>Dış muhasebe sistemine aktarım yapılacaksa cari eşleştirme ve aktarım durumunu kontrol edin; resmî belge işlemini ilgili sistemde tamamlayın.</p></li>
+        </ol>
+        <p>Eylus'un <strong>Faturalar</strong> bölümünde siparişe bağlı taslak kayıtlar bulunur. Yönetici fatura içeriğini ve aktarım durumunu inceleyebilir. Bu akışta siparişin fatura taslağına alınması, ürünün sevk edildiği veya resmî fatura belgesinin kesildiği anlamına gelmez; bu durumlar ayrı kontrol edilmelidir.</p>
+      </section>
+
+      <section id="fatura-satirlari" aria-labelledby="invoice-lines">
+        <h2 id="invoice-lines">Fatura satırı, satış fiyatı ve KDV kontrolü</h2>
+        <p>Fatura hazırlığında en sık kontrol edilmesi gereken bilgiler ürün veya hizmet açıklaması, adet, birim fiyat, para birimi ve KDV oranıdır. Özellikle çok satırlı toptan siparişlerde benzer ürünlerin birbiriyle karıştırılmaması gerekir. Ürün kodunun yanına renk ve beden gibi tanımlayıcı bilgiler eklemek, satırları birbirinden ayırmayı kolaylaştırabilir.</p>
+        <div class="guide-benefits">
+          <div><span>01 / ÜRÜN</span><h3>Satır açıklaması</h3><p>Ürün kodu ve ilgili sipariş ayrıntılarını kullanarak doğru ürünün faturaya alındığını kontrol edin.</p></div>
+          <div><span>02 / TUTAR</span><h3>Fiyat ve para birimi</h3><p>Satış bedelini siparişteki para birimiyle karşılaştırın; beklenmeyen farkları aktarım öncesinde inceleyin.</p></div>
+          <div><span>03 / VERGİ</span><h3>KDV oranı</h3><p>Her satırın vergi oranını ilgili mevzuat ve ürün niteliğine göre teyit edin.</p></div>
+          <div><span>04 / KONTROL</span><h3>Genel toplam</h3><p>Satırların vergi dahil tutarlarını kontrol ederek taslak ile muhasebe kaydının uyumunu değerlendirin.</p></div>
+        </div>
+        <p>Eylus'un fatura modelinde siparişe bağlı satırlar ve ayrıca eklenebilen manuel satırlar yer alır. Satırların fiyat ve KDV oranı bilgilerinden toplam hesaplanabilir. Fakat belirli bir entegrasyon için teknik KDV kısıtları bulunabilir; örneğin mevcut Paraşüt aktarım akışında satırların %10 KDV koşulunu karşılaması gerekmektedir. Bu teknik kural, her ürün veya işlem için geçerli bir vergi oranı tavsiyesi değildir.</p>
+      </section>
+
+      <section id="manuel-fatura" aria-labelledby="invoice-manual">
+        <h2 id="invoice-manual">Manuel fatura ile proforma fatura arasındaki fark</h2>
+        <p>Her fatura mutlaka sistemdeki üretim siparişinden doğmayabilir. Ek bir satış kalemi veya farklı bir işlem için manuel fatura kaydı gerekebilir. Bu tür kayıtlarda satır açıklaması, miktar, birim fiyat ve vergi bilgilerinin açıkça girilmesi önemlidir.</p>
+        <p><strong>Proforma</strong> ise ticari işlem öncesinde sunulan, çoğunlukla teklif ve bilgilendirme amacı taşıyan belgedir; tek başına düzenlenmiş resmî satış faturası sayılmaz. Proforma ile gerçek satış faturasının ayrı tutulması, daha sonra hesaplarda yanlış anlaşılmaları azaltır.</p>
+        <p>Eylus'ta siparişten bağımsız manuel fatura kayıtları ve ayrı proforma kayıtları oluşturulmasına yönelik alanlar bulunur. Proforma belgeler muhasebe sistemine normal satış faturası gibi gönderilmez. Bu ayrım, yanlış belge türüyle işlem yapılmaması için önemlidir.</p>
+      </section>
+
+      <section id="cari-eslestirme" aria-labelledby="invoice-mapping">
+        <h2 id="invoice-mapping">Muhasebe programında cari müşteri eşleştirme neden gereklidir?</h2>
+        <p>Üretim yazılımındaki müşteri adı ile muhasebe programındaki cari hesabın adı aynı olmak zorunda değildir. Bir müşterinin farklı şubeleri üretim takibinde ayrı kaydedilmiş olabilirken muhasebede tek cari hesap kullanılabilir. Kayıtlar doğru eşleştirilmezse belge yanlış cariye aktarılabilir.</p>
+        <p>Eylus'ta BizimHesap ve Paraşüt için müşteri eşleştirme kayıtları bulunur. Yetkili kullanıcı, üretim sistemindeki müşteri ile dış muhasebe sistemindeki ilgili cari kaydı eşleştirebilir. Bu nedenle fatura aktarımından önce müşteri eşleşmesini doğrulamak gerekir.</p>
+        <p>Cari eşleştirmenin doğru olması, muhasebedeki tüm müşteri bilgilerinin otomatik ve hatasız güncellendiği anlamına gelmez. Özellikle adres ve resmî bilgilerin hangi sistemde yönetildiği, entegrasyonun davranışına göre ayrıca değerlendirilmelidir.</p>
+      </section>
+
+      <section id="muhasebe-aktarimi" aria-labelledby="invoice-export">
+        <h2 id="invoice-export">BizimHesap ve Paraşüt entegrasyonu nasıl çalışır?</h2>
+        <p>Bir işletmenin üretim yazılımıyla muhasebe yazılımı farklı görevler üstlenebilir. Üretim yazılımı ürün ve siparişin ayrıntılarını bilir; muhasebe yazılımı ise resmî fatura süreçlerini yürütür. Entegrasyonun amacı, aynı satış satırlarını iki kez elle yazma ihtiyacını azaltmaktır.</p>
+        <p>Eylus'ta BizimHesap ve Paraşüt ile <strong>satış faturası taslağı veya satış kaydı aktarımına</strong> yönelik iş akışları bulunur. Aktarım, gerekli yapılandırma ve yetkiler sağlandığında açık bir kullanıcı işlemiyle yapılır. Eksik cari eşleştirmesi, hatalı satır bilgisi veya bağlantı sorunu nedeniyle aktarım engellenebilir ya da sonucu belirsiz kalabilir.</p>
+        <p>Özellikle dış sistemden yanıt alınamadığında aynı faturayı tekrar göndermek, mükerrer kayıt oluşturma riski taşıyabilir. Eylus'un aktarım kayıtlarında gönderilmedi, aktarıldı veya kontrol gerekli gibi durumlar izlenir. Sonucun belirsiz olduğu işlemlerde muhasebe sistemini kontrol etmeden yeniden deneme yapılmaması gerekir.</p>
+      </section>
+
+      <section id="e-fatura-farki" aria-labelledby="invoice-efatura">
+        <h2 id="invoice-efatura">E-fatura, e-arşiv ve taslak fatura aynı şey mi?</h2>
+        <p>Hayır. <strong>Fatura taslağı</strong>, düzenlenecek belgenin müşteri, kalem ve tutar bilgilerini hazırlamak için kullanılan kayıttır. <strong>E-fatura</strong> ve <strong>e-arşiv fatura</strong> ise yürürlükteki kurallara uygun olarak oluşturulan ve ilgili elektronik belge altyapısı üzerinden yürütülen resmî işlemlerdir.</p>
+        <p>Bir satış kaydının Paraşüt'e veya BizimHesap'a aktarılmış olması, resmî elektronik belgenin mutlaka oluşturulduğunu ve alıcıya gönderildiğini kanıtlamaz. Dış sistemde belgenin türü, durumu ve resmî numarası ayrıca kontrol edilmelidir.</p>
+        <p>Eylus'un rolü, üretim siparişi ile faturaya hazırlanan veriler arasında bağlantı kurmak ve yapılandırılmış muhasebe sistemlerine aktarım sürecini desteklemektir. E-fatura yükümlülükleri ve uygulanacak vergi oranları için muhasebecinizin ve ilgili resmî düzenlemelerin esas alınması gerekir.</p>
+      </section>
+
+      <section id="fatura-takibi" aria-labelledby="invoice-status">
+        <h2 id="invoice-status">Fatura durumları nasıl kontrol altında tutulur?</h2>
+        <p>Bir faturanın içerik olarak hazırlanması, muhasebe sistemine aktarılması ve resmî numarasının alınması birbirinden farklı aşamalar olabilir. Bu aşamalar karıştırıldığında “hangi fatura kesildi?” sorusunun cevabı belirsizleşir.</p>
+        <p>Eylus'un fatura listesinde müşteri, tutar, para birimi, resmî fatura numarası ve muhasebe platformundaki işlem durumu gibi alanlar yer alabilir. Aktarım dışarıda elle yapılmışsa buna ilişkin durum da kaydedilebilir. Bazı taslaklar açık hesap veya aktarılmayacak şeklinde sınıflandırılabilir.</p>
+        <p>Özellikle dönem sonunda fatura listesiyle muhasebe sistemindeki belgelerin karşılaştırılması yararlıdır. “Aktarıldı” işaretinin hangi işlemden sonra oluştuğunu anlamak, faturanın durumu hakkında daha sağlıklı yorum yapmayı sağlar.</p>
+      </section>
+
+      <section id="fatura-programi-secimi" aria-labelledby="invoice-criteria">
+        <h2 id="invoice-criteria">Üretim işletmeleri fatura programı seçerken nelere bakmalı?</h2>
+        <p>İşletmeniz için yazılım seçerken yalnızca fatura ekranının görünümüne bakmak yeterli değildir. Sipariş, sevkiyat ve muhasebe kayıtlarının nasıl bağlandığını kendi günlük çalışma biçiminizle test edin.</p>
+        <ul class="guide-checklist">
+          <li><strong>Sipariş bağlantısı:</strong> Mevcut müşteri ve ürün bilgilerinden fatura taslağı hazırlanabiliyor mu?</li>
+          <li><strong>Manuel satırlar:</strong> Sipariş dışında eklenmesi gereken kalemler ayrıca kaydedilebiliyor mu?</li>
+          <li><strong>Para birimi:</strong> Fatura para birimi ve satış fiyatı siparişle tutarlı mı?</li>
+          <li><strong>KDV kontrolü:</strong> Satırların vergi oranları ve aktarım kısıtları açıkça görülebiliyor mu?</li>
+          <li><strong>Cari eşleştirme:</strong> Müşterilerin dış muhasebe sistemindeki karşılıkları doğru seçilebiliyor mu?</li>
+          <li><strong>Aktarım güvenliği:</strong> Belirsiz yanıt, mükerrer gönderim ve hatalı veri durumları nasıl yönetiliyor?</li>
+          <li><strong>Resmî belge ayrımı:</strong> Taslak, muhasebe satış kaydı ve e-fatura düzenleme süreçleri doğru tanımlanıyor mu?</li>
+        </ul>
+        <p>Örneğin tek müşterinin farklı renk ve bedenlerdeki siparişlerini seçin. Bir taslak oluşturup satırların doğru geldiğini kontrol edin; ardından uygun cari eşleştirme ve muhasebe aktarım sürecini değerlendirin. <a href="/siparis-takip-programi/">Sipariş takip programı rehberimizde</a> üretim siparişlerinin başlangıç aşamasını ayrıca anlattık.</p>
+      </section>
+
+      <section id="fatura-sorular" aria-labelledby="invoice-faq">
+        <h2 id="invoice-faq">Sık sorulan sorular</h2>
+        <h3>Fatura programı e-fatura kesmek zorunda mı?</h3>
+        <p>Hayır. Bazı yazılımlar fatura taslağı hazırlamak veya muhasebe sistemine satış kaydı aktarmak için kullanılır. Resmî e-fatura düzenleme ayrı teknik ve hukuki gerekliliklere tabidir.</p>
+        <h3>Eylus'ta hazırlanan taslak doğrudan resmî fatura mı?</h3>
+        <p>Hayır. Eylus'un fatura hazırlama kaydı, resmî e-belge düzenlendiği anlamına gelmez. İlgili muhasebe sisteminde e-fatura veya e-arşiv işlemi ayrıca kontrol edilmelidir.</p>
+        <h3>Faturaya aktarılmamış siparişler kontrol edilebilir mi?</h3>
+        <p>Eylus'ta sevk edilmiş olup faturaya aktarılmayan siparişler için kontrol amaçlı ekranlar bulunur. Böylece fatura hazırlama sürecinde gözden kaçan işleri incelemek kolaylaşır.</p>
+        <h3>Proforma fatura ile satış faturası aynı mı?</h3>
+        <p>Hayır. Proforma genellikle işlem öncesi teklif ve bilgilendirme amaçlı hazırlanır; resmî satış faturasının yerine geçmez. Eylus bu kayıtları ayrı türler olarak ele alır.</p>
+        <h3>Paraşüt ve BizimHesap'a aynı şekilde aktarım yapılır mı?</h3>
+        <p>İki muhasebe yazılımının API ve veri kuralları farklıdır. Eylus'taki aktarım işlemleri gerekli cari eşleştirmesi, doğrulama ve uygun yapılandırma koşullarına bağlıdır. Her taslağın koşulsuz aktarılacağı varsayılmamalıdır.</p>
+      </section>
+
+      <section class="guide-last" aria-labelledby="invoice-cta">
+        <span class="guide-kicker">EYLUS İLE TANIŞIN</span>
+        <h2 id="invoice-cta">Siparişten faturaya hazırlık sürecini daha düzenli yönetin.</h2>
+        <p>Sipariş, sevkiyat, fatura taslağı ve muhasebe aktarım ekranlarının işletmenizde nasıl birlikte kullanılabileceğini değerlendirin.</p>
+        <div class="guide-last-actions">
+          <a href="/tekstil/" class="guide-button-primary">Eylus çözümlerini görün <span aria-hidden="true">↗</span></a>
+          <a href="/demo/" class="guide-button-secondary">Canlı demoyu inceleyin <span aria-hidden="true">→</span></a>
+        </div>
+      </section>
+    </div>
+  </div>
+</article>
+'''
+
 HOME = EYLUS_HOME_HERO
 PRODUCT = intro('Ürün','Bir siparişten<br>bütün üretime.','Siparişin bilgisi, üretimin hareketi ve teslimatın planı. Birbirinden kopuk değil, birlikte.')+'<section class="section"><div class="wrap">'+features()+'<div class="callout">Eylus’un işletmenizdeki kapsamını ve kullanacağınız modülleri birlikte değerlendirelim. Bu site otomatik teklif veya lisans taahhüdü oluşturmaz.</div></div></section>'+TOUR+cta()
 
@@ -1715,6 +1857,7 @@ PAGES = {
  '/siparis-takip-programi/': ('Sipariş Takip Programı Nedir?', 'Sipariş takip programı nedir? Üretici işletmelerde sipariş kaydı, renk-beden bilgileri, QR ile üretim aşamaları ve teslimat planını öğrenin.', ORDER_GUIDE),
  '/personel-takip-programi/': ('Personel Takip Programı Nedir?', 'Personel takip programı nedir? Puantaj, giriş-çıkış, mesai, izin ve üretim ekibinin iş takibini Eylus örneğiyle öğrenin.', PERSONNEL_GUIDE),
  '/is-takip-programi/': ('İş Takip Programı Nedir?', 'İş takip programı nedir? Yapılacaklar, hatırlatmalar, geciken üretim işleri ve sipariş aşamalarını Eylus örneğiyle öğrenin.', WORK_GUIDE),
+ '/fatura-programi/': ('Fatura Programı Nedir?', 'Fatura programı nedir? Siparişten taslak fatura oluşturma, proforma, cari eşleştirme ve Paraşüt/BizimHesap muhasebe aktarımını öğrenin.', INVOICE_GUIDE),
  '/urun/': ('Ürün ve üretim yönetimi', 'Sipariş, QR, üretim aşamaları, maliyet ve sevkiyat takibi. Eylus ürününü tanıyın.', PRODUCT),
  '/tekstil/': ('Üretim sorunlarına Eylus çözümleri', 'Sipariş takibi, gecikmeler, personel, sevkiyat, maliyet, fatura ve daha fazlası için Eylus çözümlerini keşfedin.', TEXTILE),
  '/neden-eylus/': ('Neden Eylus?', 'Üretimin içinden gelen bir yaklaşım. Eylus’un üretim yönetimi vizyonunu keşfedin.', WHY),
@@ -1809,6 +1952,18 @@ WORK_GUIDE_STRUCTURED_DATA = {
     "datePublished": "2026-11-12"
 }
 
+INVOICE_GUIDE_STRUCTURED_DATA = {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "Fatura Programı Nedir? Siparişten Fatura Taslağına Süreç Nasıl Yönetilir?",
+    "description": "Üretim siparişlerinden taslak fatura hazırlama, proforma, KDV kontrolleri ve muhasebe aktarımını Eylus örneğiyle öğrenin.",
+    "mainEntityOfPage": SITE + INVOICE_ARTICLE_URL,
+    "author": {"@id": SITE + "/#organization"},
+    "publisher": {"@id": SITE + "/#organization"},
+    "inLanguage": "tr-TR",
+    "datePublished": "2026-11-12"
+}
+
 def page(path,title,desc,body,noindex=False):
     page_title = f'{title} | Eylus'
     home_data = (f'<script type="application/ld+json">'
@@ -1820,7 +1975,8 @@ def page(path,title,desc,body,noindex=False):
                       STOCK_GUIDE_STRUCTURED_DATA if path == STOCK_ARTICLE_URL else
                       ORDER_GUIDE_STRUCTURED_DATA if path == ORDER_ARTICLE_URL else
                       PERSONNEL_GUIDE_STRUCTURED_DATA if path == PERSONNEL_ARTICLE_URL else
-                      WORK_GUIDE_STRUCTURED_DATA if path == WORK_ARTICLE_URL else None)
+                      WORK_GUIDE_STRUCTURED_DATA if path == WORK_ARTICLE_URL else
+                      INVOICE_GUIDE_STRUCTURED_DATA if path == INVOICE_ARTICLE_URL else None)
     guide_data = ('<script type="application/ld+json">'
                   + json.dumps(article_schema, ensure_ascii=False, separators=(',', ':'))
                   + '</script>') if article_schema else ''
