@@ -624,6 +624,13 @@ CSS += r'''
 '''
 
 
+# Natural internal link from the product page to the evergreen guide.
+CSS += r'''
+.product-guide-link{margin:28px 0 3px;font-size:13px;line-height:1.7;color:#6d647c}
+.product-guide-link a{color:#60399e;font-weight:700;text-decoration:underline;text-underline-offset:4px}
+.product-guide-link a:hover{color:#39206b}
+'''
+
 # Lightweight guide design: readable typography, indexable semantic content,
 # purposeful internal links, no fabricated screenshots or third-party scripts.
 CSS += r'''
@@ -845,8 +852,8 @@ PRODUCTION_GUIDE = '''
   </div>
 </article>
 '''
-HOME = EYLUS_HOME_HERO + HOME_READING_BANNER
-PRODUCT = intro('Ürün','Bir siparişten<br>bütün üretime.','Siparişin bilgisi, üretimin hareketi ve teslimatın planı. Birbirinden kopuk değil, birlikte.')+'<section class="section"><div class="wrap">'+features()+'<div class="callout">Eylus’un işletmenizdeki kapsamını ve kullanacağınız modülleri birlikte değerlendirelim. Bu site otomatik teklif veya lisans taahhüdü oluşturmaz.</div></div></section>'+TOUR+cta()
+HOME = EYLUS_HOME_HERO
+PRODUCT = intro('Ürün','Bir siparişten<br>bütün üretime.','Siparişin bilgisi, üretimin hareketi ve teslimatın planı. Birbirinden kopuk değil, birlikte.')+'<section class="section"><div class="wrap">'+features()+'<p class="product-guide-link">Üretim takibinin nasıl çalıştığını merak ediyor musunuz? <a href="/uretim-takip-programi/">Üretim takip programı rehberini okuyun <span aria-hidden="true">→</span></a></p><div class="callout">Eylus’un işletmenizdeki kapsamını ve kullanacağınız modülleri birlikte değerlendirelim. Bu site otomatik teklif veya lisans taahhüdü oluşturmaz.</div></div></section>'+TOUR+cta()
 
 # Solution discovery page (public-facing; screenshot slots are intentionally empty until
 # approved, redacted screenshots from the demo are added to eylus-site/screens/).
