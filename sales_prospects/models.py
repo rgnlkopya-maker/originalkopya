@@ -68,7 +68,7 @@ class Prospect(models.Model):
 
     @property
     def whatsapp_link(self):
-        digits = re.sub(r"\\D", "", self.whatsapp_number or "")
+        digits = re.sub(r"\D", "", self.whatsapp_number or "")
         return "https://wa.me/" + digits if 9 <= len(digits) <= 15 else ""
 
     def __str__(self):
