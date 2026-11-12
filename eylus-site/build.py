@@ -1,6 +1,7 @@
 from pathlib import Path
 from html import escape
 from hashlib import sha256
+import json
 import os
 
 OUT = Path(__file__).parent / 'dist'
@@ -982,7 +983,7 @@ WHY = intro('Neden Eylus?','Üretimi yönetmek,<br>ne olduğunu bilmekle başlar
 DEMO_PAGE = intro('Canlı demo','Önce görün.<br>Sonra kendi üretiminizi düşünün.','Uygulamayı incelerken bu üç soruyu izleyin. Tanıtım sayfasındaki örneklerle mevcut demo uygulaması birbirinden ayrıdır.')+'<section class="section"><div class="wrap"><div class="demo-steps">'+''.join(f'<article class="demo-step"><b>0{i+1}</b><h2>{title}</h2><p>{desc}</p></article>' for i,(title,desc) in enumerate([('Geciken işleri bulun.','Siparişlerin teslim tarihlerini ve üretim durumlarını birlikte inceleyin.'),('Bir siparişi açın.','Ürün detaylarından üretim geçmişine ilerleyin.'),('Teslimat planına bakın.','Yaklaşan teslimatlar ile hazır ürünlerin durumunu karşılaştırın.')]))+'</div><div class="demo-entry"><div><h2>Eylus uygulamasını açın.</h2><p>Mevcut demo ortamı yeni sekmede açılır. Giriş bilgisi istenirse veya erişim sorunu yaşarsanız bizimle iletişime geçin. Bu sayfa otomatik ziyaretçi hesabı oluşturmaz.</p></div>'+button('Canlı uygulamaya git',DEMO,'purple',True)+'</div><div class="callout">Demoya gerçek müşteri, personel, fatura veya ödeme bilgisi girmeyin. Hesap oluşturmadan tanıtımı görmek için <a class="link" href="/#kesfet">etkileşimli örneğe dönün →</a></div></div></section><section class="section soft"><div class="wrap faq"><h2>Demoya geçmeden önce</h2><details><summary>Bu sitedeki paneller gerçek uygulama ekranı mı?</summary><p>Hayır. Bu ilk yayındaki paneller, iş akışını anlatan temsili arayüzlerdir. Sayılar ve siparişler örnektir. Gerçek uygulamayı ayrı demo bağlantısından inceleyebilirsiniz.</p></details><details><summary>Demo bir satın alma işlemi başlatır mı?</summary><p>Bu tanıtım sitesindeki demo bağlantısı herhangi bir ödeme veya abonelik başlatmaz.</p></details><details><summary>Kendi işletmem için görüşebilir miyiz?</summary><p>Evet. İletişim sayfasındaki Eylus Instagram hesabı üzerinden üretim akışınızı anlatabilir ve görüşme talep edebilirsiniz.</p></details></div></section>'
 CONTACT = intro('İletişim','Sizin üretiminizi<br>konuşalım.','Ne üretiyorsunuz, siparişlerinizi nasıl takip ediyorsunuz, en çok nerede zorlanıyorsunuz? Buradan başlayalım.')+'<section class="section"><div class="wrap split"><div><h2>Bir mesajla başlayın.</h2><p>Firma adınızı, üretim alanınızı ve öncelikli ihtiyacınızı paylaşın. Kendi iş akışınız üzerinden Eylus’u değerlendirelim.</p><div class="message">Merhaba, Eylus’u işletmemiz için incelemek istiyoruz. Üretim alanımız: … En çok ihtiyaç duyduğumuz takip konusu: … Görüşme planlayabilir miyiz?</div><p class="note">Yukarıdaki metin yalnızca mesaj örneğidir; otomatik gönderilmez.</p></div><div class="contact-card">'+eyebrow('Eylus — doğrudan iletişim')+f'<strong class="contact-handle">@eylustech</strong><p>Eylus Instagram hesabından mesaj göndererek demo erişimi veya görüşme talep edebilirsiniz.</p>'+button('Instagram’dan yazın',SOCIAL,'purple',True)+'<p class="note" style="margin:20px 0 0">Instagram yeni sekmede açılır ve mesaj göndermek için hesabınıza giriş yapmanız gerekebilir. Bu sitede form veya takvim kaydı oluşturulmaz.</p></div></div></section><section class="section soft" id="gizlilik"><div class="wrap privacy"><h2>Site ve gizlilik bilgisi</h2><p>Bu tanıtım sitesine reklam izleme kodu, analitik çerezi veya bilgi toplama formu eklenmemiştir. Gösterilen siparişler ve sayılar temsili verilerdir.</p><p>Siteyi sunan altyapı, hizmetin çalışması ve güvenliği için teknik erişim kayıtları tutabilir. Instagram ve demo bağlantıları ayrı ortamlara yönlendirir; bu ortamların veri işleme koşulları ayrıdır.</p><p>İletişim kurarken ilk aşamada işletmenizi ve ihtiyacınızı kısaca anlatmanız yeterlidir. Gerçek müşteri listesi, personel bilgisi veya finansal belge göndermeyin.</p></div></section>'
 PAGES = {
- '/': ('Üretimin her aşaması kontrolünüzde', 'Eylus ile siparişleri, üretim aşamalarını ve teslimatları tek yerden takip edin. Tekstil odaklı üretim yönetim yazılımını keşfedin.', HOME),
+ '/': ('Üretim Takip ve Yönetim Yazılımı', 'Eylus ile sipariş, üretim, personel, maliyet ve sevkiyat süreçlerinizi tek yerden yönetin. QR ile kolay veri girişi, telefon ve bilgisayardan anlık takip.', HOME),
  '/urun/': ('Ürün ve üretim yönetimi', 'Sipariş, QR, üretim aşamaları, maliyet ve sevkiyat takibi. Eylus ürününü tanıyın.', PRODUCT),
  '/tekstil/': ('Üretim sorunlarına Eylus çözümleri', 'Sipariş takibi, gecikmeler, personel, sevkiyat, maliyet, fatura ve daha fazlası için Eylus çözümlerini keşfedin.', TEXTILE),
  '/neden-eylus/': ('Neden Eylus?', 'Üretimin içinden gelen bir yaklaşım. Eylus’un üretim yönetimi vizyonunu keşfedin.', WHY),
@@ -992,8 +993,38 @@ PAGES = {
 
 # Fingerprint the generated page and its assets on every release to prevent stale local CSS/JS.
 CACHE_VERSION = sha256((CSS + JS + TEXTILE).encode('utf-8')).hexdigest()[:12]
+# Identify the public website and its brand to search engines; never claim
+# reviews, awards, paid plans or other unsupported product information.
+HOME_STRUCTURED_DATA = {
+    "@context": "https://schema.org",
+    "@graph": [
+        {
+            "@type": "Organization",
+            "@id": SITE + "/#organization",
+            "name": "Eylus",
+            "url": SITE + "/",
+            "logo": SITE + "/assets/eylus-wordmark.png",
+            "sameAs": [SOCIAL],
+            "description": "Üretim yapan işletmelere yönelik üretim takip ve yönetim yazılımı."
+        },
+        {
+            "@type": "WebSite",
+            "@id": SITE + "/#website",
+            "name": "Eylus",
+            "url": SITE + "/",
+            "inLanguage": "tr-TR",
+            "publisher": {"@id": SITE + "/#organization"}
+        }
+    ]
+}
 def page(path,title,desc,body,noindex=False):
-    return f'''<!doctype html><html lang="tr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{escape(title)} | Eylus</title><meta name="description" content="{escape(desc,quote=True)}"><meta name="theme-color" content="#6450d8"><meta name="referrer" content="strict-origin-when-cross-origin"><meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'none'; object-src 'none'; base-uri 'self'; form-action 'none'"><meta name="robots" content="{'noindex,follow' if noindex else 'index,follow'}"><link rel="canonical" href="{SITE}{path}"><meta property="og:type" content="website"><meta property="og:site_name" content="Eylus"><meta property="og:locale" content="tr_TR"><meta property="og:title" content="{escape(title,quote=True)} | Eylus"><meta property="og:description" content="{escape(desc,quote=True)}"><meta property="og:url" content="{SITE}{path}"><meta name="twitter:card" content="summary"><meta name="eylus-release" content="{CACHE_VERSION}"><link rel="icon" type="image/png" sizes="96x96" href="/assets/eylus-brand-icon.png"><link rel="stylesheet" href="/assets/site.css?v={CACHE_VERSION}"><script src="/assets/site.js?v={CACHE_VERSION}" defer></script></head><body>{header(path)}<main id="main">{body}</main>{footer()}</body></html>'''
+    page_title = f'{title} | Eylus'
+    home_data = (f'<script type="application/ld+json">'
+                 + json.dumps(HOME_STRUCTURED_DATA, ensure_ascii=False, separators=(',', ':'))
+                 + '</script>') if path == '/' else ''
+    home_image = (f'<meta property="og:image" content="{SITE}/assets/eylus-hero-workshop.webp">'
+                  f'<meta name="twitter:image" content="{SITE}/assets/eylus-hero-workshop.webp">') if path == '/' else ''
+    return f'''<!doctype html><html lang="tr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{escape(page_title)}</title><meta name="description" content="{escape(desc,quote=True)}"><meta name="theme-color" content="#6450d8"><meta name="referrer" content="strict-origin-when-cross-origin"><meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'none'; object-src 'none'; base-uri 'self'; form-action 'none'"><meta name="robots" content="{'noindex,follow' if noindex else 'index,follow'}"><link rel="canonical" href="{SITE}{path}"><meta property="og:type" content="website"><meta property="og:site_name" content="Eylus"><meta property="og:locale" content="tr_TR"><meta property="og:title" content="{escape(page_title,quote=True)}"><meta property="og:description" content="{escape(desc,quote=True)}"><meta property="og:url" content="{SITE}{path}"><meta name="twitter:card" content="summary_large_image" >{home_image}{home_data}<meta name="eylus-release" content="{CACHE_VERSION}"><link rel="icon" type="image/png" sizes="96x96" href="/assets/eylus-brand-icon.png"><link rel="stylesheet" href="/assets/site.css?v={CACHE_VERSION}"><script src="/assets/site.js?v={CACHE_VERSION}" defer></script></head><body>{header(path)}<main id="main">{body}</main>{footer()}</body></html>'''
 for path,(title,desc,body) in PAGES.items():
     dest=OUT / path.strip('/') / 'index.html'
     dest.parent.mkdir(parents=True,exist_ok=True)
