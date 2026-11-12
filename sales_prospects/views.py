@@ -16,6 +16,7 @@ from django.core.exceptions import ValidationError
 
 from app_settings.access import has_full_access
 from .forms import ProspectForm, GuidedSearchForm
+from .automatic_search import is_configured
 from .models import COUNTRIES, Prospect, SearchRun, OutreachEmail, GuidedSearch
 from .research import DAILY_LIMIT, SEARCHES, process_daily_search, canonical_url, draft_for
 from .outreach import eligible, queue_initial, queue_followup, config_status, email_from_token, suppress
@@ -85,6 +86,7 @@ def prospect_list(request, history_id=None):
         "selected_country": country, "term": term, "scope": scope,
         "active_search": active_search, "recent_searches": history_page,
         "history_page": history_page,
+        "search_provider_configured": is_configured(),
         "search_form": GuidedSearchForm(initial={
             "country": active_search.country if active_search else "DE",
             "city": active_search.city if active_search else "",
