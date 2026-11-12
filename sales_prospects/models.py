@@ -30,6 +30,24 @@ class Prospect(models.Model):
     status = models.CharField(max_length=12, choices=STATUS, default="NEW", db_index=True)
     note = models.TextField(blank=True, default="")
     message_draft = models.TextField(blank=True, default="")
+    email = models.EmailField(max_length=254, blank=True, default="")
+    CONTACT_CLASS = [("UNKNOWN", "Belirsiz"), ("COMPANY", "Tüzel kişi / şirket"), ("PERSON", "Şahıs işletmesi")]
+    contact_class = models.CharField(max_length=8, choices=CONTACT_CLASS, default="UNKNOWN")
+    EMAIL_BASIS = [
+        ("NONE", "İncelenmedi"), ("CONSENT", "Açık iletişim izni"),
+        ("US_B2B", "ABD B2B değerlendirmesi"),
+        ("GB_CORP", "Birleşik Krallık kurumsal B2B değerlendirmesi"),
+        ("NO", "İletişim kurulmayacak"),
+    ]
+    email_basis = models.CharField(max_length=8, choices=EMAIL_BASIS, default="NONE")
+    email_source_note = models.TextField(blank=True, default="")
+    email_checked = models.BooleanField(default=False)
+    outreach_approved_at = models.DateTimeField(null=True, blank=True)
+    outreach_approved_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, null=True, blank=True, related_name="approved_export_prospects",
+        on_delete=models.SET_NULL,
+    )
+
     source = models.CharField(max_length=8, choices=SOURCE, default="MANUAL")
     created_by = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL)
     last_contacted_at = models.DateTimeField(null=True, blank=True)
@@ -56,3 +74,39 @@ class SearchRun(models.Model):
 
     class Meta:
         ordering = ("-run_date",)
+
+
+class SuppressedEmail(models.Model):
+    """Global do-not-contact list, including unsubscribe and bounce requests."""
+    email = models.EmailField(max_length=254, unique=True)
+    reason = models.CharField(max_length=24, default="UNSUBSCRIBE")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return self.email
+
+
+class OutreachEmail(models.Model):
+    KIND = [("INITIAL", "İlk tanıtım"), ("FOLLOWUP", "Tek takip")]
+    STATES = [
+        ("QUEUED", "Kuyrukta"), ("SENDING", "Gönderiliyor"),
+        ("SENT", "Gönderildi"), ("FAILED", "Hata"),
+        ("CANCELLED", "İptal"),
+    ]
+    prospect = models.ForeignKey(Prospect, on_delete=models.CASCADE, related_name="outreach_emails")
+    kind = models.CharField(max_length=8, choices=KIND, default="INITIAL")
+    email = models.EmailField(max_length=254)
+    subject = models.CharField(max_length=180)
+    body = models.TextField()
+    status = models.CharField(max_length=12, choices=STATES, default="QUEUED", db_index=True)
+    scheduled_at = models.DateTimeField(db_index=True)
+    sent_at = models.DateTimeField(null=True, blank=True)
+    approved_by = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete=models.SET_NULL)
+    created_at = models.DateTimeField(auto_now_add=True)
+    error_message = models.CharField(max_length=300, blank=True, default="")
+
+    class Meta:
+        ordering = ("-created_at", "-id")
+        constraints = [
+            models.UniqueConstraint(fields=["prospect", "kind"], name="unique_export_message_kind")
+        ]
