@@ -78,11 +78,13 @@ def prospect_list(request, history_id=None):
             status__in=("REPLIED", "QUALIFIED", "CUSTOMER")
         ).count(),
     }
+    history_page = Paginator(searches, 20).get_page(request.GET.get("history_page"))
     return render(request, "sales_prospects/workspace.html", {
         "page": page, "counts": counts, "countries": COUNTRIES,
         "statuses": Prospect.STATUS, "selected_status": status,
         "selected_country": country, "term": term, "scope": scope,
-        "active_search": active_search, "recent_searches": searches[:30],
+        "active_search": active_search, "recent_searches": history_page,
+        "history_page": history_page,
         "search_form": GuidedSearchForm(initial={
             "country": active_search.country if active_search else "DE",
             "city": active_search.city if active_search else "",
