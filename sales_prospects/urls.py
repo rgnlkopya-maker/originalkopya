@@ -7,6 +7,7 @@ urlpatterns = [
     path("csv-aktar/", views.import_prospect_csv, name="prospect_csv_import"),
     path("csv-ornek/", views.prospect_csv_template, name="prospect_csv_template"),
     path("<int:pk>/", views.prospect_detail, name="prospect_detail"),
+    path("<int:pk>/iletisim-tara/", views.scan_public_contacts, name="prospect_scan_contacts"),
     path("<int:pk>/e-posta-onayla/", views.approve_outreach, name="prospect_approve_outreach"),
     path("<int:pk>/takip-onayla/", views.queue_outreach_followup, name="prospect_queue_followup"),
     path("<int:pk>/iletisimi-durdur/", views.stop_outreach, name="prospect_stop_outreach"),
