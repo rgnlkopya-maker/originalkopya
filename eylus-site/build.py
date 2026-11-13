@@ -1595,7 +1595,7 @@ SOLUTION_EDITORIAL_COPY = {
     ),
     "operasyon-02": (
         "Üretim ilerlerken eksik kalan aşama kayıtlarını gözden kaçırmayın.",
-        "Kesim, dikim ve süslemede eksik bırakılmış Başladı veya Bitti işlemlerini sipariş bazında görün. Personel bazlı görünümden ilgili siparişleri ve kaydı ortaya çıkaran işlemi inceleyin. Bunlar kayıt tutarsızlığı uyarılarıdır; kesin kusur tespiti değildir.",
+        "Kesim, dikim ve süslemede eksik bırakılmış Başladı veya Bitti işlemlerini sipariş bazında görün. Personel bazlı görünümden ilgili siparişleri ve kaydı ortaya çıkaran işlemi inceleyin.",
     ),
     "yonetim-01": (
         "İşletmenizde bugün neler olduğunu öğrenmek için tek tek rapor istemeyin.",
