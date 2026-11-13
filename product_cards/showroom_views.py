@@ -412,6 +412,7 @@ def showroom_draft_autosave(request):
     customer_id=payload.get("customer_id") or None; order_taken_by=str(payload.get("order_taken_by") or "").strip()[:120]; order_type=str(payload.get("order_type") or "SERI").strip().upper(); raw_items=payload.get("items") or []; raw_payments=payload.get("payments") or []; pricing_operations=_normalize_pricing_operations(payload.get("pricing_operations") or []); raw_target=payload.get("folio_adjustment_target"); folio_adjustment_target=None if raw_target in (None,"") else max(Decimal("0"),_decimal(raw_target,"0")); pricing_operations=_normalize_pricing_operations(payload.get("pricing_operations") or []); raw_target=payload.get("folio_adjustment_target"); folio_adjustment_target=None if raw_target in (None,"") else max(Decimal("0"),_decimal(raw_target,"0")); vat_rate=max(Decimal("0"),min(Decimal("100"),_decimal(payload.get("vat_rate"),"0"))); previous_balance=max(Decimal("0"),_decimal(payload.get("previous_balance"),"0"))
     if not isinstance(raw_items,list) or not isinstance(raw_payments,list): return JsonResponse({"ok":False,"message":"Föy verisi geçersiz."},status=400)
     customer=Musteri.objects.filter(pk=customer_id).first() if customer_id else None
+    pending_issues = _smart_import_issues(raw_items, customer) if payload.get("smart_import_active") else []
     validation_error = _validate_customer_base_price_rows(customer, raw_items)
     if validation_error:
         return JsonResponse({"ok":False,"message":validation_error},status=400)
@@ -436,8 +437,8 @@ def showroom_draft_autosave(request):
             rates[field] = rate
         draft.currency = currency
         draft.usd_try, draft.eur_try, draft.gbp_try = rates["usd_try"], rates["eur_try"], rates["gbp_try"]
-        draft.customer=customer; draft.order_taken_by=order_taken_by; draft.order_type=order_type if order_type in dict(Order.SIPARIS_TIPLERI) else "SERI"; draft.pricing_operations=pricing_operations; draft.folio_adjustment_target=folio_adjustment_target; draft.vat_rate=vat_rate; draft.previous_balance=previous_balance; draft.save(update_fields=["currency","usd_try","eur_try","gbp_try","customer","order_taken_by","order_type","pricing_operations","folio_adjustment_target","vat_rate","previous_balance","updated_at"]); draft.items.all().delete(); create_rows=[]
-        for item in raw_items:
+        draft.customer=customer; draft.order_taken_by=order_taken_by; draft.order_type=order_type if order_type in dict(Order.SIPARIS_TIPLERI) else "SERI"; draft.pricing_operations=pricing_operations; draft.folio_adjustment_target=folio_adjustment_target; draft.vat_rate=vat_rate; draft.previous_balance=previous_balance; draft.import_pending_items=raw_items if pending_issues else []; draft.save(update_fields=["currency","usd_try","eur_try","gbp_try","customer","order_taken_by","order_type","pricing_operations","folio_adjustment_target","vat_rate","previous_balance","import_pending_items","updated_at"]); draft.items.all().delete(); create_rows=[]
+        for item in ([] if pending_issues else raw_items):
             code=str(item.get("urun_kodu") or "").strip(); product_card=ProductCard.objects.select_related("urun").filter(urun__kod__iexact=code).first() if code else None
             if not product_card: continue
             unit_price=max(Decimal("0"),_decimal(item.get("anlasilan_fiyat"),"0")); satirlar=item.get("satirlar") or []
@@ -452,7 +453,7 @@ def showroom_draft_autosave(request):
         if create_rows: ShowroomDraftItem.objects.bulk_create(create_rows)
         draft.payments.all().delete(); payment_rows=_build_payment_rows(draft,raw_payments)
         if payment_rows: ShowroomPayment.objects.bulk_create(payment_rows)
-    return JsonResponse({"ok":True,"draft":draft.id,"updated_at":draft.updated_at.isoformat() if draft.updated_at else None})
+    return JsonResponse({"ok":True,"draft":draft.id,"requires_review":bool(pending_issues),"review_count":len(pending_issues),"updated_at":draft.updated_at.isoformat() if draft.updated_at else None})
 
 @login_required
 @require_POST
@@ -488,7 +489,8 @@ def showroom_draft_action(request):
             if action in {"save_draft","approve","delete"}:
                 draft=_active_draft(request.user)
                 if not draft: return JsonResponse({"ok":False,"message":"Açık bir Föy bulunmuyor."},status=400)
-                if action!="delete" and not draft.items.exists(): return JsonResponse({"ok":False,"message":"Boş Föy kaydedilemez."},status=400)
+                if action!="delete" and not draft.items.exists() and not draft.import_pending_items: return JsonResponse({"ok":False,"message":"Boş Föy kaydedilemez."},status=400)
+                if action=="approve" and draft.import_pending_items: return JsonResponse({"ok":False,"message":"Eksik/hatalı fotoğraf okuma alanlarını tamamlayın. İsterseniz taslak olarak kaydedin."},status=400)
                 if action=="delete":
                     _delete_draft_safely(draft)
                     return JsonResponse({"ok":True,"message":"Taslak silindi."})
@@ -500,7 +502,7 @@ def showroom_draft_action(request):
                 if not target: return JsonResponse({"ok":False,"message":"Föy bulunamadı."},status=404)
                 active=_active_draft(request.user)
                 if active and active.id!=target.id:
-                    if active.items.exists(): return JsonResponse({"ok":False,"message":"Önce açık Föyü taslak kaydedin, onaylayın veya silin."},status=409)
+                    if active.items.exists() or active.import_pending_items: return JsonResponse({"ok":False,"message":"Önce açık Föyü taslak kaydedin, onaylayın veya silin."},status=409)
                     _delete_draft_safely(active)
                 target.status="DRAFT"; target.save(update_fields=["status","updated_at"]); return JsonResponse({"ok":True,"draft":target.id,"message":"Taslak açıldı."})
             if action=="delete_saved":
@@ -679,6 +681,8 @@ def showroom_toggle_approval(request, draft_id):
             status__in=["PENDING", "APPROVED", "TRANSFERRED"],
         )
         if draft.status == "PENDING":
+            if draft.import_pending_items:
+                return HttpResponseBadRequest("Eksik/hatalı fotoğraf okuma alanlarını tamamlayın.")
             if not draft.items.exists():
                 return HttpResponseBadRequest("Boş Föy onaylanamaz.")
             draft.status = "APPROVED"
