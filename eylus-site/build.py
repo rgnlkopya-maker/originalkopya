@@ -1562,7 +1562,7 @@ SOLUTION_GROUPS = [
 APPROVED_SOLUTION_SCREENSHOTS = {
     "operasyon-01": ("siparis-listesi-onayli.webp", "Eylus Sipariş Listesi: Son Durum sütunu kırmızı kalemle vurgulanmış, müşteri ve sipariş bilgileri örnek verilerle anonimleştirilmiş gerçek uygulama ekranı"),
     "operasyon-02": ("asama-problemleri-onayli.webp", "Eylus Aşama Problemleri tanıtım görseli: beş örnek kayıt ve Tespit Edilen Eksik İşlem sütununda kırmızı kalem vurgusu"),
-    "operasyon-03": ("hareketsiz-siparisler-onayli.webp", "Eylus Hareketsiz Siparişler ekranı: kaç gündür işlem yapılmadığını gösteren Süre sütunu kırmızı kalemle vurgulanmış uygulama ekranı"),
+    "operasyon-03": ("769AA296-8416-4968-8F06-05E61C89C34D.png", "Eylus Hareketsiz Siparişler ekranı: kaç gündür işlem yapılmadığını gösteren Süre sütunu kırmızı kalemle vurgulanmış uygulama ekranı"),
 }
 
 def approved_solution_screen(key):
