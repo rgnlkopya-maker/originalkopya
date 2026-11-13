@@ -210,7 +210,22 @@ def showroom_transfer_preview(request, draft_id):
         status__in=["APPROVED", "TRANSFERRED"],
     )
     if draft.import_pending_items:
-        return redirect("showroom_detail_page", draft_id=draft.id)
+        from .showroom_views import _smart_import_issues
+        issues = _smart_import_issues(draft.import_pending_items, draft.customer)
+        return render(request, "product_cards/showroom_transfer_preview.html", {
+            "draft": draft,
+            "rows": [],
+            "total_orders": 0,
+            "transferred_orders": 0,
+            "batch_size": TRANSFER_BATCH_SIZE,
+            "missing_qr_count": 0,
+            "product_count": len(draft.import_pending_items),
+            "total_value": Decimal("0"),
+            "warnings": issues or ["Bilgiler tamamlanmış görünüyor; Düzenle ekranında Değişiklikleri Kaydet'e basarak doğrulamayı bitirin."],
+            "review_required": True,
+            "can_transfer": False,
+            "order_type_label": dict(Order.SIPARIS_TIPLERI).get(draft.order_type or "SERI", draft.order_type or "SERI"),
+        })
     rows, _, _, _ = _draft_rows(draft)
     rows, _, _ = _transfer_pricing(draft, rows)
     rows = _pending_transfer_rows(draft, rows)
