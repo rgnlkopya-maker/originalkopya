@@ -209,6 +209,8 @@ def showroom_transfer_preview(request, draft_id):
         created_by=request.user,
         status__in=["APPROVED", "TRANSFERRED"],
     )
+    if draft.import_pending_items:
+        return redirect("showroom_detail_page", draft_id=draft.id)
     rows, _, _, _ = _draft_rows(draft)
     rows, _, _ = _transfer_pricing(draft, rows)
     rows = _pending_transfer_rows(draft, rows)
@@ -265,6 +267,8 @@ def showroom_transfer_create(request, draft_id):
         )
         if draft.status not in {"APPROVED", "TRANSFERRED"}:
             return failure("Yalnızca onaylı Föyler aktarılabilir.")
+        if draft.import_pending_items:
+            return failure("Fotoğraftan okunan föyde eksik/hatalı alanlar var. Önce föyü düzenleyip tamamlayın.")
         if not draft.customer_id:
             return failure("Föyde müşteri seçilmiş olmalıdır.")
 
