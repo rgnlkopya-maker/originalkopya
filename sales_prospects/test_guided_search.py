@@ -68,7 +68,7 @@ class SequentialResearchTests(TestCase):
         self.assertEqual(fake.call_count, 2)
         screen = self.client.get(reverse("prospect_list_with_history", args=[session.pk]))
         self.assertContains(screen, "Arama geçmişi")
-        self.assertContains(screen, "Sonraki 20 sonucu araştır")
+        self.assertContains(screen, "20 yeni mağaza bul")
 
     @patch.dict(os.environ, {"SERPER_API_KEY": "dummy-test"})
     @patch("sales_prospects.automatic_search._fetch_serper_page")
