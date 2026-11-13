@@ -799,7 +799,8 @@ def showroom_edit_save(request,draft_id):
                     if not order:
                         continue
                     changed = []
-                    final_price = Decimal(final_price).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+                    proposed_price = Decimal(final_price).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+                    final_price = proposed_price if proposed_price > 0 else None
                     if order.satis_fiyati != final_price:
                         order.satis_fiyati = final_price
                         changed.append("satis_fiyati")
@@ -808,6 +809,9 @@ def showroom_edit_save(request,draft_id):
                         changed.append("vat_rate")
                     if changed:
                         order.save(update_fields=changed + ["last_updated"])
+                    if final_price is None:
+                        # The post_save financial signal already records price as unknown.
+                        continue
 
                     # Föy düzeltmesi satış bilgisidir. Sipariş sevk edilmiş olsa bile
                     # satış fiyatını düzelt; sevkiyat anındaki maliyet snapshot'ına dokunma.
