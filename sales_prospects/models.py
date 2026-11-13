@@ -142,6 +142,7 @@ class GuidedSearch(models.Model):
     google_url = models.URLField(max_length=1100)
     next_page = models.PositiveIntegerField(default=1)
     last_page_size = models.PositiveIntegerField(default=0)
+    pending_results = models.JSONField(default=list, blank=True)
     exhausted = models.BooleanField(default=False)
     last_error = models.CharField(max_length=400, blank=True, default="")
     search_provider = models.CharField(max_length=20, default="SERPER")
