@@ -61,11 +61,12 @@ if (!EDIT_MODE) {
  window.__moliSmartBeforeFinalize=async function(allowIncomplete=false){
   const issues=window.__moliSmartIssues();
   if(issues.length&&!allowIncomplete)throw Error('Fotoğraftan aktarılan föyde '+issues.length+' eksik/hatalı alan var. Föy içindeki Düzenle butonundan tamamlayın. '+issues.slice(0,3).join(' '));
-  if(!pendingSourcePhotos.length)return;
-  // Sync the current editor data before finding its active folio ID.
+  if(!pendingSourcePhotos.length&&!window.__moliSmartImportActive)return;
+  // Sync every OCR draft before save, even if its source images were attached earlier.
   const sync=await fetch(SAVE_URL,{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json','X-CSRFToken':csrf()},body:JSON.stringify(snapshot())});
   const syncData=await sync.json();
   if(!sync.ok||!syncData.ok)throw Error(syncData.message||'Föy kaydedilemedi. Fotoğraflar aktarılmadı.');
+  if(!pendingSourcePhotos.length)return;
   const fd=new FormData();pendingSourcePhotos.forEach(photo=>fd.append('photos',photo));
   const response=await fetch('{% url "showroom_smart_photo_attach" %}',{method:'POST',credentials:'same-origin',headers:{'X-CSRFToken':csrf()},body:fd});
   const data=await response.json();
