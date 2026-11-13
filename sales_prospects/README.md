@@ -109,3 +109,33 @@ on at most two pages. The follow-up release now:
 Any website that blocks automated access or does not publish a contact number
 may still have an empty phone field. Check the recorded source URL for each
 automatically filled contact.
+
+
+## Unique prospect batches (13 November 2026)
+
+**"20 yeni mağaza bul" now targets twenty *new* CRM prospects**, not the
+first twenty Google entries. MoliApp checks each organic result against all
+previously saved prospects, independent of search phrase, manager, country,
+or the age of the old lead. A duplicate site-domain or a known Instagram
+business profile never becomes a new prospect again.
+
+The browser continues requesting the next Serper page automatically while
+the target has not been met. To limit third-party API charges and avoid long
+individual web-worker requests, each user click requests at most eight new
+search pages. If the engine cannot find 20 unique stores within those pages,
+it returns the actual number and the next click continues the investigation.
+
+When only e.g. 3 new prospects are still needed, MoliApp stores just those
+3. Unprocessed organic results from the current provider page are saved in
+\`GuidedSearch.pending_results\` and examined first on the next click, without
+charging for the same provider page a second time. The search history continues
+to record cumulative reviewed, new, duplicate, and unsuitable results.
+
+After 90 days without research on identical country/city/keywords, a new
+search-history session starts from page 1 to reflect changed Google results.
+Global CRM deduplication still excludes all previously found shops, including
+those first discovered six months ago. Recent research sessions resume the
+saved search cursor.
+
+No API key is returned to the browser; only public search counts and CRM
+results are returned. Automatic outreach remains disabled.
