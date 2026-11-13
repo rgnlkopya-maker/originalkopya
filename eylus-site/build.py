@@ -1592,6 +1592,10 @@ SOLUTION_EDITORIAL_COPY = {
         "Atölyeyi aramadan, siparişinizin hangi aşamada olduğunu tek bakışta görün.",
         "Kesimden sevkiyata güncel durumları; müşteri, model, beden ve teslim tarihiyle birlikte takip edin. Arama ve filtrelerle istediğiniz siparişe kolayca ulaşın.",
     ),
+    "operasyon-02": (
+        "Üretim ilerlerken eksik kalan aşama kayıtlarını gözden kaçırmayın.",
+        "Kesim, dikim ve süslemede eksik bırakılmış Başladı veya Bitti işlemlerini sipariş bazında görün. Personel bazlı görünümden ilgili siparişleri ve kaydı ortaya çıkaran işlemi inceleyin. Bunlar kayıt tutarsızlığı uyarılarıdır; kesin kusur tespiti değildir.",
+    ),
     "yonetim-01": (
         "İşletmenizde bugün neler olduğunu öğrenmek için tek tek rapor istemeyin.",
         "Patron Ekranı'nda geciken ve yaklaşan teslimatları, günlük üretim hareketlerini, malzeme eksiklerini ve personel özetini bir arada görün. Öncelik vermeniz gereken işleri daha hızlı belirleyin.",
