@@ -11,7 +11,7 @@ from django.utils import timezone
 
 from core.models import CustomerPricingRule, Musteri, Order, OrderEvent, ProductCost, UrunKod
 from .finance_views import calculate_finance_result
-from .models import ExchangeRate, Material, OrderFinancialSnapshot, PriceListSettings, ProductCard, ProductMaterial, ShipmentFinancialSnapshot, ShowroomDraft, ShowroomDraftItem
+from .models import ExchangeRate, Material, OrderFinancialSnapshot, PriceListSettings, ProductCard, ProductMaterial, ShipmentFinancialSnapshot, ShowroomDraft, ShowroomDraftItem, ShowroomOrderLink
 
 
 class MaterialCostEditTests(TestCase):
