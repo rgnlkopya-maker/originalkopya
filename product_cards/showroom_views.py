@@ -680,7 +680,7 @@ def showroom_toggle_approval(request, draft_id):
             status__in=["PENDING", "APPROVED", "TRANSFERRED"],
         )
         if draft.status == "PENDING":
-            if not draft.items.exists():
+            if not draft.items.exists() and not draft.import_pending_items:
                 return HttpResponseBadRequest("Boş Föy onaylanamaz.")
             draft.status = "APPROVED"
         else:
