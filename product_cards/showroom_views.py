@@ -109,9 +109,8 @@ def _smart_import_issues(raw_items, customer):
         label = raw_code or f"{i}. ürün"
         if not code or code not in valid_codes:
             errors.append(f"{label}: ürün kodunun ürün kartıyla eşleştiğini kontrol edin.")
-        price = _decimal(item.get("anlasilan_fiyat"), "0")
-        if not price.is_finite() or price <= 0:
-            errors.append(f"{label}: anlaşılan birim fiyat boş veya sıfır.")
+        # Price is commercial information, not a prerequisite for production.
+        # Blank/zero means price agreement is pending and must not block transfer.
         rows = item.get("satirlar") or []
         if not isinstance(rows, list) or not rows:
             errors.append(f"{label}: renk/beden satırı eksik.")
