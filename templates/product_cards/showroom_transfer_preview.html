@@ -39,9 +39,14 @@ document.addEventListener('DOMContentLoaded', function () {
       headers: {'X-Requested-With': 'XMLHttpRequest', 'X-CSRFToken': csrf}
     });
     let result;
-    try { result = await response.json(); }
-    catch (_) { throw new Error('Sunucudan beklenmeyen yanıt alındı. Sayfayı yenileyin.'); }
-    if (!response.ok || !result.ok) throw new Error(result.error || 'İşlem başarısız.');
+    const responseText = await response.text();
+    try { result = JSON.parse(responseText); }
+    catch (_) {
+      if (response.redirected) throw new Error('Oturum veya erişim yönlendirmesi oldu (HTTP ' + response.status + '). Yeniden giriş yapıp sayfayı açın.');
+      if ([502, 503, 504].includes(response.status)) throw new Error('Sunucu yanıt veremedi (HTTP ' + response.status + '). İşlem grubu küçültüldü; sayfayı yenileyerek kalan adetleri kontrol edin.');
+      throw new Error('Sunucu JSON yerine farklı bir yanıt verdi (HTTP ' + response.status + '). Sunucu kayıtlarından nedeni kontrol edin.');
+    }
+    if (!response.ok || !result.ok) throw new Error(result.error || ('İşlem başarısız (HTTP ' + response.status + ').'));
     return result;
   }
   async function processQr() {
@@ -83,7 +88,7 @@ document.addEventListener('DOMContentLoaded', function () {
       retryQr.hidden = false;
       await processQr();
     } catch (err) {
-      status.textContent = 'Aktarım durdu: ' + err.message + ' Kaydedilenler korunur. Sayfayı yenileyip devam edin.';
+      status.textContent = 'Aktarım durdu: ' + err.message + ' Önceden oluşturulmuş siparişler yeniden oluşturulmaz. Sayfayı yenileyip kalanları kontrol edin.';
       btn.textContent = 'Kaldığın Yerden Devam Et';
       btn.disabled = false;
     } finally { running = false; }
