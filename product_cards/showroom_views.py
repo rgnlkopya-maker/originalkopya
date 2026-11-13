@@ -874,4 +874,4 @@ def showroom_edit_save(request,draft_id):
 
     if draft.status in {"APPROVED", "TRANSFERRED"}:
         transaction.on_commit(lambda: queue_folio_drive_sync(draft.id))
-    return JsonResponse({"ok":True,"requires_review":bool(pending_issues),"review_count":len(pending_issues),"review_issues":pending_issues[:12],"message":(("Onaylanan föy kaydedildi. " if draft.status == "APPROVED" else "Taslak kaydedildi. ") + f"{len(pending_issues)} kontrol konusu kaldı: " + " ".join(pending_issues[:3])) if pending_issues else "Föy güncellendi; sipariş oluşturma kontrolü açıldı."})
+    return JsonResponse({"ok":True,"requires_review":bool(pending_issues),"review_count":len(pending_issues),"review_issues":pending_issues[:12],"message":(("Onaylanan föy kaydedildi. " if draft.status == "APPROVED" else "Taslak kaydedildi. ") + f"{len(pending_issues)} kontrol konusu kaldı: " + " ".join(pending_issues[:3])) if pending_issues else ("Föy güncellendi; sipariş oluşturma kontrolü açıldı." if draft.status == "APPROVED" else "Föy güncellendi; kontrol tamamlandı.")})
