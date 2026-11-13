@@ -95,40 +95,42 @@ def _smart_import_issues(raw_items, customer):
         errors.append("Müşteri seçilmedi.")
     if not isinstance(raw_items, list) or not raw_items:
         return errors + ["En az bir ürün gerekli."]
-    valid_colors = {str(x).strip().casefold() for x in Renk.objects.filter(aktif=True).values_list("ad", flat=True)}
-    valid_sizes = {str(x).strip().casefold() for x in Beden.objects.filter(aktif=True).values_list("ad", flat=True)}
+    valid_colors = {str(x).strip().casefold() for x in Renk.objects.values_list("ad", flat=True)}
+    valid_sizes = {str(x).strip().casefold() for x in Beden.objects.values_list("ad", flat=True)}
     if customer and CustomerPricingRule.objects.filter(customer=customer, active=True).exists():
         valid_sizes.add(CUSTOMER_BASE_PRICE_SIZE.casefold())
-    valid_codes = {str(x).strip().casefold() for x in ProductCard.objects.filter(urun__aktif=True).values_list("urun__kod", flat=True)}
+    valid_codes = {str(x).strip().casefold() for x in ProductCard.objects.values_list("urun__kod", flat=True)}
     for i, item in enumerate(raw_items, 1):
         if not isinstance(item, dict):
             errors.append(f"{i}. ürün okunamadı.")
             continue
-        code = str(item.get("urun_kodu") or "").strip().casefold()
+        raw_code = str(item.get("urun_kodu") or "").strip()
+        code = raw_code.casefold()
+        label = raw_code or f"{i}. ürün"
         if not code or code not in valid_codes:
-            errors.append(f"{i}. ürün kodu eksik/eşleşmedi.")
+            errors.append(f"{label}: ürün kodunun ürün kartıyla eşleştiğini kontrol edin.")
         price = _decimal(item.get("anlasilan_fiyat"), "0")
         if not price.is_finite() or price <= 0:
-            errors.append(f"{i}. ürün fiyatı eksik.")
+            errors.append(f"{label}: anlaşılan birim fiyat boş veya sıfır.")
         rows = item.get("satirlar") or []
         if not isinstance(rows, list) or not rows:
-            errors.append(f"{i}. ürün satırı eksik.")
+            errors.append(f"{label}: renk/beden satırı eksik.")
             continue
         for j, row in enumerate(rows, 1):
             if not isinstance(row, dict):
-                errors.append(f"{i}. ürün {j}. satır okunamadı.")
+                errors.append(f"{label}, {j}. satır okunamadı.")
                 continue
             if str(row.get("renk") or "").strip().casefold() not in valid_colors:
-                errors.append(f"{i}. ürün {j}. satır rengi eksik/eşleşmedi.")
+                errors.append(f"{label}, {j}. satır: renk eksik veya listede bulunamadı.")
             sizes = row.get("bedenler") or []
             if not isinstance(sizes, list) or not sizes or any(str(size).strip().casefold() not in valid_sizes for size in sizes):
-                errors.append(f"{i}. ürün {j}. satır bedeni eksik/eşleşmedi.")
+                errors.append(f"{label}, {j}. satır: beden eksik veya listede bulunamadı.")
             try:
                 qty = int(str(row.get("adet")))
             except (ValueError, TypeError):
                 qty = 0
             if qty <= 0:
-                errors.append(f"{i}. ürün {j}. satır adedi eksik.")
+                errors.append(f"{label}, {j}. satır: adet pozitif tam sayı olmalı.")
     return errors
 
 
@@ -224,7 +226,7 @@ def _draft_summary(draft):
         folio_adjustment = pricing["adjustment"]
     previous_balance=max(Decimal("0"),draft.previous_balance or Decimal("0")); total=folio_total+previous_balance
     collected=draft.payments.filter(entry_type="COLLECTION").aggregate(v=Sum("amount"))["v"] or Decimal("0"); promised=draft.payments.filter(entry_type="PROMISE").aggregate(v=Sum("amount"))["v"] or Decimal("0"); remaining=max(Decimal("0"),total-collected)
-    return {"currency":draft.currency or "TRY","id":draft.id,"customer":draft.customer.ad if draft.customer else "Müşteri seçilmedi","product_count":items["product_count"] or 0,"total_qty":items["total_qty"] or 0,"subtotal":str(subtotal.quantize(Decimal("0.01"))),"discount":str(discount.quantize(Decimal("0.01"))),"vat_rate":str(vat_rate.quantize(Decimal("0.01"))),"vat":str(vat.quantize(Decimal("0.01"))),"pricing_steps":pricing_steps,"folio_adjustment":str(folio_adjustment.quantize(Decimal("0.01"))),"folio_adjustment_applied":folio_adjustment_applied,"folio_total":str(folio_total.quantize(Decimal("0.01"))),"previous_balance":str(previous_balance.quantize(Decimal("0.01"))),"total":str(total.quantize(Decimal("0.01"))),"collected":str(collected.quantize(Decimal("0.01"))),"promised":str(promised.quantize(Decimal("0.01"))),"remaining":str(remaining.quantize(Decimal("0.01"))),"updated_at":timezone.localtime(draft.updated_at).strftime("%d.%m.%Y %H:%M"),"status":draft.status,"requires_review":bool(draft.import_pending_items)}
+    return {"currency":draft.currency or "TRY","id":draft.id,"customer":draft.customer.ad if draft.customer else "Müşteri seçilmedi","product_count":items["product_count"] or 0,"total_qty":items["total_qty"] or 0,"subtotal":str(subtotal.quantize(Decimal("0.01"))),"discount":str(discount.quantize(Decimal("0.01"))),"vat_rate":str(vat_rate.quantize(Decimal("0.01"))),"vat":str(vat.quantize(Decimal("0.01"))),"pricing_steps":pricing_steps,"folio_adjustment":str(folio_adjustment.quantize(Decimal("0.01"))),"folio_adjustment_applied":folio_adjustment_applied,"folio_total":str(folio_total.quantize(Decimal("0.01"))),"previous_balance":str(previous_balance.quantize(Decimal("0.01"))),"total":str(total.quantize(Decimal("0.01"))),"collected":str(collected.quantize(Decimal("0.01"))),"promised":str(promised.quantize(Decimal("0.01"))),"remaining":str(remaining.quantize(Decimal("0.01"))),"updated_at":timezone.localtime(draft.updated_at).strftime("%d.%m.%Y %H:%M"),"status":draft.status,"requires_review":bool(draft.import_pending_items),"review_issues":(_smart_import_issues(draft.import_pending_items,draft.customer) if draft.import_pending_items else [])}
 
 
 def _effective_price_factor(draft):
@@ -872,4 +874,4 @@ def showroom_edit_save(request,draft_id):
 
     if draft.status in {"APPROVED", "TRANSFERRED"}:
         transaction.on_commit(lambda: queue_folio_drive_sync(draft.id))
-    return JsonResponse({"ok":True,"requires_review":bool(pending_issues),"message":("Onaylanan föy kaydedildi. Eksik alanları daha sonra tamamlayabilirsiniz." if draft.status == "APPROVED" else "Taslak kaydedildi. Eksik alanları daha sonra tamamlayabilirsiniz.") if pending_issues else "Föy güncellendi; bağlı siparişlerin satış fiyatları ve finans kârları güncellendi."})
+    return JsonResponse({"ok":True,"requires_review":bool(pending_issues),"review_count":len(pending_issues),"review_issues":pending_issues[:12],"message":(("Onaylanan föy kaydedildi. " if draft.status == "APPROVED" else "Taslak kaydedildi. ") + f"{len(pending_issues)} kontrol konusu kaldı: " + " ".join(pending_issues[:3])) if pending_issues else "Föy güncellendi; sipariş oluşturma kontrolü açıldı."})
