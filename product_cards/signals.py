@@ -37,7 +37,7 @@ def sync_order_financial_snapshot(sender, instance, created, **kwargs):
     rate_obj = ExchangeRate.objects.order_by("-rate_date", "-fetched_at").first()
     usd_try = rate_obj.usd_try if rate_obj else None
 
-    sale = Decimal(instance.satis_fiyati or 0)
+    sale = Decimal(instance.satis_fiyati) if instance.satis_fiyati is not None else None
     sale_currency = instance.para_birimi or "TRY"
     sale_tl = _convert_to_try(sale, sale_currency, usd_try, rate_obj)
 
