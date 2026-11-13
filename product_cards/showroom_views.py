@@ -256,6 +256,8 @@ def _effective_price_factor(draft):
 def _effective_serialized_items(draft):
     data = _serialize_draft(draft)
     if draft.import_pending_items:
+        for item in data["items"]:
+            item["price_pending"] = _decimal(item.get("anlasilan_fiyat"), "0") <= 0
         return data["items"]
     factor = _effective_price_factor(draft)
     vat_multiplier = Decimal("1")
@@ -270,6 +272,7 @@ def _effective_serialized_items(draft):
         vat_multiplier = Decimal("1") + (Decimal(draft.vat_rate) / Decimal("100"))
     for item in data["items"]:
         base_price = _decimal(item.get("anlasilan_fiyat"), "0")
+        item["price_pending"] = base_price <= 0
         gross_price = base_price * factor
         net_price = gross_price / vat_multiplier if vat_multiplier > 0 else gross_price
         item["anlasilan_fiyat"] = str(net_price.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP))
