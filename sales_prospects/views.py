@@ -80,6 +80,19 @@ def prospect_list(request, history_id=None):
         ).count(),
     }
     history_page = Paginator(searches, 20).get_page(request.GET.get("history_page"))
+    batch_summary = None
+    if active_search and "batch_new" in request.GET:
+        def _safe_count(name):
+            try:
+                return min(max(int(request.GET.get(name, "0")), 0), 500)
+            except (ValueError, TypeError):
+                return 0
+        batch_summary = {
+            "new": _safe_count("batch_new"),
+            "duplicates": _safe_count("batch_duplicates"),
+            "skipped": _safe_count("batch_skipped"),
+            "pages": _safe_count("batch_pages"),
+        }
     return render(request, "sales_prospects/workspace.html", {
         "page": page, "counts": counts, "countries": COUNTRIES,
         "statuses": Prospect.STATUS, "selected_status": status,
@@ -87,6 +100,7 @@ def prospect_list(request, history_id=None):
         "active_search": active_search, "recent_searches": history_page,
         "history_page": history_page,
         "search_provider_configured": is_configured(),
+        "batch_summary": batch_summary,
         "search_form": GuidedSearchForm(initial={
             "country": active_search.country if active_search else "DE",
             "city": active_search.city if active_search else "",
