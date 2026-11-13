@@ -414,7 +414,7 @@ def showroom_draft_autosave(request):
     customer=Musteri.objects.filter(pk=customer_id).first() if customer_id else None
     pending_issues = _smart_import_issues(raw_items, customer) if payload.get("smart_import_active") else []
     validation_error = _validate_customer_base_price_rows(customer, raw_items)
-    if validation_error:
+    if validation_error and not pending_issues:
         return JsonResponse({"ok":False,"message":validation_error},status=400)
     currency = str(payload.get("currency") or "TRY").upper()
     if currency not in {"TRY", "USD", "EUR", "GBP"}:
@@ -714,7 +714,7 @@ def showroom_edit_save(request,draft_id):
     customer=Musteri.objects.filter(pk=customer_id).first() if customer_id else None
     pending_issues = _smart_import_issues(raw_items, customer) if (draft.import_pending_items or payload.get("smart_import_active")) else []
     validation_error = _validate_customer_base_price_rows(customer, raw_items)
-    if validation_error:
+    if validation_error and not pending_issues:
         return JsonResponse({"ok":False,"message":validation_error},status=400)
     rate=max(Decimal("0"),min(Decimal("100"),_decimal(payload.get("discount_rate"),"0"))); amount=max(Decimal("0"),_decimal(payload.get("discount_amount"),"0")); vat_rate=max(Decimal("0"),min(Decimal("100"),_decimal(payload.get("vat_rate"),"0"))); previous_balance=max(Decimal("0"),_decimal(payload.get("previous_balance"),"0")); create_rows=[]
     for item in ([] if pending_issues else raw_items):
