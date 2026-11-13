@@ -86,20 +86,25 @@ def import_results(request):
 @login_required
 @require_POST
 def automatic_next_batch(request):
-    """Search and save up to 20 new candidate results without manual selection."""
+    """Serve one bounded results page, optionally as an AJAX fill-to-20 step."""
     if not _allowed(request):
         return HttpResponseForbidden("Yetkiniz yok.")
+    ajax = request.headers.get("X-Requested-With") == "XMLHttpRequest"
     form = GuidedSearchForm(request.POST)
     if not form.is_valid():
-        messages.error(request, "Ülke, şehir veya arama kelimesi geçersiz.")
+        issue = "Ülke, şehir veya arama kelimesi geçersiz."
+        if ajax:
+            return JsonResponse({"ok": False, "error": issue}, status=400)
+        messages.error(request, issue)
         return redirect("prospect_list")
     if not is_configured():
-        messages.warning(
-            request,
-            "Otomatik Google sonuçları henüz bağlanmadı. "
-            "Serper hesabından ücretsiz API anahtarı oluşturulup "
-            "Render'a SERPER_API_KEY olarak eklenmeli."
+        issue = (
+            "Serper bağlantısı bulunamadı. Render ortamında SERPER_API_KEY "
+            "tanımlanmalı."
         )
+        if ajax:
+            return JsonResponse({"ok": False, "error": issue}, status=503)
+        messages.warning(request, issue)
         return redirect("prospect_list")
 
     query = form.cleaned_data["query"]
@@ -108,26 +113,42 @@ def automatic_next_batch(request):
     search = find_or_start(request.user, country, city, query)
     request.session["active_guided_search_id"] = search.pk
     try:
-        result = run_next_page(search, request.user)
+        result = run_next_page(
+            search, request.user, target_new=request.POST.get("target_new", "20")
+        )
     except SearchUnavailable as exc:
+        if ajax:
+            return JsonResponse(
+                {"ok": False, "error": str(exc), "search_id": search.pk},
+                status=503,
+            )
         messages.error(request, str(exc))
         return redirect("prospect_list_with_history", history_id=search.pk)
     except Exception:
         import logging
         logging.getLogger(__name__).exception("Guided automated search failed")
-        messages.error(request, "Arama işlenirken beklenmeyen bir hata oluştu; sayfa ilerlemedi.")
+        issue = "Arama işlenirken hata oluştu; mevcut kayıtlar korunuyor."
+        if ajax:
+            return JsonResponse({"ok": False, "error": issue, "search_id": search.pk}, status=500)
+        messages.error(request, issue)
         return redirect("prospect_list_with_history", history_id=search.pk)
 
+    if ajax:
+        return JsonResponse({"ok": True, "search_id": search.pk, **result})
+
     if result["status"] == "EXHAUSTED":
-        messages.info(request, "Bu aramanın erişilebilir sonuç sayfaları tamamlandı. Yeni şehir veya arama kelimesi seç.")
+        messages.info(
+            request,
+            "Bu araştırmada erişilebilir sonuçlar tamamlandı. "
+            "Başka şehir veya arama kelimesi deneyin.",
+        )
     else:
         messages.success(
             request,
-            "Google sonuç sayfası {} işlendi: {} sonuç incelendi · {} yeni mağaza · "
-            "{} mükerrer · {} uygun olmayan/atlanmış. "
-            "İşletmelerin iletişim bağlantıları sırayla araştırılır; mesaj gönderilmedi.".format(
-                result["page"], result["seen"], result["new"],
-                result["duplicates"], result["skipped"],
+            "{} yeni mağaza bulundu, {} eski mağaza atlandı, "
+            "{} uygun olmayan sonuç elendi. Daha fazla yeni mağaza için "
+            "tekrar arayabilirsin.".format(
+                result["new"], result["duplicates"], result["skipped"]
             ),
         )
     return redirect("prospect_list_with_history", history_id=search.pk)
