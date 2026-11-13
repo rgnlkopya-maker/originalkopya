@@ -494,7 +494,7 @@ def showroom_draft_action(request):
                     _delete_draft_safely(draft)
                     return JsonResponse({"ok":True,"message":"Taslak silindi."})
                 draft.status="PENDING" if action=="save_draft" else "APPROVED"; draft.save(update_fields=["status","updated_at"])
-                if draft.status == "APPROVED": transaction.on_commit(lambda: queue_folio_drive_sync(draft.id))
+                if draft.status == "APPROVED" and not draft.import_pending_items: transaction.on_commit(lambda: queue_folio_drive_sync(draft.id))
                 return JsonResponse({"ok":True,"draft":draft.id,"status":draft.status,"message":"Taslak kaydedildi." if action=="save_draft" else "Föy onaylananlara kaydedildi."})
             if action=="open_saved":
                 draft_id=payload.get("draft_id"); target=ShowroomDraft.objects.filter(id=draft_id,created_by=request.user,status="PENDING").first()
@@ -686,7 +686,7 @@ def showroom_toggle_approval(request, draft_id):
         else:
             draft.status = "PENDING"
         draft.save(update_fields=["status", "updated_at"])
-    if draft.status == "APPROVED":
+    if draft.status == "APPROVED" and not draft.import_pending_items:
         transaction.on_commit(lambda: queue_folio_drive_sync(draft.id))
     return redirect("showroom_detail_page", draft_id=draft.id)
 
