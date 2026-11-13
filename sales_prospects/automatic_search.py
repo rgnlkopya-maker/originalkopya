@@ -13,6 +13,7 @@ from urllib.request import Request, urlopen
 from urllib.parse import urlencode
 
 from django.db import transaction
+from django.db.models import Q
 from django.utils import timezone
 
 from .guided_search import canonical_store_url, clean_title, google_url_for
@@ -115,6 +116,18 @@ def _store_one(search, item, user):
     if not any(term in evidence for term in RETAIL_TERMS):
         return "skipped"
     is_instagram = canonical.startswith("https://instagram.com/")
+    if is_instagram:
+        # A site-based CRM record may already list this Instagram profile,
+        # even though its unique canonical key is the shop website.
+        profile = canonical.rsplit("/", 1)[-1]
+        www_profile = "https://www.instagram.com/" + profile
+        if Prospect.objects.filter(
+            Q(instagram_url__iexact=canonical)
+            | Q(instagram_url__iexact=canonical + "/")
+            | Q(instagram_url__iexact=www_profile)
+            | Q(instagram_url__iexact=www_profile + "/")
+        ).exists():
+            return "duplicate"
     defaults = {
         "name": title,
         "country": search.country,
