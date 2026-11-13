@@ -712,11 +712,12 @@ def showroom_edit_save(request,draft_id):
     if not isinstance(raw_items,list) or not raw_items: return JsonResponse({"ok":False,"message":"Föyde en az bir ürün olmalı."},status=400)
     if not isinstance(raw_payments,list): return JsonResponse({"ok":False,"message":"Tahsilat verisi geçersiz."},status=400)
     customer=Musteri.objects.filter(pk=customer_id).first() if customer_id else None
+    pending_issues = _smart_import_issues(raw_items, customer) if (draft.import_pending_items or payload.get("smart_import_active")) else []
     validation_error = _validate_customer_base_price_rows(customer, raw_items)
     if validation_error:
         return JsonResponse({"ok":False,"message":validation_error},status=400)
     rate=max(Decimal("0"),min(Decimal("100"),_decimal(payload.get("discount_rate"),"0"))); amount=max(Decimal("0"),_decimal(payload.get("discount_amount"),"0")); vat_rate=max(Decimal("0"),min(Decimal("100"),_decimal(payload.get("vat_rate"),"0"))); previous_balance=max(Decimal("0"),_decimal(payload.get("previous_balance"),"0")); create_rows=[]
-    for item in raw_items:
+    for item in ([] if pending_issues else raw_items):
         code=str(item.get("urun_kodu") or "").strip(); card=ProductCard.objects.select_related("urun").filter(urun__kod__iexact=code).first() if code else None
         if not card: continue
         price=max(Decimal("0"),_decimal(item.get("anlasilan_fiyat"),"0"))
@@ -724,7 +725,7 @@ def showroom_edit_save(request,draft_id):
             try: qty=max(1,int(row.get("adet") or 1))
             except (TypeError,ValueError): qty=1
             for size in row.get("bedenler") or []: create_rows.append(ShowroomDraftItem(draft=draft,product_card=card,color=str(row.get("renk") or "")[:120],size=str(size or "")[:120],description=str(row.get("aciklama") or "")[:500],quantity=qty,unit_price=price))
-    if not create_rows: return JsonResponse({"ok":False,"message":"Geçerli ürün satırı bulunamadı."},status=400)
+    if not create_rows and not pending_issues: return JsonResponse({"ok":False,"message":"Geçerli ürün satırı bulunamadı."},status=400)
     payment_rows=_build_payment_rows(draft,raw_payments)
     with transaction.atomic():
         # Siparişe aktarılmış föylerde bağlantıları item silinmeden önce sakla.
@@ -734,7 +735,9 @@ def showroom_edit_save(request,draft_id):
             .order_by("id")
         ) if draft.status == "TRANSFERRED" else []
 
-        draft.customer=customer; draft.order_taken_by=order_taken_by; draft.order_type=order_type if order_type in dict(Order.SIPARIS_TIPLERI) else "SERI"; draft.pricing_operations=pricing_operations; draft.folio_adjustment_target=folio_adjustment_target; draft.discount_rate=rate; draft.overall_discount_amount=amount; draft.vat_rate=vat_rate; draft.previous_balance=previous_balance; draft.save(update_fields=["customer","order_taken_by","order_type","pricing_operations","folio_adjustment_target","discount_rate","overall_discount_amount","vat_rate","previous_balance","updated_at"]); draft.items.all().delete(); ShowroomDraftItem.objects.bulk_create(create_rows); draft.payments.all().delete()
+        draft.customer=customer; draft.order_taken_by=order_taken_by; draft.order_type=order_type if order_type in dict(Order.SIPARIS_TIPLERI) else "SERI"; draft.pricing_operations=pricing_operations; draft.folio_adjustment_target=folio_adjustment_target; draft.discount_rate=rate; draft.overall_discount_amount=amount; draft.vat_rate=vat_rate; draft.previous_balance=previous_balance; draft.import_pending_items=raw_items if pending_issues else []; draft.save(update_fields=["customer","order_taken_by","order_type","pricing_operations","folio_adjustment_target","discount_rate","overall_discount_amount","vat_rate","previous_balance","import_pending_items","updated_at"]); draft.items.all().delete();
+        if create_rows: ShowroomDraftItem.objects.bulk_create(create_rows)
+        draft.payments.all().delete()
         if payment_rows: ShowroomPayment.objects.bulk_create(payment_rows)
 
         # Föy daha önce siparişe dönüştüyse yeni satırları mevcut siparişlerle yeniden bağla
@@ -870,4 +873,4 @@ def showroom_edit_save(request,draft_id):
 
     if draft.status in {"APPROVED", "TRANSFERRED"}:
         transaction.on_commit(lambda: queue_folio_drive_sync(draft.id))
-    return JsonResponse({"ok":True,"message":"Föy güncellendi; bağlı siparişlerin satış fiyatları ve finans kârları güncellendi."})
+    return JsonResponse({"ok":True,"requires_review":bool(pending_issues),"message":"Taslak kaydedildi. Eksik alanları daha sonra tamamlayabilirsiniz." if pending_issues else "Föy güncellendi; bağlı siparişlerin satış fiyatları ve finans kârları güncellendi."})
