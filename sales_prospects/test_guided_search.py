@@ -249,6 +249,27 @@ class UniqueTwentyProspectTests(TestCase):
         self.assertEqual(run_next_page(search, self.user)["status"], "EXHAUSTED")
         self.assertEqual(fake.call_count, 1)
 
+    @patch.dict(os.environ, {"SERPER_API_KEY": "dummy-test"})
+    @patch("sales_prospects.automatic_search._fetch_serper_page")
+    def test_existing_shop_instagram_profile_is_also_a_duplicate(self, fake):
+        Prospect.objects.create(
+            name="Berlin Boutique", country="DE",
+            canonical_url="https://berlin-boutique.example.com",
+            website_url="https://berlin-boutique.example.com",
+            instagram_url="https://www.instagram.com/berlin_boutique/",
+        )
+        fake.return_value = [
+            {"title": "Berlin Bridal Boutique Instagram",
+             "link": "https://instagram.com/berlin_boutique/",
+             "snippet": "Evening dress shop boutique"}
+        ]
+        search = self._create_search()
+        result = run_next_page(search, self.user)
+        self.assertEqual(result["new"], 0)
+        self.assertEqual(result["duplicates"], 1)
+        self.assertEqual(Prospect.objects.count(), 1)
+        self.assertEqual(search.hits.count(), 0)
+
     def test_workspace_explains_twenty_new_not_twenty_results(self):
         response = self.client.get(reverse("prospect_list"))
         self.assertEqual(response.status_code, 200)
