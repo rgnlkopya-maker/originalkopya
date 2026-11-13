@@ -316,7 +316,8 @@ def sync_folio_to_drive(draft_id):
         .prefetch_related("items__product_card__urun", "payments")
         .get(pk=draft_id)
     )
-    if draft.status not in {"APPROVED", "TRANSFERRED"}:
+    if draft.status not in {"APPROVED", "TRANSFERRED"} or draft.import_pending_items:
+        # Do not replace an existing backup with an empty PDF for unverified OCR data.
         return False
 
     service = _drive_service()
