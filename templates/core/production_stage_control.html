@@ -37,7 +37,7 @@
   {% if view_mode == 'personnel' %}
     {% if selected_person %}
       <a class="personnel-back" href="?section=problems&view=personnel">← Tüm personel</a>
-      <div class="control-head"><div><h3 class="control-title" style="font-size:18px">{{ selected_person }} — İlgili Siparişler</h3><div class="control-sub">Atıf, eksik kaydı ortaya çıkaran hareketi yapan kişiye göre gösterilir. Kesin kusur değerlendirmesi değildir.</div></div><span class="count-pill">{{ person_issue_count }}</span></div>
+      <div class="control-head"><div><h3 class="control-title" style="font-size:18px">{{ selected_person }} — İlgili Siparişler</h3><div class="control-sub">Atıf, eksik kaydı ortaya çıkaran hareketi yapan kişiye göre gösterilir.</div></div><span class="count-pill">{{ person_issue_count }}</span></div>
       <div class="control-card">
       <table class="control-table"><thead><tr><th>Sipariş</th><th>Müşteri</th><th>Ürün</th><th>Renk / Beden</th><th>Eksik Kayıt</th><th>Atfa Neden Olan İşlem</th></tr></thead><tbody>
       {% for item in person_issues %}
