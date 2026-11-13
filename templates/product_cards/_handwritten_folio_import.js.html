@@ -37,7 +37,30 @@ if (!EDIT_MODE) {
  let photoUrls=[];
  let pendingSourcePhotos=[];
  const clearPhoto=()=>{photoUrls.forEach(u=>URL.revokeObjectURL(u));photoUrls=[];};
+ window.__moliSmartIssues=function(){
+  if(!window.__moliSmartImportActive)return [];
+  const issues=[];
+  const codeList=document.getElementById('modal_urun_kod_listesi');
+  const codes=new Set(codeList?[...codeList.options].map(o=>normalize(o.value||o.textContent)).filter(Boolean):[]);
+  const values=html=>{const el=document.createElement('select');el.innerHTML=html;return new Set([...el.options].map(o=>normalize(o.value)).filter(Boolean));};
+  const colors=values(colorOptions),sizes=values(sizeOptions);
+  if(!customerId)issues.push('Müşteri seçilmedi.');
+  showroomItems.forEach((item,i)=>{
+   const code=String(item.urun_kodu||'').trim();
+   if(!code||(codes.size&&!codes.has(normalize(code))))issues.push((i+1)+'. ürün kodunu kontrol edin.');
+   if(!Number.isFinite(Number(item.anlasilan_fiyat))||Number(item.anlasilan_fiyat)<=0)issues.push((i+1)+'. ürün fiyatını girin.');
+   (item.satirlar||[]).forEach((row,j)=>{
+    if(!row.renk||!colors.has(normalize(row.renk)))issues.push((i+1)+'. ürün '+(j+1)+'. satırın rengini seçin.');
+    if(!Array.isArray(row.bedenler)||!row.bedenler.length||row.bedenler.some(sz=>!sizes.has(normalize(sz))))issues.push((i+1)+'. ürün '+(j+1)+'. satırın bedenini seçin.');
+    if(!Number.isInteger(Number(row.adet))||Number(row.adet)<=0)issues.push((i+1)+'. ürün '+(j+1)+'. satırın adedini girin.');
+   });
+  });
+  if(!showroomItems.length)issues.push('En az bir ürün satırı girin.');
+  return issues;
+ };
  window.__moliSmartBeforeFinalize=async function(){
+  const issues=window.__moliSmartIssues();
+  if(issues.length)throw Error('Fotoğraftan aktarılan föyde '+issues.length+' eksik/hatalı alan var. Föy içindeki Düzenle butonundan tamamlayın. '+issues.slice(0,3).join(' '));
   if(!pendingSourcePhotos.length)return;
   // Sync the current editor data before finding its active folio ID.
   const sync=await fetch(SAVE_URL,{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json','X-CSRFToken':csrf()},body:JSON.stringify(snapshot())});
@@ -80,11 +103,12 @@ if (!EDIT_MODE) {
   if(!panel){panel=document.createElement('section');panel.id='moliSmartReview';sheet.querySelector('.showroom-sheet-inner').insertBefore(panel,sheet.querySelector('.showroom-sheet-head'));}
   const data=review.data;
   const rows=Array.isArray(data.items)?data.items:[];
-  const options=(html,raw)=>{
+  const options=(html,raw,preserveUnmatched=false)=>{
    const el=document.createElement('select');el.innerHTML=html;
    const selected=selectValue(html,raw);
    const list=[...el.options].filter(o=>o.value!=='');
-   const first='<option value=""'+(!selected?' selected':'')+'>'+esc(raw&&!selected?'⚠ Eşleşmedi: '+String(raw):'Seçiniz')+'</option>';
+   const unmatched=preserveUnmatched&&raw&&!selected?String(raw):'';
+   const first='<option value="'+esc(unmatched)+'"'+(!selected?' selected':'')+'>'+esc(unmatched?'⚠ Eşleşmedi: '+unmatched:'Seçiniz')+'</option>';
    return first+list.map(o=>'<option value="'+esc(o.value)+'"'+(selected===o.value?' selected':'')+'>'+esc(o.textContent)+'</option>').join('');
   };
   panel.style.cssText='padding:16px;margin-bottom:16px;background:#fff;border:2px solid #d2dbe9;border-radius:14px;font-size:13px';
@@ -94,19 +118,18 @@ if (!EDIT_MODE) {
   const codeChoices=uniqueCodes.length?'<datalist id="moliSmartCodeChoices">'+uniqueCodes.map(code=>'<option value="'+esc(code)+'"></option>').join('')+'</datalist>':'';
   const rowHtml=rows.map((r,i)=>{
    const cell=(key,v,width)=>'<td style="min-width:'+width+'px;padding:5px"><input data-i="'+i+'" data-key="'+key+'" value="'+esc(v)+'" '+(key==='product_code'&&uniqueCodes.length?'list="moliSmartCodeChoices" ':'')+'style="width:100%;min-width:0;border:1px solid #ccd4e2;border-radius:6px;padding:7px"></td>';
-   const select=(key,html,v)=>'<td style="min-width:100px;padding:5px"><select data-i="'+i+'" data-key="'+key+'" style="width:100%;min-width:0;border:1px solid #ccd4e2;border-radius:6px;padding:7px">'+options(html,v)+'</select></td>';
+   const select=(key,html,v)=>'<td style="min-width:100px;padding:5px"><select data-i="'+i+'" data-key="'+key+'" style="width:100%;min-width:0;border:1px solid #ccd4e2;border-radius:6px;padding:7px">'+options(html,v,true)+'</select></td>';
    return '<tr>'+cell('product_code',r.product_code,85)+select('color',colorOptions,r.color)+select('size',sizeOptions,r.size)+cell('quantity',r.quantity,65)+cell('unit_price',r.unit_price,95)+cell('written_line_total',r.written_line_total,95)+cell('description',r.description,115)+'</tr>';
   }).join('');
   panel.innerHTML='<div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center"><h4 style="margin:0">El Yazısı Okuma – Kontrol</h4><button id="moliSmartDiscard" type="button" style="padding:8px 12px;border:1px solid #cbd5e1;border-radius:8px;background:#fff;color:#334155">İncelemeyi Kapat</button></div>'
-  +'<p style="margin:7px 0">Orijinal: '+esc(review.fileName)+' • Model: '+esc(review.model)+' • Giriş tokenı: '+esc(review.usage.input_tokens??'?')+' • Çıkış tokenı: '+esc(review.usage.output_tokens??'?')+'. Sonuçlar taslak değildir; kontrol edin.</p>'
+  +'<p style="margin:7px 0">Orijinal: '+esc(review.fileName)+' • Model: '+esc(review.model)+' • Giriş tokenı: '+esc(review.usage.input_tokens??'?')+' • Çıkış tokenı: '+esc(review.usage.output_tokens??'?')+'. Eksikleri ve hataları föye aktardıktan sonra düzenleyebilirsiniz.</p>'
   +'<div style="font-size:12px;color:#53627b;padding:8px 10px;background:#f8fafc;border-radius:8px">Okuma süresi: '+esc(((review.timing.total_ms||0)/1000).toFixed(1))+' sn · Görsel hazırlama: '+esc(((review.timing.preparation_ms||0)/1000).toFixed(1))+' sn · Yapay zekâ: '+esc(((review.timing.api_ms||0)/1000).toFixed(1))+' sn · Gönderilen görünüm: '+esc(review.timing.images_sent||'?')+'</div>'
   +'<div id="moliSmartOriginals" style="display:flex;gap:10px;overflow:auto;max-height:390px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;margin:10px 0;padding:9px"></div>'
   +codeChoices+'<div style="overflow:auto"><table style="border-collapse:collapse;width:100%;min-width:840px"><thead><tr><th>Kod</th><th>Renk</th><th>Beden</th><th>Adet</th><th>Birim fiyat</th><th>Yazılı satır toplamı</th><th>Açıklama</th></tr></thead><tbody>'+rowHtml+'</tbody></table></div>'
   +'<button type="button" class="pricing-add" id="moliSmartAddRow" style="margin-top:9px">+ Eksik Satır Ekle</button>'
   +'<div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:12px"><label>Müşteri <select id="moliSmartCustomer" style="padding:8px;max-width:250px">'+options(customerOptions,data.customer)+'</select></label><label>Para birimi <select id="moliSmartCurrency"><option value="">Seçiniz</option><option value="TRY">TL</option><option value="USD">USD</option><option value="EUR">EUR</option><option value="GBP">GBP</option></select></label><label>İndirim (%) <input id="moliSmartDiscount" type="number" min="0" max="100" step="0.01" style="width:90px;padding:8px"></label><label>Siparişi alan <input id="moliSmartTaker" style="padding:8px;width:150px" value="'+esc(data.order_taken_by)+'"></label></div>'
   +'<div id="moliSmartDiagnostics" style="white-space:pre-wrap;background:#f8fafc;border-radius:10px;padding:12px;margin-top:12px"></div>'
-  +'<label style="display:flex;align-items:center;gap:8px;margin:12px 0"><input type="checkbox" id="moliSmartConfirm"> Satırları orijinal fotoğrafla karşılaştırdım; eksik/hatalı alanları düzelttim.</label>'
-  +'<button type="button" id="moliSmartApply" class="pricing-add">Kontrol Edilen Verileri Föye Aktar</button>';
+  +'<button type="button" id="moliSmartApply" class="pricing-add" style="margin-top:12px">Föye Aktar ve Föyde Düzenle</button>';
   const previews=panel.querySelector('#moliSmartOriginals');
   photoUrls.forEach((url,i)=>{const card=document.createElement('div');card.style.cssText='flex:0 0 auto;width:min(320px,75vw);text-align:center';const label=document.createElement('div');label.textContent=(i+1)+'. '+review.files[i].name;label.style.cssText='font-size:12px;font-weight:700;padding:4px';const img=document.createElement('img');img.src=url;img.alt=(i+1)+'. orijinal föy fotoğrafı';img.style.cssText='max-width:100%;max-height:330px;object-fit:contain;border-radius:8px';card.append(label,img);previews.appendChild(card);});
   const currencyEl=panel.querySelector('#moliSmartCurrency');
@@ -180,61 +203,31 @@ if (!EDIT_MODE) {
     +(v.warnings.length?'KONTROL NOTLARI:\n'+v.warnings.join('\n'):'');
   diagnostic.style.border='1px solid '+(v.errors.length?'#fca5a5':'#d1d5db');
   const button=panel.querySelector('#moliSmartApply');
-  // Do not silently disable the button: show why the import cannot proceed.
   button.disabled=false;
-  button.title=v.errors.length?v.errors.length+' eksik bilgi var. Tıklayınca ilk eksik alana yönlendirileceksiniz.':'Kontrol edilen verileri föye aktar.';
-  button.textContent=v.errors.length?'Eksikleri Göster ('+v.errors.length+')':'Kontrol Edilen Verileri Föye Aktar';
-  const confirmLabel=panel.querySelector('#moliSmartConfirm')?.closest('label');
-  if(confirmLabel)confirmLabel.style.color=v.errors.length?'#991b1b':'';
+  button.title='Eksik veya yanlış okunan satırları da föye aktararak düzenleyebilirsiniz.';
+  button.textContent='Föye Aktar ve Föyde Düzenle';
   const oldNotice=panel.querySelector('#moliSmartBlockingNotice');
   if(oldNotice)oldNotice.remove();
   if(v.errors.length){
-    const note=document.createElement('div');note.id='moliSmartBlockingNotice';
-    note.style.cssText='margin:10px 0;padding:10px 12px;border-radius:9px;background:#fff5f5;border:1px solid #fecaca;color:#991b1b;font-size:13px;font-weight:650';
-    note.textContent='Aktarım için '+v.errors.length+' eksik bilgi var. "Eksikleri Göster" butonuna basarak ilk eksik alana gidebilirsiniz.';
-    button.before(note);
+   const note=document.createElement('div');note.id='moliSmartBlockingNotice';
+   note.style.cssText='margin:10px 0;padding:10px 12px;border-radius:9px;background:#fffbeb;border:1px solid #fde68a;color:#92400e;font-size:13px;font-weight:650';
+   note.textContent=v.errors.length+' alanın kontrol edilmesi gerekiyor. Aktarıma engel değil; föyde düzenleyebilirsiniz.';
+   button.before(note);
   }
  }
  function applyReviewed(){
   const panel=sheet.querySelector('#moliSmartReview');
   if(!panel)return;
   const v=validate();
-  if(v.errors.length){
-    const first=v.errors[0];
-    const rowMatch=first.match(/^(\\d+)\\. satır/);
-    const tr=rowMatch?panel.querySelectorAll('tbody tr')[Number(rowMatch[1])-1]:null;
-    const missingField=tr&&[...tr.querySelectorAll('[data-key]')].find(el=>
-      ['product_code','color','size','quantity','unit_price'].includes(el.dataset.key)
-      &&(!el.value||(['quantity','unit_price'].includes(el.dataset.key)&&Number(el.value)<=0)));
-    const target=rowMatch?(missingField||tr?.querySelector('[data-key="product_code"]'))
-      :first.includes('Müşteri')?panel.querySelector('#moliSmartCustomer')
-      :first.includes('Para birimi')?panel.querySelector('#moliSmartCurrency')
-      :first.includes('indirim')?panel.querySelector('#moliSmartDiscount')
-      :first.includes('ADET')?panel.querySelector('tbody'):panel.querySelector('#moliSmartDiagnostics');
-    const place=target||panel.querySelector('#moliSmartDiagnostics');
-    place?.scrollIntoView({behavior:'smooth',block:'center'});
-    if(place?.focus)place.focus({preventScroll:true});
-    const msg=panel.querySelector('#moliSmartBlockingNotice');
-    if(msg)msg.textContent='Düzeltilecek ilk konu: '+first+' Diğer eksikler yukarıdaki kontrol notlarında listeleniyor.';
-    return;
-  }
-  if(!panel.querySelector('#moliSmartConfirm').checked){
-    const checkbox=panel.querySelector('#moliSmartConfirm');
-    checkbox?.scrollIntoView({behavior:'smooth',block:'center'});
-    checkbox?.focus({preventScroll:true});
-    const msg=panel.querySelector('#moliSmartBlockingNotice');
-    if(msg)msg.textContent='Önce orijinal fotoğrafı kontrol ettiğinizi onaylayın.';
-    return;
-  }
-  if(v.warnings.length&&!confirm('Hesaplama veya okuma uyarıları var. Bu uyarıları kontrol ettiniz mi?\n\n'+v.warnings.slice(0,7).join('\n')))return;
   if(showroomItems.length&&!confirm('Mevcut föyde ürünler var. Kontrol edilmiş satırlar bunların yerine geçecek. Devam edilsin mi?'))return;
   const grouped=new Map();
-  v.items.forEach(r=>{
+  (v.items.length?v.items:[{code:'',price:null,color:'',size:'',qty:null,description:''}]).forEach(r=>{
     const k=JSON.stringify([r.code,r.price]);
-    if(!grouped.has(k))grouped.set(k,{siparis_tipi:'SERI',urun_kodu:r.code,anlasilan_fiyat:r.price,satirlar:[]});
-    grouped.get(k).satirlar.push({renk:r.color,bedenler:[r.size],adet:r.qty,aciklama:r.description});
+    if(!grouped.has(k))grouped.set(k,{siparis_tipi:'SERI',urun_kodu:r.code,anlasilan_fiyat:r.price??'',satirlar:[]});
+    grouped.get(k).satirlar.push({renk:r.color,bedenler:[r.size||''],adet:r.qty??'',aciklama:r.description});
   });
   pendingSourcePhotos=[...review.files];
+  window.__moliSmartImportActive=true;
   showroomItems.splice(0,showroomItems.length,...grouped.values());
   showroomPayments.splice(0,showroomPayments.length);
   pricingOperations.splice(0,pricingOperations.length);
@@ -242,7 +235,8 @@ if (!EDIT_MODE) {
   customerId=v.customer;currency=v.curr;orderTakenBy=panel.querySelector('#moliSmartTaker').value.slice(0,120);
   previousBalance=0;folioAdjustmentTarget='';
   renderSheet();scheduleSave();
-  status.textContent=v.qtySum+' adet kontrol edilerek föye aktarıldı; '+pendingSourcePhotos.length+' orijinal fotoğraf föy kaydedilirken arşive eklenecek.';
+  const remaining=window.__moliSmartIssues().length;
+  status.textContent=v.qtySum+' adet föye aktarıldı. '+(remaining?remaining+' alanı föyde düzenleyin.':'Bilgileri kontrol edin.')+' Orijinal fotoğraflar föy kaydedilince arşive eklenecek.';
   panel.remove();clearPhoto();review=null;
  }
 }
