@@ -554,6 +554,41 @@ class ShowroomStatusToggleTests(TestCase):
         self.assertEqual(order.satis_fiyati, Decimal("100.00"))
         self.assertEqual(order.vat_rate, Decimal("20.00"))
 
+    def test_unpriced_approved_folio_creates_order_without_fabricated_sale(self):
+        self.draft.status = "APPROVED"
+        self.draft.save(update_fields=["status", "updated_at"])
+        self.draft.items.update(unit_price=Decimal("0.00"))
+
+        response = self.client.post(
+            reverse("showroom_transfer_create", args=[self.draft.pk]),
+            HTTP_X_REQUESTED_WITH="XMLHttpRequest",
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.json()["ok"])
+        self.assertEqual(response.json()["created"], 1)
+        order = Order.objects.get(urun_kodu="STATUS-TEST")
+        self.assertIsNone(order.satis_fiyati)
+        self.assertIsNone(order.financial_snapshot.satis_tl)
+
+    def test_transfer_resumes_after_five_without_duplicate_orders(self):
+        self.draft.status = "APPROVED"
+        self.draft.save(update_fields=["status", "updated_at"])
+        self.draft.items.update(quantity=7)
+        url = reverse("showroom_transfer_create", args=[self.draft.pk])
+
+        first = self.client.post(url, HTTP_X_REQUESTED_WITH="XMLHttpRequest")
+        second = self.client.post(url, HTTP_X_REQUESTED_WITH="XMLHttpRequest")
+        third = self.client.post(url, HTTP_X_REQUESTED_WITH="XMLHttpRequest")
+
+        self.assertEqual(first.status_code, 200)
+        self.assertEqual(second.status_code, 200)
+        self.assertEqual(third.status_code, 200)
+        self.assertEqual((first.json()["created"], first.json()["remaining"]), (5, 2))
+        self.assertEqual((second.json()["created"], second.json()["remaining"]), (2, 0))
+        self.assertEqual((third.json()["created"], third.json()["remaining"]), (0, 0))
+        self.assertEqual(Order.objects.filter(urun_kodu="STATUS-TEST").count(), 7)
+        self.assertEqual(ShowroomOrderLink.objects.filter(draft=self.draft).count(), 7)
+
     def test_approved_draft_can_be_moved_back_to_pending(self):
         self.draft.status = "APPROVED"
         self.draft.save(update_fields=["status", "updated_at"])
