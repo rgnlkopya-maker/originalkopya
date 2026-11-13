@@ -48,7 +48,7 @@ if (!EDIT_MODE) {
   showroomItems.forEach((item,i)=>{
    const code=String(item.urun_kodu||'').trim();
    if(!code||(codes.size&&!codes.has(normalize(code))))issues.push((i+1)+'. ürün kodunu kontrol edin.');
-   if(!Number.isFinite(Number(item.anlasilan_fiyat))||Number(item.anlasilan_fiyat)<=0)issues.push((i+1)+'. ürün fiyatını girin.');
+   // Fiyat anlaşması bekleyebilir: boş/0 fiyat üretim siparişine engel değildir.
    (item.satirlar||[]).forEach((row,j)=>{
     if(!row.renk||!colors.has(normalize(row.renk)))issues.push((i+1)+'. ürün '+(j+1)+'. satırın rengini seçin.');
     if(!Array.isArray(row.bedenler)||!row.bedenler.length||row.bedenler.some(sz=>!sizes.has(normalize(sz))))issues.push((i+1)+'. ürün '+(j+1)+'. satırın bedenini seçin.');
