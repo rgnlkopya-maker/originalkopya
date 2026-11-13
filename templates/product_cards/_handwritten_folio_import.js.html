@@ -58,9 +58,9 @@ if (!EDIT_MODE) {
   if(!showroomItems.length)issues.push('En az bir ürün satırı girin.');
   return issues;
  };
- window.__moliSmartBeforeFinalize=async function(){
+ window.__moliSmartBeforeFinalize=async function(allowIncomplete=false){
   const issues=window.__moliSmartIssues();
-  if(issues.length)throw Error('Fotoğraftan aktarılan föyde '+issues.length+' eksik/hatalı alan var. Föy içindeki Düzenle butonundan tamamlayın. '+issues.slice(0,3).join(' '));
+  if(issues.length&&!allowIncomplete)throw Error('Fotoğraftan aktarılan föyde '+issues.length+' eksik/hatalı alan var. Föy içindeki Düzenle butonundan tamamlayın. '+issues.slice(0,3).join(' '));
   if(!pendingSourcePhotos.length)return;
   // Sync the current editor data before finding its active folio ID.
   const sync=await fetch(SAVE_URL,{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json','X-CSRFToken':csrf()},body:JSON.stringify(snapshot())});
