@@ -1,5 +1,6 @@
 from app_settings.access import has_feature_access
 from decimal import Decimal, ROUND_HALF_UP
+import logging
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
@@ -14,7 +15,8 @@ from .showroom_views import CUSTOMER_BASE_PRICE_SIZE, _apply_pricing_operations
 from core.signals_qr import suspend_order_qr
 from core.qr import ensure_order_qr
 
-TRANSFER_BATCH_SIZE = 20
+TRANSFER_BATCH_SIZE = 5
+logger = logging.getLogger(__name__)
 
 
 def _transfer_pricing(draft, rows):
@@ -69,8 +71,15 @@ def _transfer_pricing(draft, rows):
 
     allocated_prices = []
     allocated_total = Decimal("0")
+    priced_positions = [
+        index for index, (_, row) in enumerate(unit_orders)
+        if Decimal(row["birim_fiyat"] or 0) > 0
+    ]
+    last_priced_position = priced_positions[-1] if priced_positions else -1
     for index, (row_index, row) in enumerate(unit_orders):
-        if index == len(unit_orders) - 1:
+        if Decimal(row["birim_fiyat"] or 0) <= 0:
+            final_price = Decimal("0")
+        elif index == last_priced_position:
             final_price = max(Decimal("0"), net_target_total - allocated_total)
         else:
             final_price = (
@@ -136,6 +145,7 @@ def _draft_rows(draft):
             "adet": qty,
             "aciklama": item.description or "",
             "birim_fiyat": unit_price,
+            "price_pending": unit_price <= 0,
             "satir_toplami": row_total,
         })
         total_orders += qty
@@ -233,6 +243,8 @@ def showroom_transfer_preview(request, draft_id):
     total_value = sum((row["satir_toplami"] for row in rows), Decimal("0"))
     product_count = len({row["urun_kodu"] for row in rows})
     warnings = []
+    if any(row.get("price_pending") for row in rows):
+        warnings.append("Bazı siparişlerin fiyat anlaşması tamamlanmadı. Siparişler üretime açılır; satış fiyatları sonra föy üzerinden tamamlanabilir.")
     if not draft.customer_id:
         warnings.append("Bu Föyde müşteri seçilmemiş. Siparişe aktarmadan önce müşteri seçilmesi gerekir.")
     if not rows:
@@ -260,7 +272,7 @@ def showroom_transfer_preview(request, draft_id):
 
 
 @login_required
-def showroom_transfer_create(request, draft_id):
+def _showroom_transfer_create_impl(request, draft_id):
     """Create at most 20 individual orders in an independent, resumable transaction."""
     if request.method != "POST":
         return redirect("showroom_transfer_preview", draft_id=draft_id)
@@ -326,7 +338,7 @@ def showroom_transfer_create(request, draft_id):
                         urun_kodu=code, urun_tipi=row["urun_tipi"],
                         renk=row["renk"] or None, beden=row["beden"] or None,
                         adet=1, aciklama=row["aciklama"] or None,
-                        satis_fiyati=final_price, vat_rate=vat_rate_for_order,
+                        satis_fiyati=(None if row.get("price_pending") else final_price), vat_rate=vat_rate_for_order,
                         para_birimi=draft.currency or "TRY",
                         maliyet_uygulanan=cost, maliyet_para_birimi=cost_currency,
                     )
@@ -345,6 +357,23 @@ def showroom_transfer_create(request, draft_id):
         return JsonResponse({"ok": True, "created": created, "remaining": remaining})
     messages.success(request, f"{created} sipariş oluşturuldu. Kalan: {remaining}.")
     return redirect("showroom_transfer_preview" if remaining else "order_list", **({"draft_id": draft_id} if remaining else {}))
+
+
+@login_required
+def showroom_transfer_create(request, draft_id):
+    """Keep the existing resumable transfer; return actionable JSON if a batch fails."""
+    try:
+        return _showroom_transfer_create_impl(request, draft_id)
+    except Exception as exc:
+        # The failed transaction is rolled back; completed earlier batches remain linked.
+        logger.exception("Showroom order transfer failed: folio=%s", draft_id)
+        if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+            return JsonResponse({
+                "ok": False,
+                "error": "Sipariş oluşturma başarısız (%s). Bu gruptaki işlemler geri alındı; kayıtlı siparişler korunuyor. Hata kaydı sunucu loglarına yazıldı." % type(exc).__name__,
+            }, status=500)
+        messages.error(request, "Sipariş oluşturma sırasında sunucu hatası oluştu. Mevcut siparişler korunuyor.")
+        return redirect("showroom_transfer_preview", draft_id=draft_id)
 
 
 @login_required
