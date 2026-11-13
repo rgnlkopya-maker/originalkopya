@@ -1562,6 +1562,7 @@ SOLUTION_GROUPS = [
 APPROVED_SOLUTION_SCREENSHOTS = {
     "operasyon-01": ("siparis-listesi-onayli.webp", "Eylus Sipariş Listesi: Son Durum sütunu kırmızı kalemle vurgulanmış, müşteri ve sipariş bilgileri örnek verilerle anonimleştirilmiş gerçek uygulama ekranı"),
     "operasyon-02": ("asama-problemleri-onayli.webp", "Eylus Aşama Problemleri tanıtım görseli: beş örnek kayıt ve Tespit Edilen Eksik İşlem sütununda kırmızı kalem vurgusu"),
+    "operasyon-03": ("hareketsiz-siparisler-onayli.webp", "Eylus Hareketsiz Siparişler ekranı: kaç gündür işlem yapılmadığını gösteren Süre sütunu kırmızı kalemle vurgulanmış uygulama ekranı"),
 }
 
 def approved_solution_screen(key):
@@ -1573,6 +1574,8 @@ def approved_solution_screen(key):
         raise ValueError('Unsafe screenshot filename for ' + key)
     original = Path(__file__).parent / 'screens' / filename
     if not original.is_file():
+        if key == 'operasyon-03':
+            return ''  # Publish existing solutions safely until approved asset is uploaded.
         raise FileNotFoundError('Approved screenshot file missing: ' + filename)
     from shutil import copyfile
     output = OUT / 'assets' / 'solutions'
@@ -1596,6 +1599,10 @@ SOLUTION_EDITORIAL_COPY = {
     "operasyon-02": (
         "Üretim ilerlerken eksik kalan aşama kayıtlarını gözden kaçırmayın.",
         "Kesim, dikim ve süslemede eksik bırakılmış Başladı veya Bitti işlemlerini sipariş bazında görün. Personel bazlı görünümden ilgili siparişleri ve kaydı ortaya çıkaran işlemi inceleyin.",
+    ),
+    "operasyon-03": (
+        "Üretimde bekleyen siparişleri gecikmeye dönüşmeden fark edin.",
+        "Son işlem tarihini ve kaç gündür hareket olmadığını tek ekranda görün. Bekleyen işlere zamanında müdahale ederek teslimat gecikmelerini önleyin.",
     ),
     "yonetim-01": (
         "İşletmenizde bugün neler olduğunu öğrenmek için tek tek rapor istemeyin.",
