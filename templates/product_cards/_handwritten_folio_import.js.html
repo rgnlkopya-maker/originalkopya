@@ -171,8 +171,10 @@ if (!EDIT_MODE) {
   if(!items.length)errors.push('Ürün satırı yok.');
   let sum=0,qtySum=0;
   items.forEach(r=>{
-   if(!r.code||!r.color||!r.size||!Number.isInteger(r.qty)||r.qty<=0||r.price===null||!Number.isFinite(r.price)||r.price<=0)
-      errors.push(r.row+'. satır: Kod, sistemdeki renk/beden, adet ve pozitif fiyat gerekli.');
+   if(!r.code||!r.color||!r.size||!Number.isInteger(r.qty)||r.qty<=0)
+      errors.push(r.row+'. satır: Kod, sistemdeki renk/beden ve pozitif tam sayı adet gerekli.');
+   if(r.price===null||!Number.isFinite(r.price)||r.price<=0)
+      warnings.push(r.row+'. satır: Fiyat anlaşması bekliyor; üretim siparişine engel değildir.');
    if(Number.isFinite(r.qty)&&r.qty>0)qtySum+=r.qty;
    if(Number.isFinite(r.qty)&&Number.isFinite(r.price))sum+=r.qty*r.price;
    if(r.written!==null&&Number.isFinite(r.written)&&r.price!==null&&Number.isFinite(r.price)&&r.qty!==null&&Math.abs(r.written-r.qty*r.price)>.02)
