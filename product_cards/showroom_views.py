@@ -490,7 +490,6 @@ def showroom_draft_action(request):
                 draft=_active_draft(request.user)
                 if not draft: return JsonResponse({"ok":False,"message":"Açık bir Föy bulunmuyor."},status=400)
                 if action!="delete" and not draft.items.exists() and not draft.import_pending_items: return JsonResponse({"ok":False,"message":"Boş Föy kaydedilemez."},status=400)
-                if action=="approve" and draft.import_pending_items: return JsonResponse({"ok":False,"message":"Eksik/hatalı fotoğraf okuma alanlarını tamamlayın. İsterseniz taslak olarak kaydedin."},status=400)
                 if action=="delete":
                     _delete_draft_safely(draft)
                     return JsonResponse({"ok":True,"message":"Taslak silindi."})
@@ -681,8 +680,6 @@ def showroom_toggle_approval(request, draft_id):
             status__in=["PENDING", "APPROVED", "TRANSFERRED"],
         )
         if draft.status == "PENDING":
-            if draft.import_pending_items:
-                return HttpResponseBadRequest("Eksik/hatalı fotoğraf okuma alanlarını tamamlayın.")
             if not draft.items.exists():
                 return HttpResponseBadRequest("Boş Föy onaylanamaz.")
             draft.status = "APPROVED"
@@ -713,8 +710,8 @@ def showroom_edit_save(request,draft_id):
     if not isinstance(raw_payments,list): return JsonResponse({"ok":False,"message":"Tahsilat verisi geçersiz."},status=400)
     customer=Musteri.objects.filter(pk=customer_id).first() if customer_id else None
     pending_issues = _smart_import_issues(raw_items, customer) if (draft.import_pending_items or payload.get("smart_import_active")) else []
-    if pending_issues and draft.status != "PENDING":
-        return JsonResponse({"ok":False,"message":"Onaylanmış veya siparişe aktarılmış föy eksik alanlarla kaydedilemez."},status=400)
+    if pending_issues and draft.status == "TRANSFERRED":
+        return JsonResponse({"ok":False,"message":"Siparişe aktarılmış föy eksik alanlarla kaydedilemez."},status=400)
     validation_error = _validate_customer_base_price_rows(customer, raw_items)
     if validation_error and not pending_issues:
         return JsonResponse({"ok":False,"message":validation_error},status=400)
