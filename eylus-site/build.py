@@ -1561,6 +1561,7 @@ SOLUTION_GROUPS = [
 # After user approval, map: "operasyon-01": ("siparis-listesi.webp", "Sipariş Listesi ekranı")
 APPROVED_SOLUTION_SCREENSHOTS = {
     "operasyon-01": ("siparis-listesi-onayli.webp", "Eylus Sipariş Listesi: Son Durum sütunu kırmızı kalemle vurgulanmış, müşteri ve sipariş bilgileri örnek verilerle anonimleştirilmiş gerçek uygulama ekranı"),
+    "operasyon-02": ("asama-problemleri-onayli.webp", "Eylus Aşama Problemleri tanıtım görseli: beş örnek kayıt ve Tespit Edilen Eksik İşlem sütununda kırmızı kalem vurgusu"),
 }
 
 def approved_solution_screen(key):
