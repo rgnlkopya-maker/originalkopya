@@ -713,6 +713,8 @@ def showroom_edit_save(request,draft_id):
     if not isinstance(raw_payments,list): return JsonResponse({"ok":False,"message":"Tahsilat verisi geçersiz."},status=400)
     customer=Musteri.objects.filter(pk=customer_id).first() if customer_id else None
     pending_issues = _smart_import_issues(raw_items, customer) if (draft.import_pending_items or payload.get("smart_import_active")) else []
+    if pending_issues and draft.status != "PENDING":
+        return JsonResponse({"ok":False,"message":"Onaylanmış veya siparişe aktarılmış föy eksik alanlarla kaydedilemez."},status=400)
     validation_error = _validate_customer_base_price_rows(customer, raw_items)
     if validation_error and not pending_issues:
         return JsonResponse({"ok":False,"message":validation_error},status=400)
