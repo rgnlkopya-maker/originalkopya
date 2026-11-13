@@ -69,7 +69,7 @@
     <div>
       <div class="xt-eyebrow">Moli Tekstil · İhracat · Potansiyel müşteriler</div>
       <h1><i class="bi bi-globe2 me-2"></i>Yurt Dışı Müşteri Merkezi</h1>
-      <div class="xt-text">Sen aramayı belirle, MoliApp her basışta sıradaki 20 sonucu incelesin.</div>
+      <div class="xt-text">Sen aramayı belirle; MoliApp eski kayıtları atlayıp sıradaki 20 yeni mağazayı bulmaya çalışsın.</div>
     </div>
     <div class="xt-actions">
       <a href="{% url 'prospect_new' %}" class="xt-btn"><i class="bi bi-plus-circle"></i> Elle mağaza ekle</a>
@@ -93,7 +93,7 @@
       <div class="xt-card xt-search">
         <div class="xt-head">
           <h2><i class="bi bi-search me-2"></i>Mağaza araştırması</h2>
-          <span class="xt-badge">Her basışta en fazla 20 sonuç</span>
+          <span class="xt-badge">Hedef: 20 yeni mağaza</span>
         </div>
         <form id="xt-automatic-search" method="post" action="{% url 'prospect_automatic_batch' %}">
           {% csrf_token %}
@@ -117,10 +117,25 @@
           </div>
           <div class="xt-actions">
             <button id="xt-search-button" class="xt-btn primary full" type="submit" {% if not search_provider_configured %}disabled title="Serper API bağlantısı gerekli"{% endif %}>
-              <i class="bi bi-search"></i> {% if active_search and not active_search.exhausted %}Sonraki 20 sonucu araştır{% else %}20 mağaza sonucu araştır{% endif %}
+              <i class="bi bi-search"></i> 20 yeni mağaza bul
             </button>
           </div>
         </form>
+        <div id="xt-live-status" class="xt-progress" hidden role="status" aria-live="polite">
+          <div class="xt-progress-title" id="xt-live-title">Yeni mağazalar aranıyor</div>
+          <div class="xt-text mt-2" id="xt-live-detail">Önceden kayıtlı mağazalar eleniyor; sonuç sayfaları sırayla kontrol ediliyor.</div>
+        </div>
+        {% if batch_summary %}
+        <div class="xt-progress mt-3">
+          <div class="xt-progress-title">Son araştırmanın sonucu</div>
+          <div class="xt-progress-data">
+            <div><strong>{{ batch_summary.new }}</strong><span>Yeni mağaza</span></div>
+            <div><strong>{{ batch_summary.duplicates }}</strong><span>Zaten kayıtlı</span></div>
+            <div><strong>{{ batch_summary.skipped }}</strong><span>Uygun olmayan</span></div>
+          </div>
+          <div class="xt-text">{{ batch_summary.pages }} sonuç sayfası tarandı.{% if batch_summary.new < 20 %} 20 yeni mağazaya ulaşılamadı; istersen devam et veya farklı arama yap.{% endif %}</div>
+        </div>
+        {% endif %}
         {% if not search_provider_configured %}
         <div class="xt-alert mt-3">
           <strong><i class="bi bi-plug me-1"></i> Arama servisi bağlantısı eksik.</strong>
@@ -141,7 +156,8 @@
           </div>
           <div class="xt-text">
             {% if active_search.exhausted %}Bu aramanın erişilebilir sonuçları tamamlandı. Farklı şehir veya arama kelimesi gir.
-            {% else %}Bir sonraki aramada <strong>{{ active_search.next_page }}. sonuç sayfası</strong> incelenecek.
+            {% else %}{% if active_search.pending_results %}Önce bir önceki sayfadan kalan <strong>{{ active_search.pending_results|length }} sonuç</strong> değerlendirilecek, sonra yeni sayfalara geçilecek.
+            {% else %}Bir sonraki aramada <strong>{{ active_search.next_page }}. sonuç sayfasından</strong> devam edilecek.{% endif %}
             {% endif %}
             {% if active_search.last_error %}<div class="text-danger mt-2">{{ active_search.last_error }}</div>{% endif %}
           </div>
@@ -201,9 +217,9 @@
           </div>
         </div>
         <div class="xt-steps">
-          <div><b>1 · Mağaza bul</b><p>En fazla 20 arama sonucu incelenir.</p></div>
+          <div><b>1 · Mağaza bul</b><p>Eski mağazalar atlanır; 20 yeni mağazaya ulaşmak için sonraki sonuçlara geçilir.</p></div>
           <div><b>2 · İletişimi araştır</b><p>Web sitesindeki herkese açık işletme bağlantıları taranır.</p></div>
-          <div><b>3 · Listeye ekle</b><p>Tekrarlananlar atlanır, eksik bilgiler boş kalır.</p></div>
+          <div><b>3 · Listeye ekle</b><p>Bütün eski kayıtlarla karşılaştırılır. Yeni bulunanlar eklenir.</p></div>
         </div>
         <form method="get" action="{% if active_search %}{% url 'prospect_list_with_history' active_search.pk %}{% else %}{% url 'prospect_list' %}{% endif %}" class="xt-filter">
           <input name="q" value="{{ term }}" placeholder="Mağaza / e-posta ara">
@@ -264,12 +280,90 @@
 
 <script>
 (function(){
-  var f=document.getElementById('xt-automatic-search');
-  var b=document.getElementById('xt-search-button');
-  if(f&&b)f.addEventListener('submit',function(){
-    if(!f.checkValidity())return;
-    b.disabled=true;
-    b.innerText='20 sonuç araştırılıyor...';
+  "use strict";
+  const form = document.getElementById("xt-automatic-search");
+  const button = document.getElementById("xt-search-button");
+  const status = document.getElementById("xt-live-status");
+  const title = document.getElementById("xt-live-title");
+  const detail = document.getElementById("xt-live-detail");
+  if (!form || !button) return;
+
+  // Each provider page is its own bounded server request. No single web
+  // worker is held for multiple slow network searches. A human click may
+  // consume at most 8 third-party search queries to avoid unexpected costs.
+  const MAX_PAGES_PER_CLICK = 8;
+  let working = false;
+  form.addEventListener("submit", async function(ev) {
+    if (!form.checkValidity() || working) return;
+    if (!window.fetch || !window.FormData) return; // Standard POST fallback.
+    ev.preventDefault();
+    working = true;
+    button.disabled = true;
+    status.hidden = false;
+    title.textContent = "20 yeni mağaza aranıyor";
+    detail.textContent = "Önceden kayıtlı mağazalar atlanıyor.";
+    let added = 0, duplicates = 0, skipped = 0, examined = 0;
+    let pages = 0, id = 0, finished = false, failure = "";
+
+    for (let step = 0; step < MAX_PAGES_PER_CLICK && added < 20; step++) {
+      const body = new FormData(form);
+      body.set("target_new", String(20 - added));
+      title.textContent = "Yeni mağazalar bulunuyor: " + added + " / 20";
+      detail.textContent = "Taranan sonuç sayfası: " + pages +
+        " · Önceden kayıtlı: " + duplicates +
+        " · Uygun olmayan: " + skipped;
+      try {
+        const response = await fetch(form.action, {
+          method: "POST",
+          credentials: "same-origin",
+          headers: {
+            "X-Requested-With": "XMLHttpRequest",
+            "Accept": "application/json"
+          },
+          body: body
+        });
+        const json = await response.json();
+        if (!response.ok || !json.ok) {
+          failure = json.error || "Arama servisi hata verdi.";
+          break;
+        }
+        id = json.search_id || id;
+        added += json.new || 0;
+        duplicates += json.duplicates || 0;
+        skipped += json.skipped || 0;
+        examined += json.seen || 0;
+        pages += json.pages_fetched || 0;
+        if (json.exhausted || json.status === "EXHAUSTED") {
+          finished = true;
+          break;
+        }
+        if (!json.seen && !json.pages_fetched) {
+          failure = "Arama ilerleyemedi.";
+          break;
+        }
+      } catch (err) {
+        failure = "Arama bağlantısı kesildi; mevcut bulunan mağazalar korundu.";
+        break;
+      }
+    }
+
+    title.textContent = added + " yeni mağaza bulundu";
+    detail.textContent = examined + " sonuç incelendi · " + duplicates +
+      " eski mağaza atlandı · " + skipped + " uygun olmayan sonuç. " +
+      (failure || (finished ? "Sonuçlar tamamlandı." : ""));
+    if (id) {
+      const url = "{% url 'prospect_list' %}?history_id=" +
+        encodeURIComponent(id) + "&scope=search&batch_new=" +
+        encodeURIComponent(added) + "&batch_duplicates=" +
+        encodeURIComponent(duplicates) + "&batch_skipped=" +
+        encodeURIComponent(skipped) + "&batch_pages=" +
+        encodeURIComponent(pages);
+      window.location.assign(url);
+    } else {
+      working = false;
+      button.disabled = false;
+      title.textContent = failure || "Yeni mağaza bulunamadı";
+    }
   });
 })();
 </script>
