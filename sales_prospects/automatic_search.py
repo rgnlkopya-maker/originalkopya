@@ -1,12 +1,13 @@
 """Manager-triggered batches of Google web results using Serper's third-party API.
 
-No Google HTML scraping, no Instagram login or DM. Each request consumes one
-search-results page (up to 20 organic results). Search history keeps the next
-page cursor. Only discovered public business websites are later enriched.
+No Google HTML scraping, no Instagram login or DM. Each request processes at
+most one provider page and saves the unconsumed results for the next request.
+The UI continues requests until 20 NEW prospects or its safety cap is reached.
 """
 import json
 import logging
 import os
+from datetime import timedelta
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 from urllib.parse import urlencode
@@ -132,24 +133,28 @@ def _store_one(search, item, user):
     lead, added = Prospect.objects.get_or_create(
         canonical_url=canonical, defaults=defaults,
     )
-    _, hit_added = GuidedSearchHit.objects.get_or_create(
+    if not added:
+        # A lead found 6 months ago (or by a different search) still counts
+        # as an old lead. Do NOT put it in the new results table.
+        return "duplicate"
+    GuidedSearchHit.objects.get_or_create(
         search=search, prospect=lead,
         defaults={
             "original_url": link[:500],
             "original_title": title,
-            "was_new": added,
+            "was_new": True,
         },
     )
-    if not hit_added:
-        return "skipped"
-    return "new" if added else "duplicate"
+    return "new"
 
 
-def run_next_page(search, user):
-    """Fetch the NEXT page exactly once, and persist counts under a row lock.
+def run_next_page(search, user, target_new=PAGE_SIZE):
+    """Consume at most one fresh SERP page and return up to target_new NEW shops.
 
-    Concurrent requests for one session serialize. If provider fails, page
-    number doesn't advance; the manager can retry without losing position.
+    Never repeat stored candidates, even if the same Google query is recreated
+    months later. Unconsumed provider rows stay in pending_results so a click
+    that needs 2 fresh shops does not save an extra 18 shops by accident.
+    The UI repeats this bounded request to fill a 20-new-lead batch.
     """
     key = os.environ.get("SERPER_API_KEY", "").strip()
     if not key:
@@ -158,50 +163,86 @@ def run_next_page(search, user):
             "Render'da SERPER_API_KEY tanımlanmalı."
         )
     try:
-        return _run_locked_page(search, user, key)
+        target_new = int(target_new)
+    except (ValueError, TypeError):
+        target_new = PAGE_SIZE
+    target_new = min(max(target_new, 1), PAGE_SIZE)
+    try:
+        return _run_locked_page(search, user, key, target_new)
     except SearchUnavailable as exc:
         GuidedSearch.objects.filter(pk=search.pk).update(last_error=str(exc)[:400])
         raise
 
 
-def _run_locked_page(search, user, key):
+def _run_locked_page(search, user, key, target_new):
+    """A transaction locks one research cursor; an API call happens at most once."""
     with transaction.atomic():
         locked = GuidedSearch.objects.select_for_update().get(pk=search.pk)
-        if locked.exhausted or locked.next_page > MAX_PAGES:
-            return {"status": "EXHAUSTED", "seen": 0, "new": 0, "duplicates": 0, "skipped": 0, "page": locked.next_page}
+        pending = list(locked.pending_results or [])
+        if (locked.exhausted or locked.next_page > MAX_PAGES) and not pending:
+            if not locked.exhausted:
+                locked.exhausted = True
+                locked.save(update_fields=["exhausted"])
+            return {
+                "status": "EXHAUSTED", "seen": 0, "new": 0,
+                "duplicates": 0, "skipped": 0, "page": locked.next_page,
+                "pages_fetched": 0, "exhausted": True,
+            }
         page_number = locked.next_page
-        rows = _fetch_serper_page(
-            key, locked.query, locked.country, locked.city, page_number
-        )
+        pages_fetched = 0
+        if not pending and page_number <= MAX_PAGES:
+            rows = _fetch_serper_page(
+                key, locked.query, locked.country, locked.city, page_number
+            )
+            pages_fetched = 1
+            locked.next_page = page_number + 1
+            locked.last_page_size = len(rows)
+            # Provider objects may contain large snippets. Bound what is
+            # retained in the database and never store arbitrary JSON keys.
+            pending = [
+                {
+                    "link": str(item.get("link") or "")[:500],
+                    "title": str(item.get("title") or "")[:180],
+                    "snippet": str(item.get("snippet") or "")[:1000],
+                }
+                for item in rows if isinstance(item, dict)
+            ]
+            if not rows:
+                locked.exhausted = True
         counts = {"new": 0, "duplicates": 0, "skipped": 0}
-        for row in rows:
-            kind = _store_one(locked, row, user)
+        examined = 0
+        while pending and counts["new"] < target_new:
+            candidate = pending.pop(0)
+            kind = _store_one(locked, candidate, user)
             counts[kind] += 1
-        locked.captured_count += len(rows)
+            examined += 1
+
+        locked.pending_results = pending
+        locked.captured_count += examined
         locked.added_count += counts["new"]
         locked.duplicate_count += counts["duplicates"]
         locked.skipped_count += counts["skipped"]
-        locked.last_page_size = len(rows)
         locked.last_error = ""
         locked.last_import_at = timezone.now()
-        locked.next_page = page_number + 1
-        locked.exhausted = (len(rows) < PAGE_SIZE or locked.next_page > MAX_PAGES)
+        if not pending and locked.next_page > MAX_PAGES:
+            locked.exhausted = True
         locked.save(update_fields=[
-            "captured_count", "added_count", "duplicate_count",
-            "skipped_count", "last_page_size", "last_error", "last_import_at",
-            "next_page", "exhausted",
+            "pending_results", "captured_count", "added_count",
+            "duplicate_count", "skipped_count", "last_page_size",
+            "last_error", "last_import_at", "next_page", "exhausted",
         ])
     return {
-        "status": "DONE",
-        "seen": len(rows), "page": page_number,
-        "exhausted": locked.exhausted, **counts,
+        "status": "DONE", "seen": examined, "page": page_number,
+        "pages_fetched": pages_fetched,
+        "exhausted": locked.exhausted and not locked.pending_results,
+        "pending": len(locked.pending_results), **counts,
     }
 
 
 def find_or_start(user, country, city, query):
     """Identical search terms continue their previous page cursor."""
-    query = query.strip()
-    city = city.strip()
+    query = " ".join(query.split())
+    city = " ".join(city.split())
     existing = (
         GuidedSearch.objects.filter(created_by=user, country=country,
                                     city__iexact=city, query__iexact=query,
@@ -209,7 +250,12 @@ def find_or_start(user, country, city, query):
         .order_by("-created_at", "-id").first()
     )
     if existing:
-        return existing
+        # A search last used several months ago gets a fresh history session
+        # (to capture updated Google rankings), while the global Prospect
+        # dedupe keeps all older shops from being counted as new.
+        last_used = existing.last_import_at or existing.created_at
+        if timezone.now() - last_used < timedelta(days=90):
+            return existing
     return GuidedSearch.objects.create(
         created_by=user, country=country, city=city, query=query,
         google_url="https://www.google.com/search?" + urlencode({"q": search_phrase(query, country, city), "num": PAGE_SIZE}),
