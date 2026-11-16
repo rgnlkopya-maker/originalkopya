@@ -290,7 +290,7 @@ def enrich_prospect_contact(lead):
         contacts = extract_public_business_contacts(lead.website_url)
     except (ValueError, OSError, TimeoutError, UnicodeError, ssl.SSLError, http.client.HTTPException):
         lead.contact_scan_note = "İşletme sitesi güvenli şekilde okunamadı; bilgileri elle kontrol edin."
-        lead.save(update_fields=["contact_scan_at", "contact_scan_note"])
+        lead.save(update_fields=["contact_scan_at", "contact_scan_note", "contact_scan_attempts"])
         return 0
     updates = []
     for field in ("email", "phone_number", "whatsapp_number", "instagram_url"):
