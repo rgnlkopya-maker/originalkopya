@@ -127,7 +127,7 @@ def _collect_leaders(rows):
         order = row["order"]
         cid = order.musteri_id
         record = grouped[cid]
-        record["quantity"] += int(order.adet or 1)
+        record["quantity"] += 1
         result = row["result"]
         if result.get("is_final"):
             record["revenue"] += Decimal(result.get("satis_tl") or 0)
@@ -168,6 +168,9 @@ def _notify_leaders(old, current):
             continue
         old_id = str(previous.get("id")) if isinstance(previous, dict) and previous else None
         if old_id == str(leader["id"]):
+            continue
+        # Equal minimum counts are a tie, not a change of the least-active customer.
+        if metric == "quantity_min" and str(previous.get("value")) == str(leader["value"]):
             continue
         title, phrase, measure, unit = spec
         previous_name = previous.get("name", "Henüz lider yok") if isinstance(previous, dict) else "Henüz lider yok"
