@@ -87,7 +87,7 @@
     {% if user|can:'can_manage_planning' %}<li><a href="{% url 'shipment_planning_page' %}" class="dropdown-item {% if request.resolver_match.url_name == 'planning_page' or request.resolver_match.url_name == 'shipment_planning_page' %}active{% endif %}"><i class="bi bi-calendar3"></i>Sevkiyat Planı</a></li>{% endif %}
     {% if user|can:'can_manage_planning' %}<li><a href="{% url 'serial_cutting_page' %}" class="dropdown-item"><i class="bi bi-scissors"></i>Seri Kesim Planı</a></li>{% endif %}
     {% if user|can:'can_view_assistant' %}<li><a href="{% url 'ai_assistant' %}" class="dropdown-item {% if request.resolver_match.url_name == 'ai_assistant' %}active{% endif %}"><i class="bi bi-robot"></i>Moli Asistan</a></li>{% endif %}
-    {% if user|is_management %}<li><a href="{% url 'prospect_list' %}" class="dropdown-item {% if request.resolver_match.url_name == 'prospect_list' or request.resolver_match.url_name == 'prospect_detail' or request.resolver_match.url_name == 'prospect_new' %}active{% endif %}"><i class="bi bi-globe2"></i>Yurt Dışı Müşteri Data Servisi</a></li>{% endif %}
+    {% if user|is_management %}<li><a href="{% url 'prospect_list' %}" class="dropdown-item {% if request.resolver_match.url_name == 'prospect_list' or request.resolver_match.url_name == 'prospect_detail' or request.resolver_match.url_name == 'prospect_new' %}active{% endif %}"><i class="bi bi-globe2"></i>Müşteri Data Servisi</a></li>{% endif %}
     {% if user|can:'can_view_depots' or user|can_feature:'consignment.view' %}
     <li><hr class="dropdown-divider"></li>
     <li class="px-2">
