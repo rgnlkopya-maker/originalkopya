@@ -193,15 +193,6 @@
         {% endif %}
       </div>
 
-      <div class="xt-card xt-import">
-        <div class="xt-head"><h2><i class="bi bi-file-earmark-spreadsheet me-2"></i>CSV ile toplu aktarım</h2></div>
-        <div class="xt-text mb-3">Hazır müşteri listen varsa ayrı ayrı girmeden içe aktarabilirsin.</div>
-        <form method="post" action="{% url 'prospect_csv_import' %}" enctype="multipart/form-data" class="xt-actions">
-          {% csrf_token %}
-          <input type="file" name="file" accept=".csv,text/csv" class="form-control form-control-sm" required>
-          <button type="submit" class="xt-btn">CSV yükle</button>
-        </form>
-      </div>
     </section>
 
     <section class="xt-right">
@@ -263,17 +254,6 @@
         {% endif %}
       </div>
 
-      <div class="xt-card xt-communication">
-        <div class="xt-head">
-          <h2><i class="bi bi-envelope-check me-2"></i>Satış iletişimi</h2>
-          <span class="xt-badge">{% if mailing_enabled %}E-posta sistemi açık{% else %}E-posta gönderimi kapalı{% endif %}</span>
-        </div>
-        <p class="xt-text mb-2">Mağaza bulmak otomatik mesaj göndermek değildir. Alıcıların iletişim uygunluğu kontrol edilmeden e-posta veya WhatsApp gönderilmez.</p>
-        <div class="xt-foot">
-          <span class="xt-text">E-posta kuyruğu: {{ counts.mail_queued }} · Gönderildi: {{ counts.mail_sent }}</span>
-          <span class="xt-text">Instagram takipçi sayısı yalnızca izinli ve doğrulanmış bir veri kaynağı varsa gösterilir.</span>
-        </div>
-      </div>
     </section>
   </div>
 </main>
