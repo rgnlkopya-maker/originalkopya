@@ -66,6 +66,14 @@
 .xt-mobile-note{font-size:11px;color:#8290a7}
 @media(max-width:1080px){.xt-grid{grid-template-columns:1fr}.xt-left,.xt-right{display:contents}.xt-search{order:1}.xt-result{order:2}.xt-history-card{order:3}.xt-import{order:4}.xt-communication{order:5}}
 @media(max-width:720px){.xt{padding:0 11px;margin-top:12px}.xt h1{font-size:22px}.xt-stats{grid-template-columns:repeat(2,minmax(0,1fr))}.xt-card{padding:13px}.xt-steps{grid-template-columns:1fr}.xt-table{min-width:900px}.xt-filter input,.xt-filter select{max-width:unset;flex:1}.xt-progress-data strong{font-size:18px}}
+.xt-guide{margin:0 0 16px;padding:0;overflow:hidden}
+.xt-guide summary{display:flex;align-items:center;cursor:pointer;padding:15px 19px;font-size:14px;font-weight:800;color:#334461;list-style:none}
+.xt-guide summary::-webkit-details-marker{display:none}
+.xt-guide-chevron{margin-left:auto;transition:transform .2s}
+.xt-guide[open] .xt-guide-chevron{transform:rotate(180deg)}
+.xt-guide-body{border-top:1px solid #edf0f5;padding:13px 19px 16px;color:#485671;font-size:13px;line-height:1.65}
+.xt-guide-body p{margin:0 0 9px}
+.xt-guide-body p:last-child{margin-bottom:0}
 </style>
 
 <main class="xt">
@@ -76,6 +84,17 @@
       <div class="xt-text">Sen aramayı belirle; MoliApp eski kayıtları atlayıp sıradaki 20 yeni mağazayı bulmaya çalışsın.</div>
     </div>
   </div>
+
+  <details class="xt-card xt-guide">
+    <summary><i class="bi bi-info-circle me-2" aria-hidden="true"></i>Bu sayfa nasıl çalışır?<i class="bi bi-chevron-down xt-guide-chevron" aria-hidden="true"></i></summary>
+    <div class="xt-guide-body">
+      <p>Bu sayfa, yeni potansiyel mağaza müşterileri bulmak ve iletişim bilgilerini tek yerde toplamak içindir.</p>
+      <p>Arama kutusuna aradığın mağaza türünü ve istersen şehir veya ülkeyi yazıp <strong>20 yeni mağaza bul</strong> düğmesine bas. Sistem, Google arama sonuçlarını bir servis üzerinden inceler; uygun görünmeyen siteleri ve daha önce kaydedilmiş mağazaları eler, en fazla 20 yeni kayıt bulmaya çalışır.</p>
+      <p>Bulunan mağazalar aşağıdaki listede görünür. Web sitesi, Instagram, e-posta, telefon ve WhatsApp bilgileri bulunabildiği ölçüde gösterilir; eksik bilgiler her zaman bulunamayabilir.</p>
+      <p><strong>Arama geçmişi</strong> önceki araştırmaları saklar. Aynı aramayı yeniden yaptığında sistem kaldığı sonuçlardan devam edebilir; eski mağazaları yeniden yeni kayıt olarak eklemez.</p>
+      <p>Bu bölüm yalnızca araştırma ve kayıt oluşturur; mağazalara otomatik mesaj göndermez. Sonuçları müşteri olarak değerlendirmeden önce doğrulamalısın.</p>
+    </div>
+  </details>
 
   {% for message in messages %}
   <div class="alert {% if 'error' in message.tags %}alert-danger{% elif 'warning' in message.tags %}alert-warning{% else %}alert-success{% endif %} py-2">{{ message }}</div>
