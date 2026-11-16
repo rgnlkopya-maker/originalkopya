@@ -203,7 +203,7 @@
         </form>
         <div class="xt-table-wrap">
           <table class="xt-table">
-            <thead><tr><th>Mağaza</th><th>Ülke</th><th>Instagram</th><th>Takipçi</th><th>E-posta</th><th>Telefon</th><th>WhatsApp</th><th>İletişim taraması</th></tr></thead>
+            <thead><tr><th>Mağaza</th><th>Ülke</th><th>Instagram</th><th>E-posta</th><th>Telefon</th><th>WhatsApp</th><th>İletişim taraması</th></tr></thead>
             <tbody>
             {% for lead in page %}
             <tr>
@@ -213,8 +213,7 @@
                 {% if lead.city %}<div class="xt-text">{{ lead.city }}</div>{% endif %}
               </td>
               <td>{{ lead.country }}</td>
-              <td>{% if lead.instagram_url %}<a href="{{ lead.instagram_url }}" target="_blank" rel="noopener noreferrer"><i class="bi bi-instagram"></i> Aç</a>{% else %}—{% endif %}</td>
-              <td>{% if lead.instagram_followers != None %}{{ lead.instagram_followers }}{% else %}—{% endif %}</td>
+              <td>{% if lead.instagram_url %}<a href="{{ lead.instagram_url }}" target="_blank" rel="noopener noreferrer"><i class="bi bi-instagram"></i> Aç</a>{% if lead.instagram_followers != None %} <span class="xt-text">({{ lead.instagram_followers }} takipçi)</span>{% endif %}{% else %}—{% endif %}</td>
               <td>{% if lead.email %}<span title="{{ lead.email }}">{{ lead.email|truncatechars:26 }}</span>{% else %}—{% endif %}</td>
               <td>{% if lead.phone_number %}<a href="tel:{{ lead.phone_number }}">{{ lead.phone_number }}</a>{% elif not lead.website_url %}<span class="xt-text">Web sitesi yok</span>{% elif not lead.contact_scan_at %}<span class="xt-text">Araştırılacak</span>{% elif "güvenli şekilde okunamadı" in lead.contact_scan_note %}<span class="xt-text" title="İşletme sitesine erişim başarısız">Siteye erişilemedi</span>{% else %}<span class="xt-text">Bulunamadı</span>{% endif %}</td>
               <td>{% if lead.whatsapp_link %}<a href="{{ lead.whatsapp_link }}" target="_blank" rel="noopener noreferrer"><i class="bi bi-whatsapp"></i> Aç</a>{% else %}—{% endif %}</td>
