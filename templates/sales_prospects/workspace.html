@@ -32,6 +32,10 @@
 .xt-stat{border:1px solid #e5e8ef;border-radius:12px;padding:14px 15px;background:#fff}
 .xt-stat span{display:block;font-size:11px;color:#78859b;font-weight:700}
 .xt-stat strong{display:block;font-size:26px;line-height:1.2;color:#273a58;font-weight:850;margin-top:5px}
+.xt-google-search{display:flex;align-items:center;gap:11px;border:1px solid #dfe3eb;border-radius:100px;padding:5px 17px;box-shadow:0 2px 9px #26355713;background:white}
+.xt-google-search:focus-within{border-color:#8d80b7;box-shadow:0 2px 13px #26355720}
+.xt-google-search i{color:#78859b;font-size:17px}
+.xt-google-search input{flex:1;min-width:0;border:0;outline:0;padding:12px 0;font-size:14px;background:transparent;color:#24314b}
 .xt-progress{background:#f7f6fc;border:1px solid #e9e6f5;padding:13px;border-radius:11px;margin-top:14px}
 .xt-progress-title{font-size:12px;font-weight:850;color:#493882}
 .xt-progress-data{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:12px 0}
@@ -81,13 +85,6 @@
   <div class="alert {% if 'error' in message.tags %}alert-danger{% elif 'warning' in message.tags %}alert-warning{% else %}alert-success{% endif %} py-2">{{ message }}</div>
   {% endfor %}
 
-  <div class="xt-stats">
-    <div class="xt-stat"><span>Toplam mağaza</span><strong>{{ counts.all }}</strong></div>
-    <div class="xt-stat"><span>İncelenecek</span><strong>{{ counts.new }}</strong></div>
-    <div class="xt-stat"><span>İletişim kurulan</span><strong>{{ counts.contacted }}</strong></div>
-    <div class="xt-stat"><span>Yanıt / potansiyel müşteri</span><strong>{{ counts.responded }}</strong></div>
-  </div>
-
   <div class="xt-grid">
     <section class="xt-left">
       <div class="xt-card xt-search">
@@ -97,24 +94,14 @@
         </div>
         <form id="xt-automatic-search" method="post" action="{% url 'prospect_automatic_batch' %}">
           {% csrf_token %}
-          <div class="xt-fields">
-            <div class="xt-input">
-              <label for="xt-country">Ülke</label>
-              <select name="country" id="xt-country" required>
-                {% for code,label in countries %}
-                <option value="{{ code }}" {% if search_form.country.value == code %}selected{% endif %}>{{ label }}</option>
-                {% endfor %}
-              </select>
-            </div>
-            <div class="xt-input">
-              <label for="xt-city">Şehir / bölge</label>
-              <input name="city" id="xt-city" maxlength="100" value="{{ search_form.city.value|default_if_none:'' }}" placeholder="Berlin">
-            </div>
-            <div class="xt-input xt-wide">
-              <label for="xt-query">Arama kelimesi</label>
-              <input name="query" id="xt-query" required minlength="3" maxlength="200" value="{{ search_form.query.value|default_if_none:'' }}" placeholder="evening dress boutique">
-            </div>
+          <input type="hidden" name="country" value="OTHER">
+          <input type="hidden" name="city" value="">
+          <label for="xt-query" class="visually-hidden">Google mağaza araması</label>
+          <div class="xt-google-search">
+            <i class="bi bi-search" aria-hidden="true"></i>
+            <input name="query" id="xt-query" type="search" required minlength="3" maxlength="200" value="{{ search_form.query.value|default_if_none:'' }}" placeholder="Google'da mağaza ara... Örn. Berlin evening dress boutique" autocomplete="off">
           </div>
+          <div class="xt-text mt-2">Ülke, şehir ve mağaza türünü istersen doğrudan arama metnine yazabilirsin.</div>
           <div class="xt-actions">
             <button id="xt-search-button" class="xt-btn primary full" type="submit" {% if not search_provider_configured %}disabled title="Serper API bağlantısı gerekli"{% endif %}>
               <i class="bi bi-search"></i> 20 yeni mağaza bul

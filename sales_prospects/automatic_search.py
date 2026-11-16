@@ -66,7 +66,7 @@ def _fetch_serper_page(api_key, query, country, city, page):
     payload = json.dumps({
         "q": search_phrase(query, country, city),
         "num": PAGE_SIZE, "page": page,
-        "gl": "uk" if country == "GB" else (country.lower() if country in COUNTRY_EN else "us"),
+        **({"gl": "uk" if country == "GB" else country.lower()} if country in COUNTRY_EN else {}),
         "hl": SEARCH_LANG.get(country, "en"),
     }).encode("utf-8")
     request = Request(
