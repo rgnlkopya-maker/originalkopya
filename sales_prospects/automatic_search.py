@@ -107,6 +107,7 @@ def _fetch_serper_page(api_key, query, country, city, page):
         raise SearchUnavailable("Arama servisi beklenmeyen bir sonuç biçimi döndürdü.")
     if instagram_pass:
         # Google may return non-Instagram results despite the site: operator.
+        # Do not treat a filtered-empty Instagram page as end of all research.
         items = [item for item in items if isinstance(item, dict) and
                  canonical_store_url(str(item.get("link") or "")).startswith("https://instagram.com/")]
     return items[:PAGE_SIZE]
@@ -137,6 +138,10 @@ def _store_one(search, item, user):
         "dresses for women", "evening dresses - berlin",
     )
     if title.casefold().startswith(generic_titles):
+        return "skipped"
+    # A search-result snippet alone is not evidence of an actual retailer.
+    # Require a retail-related term in the store/profile title itself.
+    if not any(term in title.casefold() for term in RETAIL_TERMS):
         return "skipped"
     is_instagram = canonical.startswith("https://instagram.com/")
     if is_instagram:
@@ -243,8 +248,8 @@ def _run_locked_page(search, user, key, target_new):
                 }
                 for item in rows if isinstance(item, dict)
             ]
-            if not rows:
-                locked.exhausted = True
+            # One empty channel/page is not proof that the other channel
+            # has no results. Only exhaust after the bounded cursor ends.
         counts = {"new": 0, "duplicates": 0, "skipped": 0}
         examined = 0
         while pending and counts["new"] < target_new:
