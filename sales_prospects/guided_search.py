@@ -27,7 +27,7 @@ EXCLUDED_DOMAINS = {
 
 def google_url_for(query, country, city=""):
     names = dict(COUNTRIES)
-    country_name = names.get(country, "")
+    country_name = "" if country == "OTHER" else names.get(country, "")
     composed = " ".join(bit for bit in [query.strip(), city.strip(), country_name] if bit)
     return GOOGLE_URL + "?" + urlencode({"q": composed, "num": 20})
 
