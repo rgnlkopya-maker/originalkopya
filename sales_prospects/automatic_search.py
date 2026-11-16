@@ -34,7 +34,7 @@ NON_RETAILER_HOSTS = {
     "dasoertliche.de", "dastelefonbuch.de", "werkenntdenbesten.de",
     "cylex.de", "gelbeseiten.de", "branchen-info.net",
 }
-MAX_PAGES = 30
+MAX_PAGES = 60  # 30 ordinary web pages + 30 Instagram-focused pages
 COUNTRY_EN = {
     "DE": "Germany", "FR": "France", "GB": "United Kingdom",
     "US": "United States", "NL": "Netherlands", "BE": "Belgium",
@@ -66,9 +66,17 @@ def search_phrase(query, country, city=""):
 def _fetch_serper_page(api_key, query, country, city, page):
     if not 1 <= page <= MAX_PAGES:
         raise SearchUnavailable("Arama için erişilebilir sonuç sayfası sınırına ulaşıldı.")
+    # Alternate sources under one search button and one deduplicated list.
+    # Odd cursor pages search websites; even pages search public Instagram
+    # profiles indexed by Google. No direct Instagram scraping or login.
+    instagram_pass = page % 2 == 0
+    provider_page = (page + 1) // 2
+    phrase = search_phrase(query, country, city)
+    if instagram_pass:
+        phrase = "site:instagram.com " + phrase + " boutique shop"
     payload = json.dumps({
-        "q": search_phrase(query, country, city),
-        "num": PAGE_SIZE, "page": page,
+        "q": phrase,
+        "num": PAGE_SIZE, "page": provider_page,
         **({"gl": "uk" if country == "GB" else country.lower()} if country in COUNTRY_EN else {}),
         "hl": SEARCH_LANG.get(country, "en"),
     }).encode("utf-8")
@@ -97,6 +105,10 @@ def _fetch_serper_page(api_key, query, country, city, page):
     items = data.get("organic", [])
     if not isinstance(items, list):
         raise SearchUnavailable("Arama servisi beklenmeyen bir sonuç biçimi döndürdü.")
+    if instagram_pass:
+        # Google may return non-Instagram results despite the site: operator.
+        items = [item for item in items if isinstance(item, dict) and
+                 canonical_store_url(str(item.get("link") or "")).startswith("https://instagram.com/")]
     return items[:PAGE_SIZE]
 
 
