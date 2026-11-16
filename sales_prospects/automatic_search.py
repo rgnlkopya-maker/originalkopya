@@ -255,7 +255,7 @@ def _run_locked_page(search, user, key, target_new):
         while pending and counts["new"] < target_new:
             candidate = pending.pop(0)
             kind = _store_one(locked, candidate, user)
-            counts[kind] += 1
+            counts["duplicates" if kind == "duplicate" else kind] += 1
             examined += 1
 
         locked.pending_results = pending
