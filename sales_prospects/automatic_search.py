@@ -30,6 +30,9 @@ NON_RETAILER_HOSTS = {
     "yellowpages.com", "pagesjaunes.fr", "gelbeseiten.de", "11880.com",
     "zalando.de", "en.zalando.de", "aboutyou.de", "en.aboutyou.de",
     "next.de", "etsy.com", "amazon.de",
+    "top10berlin.de", "golocal.de", "meinestadt.de", "11880.com",
+    "dasoertliche.de", "dastelefonbuch.de", "werkenntdenbesten.de",
+    "cylex.de", "gelbeseiten.de", "branchen-info.net",
 }
 MAX_PAGES = 30
 COUNTRY_EN = {
@@ -56,7 +59,7 @@ def is_configured():
 def search_phrase(query, country, city=""):
     return " ".join(x for x in (
         (query or "").strip(), (city or "").strip(),
-        COUNTRY_EN.get(country, dict(COUNTRIES).get(country, ""))
+        COUNTRY_EN.get(country, "")
     ) if x)
 
 
@@ -114,6 +117,14 @@ def _store_one(search, item, user):
     # unrelated site is a store solely because the user searched for shops.
     evidence = (title + " " + snippet).casefold()
     if not any(term in evidence for term in RETAIL_TERMS):
+        return "skipped"
+    # Reject obvious search/listicle results, without excluding legitimate
+    # boutiques merely because they mention several brands or products.
+    generic_titles = (
+        "top 10 best ", "10 best ", "best 10 ", "best evening dress stores",
+        "dresses for women", "evening dresses - berlin",
+    )
+    if title.casefold().startswith(generic_titles):
         return "skipped"
     is_instagram = canonical.startswith("https://instagram.com/")
     if is_instagram:
