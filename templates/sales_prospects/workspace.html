@@ -183,17 +183,8 @@
         <div class="xt-head">
           <div>
             <h2><i class="bi bi-table me-2"></i>Bulunan mağazalar</h2>
-            <div class="xt-text mt-1">{% if active_search %}{{ active_search.get_country_display }} · {{ active_search.query }} aramasının tüm kayıtları{% else %}Tüm kayıtlı yurt dışı mağazalar{% endif %}</div>
+            {% if active_search %}<div class="xt-text mt-1">{{ active_search.query }}</div>{% endif %}
           </div>
-          <div class="xt-actions m-0">
-            <a href="{% url 'prospect_list' %}" class="xt-btn">Tüm mağazalar</a>
-            {% if active_search %}<a href="{% url 'prospect_list_with_history' active_search.pk %}" class="xt-btn">Bu arama</a>{% endif %}
-          </div>
-        </div>
-        <div class="xt-steps">
-          <div><b>1 · Mağaza bul</b><p>Eski mağazalar atlanır; 20 yeni mağazaya ulaşmak için sonraki sonuçlara geçilir.</p></div>
-          <div><b>2 · İletişimi araştır</b><p>Web sitesindeki herkese açık işletme bağlantıları taranır.</p></div>
-          <div><b>3 · Listeye ekle</b><p>Bütün eski kayıtlarla karşılaştırılır. Yeni bulunanlar eklenir.</p></div>
         </div>
         <form method="get" action="{% if active_search %}{% url 'prospect_list_with_history' active_search.pk %}{% else %}{% url 'prospect_list' %}{% endif %}" class="xt-filter">
           <input name="q" value="{{ term }}" placeholder="Mağaza / e-posta ara">
