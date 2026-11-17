@@ -3207,6 +3207,10 @@ def dashboard_view(request):
         d = dt.date() if hasattr(dt, "date") else dt
         siparis_counts[d] += 1
 
+    # Grafiklerde bos hafta sonlarini gizle; hafta sonu herhangi bir
+    # ilgili seride islem varsa ortak tarih ekseninde koru.
+    # Sevkiyat ve kar sayimlari asagida hazirlandigi icin tarihleri
+    # sonradan ortak eksende yeniden olusturuyoruz.
     siparis_trend_labels = []
     siparis_trend_values = []
 
@@ -3293,6 +3297,21 @@ def dashboard_view(request):
         kar_trend_labels.append(d.strftime("%d.%m"))
         kar_trend_values.append(float(kar_map.get(d, 0)))
         d += timedelta(days=1)
+
+    # Bos hafta sonlari sahte performans dususu olusturmasin.
+    # Hafta ici sifirlar gercek veri noktasi olarak korunur.
+    visible_days = []
+    day = start_date
+    while day <= end_date:
+        if day.weekday() < 5 or siparis_counts.get(day, 0) or sevk_counts.get(day, 0) or kar_map.get(day, 0):
+            visible_days.append(day)
+        day += timedelta(days=1)
+    siparis_trend_labels = [day.strftime("%d.%m") for day in visible_days]
+    siparis_trend_values = [int(siparis_counts.get(day, 0)) for day in visible_days]
+    sevkiyat_trend_labels = [day.strftime("%d.%m") for day in visible_days]
+    sevkiyat_trend_values = [int(sevk_counts.get(day, 0)) for day in visible_days]
+    kar_trend_labels = [day.strftime("%d.%m") for day in visible_days]
+    kar_trend_values = [float(kar_map.get(day, 0)) for day in visible_days]
 
     # =========================================================
     # 6) PERSONEL PERFORMANSI (OrderEvent)
