@@ -614,10 +614,32 @@ window.addEventListener('pageshow', function(event) {
 <!-- Decorative snowfall: non-interactive, lightweight and accessibility-aware. -->
 <style>
 #moli-snowfall{position:fixed;inset:0;z-index:1050;pointer-events:none!important;overflow:hidden;contain:strict;user-select:none}
-#moli-snowfall .moli-flake{position:absolute;top:-24px;left:var(--snow-x);width:var(--snow-size);height:var(--snow-size);border-radius:50%;background:rgba(92,128,190,var(--snow-opacity));box-shadow:0 0 4px rgba(59,93,155,.16);will-change:transform;animation:moli-snow-fall var(--snow-duration) linear var(--snow-delay) infinite}
+#moli-snowfall .moli-flake{position:absolute;top:-24px;left:var(--snow-x);width:var(--snow-size);height:var(--snow-size);border-radius:50%;background:rgba(103,139,192,var(--snow-opacity));border:1px solid rgba(255,255,255,.85);box-shadow:0 0 3px rgba(49,82,145,.28);will-change:transform;animation:moli-snow-fall var(--snow-duration) linear var(--snow-delay) infinite}
 @keyframes moli-snow-fall{from{transform:translate3d(0,-28px,0)}to{transform:translate3d(var(--snow-drift),calc(100vh + 52px),0)}}
 @media(prefers-reduced-motion:reduce){#moli-snowfall{display:none!important}}
+/* Festive ornaments are decoration only; they cannot block interactions. */
+#moli-holiday-decor{position:fixed;inset:0;z-index:1049;pointer-events:none!important;overflow:hidden;user-select:none}
+.moli-holiday-corner{position:absolute;top:8px;display:flex;align-items:flex-start;gap:12px;opacity:.9}
+.moli-holiday-corner.left{left:14px}.moli-holiday-corner.right{right:14px;flex-direction:row-reverse}
+.moli-holiday-string{width:2px;height:37px;background:linear-gradient(#8ca9c7,#bed0e2);position:relative}
+.moli-holiday-string:after{content:'';position:absolute;bottom:-12px;left:-8px;width:18px;height:18px;border-radius:50%;background:radial-gradient(circle at 30% 25%,#fff6db,#e8af59 45%,#b77a3b);box-shadow:0 2px 7px rgba(52,70,100,.15)}
+.moli-holiday-string:nth-child(2){height:25px}.moli-holiday-string:nth-child(2):after{background:radial-gradient(circle at 30% 25%,#f1fbff,#79b9d2 45%,#477d9d)}
+.moli-holiday-string:nth-child(3){height:32px}.moli-holiday-string:nth-child(3):after{background:radial-gradient(circle at 30% 25%,#fff0f2,#e894a3 45%,#ae556c)}
+.moli-holiday-star{font-size:22px;color:#d4a550;text-shadow:0 1px 4px #f4e3b4;line-height:1;margin-top:5px}
+@media(max-width:767px){.moli-holiday-corner{top:4px;gap:7px}.moli-holiday-corner.left{left:4px}.moli-holiday-corner.right{right:4px}.moli-holiday-string{height:23px}.moli-holiday-string:nth-child(2){height:15px}.moli-holiday-string:nth-child(3){display:none}.moli-holiday-string:after{width:12px;height:12px;left:-5px;bottom:-8px}.moli-holiday-star{font-size:15px}}
 </style>
+<script>
+(function(){
+  function initHolidayDecor(){
+    if(!document.body||document.getElementById('moli-holiday-decor'))return;
+    const decor=document.createElement('div');decor.id='moli-holiday-decor';decor.setAttribute('aria-hidden','true');
+    decor.innerHTML='<div class="moli-holiday-corner left"><span class="moli-holiday-star">✦</span><span class="moli-holiday-string"></span><span class="moli-holiday-string"></span><span class="moli-holiday-string"></span></div><div class="moli-holiday-corner right"><span class="moli-holiday-star">✦</span><span class="moli-holiday-string"></span><span class="moli-holiday-string"></span><span class="moli-holiday-string"></span></div>';
+    document.body.appendChild(decor);
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',initHolidayDecor,{once:true});
+  else initHolidayDecor();
+})();
+</script>
 <script>
 (function(){
   if(window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches)return;
@@ -628,14 +650,14 @@ window.addEventListener('pageshow', function(event) {
     layer.id='moli-snowfall';
     layer.setAttribute('aria-hidden','true');
     const mobile=window.matchMedia&&window.matchMedia('(max-width: 767px)').matches;
-    const count=mobile?12:25;
+    const count=mobile?14:28;
     const fragment=document.createDocumentFragment();
     for(let i=0;i<count;i++){
       const flake=document.createElement('span');
       flake.className='moli-flake';
       flake.style.setProperty('--snow-x',(Math.random()*100).toFixed(2)+'%');
-      flake.style.setProperty('--snow-size',(2+Math.random()*3).toFixed(1)+'px');
-      flake.style.setProperty('--snow-opacity',(0.46+Math.random()*.30).toFixed(2));
+      flake.style.setProperty('--snow-size',(5+Math.random()*5).toFixed(1)+'px');
+      flake.style.setProperty('--snow-opacity',(0.56+Math.random()*.27).toFixed(2));
       flake.style.setProperty('--snow-duration',(15+Math.random()*19).toFixed(1)+'s');
       flake.style.setProperty('--snow-delay',(-Math.random()*34).toFixed(1)+'s');
       flake.style.setProperty('--snow-drift',((Math.random()-.5)*95).toFixed(0)+'px');
