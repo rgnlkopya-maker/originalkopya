@@ -86,6 +86,10 @@
     {% if user|is_management %}<li><a href="{% url 'smart_pattern_home' %}" class="dropdown-item {% if request.resolver_match.url_name == 'smart_pattern_home' or request.resolver_match.url_name == 'smart_pattern_order' %}active{% endif %}"><i class="bi bi-rulers"></i>Akıllı Kalıp</a></li>{% endif %}
     {% if user|can:'can_manage_planning' %}<li><a href="{% url 'shipment_planning_page' %}" class="dropdown-item {% if request.resolver_match.url_name == 'planning_page' or request.resolver_match.url_name == 'shipment_planning_page' %}active{% endif %}"><i class="bi bi-calendar3"></i>Sevkiyat Planı</a></li>{% endif %}
     {% if user|can:'can_manage_planning' %}<li><a href="{% url 'serial_cutting_page' %}" class="dropdown-item"><i class="bi bi-scissors"></i>Seri Kesim Planı</a></li>{% endif %}
+    {% if user|can:'can_view_reports' %}
+    <li><a href="{% url 'nakisci_raporu' %}" class="dropdown-item {% if request.resolver_match.url_name == 'nakisci_raporu' or request.resolver_match.url_name == 'nakisci_detay' %}active{% endif %}"><i class="bi bi-flower1"></i>Nakış Takibi</a></li>
+    <li><a href="{% url 'fasoncu_raporu' %}" class="dropdown-item {% if request.resolver_match.url_name == 'fasoncu_raporu' or request.resolver_match.url_name == 'fasoncu_detay' %}active{% endif %}"><i class="bi bi-people"></i>Fason Takibi</a></li>
+    {% endif %}
     {% if user|can:'can_view_assistant' %}<li><a href="{% url 'ai_assistant' %}" class="dropdown-item {% if request.resolver_match.url_name == 'ai_assistant' %}active{% endif %}"><i class="bi bi-robot"></i>Moli Asistan</a></li>{% endif %}
     {% if user|can:'can_view_depots' or user|can_feature:'consignment.view' %}
     <li><hr class="dropdown-divider"></li>
