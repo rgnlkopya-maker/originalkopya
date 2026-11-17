@@ -42,5 +42,33 @@
       </div>
     </div>
   </section>
+<section class="fin-card" style="margin-top:18px">
+<h3>Model Bazlı Kârlılık</h3><div class="sub">Yalnızca seçilen tarih aralığındaki onaylı ve aktarılmış föyler. Tutarlar KDV hariç TL.</div>
+<div style="overflow-x:auto"><table style="width:100%;min-width:780px;border-collapse:collapse">
+<thead><tr><th>Model</th><th>Adet</th><th>Ort. Satış</th><th>Ort. Maliyet</th><th>Ciro</th><th>Kâr</th><th>Kâr %</th></tr></thead>
+<tbody>{% for m in model_rows %}<tr class="model-row" data-code="{{ m.code }}" data-price="{{ m.unit_price }}" data-cost="{{ m.unit_cost }}" data-qty="{{ m.quantity }}" style="cursor:pointer;border-top:1px solid #edf0f5"><td><strong>{{ m.code }}</strong></td><td>{{ m.quantity }}</td><td>{{ m.unit_price|floatformat:2 }}</td><td>{{ m.unit_cost|floatformat:2 }}</td><td>{{ m.revenue|floatformat:2 }}</td><td>{{ m.profit|floatformat:2 }}</td><td>%{{ m.profit_rate|floatformat:2 }}</td></tr>{% empty %}<tr><td colspan="7">Seçilen tarihlerde model bulunamadı.</td></tr>{% endfor %}</tbody></table></div>
+</section>
+<section class="fin-card" style="margin-top:14px" id="simulator">
+<h3>Fiyat ve Kâr Simülatörü</h3><div class="sub">Seçilen dönemdeki modellerin ortalama KDV hariç satış ve maliyetleri kullanılır. Sipariş kayıtları değiştirilmez.</div>
+<div class="date-box"><div><label>Model</label><select id="sim-model" style="height:40px;border:1px solid #dfe5ef;border-radius:10px;padding:0 10px"><option value="">Model seçiniz</option>{% for m in model_rows %}<option value="{{ m.code }}" data-price="{{ m.unit_price }}" data-cost="{{ m.unit_cost }}" data-qty="{{ m.quantity }}">{{ m.code }}</option>{% endfor %}</select></div><div><label>Yeni birim satış fiyatı (TL, KDV hariç)</label><input id="sim-price" type="number" min="0" step="0.01" placeholder="Fiyat"></div><div><label>Adet</label><input id="sim-qty" type="number" min="1" step="1" placeholder="Adet"></div></div>
+<div class="metrics" style="margin-top:14px"><div class="metric"><span>Mevcut birim kâr</span><strong id="sim-old">—</strong></div><div class="metric"><span>Yeni birim kâr</span><strong id="sim-new">—</strong></div><div class="metric"><span>Yeni kâr marjı</span><strong id="sim-rate">—</strong></div><div class="metric"><span>Toplam kâr farkı</span><strong id="sim-diff">—</strong></div></div>
+</section>
+<script>
+(function(){
+const model=document.getElementById('sim-model'),price=document.getElementById('sim-price'),qty=document.getElementById('sim-qty');
+const fmt=n=>Number.isFinite(n)?new Intl.NumberFormat('tr-TR',{minimumFractionDigits:2,maximumFractionDigits:2}).format(n)+' TL':'—';
+function update(){const o=model.selectedOptions[0];if(!o||!o.dataset.price){['sim-old','sim-new','sim-rate','sim-diff'].forEach(id=>document.getElementById(id).textContent='—');return;}
+const original=Number(o.dataset.price),cost=Number(o.dataset.cost),newPrice=Number(price.value),count=Number(qty.value);
+if(price.value===''||qty.value===''||!Number.isFinite(newPrice)||newPrice<0||!Number.isInteger(count)||count<1)return;
+document.getElementById('sim-old').textContent=fmt(original-cost);document.getElementById('sim-new').textContent=fmt(newPrice-cost);
+document.getElementById('sim-rate').textContent=newPrice>0?'%'+((newPrice-cost)/newPrice*100).toFixed(2):'—';
+document.getElementById('sim-diff').textContent=fmt((newPrice-original)*count);
+}
+model.addEventListener('change',()=>{const o=model.selectedOptions[0];price.value=o.dataset.price||'';qty.value=o.dataset.qty||'';update()});
+price.addEventListener('input',update);qty.addEventListener('input',update);
+document.querySelectorAll('.model-row').forEach(row=>row.addEventListener('click',()=>{model.value=row.dataset.code;model.dispatchEvent(new Event('change'));document.getElementById('simulator').scrollIntoView({behavior:'smooth',block:'center'})}));
+})();
+</script>
+<style>.fin-card th,.fin-card td{padding:11px 8px;text-align:right;font-size:12px}.fin-card th:first-child,.fin-card td:first-child{text-align:left}.model-row:hover{background:#f7f8fc}</style>
 </main>
 {% endblock %}
