@@ -1,3 +1,4 @@
+import logging
 from decimal import Decimal, ROUND_HALF_UP
 
 from django.contrib.auth.decorators import login_required
@@ -11,6 +12,7 @@ from product_cards.models import ShowroomDraft
 from product_cards.showroom_views import _apply_pricing_operations
 
 
+logger = logging.getLogger(__name__)
 MONEY = Decimal("0.01")
 
 
@@ -135,6 +137,17 @@ def _folio_finance(draft, include_items=False):
     }
 
 
+def _folio_finance_logged(draft, include_items=False):
+    try:
+        return _folio_finance(draft, include_items=include_items)
+    except Exception:
+        logger.exception(
+            "[SIPARIS_FINANS] Folio calculation failed draft_id=%s status=%s include_items=%s",
+            draft.pk, draft.status, include_items,
+        )
+        raise
+
+
 def _order_type_summary(qs):
     revenue = Decimal("0")
     cost = Decimal("0")
@@ -181,7 +194,7 @@ def siparis_finans_raporu(request):
     orders = Order.objects.filter(is_active=True).exclude(siparis_tipi="MALZEME").select_related("musteri")
     start, end, folios, orders = _date_filter(request, folios, orders)
 
-    folio_rows = [_folio_finance(draft) for draft in folios]
+    folio_rows = [_folio_finance_logged(draft) for draft in folios]
     folio_revenue = sum((x["revenue"] for x in folio_rows), Decimal("0"))
     folio_cost = sum((x["cost"] for x in folio_rows), Decimal("0"))
     folio_profit = folio_revenue - folio_cost
@@ -217,7 +230,7 @@ def siparis_finans_foyleri(request):
     )
     dummy_orders = Order.objects.none()
     start, end, folios, _ = _date_filter(request, folios, dummy_orders)
-    rows = [_folio_finance(draft) for draft in folios]
+    rows = [_folio_finance_logged(draft) for draft in folios]
 
     return render(request, "reports/siparis_finans_foyleri.html", {
         "rows": rows,
@@ -238,7 +251,7 @@ def siparis_finans_foy_detay(request, draft_id):
         id=draft_id,
         status__in=["APPROVED", "TRANSFERRED"],
     )
-    finance = _folio_finance(draft, include_items=True)
+    finance = _folio_finance_logged(draft, include_items=True)
     return render(request, "reports/siparis_finans_foy_detay.html", {
         "draft": draft,
         "finance": finance,
