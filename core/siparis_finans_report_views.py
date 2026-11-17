@@ -200,7 +200,28 @@ def siparis_finans_raporu(request):
     orders = Order.objects.filter(is_active=True).exclude(siparis_tipi="MALZEME").select_related("musteri")
     start, end, folios, orders = _date_filter(request, folios, orders)
 
-    folio_rows = [_folio_finance_logged(draft) for draft in folios]
+    folio_rows = []
+    model_totals = {}
+    for draft in folios:
+        finance = _folio_finance_logged(draft, include_items=True)
+        folio_rows.append(finance)
+        for item in finance["items"]:
+            code = item["code"]
+            row = model_totals.setdefault(code, {"code": code, "quantity": 0, "revenue": Decimal("0"), "cost": Decimal("0")})
+            row["quantity"] += item["quantity"]
+            row["revenue"] += item["row_revenue"]
+            row["cost"] += item["row_cost"]
+    model_rows = []
+    for row in model_totals.values():
+        qty, revenue, cost = row["quantity"], row["revenue"], row["cost"]
+        profit = revenue - cost
+        model_rows.append({
+            "code": row["code"], "quantity": qty, "revenue": _q(revenue), "cost": _q(cost),
+            "profit": _q(profit), "unit_price": _q(revenue / qty), "unit_cost": _q(cost / qty),
+            "profit_rate": _q(profit / revenue * 100) if revenue > 0 else Decimal("0"),
+        })
+    model_rows.sort(key=lambda row: (-row["revenue"], row["code"]))
+
     folio_revenue = sum((x["revenue"] for x in folio_rows), Decimal("0"))
     folio_cost = sum((x["cost"] for x in folio_rows), Decimal("0"))
     folio_profit = folio_revenue - folio_cost
@@ -209,6 +230,7 @@ def siparis_finans_raporu(request):
     context = {
         "start": start,
         "end": end,
+        "model_rows": model_rows,
         "folio_summary": {
             "revenue": _q(folio_revenue),
             "cost": _q(folio_cost),
