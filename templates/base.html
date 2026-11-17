@@ -611,4 +611,41 @@ window.addEventListener('pageshow', function(event) {
   }
 });
 </script>
+<!-- Decorative snowfall: non-interactive, lightweight and accessibility-aware. -->
+<style>
+#moli-snowfall{position:fixed;inset:0;z-index:1050;pointer-events:none!important;overflow:hidden;contain:strict;user-select:none}
+#moli-snowfall .moli-flake{position:absolute;top:-24px;left:var(--snow-x);width:var(--snow-size);height:var(--snow-size);border-radius:50%;background:rgba(235,245,255,var(--snow-opacity));box-shadow:0 0 5px rgba(108,145,190,.22);will-change:transform;animation:moli-snow-fall var(--snow-duration) linear var(--snow-delay) infinite}
+@keyframes moli-snow-fall{from{transform:translate3d(0,-28px,0)}to{transform:translate3d(var(--snow-drift),calc(100vh + 52px),0)}}
+@media(prefers-reduced-motion:reduce){#moli-snowfall{display:none!important}}
+</style>
+<script>
+(function(){
+  if(window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches)return;
+  if(document.getElementById('moli-snowfall'))return;
+  function initSnow(){
+    if(!document.body||document.getElementById('moli-snowfall'))return;
+    const layer=document.createElement('div');
+    layer.id='moli-snowfall';
+    layer.setAttribute('aria-hidden','true');
+    const mobile=window.matchMedia&&window.matchMedia('(max-width: 767px)').matches;
+    const count=mobile?12:25;
+    const fragment=document.createDocumentFragment();
+    for(let i=0;i<count;i++){
+      const flake=document.createElement('span');
+      flake.className='moli-flake';
+      flake.style.setProperty('--snow-x',(Math.random()*100).toFixed(2)+'%');
+      flake.style.setProperty('--snow-size',(2+Math.random()*3).toFixed(1)+'px');
+      flake.style.setProperty('--snow-opacity',(0.35+Math.random()*.38).toFixed(2));
+      flake.style.setProperty('--snow-duration',(15+Math.random()*19).toFixed(1)+'s');
+      flake.style.setProperty('--snow-delay',(-Math.random()*34).toFixed(1)+'s');
+      flake.style.setProperty('--snow-drift',((Math.random()-.5)*95).toFixed(0)+'px');
+      fragment.appendChild(flake);
+    }
+    layer.appendChild(fragment);
+    document.body.appendChild(layer);
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',initSnow,{once:true});
+  else initSnow();
+})();
+</script>
 </body></html>
