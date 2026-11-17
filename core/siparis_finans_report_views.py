@@ -79,9 +79,15 @@ def _folio_finance(draft, include_items=False):
 
         net_unit = Decimal(item.unit_price or 0) * net_factor
         linked_orders = linked_orders_by_item.get(item.id, [])
-        if linked_orders:
+        valid_linked_orders = [order for order in linked_orders if order is not None]
+        if len(valid_linked_orders) != len(linked_orders):
+            logger.warning(
+                "[SIPARIS_FINANS] Missing linked order draft_id=%s draft_item_id=%s missing_count=%s",
+                draft.pk, item.pk, len(linked_orders) - len(valid_linked_orders),
+            )
+        if valid_linked_orders:
             row_cost = sum(
-                (Decimal(order.toplam_maliyet or 0) * Decimal(order.adet or 1) for order in linked_orders),
+                (Decimal(order.toplam_maliyet or 0) * Decimal(order.adet or 1) for order in valid_linked_orders),
                 Decimal("0"),
             )
             unit_cost = row_cost / Decimal(qty) if qty else Decimal("0")
