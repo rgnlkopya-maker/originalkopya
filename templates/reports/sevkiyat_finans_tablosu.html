@@ -28,6 +28,7 @@
 .finance-action:hover { background: #e9edff; }
 .status-pill { display: inline-block; padding: 5px 9px; border-radius: 999px; font-size: 12px; font-weight: 600; background: #eef1ff; color: #334155; }
 .status-pending { background: #fff7ed; color: #9a3412; }
+.ship-tabs{display:flex;gap:8px;margin:18px 0 14px;flex-wrap:wrap}.ship-tab{border:1px solid #dce2f2;background:#fff;color:#475569;border-radius:12px;padding:11px 19px;font-weight:750;cursor:pointer}.ship-tab.active{background:#354bca;color:#fff;border-color:#354bca;box-shadow:0 3px 12px rgba(53,75,202,.18)}.ship-model-summary{font-size:13px;color:#64748b;margin:8px 0 14px}.ship-model-panel[hidden],.ship-order-panel[hidden]{display:none!important}.ship-model-table{width:100%;border-collapse:separate;border-spacing:0 8px}.ship-model-table th{background:#f5f7fb;color:#64748b;font-size:12px;padding:13px;text-align:right;white-space:nowrap}.ship-model-table td{background:white;padding:13px;text-align:right}.ship-model-table th:first-child,.ship-model-table td:first-child{text-align:left}.ship-model-table tbody tr:hover td{background:#f4f6ff}.ship-model-sort{border:0;background:transparent;color:inherit;font-weight:750;cursor:pointer}.ship-model-sort:hover{color:#354bca}.ship-model-sort span{color:#395bff}.ship-model-empty{text-align:center!important;color:#64748b}
 </style>
 {% endblock %}
 
@@ -49,6 +50,8 @@
     </form>
   </div>
 
+  <div class="ship-tabs" role="tablist" aria-label="Sevkiyat finans görünümü"><button type="button" class="ship-tab active" id="ship-tab-orders" role="tab" aria-selected="true" aria-controls="ship-order-panel">Sevkiyat Finans Tablosu</button><button type="button" class="ship-tab" id="ship-tab-models" role="tab" aria-selected="false" aria-controls="ship-model-panel">Model Bazlı Kârlılık</button></div>
+  <section id="ship-order-panel" class="ship-order-panel" role="tabpanel" aria-labelledby="ship-tab-orders">
   <div class="table-responsive shadow-sm rounded">
     <table class="table-modern" id="financeTable">
       <thead>
@@ -60,7 +63,7 @@
       <tbody>
       {% for o in orders %}
         {% finance_result o as fr %}
-        <tr class="finance-row" data-final="{% if fr.is_final %}1{% else %}0{% endif %}" data-qty="{{ o.adet|default:0 }}" data-sale="{{ fr.satis_tl|default:0 }}" data-cost="{{ fr.maliyet_tl|default:0 }}" data-profit="{{ fr.kar_tl|default:0 }}">
+        <tr class="finance-row" data-final="{% if fr.is_final %}1{% else %}0{% endif %}" data-qty="{{ o.adet|default:0 }}" data-sale="{{ fr.satis_tl|default:0 }}" data-cost="{{ fr.maliyet_tl|default:0 }}" data-profit="{{ fr.kar_tl|default:0 }}" data-model="{{ o.urun_kodu|default_if_none:"" }}" data-valid="{% if fr.satis_tl is not None and fr.maliyet_tl is not None %}1{% else %}0{% endif %}">
           <td><a class="order-link" href="{% url 'order_detail' o.id %}">{{ o.siparis_numarasi }}</a></td>
           <td>{{ o.musteri.ad|default:"-" }}</td>
           <td>{{ o.urun_kodu|default:"-" }}</td>
@@ -79,7 +82,11 @@
       {% endfor %}
       </tbody>
     </table>
-  </div>
+  </div></section>
+  <section id="ship-model-panel" class="ship-model-panel" role="tabpanel" aria-labelledby="ship-tab-models" hidden>
+    <div class="ship-model-summary">Seçilen tarihlerdeki <strong>kesinleşmiş</strong> sevkiyatlar ürün koduna göre birleştirilir. Satış ve maliyet değerleri mevcut sevkiyat finans tablosuyla aynı hesaplardan alınır. Tutarlar TL'dir.</div>
+    <div class="table-responsive shadow-sm rounded"><table class="ship-model-table" id="shipModelTable"><thead><tr><th><button class="ship-model-sort" data-index="0" type="button">Model <span>↕</span></button></th><th><button class="ship-model-sort" data-index="1" type="button">Adet <span>↕</span></button></th><th><button class="ship-model-sort" data-index="2" type="button">Ort. Satış <span>↕</span></button></th><th><button class="ship-model-sort" data-index="3" type="button">Ort. Maliyet <span>↕</span></button></th><th><button class="ship-model-sort" data-index="4" type="button">Ciro <span>↕</span></button></th><th><button class="ship-model-sort" data-index="5" type="button">Maliyet <span>↕</span></button></th><th><button class="ship-model-sort" data-index="6" type="button">Kâr <span>↕</span></button></th><th><button class="ship-model-sort" data-index="7" type="button">Kâr % <span>↕</span></button></th></tr></thead><tbody></tbody></table></div>
+  </section>
 </div>
 {% endblock %}
 
@@ -119,6 +126,27 @@ document.addEventListener("DOMContentLoaded", function () {
     rows.forEach(row => tbody.appendChild(row));
   }));
 
+  const ordersTab=document.getElementById("ship-tab-orders"),modelsTab=document.getElementById("ship-tab-models");
+  const orderPanel=document.getElementById("ship-order-panel"),modelPanel=document.getElementById("ship-model-panel");
+  function showTab(models){ordersTab.classList.toggle("active",!models);modelsTab.classList.toggle("active",models);ordersTab.setAttribute("aria-selected",String(!models));modelsTab.setAttribute("aria-selected",String(models));orderPanel.hidden=models;modelPanel.hidden=!models;}
+  ordersTab.addEventListener("click",()=>showTab(false));modelsTab.addEventListener("click",()=>showTab(true));
+  const aggregates=new Map();
+  const numberOf=v=>{const n=Number(String(v||"0").replace(",","."));return Number.isFinite(n)?n:0;};
+  document.querySelectorAll(".finance-row").forEach(row=>{
+    if(row.dataset.final!=="1"||row.dataset.valid!=="1")return;
+    const code=(row.dataset.model||"").trim()||"Ürün kodu yok";
+    const item=aggregates.get(code)||{code,qty:0,revenue:0,cost:0,profit:0};
+    item.qty+=numberOf(row.dataset.qty);item.revenue+=numberOf(row.dataset.sale);item.cost+=numberOf(row.dataset.cost);item.profit+=numberOf(row.dataset.profit);aggregates.set(code,item);
+  });
+  const modelData=Array.from(aggregates.values()).map(x=>({...x,avgSale:x.qty?x.revenue/x.qty:0,avgCost:x.qty?x.cost/x.qty:0,margin:x.revenue?x.profit/x.revenue*100:0}));
+  const modelBody=document.querySelector("#shipModelTable tbody");
+  const money=n=>n.toLocaleString("tr-TR",{minimumFractionDigits:2,maximumFractionDigits:2});
+  function renderModels(){modelBody.innerHTML="";if(!modelData.length){const tr=document.createElement("tr"),td=document.createElement("td");td.colSpan=8;td.className="ship-model-empty";td.textContent="Bu tarih aralığında kesinleşmiş model verisi bulunamadı.";tr.appendChild(td);modelBody.appendChild(tr);return;}
+    modelData.forEach(x=>{const tr=document.createElement("tr");[x.code,String(x.qty),money(x.avgSale),money(x.avgCost),money(x.revenue),money(x.cost),money(x.profit),"%"+money(x.margin)].forEach((v,i)=>{const td=document.createElement("td");td.textContent=v;if(i===6||i===7)td.className=x.profit<0?"kar-negative":"kar-positive";tr.appendChild(td)});modelBody.appendChild(tr)});
+  }
+  modelData.sort((a,b)=>b.revenue-a.revenue);renderModels();
+  const keys=["code","qty","avgSale","avgCost","revenue","cost","profit","margin"];let sortColumn=-1,sortDirection=1;
+  document.querySelectorAll(".ship-model-sort").forEach(button=>button.addEventListener("click",()=>{const col=Number(button.dataset.index);sortDirection=sortColumn===col?-sortDirection:1;sortColumn=col;const key=keys[col];modelData.sort((a,b)=>sortDirection*(col===0?a.code.localeCompare(b.code,"tr",{numeric:true}):a[key]-b[key]));document.querySelectorAll(".ship-model-sort span").forEach(span=>span.textContent="↕");button.querySelector("span").textContent=sortDirection===1?"↑":"↓";renderModels()}));
   let adet = 0, ciro = 0, maliyet = 0, kar = 0;
   document.querySelectorAll(".finance-row").forEach(row => {
     if (row.dataset.final !== "1") return;
