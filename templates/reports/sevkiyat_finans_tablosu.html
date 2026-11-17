@@ -69,6 +69,14 @@
 @media(min-width:721px){.ship-kpi-grid{grid-template-columns:repeat(5,minmax(0,1fr))}}
 @media(max-width:720px){.ship-kpi-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.ship-kpi-value{font-size:18px;white-space:normal}}
 .table-modern tbody tr.ship-finance-missing td{background:#fff0ee!important;border-top-color:#f7c8c2!important;border-bottom-color:#f7c8c2!important}.table-modern tbody tr.ship-finance-missing td:first-child{border-left:4px solid #e56a57!important}.table-modern tbody tr.ship-finance-missing td:last-child{border-right-color:#f7c8c2!important}.table-modern tbody tr.ship-finance-missing:hover td{background:#ffe3df!important}
+/* Subtle sort indicators and persistent column headers in both views */
+#financeTable thead th,#shipModelTable thead th{position:sticky!important;top:0;z-index:5;background:#f3f5fa!important;box-shadow:0 1px 0 #e2e7f0}
+#financeTable .sortable-head{cursor:pointer;user-select:none;transition:color .15s,background .15s}
+#financeTable .sortable-head:hover,#shipModelTable .ship-model-sort:hover{color:#4054c8!important}
+#financeTable .sortable-head:focus-visible,.ship-model-sort:focus-visible{outline:2px solid #7b8ce8;outline-offset:-2px;border-radius:5px}
+#financeTable .sort-arrow,.ship-model-sort span{display:inline-block;margin-left:5px;font-size:12px;font-weight:650;color:#9aa5b8;opacity:.8;vertical-align:baseline}
+#financeTable .sortable-head[aria-sort="ascending"] .sort-arrow,#financeTable .sortable-head[aria-sort="descending"] .sort-arrow,#shipModelTable th[aria-sort="ascending"] .ship-model-sort span,#shipModelTable th[aria-sort="descending"] .ship-model-sort span{color:#4356ca;opacity:1}
+#shipModelTable .ship-model-sort{cursor:pointer;white-space:nowrap}
 </style>
 {% endblock %}
 
@@ -170,22 +178,32 @@ document.addEventListener("DOMContentLoaded", function () {
     }
     return text;
   };
-  document.querySelectorAll(".sortable-head").forEach(head => head.addEventListener("click", function () {
-    const column = Number(this.dataset.column), type = this.dataset.type;
-    ascending = activeHead === this ? !ascending : true;
-    activeHead = this;
-    document.querySelectorAll(".sort-arrow").forEach(arrow => arrow.textContent = "");
-    this.querySelector(".sort-arrow").textContent = ascending ? "▲" : "▼";
-    const rows = Array.from(tbody.querySelectorAll("tr.finance-row"));
-    rows.sort((a, b) => {
-      const av = valueOf(a.cells[column], type), bv = valueOf(b.cells[column], type);
-      const result = type === "text"
-        ? String(av).localeCompare(String(bv), "tr", {numeric:true, sensitivity:"base"})
-        : av - bv;
-      return ascending ? result : -result;
-    });
-    rows.forEach(row => tbody.appendChild(row));
-  }));
+  document.querySelectorAll("#financeTable .sortable-head").forEach(head => {
+    head.setAttribute("tabindex","0");
+    head.setAttribute("role","button");
+    head.setAttribute("aria-label",head.textContent.trim()+" sütununa göre sırala");
+    head.setAttribute("aria-sort","none");
+    const arrow=head.querySelector(".sort-arrow");
+    if(arrow)arrow.textContent="↕";
+    const sort=()=>{
+      const column=Number(head.dataset.column),type=head.dataset.type;
+      ascending=activeHead===head?!ascending:true;
+      activeHead=head;
+      document.querySelectorAll("#financeTable .sortable-head").forEach(h=>{
+        h.setAttribute("aria-sort",h===head?(ascending?"ascending":"descending"):"none");
+        const icon=h.querySelector(".sort-arrow");if(icon)icon.textContent=h===head?(ascending?"↑":"↓"):"↕";
+      });
+      const rows=Array.from(tbody.querySelectorAll("tr.finance-row"));
+      rows.sort((a,b)=>{
+        const av=valueOf(a.cells[column],type),bv=valueOf(b.cells[column],type);
+        const result=type==="text"?String(av).localeCompare(String(bv),"tr",{numeric:true,sensitivity:"base"}):av-bv;
+        return ascending?result:-result;
+      });
+      rows.forEach(row=>tbody.appendChild(row));
+    };
+    head.addEventListener("click",sort);
+    head.addEventListener("keydown",event=>{if(event.key==="Enter"||event.key===" "){event.preventDefault();sort()}});
+  });
 
   const ordersTab=document.getElementById("ship-tab-orders"),modelsTab=document.getElementById("ship-tab-models");
   const orderPanel=document.getElementById("ship-order-panel"),modelPanel=document.getElementById("ship-model-panel");
@@ -207,7 +225,7 @@ document.addEventListener("DOMContentLoaded", function () {
   }
   modelData.sort((a,b)=>b.revenue-a.revenue);renderModels();
   const keys=["code","qty","avgSale","avgCost","revenue","cost","profit","margin"];let sortColumn=-1,sortDirection=1;
-  document.querySelectorAll(".ship-model-sort").forEach(button=>button.addEventListener("click",()=>{const col=Number(button.dataset.index);sortDirection=sortColumn===col?-sortDirection:1;sortColumn=col;const key=keys[col];modelData.sort((a,b)=>sortDirection*(col===0?a.code.localeCompare(b.code,"tr",{numeric:true}):a[key]-b[key]));document.querySelectorAll(".ship-model-sort span").forEach(span=>span.textContent="↕");button.querySelector("span").textContent=sortDirection===1?"↑":"↓";renderModels()}));
+  document.querySelectorAll(".ship-model-sort").forEach(button=>button.addEventListener("click",()=>{const col=Number(button.dataset.index);sortDirection=sortColumn===col?-sortDirection:1;sortColumn=col;const key=keys[col];modelData.sort((a,b)=>sortDirection*(col===0?a.code.localeCompare(b.code,"tr",{numeric:true}):a[key]-b[key]));document.querySelectorAll(".ship-model-sort").forEach(el=>{el.querySelector("span").textContent="↕";el.closest("th").setAttribute("aria-sort","none")});button.querySelector("span").textContent=sortDirection===1?"↑":"↓";button.closest("th").setAttribute("aria-sort",sortDirection===1?"ascending":"descending");renderModels()}));
   let adet = 0, ciro = 0, maliyet = 0, kar = 0;
   document.querySelectorAll(".finance-row").forEach(row => {
     if (row.dataset.final !== "1") return;
