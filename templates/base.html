@@ -614,7 +614,7 @@ window.addEventListener('pageshow', function(event) {
 <!-- Decorative snowfall: non-interactive, lightweight and accessibility-aware. -->
 <style>
 #moli-snowfall{position:fixed;inset:0;z-index:1050;pointer-events:none!important;overflow:hidden;contain:strict;user-select:none}
-#moli-snowfall .moli-flake{position:absolute;top:-24px;left:var(--snow-x);width:var(--snow-size);height:var(--snow-size);border-radius:50%;background:rgba(235,245,255,var(--snow-opacity));box-shadow:0 0 5px rgba(108,145,190,.22);will-change:transform;animation:moli-snow-fall var(--snow-duration) linear var(--snow-delay) infinite}
+#moli-snowfall .moli-flake{position:absolute;top:-24px;left:var(--snow-x);width:var(--snow-size);height:var(--snow-size);border-radius:50%;background:rgba(92,128,190,var(--snow-opacity));box-shadow:0 0 4px rgba(59,93,155,.16);will-change:transform;animation:moli-snow-fall var(--snow-duration) linear var(--snow-delay) infinite}
 @keyframes moli-snow-fall{from{transform:translate3d(0,-28px,0)}to{transform:translate3d(var(--snow-drift),calc(100vh + 52px),0)}}
 @media(prefers-reduced-motion:reduce){#moli-snowfall{display:none!important}}
 </style>
@@ -635,7 +635,7 @@ window.addEventListener('pageshow', function(event) {
       flake.className='moli-flake';
       flake.style.setProperty('--snow-x',(Math.random()*100).toFixed(2)+'%');
       flake.style.setProperty('--snow-size',(2+Math.random()*3).toFixed(1)+'px');
-      flake.style.setProperty('--snow-opacity',(0.35+Math.random()*.38).toFixed(2));
+      flake.style.setProperty('--snow-opacity',(0.46+Math.random()*.30).toFixed(2));
       flake.style.setProperty('--snow-duration',(15+Math.random()*19).toFixed(1)+'s');
       flake.style.setProperty('--snow-delay',(-Math.random()*34).toFixed(1)+'s');
       flake.style.setProperty('--snow-drift',((Math.random()-.5)*95).toFixed(0)+'px');
