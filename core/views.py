@@ -3572,6 +3572,44 @@ def sevkiyat_finans_tablosu(request):
     if end:
         qs = qs.filter(last_status_date__date__lte=end)
 
+    # Gelismis sevkiyat finans filtreleri: ayni alan icindeki secimler OR,
+    # farkli alanlar AND mantigiyla uygulanir.
+    filter_fields = {
+        "musteri": "musteri__ad__in",
+        "siparis_tipi": "siparis_tipi__in",
+        "urun_tipi": "urun_tipi__in",
+        "urun_kodu": "urun_kodu__in",
+        "renk": "renk__in",
+        "beden": "beden__in",
+        "para_birimi": "para_birimi__in",
+        "siparis_no": "siparis_numarasi__in",
+        "musteri_referans": "musteri_referans__in",
+    }
+    for param, lookup in filter_fields.items():
+        selected = [v for v in request.GET.getlist(param) if v]
+        if selected:
+            qs = qs.filter(**{lookup: selected})
+    for param, lookup in (
+        ("siparis_tarihi_baslangic", "siparis_tarihi__gte"),
+        ("siparis_tarihi_bitis", "siparis_tarihi__lte"),
+        ("teslim_tarihi_baslangic", "teslim_tarihi__gte"),
+        ("teslim_tarihi_bitis", "teslim_tarihi__lte"),
+    ):
+        value = request.GET.get(param)
+        if value:
+            from django.utils.dateparse import parse_date
+            if parse_date(value):
+                qs = qs.filter(**{lookup: value})
+    search_text = (request.GET.get("q") or "").strip()
+    if search_text:
+        from django.db.models import Q
+        qs = qs.filter(
+            Q(siparis_numarasi__icontains=search_text)
+            | Q(musteri__ad__icontains=search_text)
+            | Q(urun_kodu__icontains=search_text)
+            | Q(musteri_referans__icontains=search_text)
+        )
+
     # ✅ maliyet hesabı
     DEC = DecimalField(max_digits=12, decimal_places=2)
     ZERO = Decimal("0.00")
@@ -3610,6 +3648,56 @@ def sevkiyat_finans_tablosu(request):
         except Exception:
             o._shipment_snapshot_prefetched = None
 
+    # Finans hareketleriyle hesaplanan nihai durum ve kar araliklari.
+    finance_statuses = [v for v in request.GET.getlist("finans_durumu") if v]
+    margin_min_raw = request.GET.get("kar_orani_min", "").strip()
+    margin_max_raw = request.GET.get("kar_orani_max", "").strip()
+    profit_type = request.GET.get("kar_durumu", "")
+    if finance_statuses or margin_min_raw or margin_max_raw or profit_type:
+        from product_cards.finance_views import calculate_finance_result
+        from decimal import InvalidOperation
+        def safe_decimal(raw):
+            try:
+                return Decimal(raw) if raw else None
+            except (InvalidOperation, ValueError):
+                return None
+        minimum, maximum = safe_decimal(margin_min_raw), safe_decimal(margin_max_raw)
+        filtered_orders = []
+        for order in orders:
+            finance = calculate_finance_result(order)
+            if finance_statuses and finance["status"] not in finance_statuses:
+                continue
+            profit = finance.get("kar_tl")
+            margin = finance.get("kar_orani")
+            if profit_type == "positive" and (profit is None or profit <= 0):
+                continue
+            if profit_type == "negative" and (profit is None or profit >= 0):
+                continue
+            if profit_type == "zero" and profit != 0:
+                continue
+            if minimum is not None and (margin is None or margin < minimum):
+                continue
+            if maximum is not None and (margin is None or margin > maximum):
+                continue
+            filtered_orders.append(order)
+        orders = filtered_orders
+
+    # Secenekler tarih ve mevcut filtrelerden bagimsiz olarak mevcut
+    # sevk edilmis siparislerin alanlarindan olusturulur.
+    base_options = Order.objects.filter(is_active=True).exclude(siparis_tipi="MALZEME").filter(
+        shipment_financial_snapshot__isnull=False
+    )
+    option_fields = {
+        "musteri": "musteri__ad", "siparis_tipi": "siparis_tipi",
+        "urun_tipi": "urun_tipi", "urun_kodu": "urun_kodu",
+        "renk": "renk", "beden": "beden", "para_birimi": "para_birimi",
+        "siparis_no": "siparis_numarasi", "musteri_referans": "musteri_referans",
+    }
+    filter_options = {
+        key: list(base_options.order_by(field).values_list(field, flat=True).distinct().exclude(**{field + "__isnull": True}).exclude(**{field: ""}))
+        for key, field in option_fields.items()
+    }
+
     # ✅ toplamlar
     total_ciro = sum([o.satis_fiyati or Decimal("0.00") for o in orders])
     total_maliyet = sum([o.toplam_maliyet_calc or Decimal("0.00") for o in orders])
@@ -3627,6 +3715,7 @@ def sevkiyat_finans_tablosu(request):
         "kar_yuzde": kar_yuzde,
         "start": start,
         "end": end,
+        "filter_options": filter_options,
     }
 
     return render(request, "reports/sevkiyat_finans_tablosu.html", context)
