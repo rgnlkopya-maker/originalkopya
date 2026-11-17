@@ -58,6 +58,16 @@
 .ship-filter-body{max-height:66vh}
 .ship-filter-panel{padding:17px 19px}
 @media(max-width:700px){.ship-filter-panel{padding:14px 12px}.ship-filter-grid{gap:8px}.ship-filter-select[multiple]{height:50px;min-height:50px}}
+/* Keep all five finance summary cards on one row on desktop/tablet. */
+.ship-kpi-grid{grid-template-columns:repeat(5,minmax(0,1fr));gap:8px}
+.ship-kpi{padding:12px 10px;min-width:0}
+.ship-kpi-icon{width:29px;height:29px;font-size:14px;margin-bottom:8px}
+.ship-kpi-label{font-size:10px}
+.ship-kpi-value{font-size:clamp(13px,1.35vw,20px);letter-spacing:-.3px;white-space:nowrap;overflow:visible}
+.ship-kpi-value small{font-size:10px}
+.ship-kpi-foot{font-size:9px;margin-top:5px}
+@media(min-width:721px){.ship-kpi-grid{grid-template-columns:repeat(5,minmax(0,1fr))}}
+@media(max-width:720px){.ship-kpi-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.ship-kpi-value{font-size:18px;white-space:normal}}
 </style>
 {% endblock %}
 
