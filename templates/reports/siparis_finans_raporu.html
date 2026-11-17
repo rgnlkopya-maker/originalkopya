@@ -42,17 +42,13 @@
       </div>
     </div>
   </section>
-<section class="fin-card" style="margin-top:18px">
-<h3>Model Bazlı Kârlılık</h3><div class="sub">Yalnızca seçilen tarih aralığındaki onaylı ve aktarılmış föyler. Tutarlar KDV hariç TL.</div>
+<details class="fin-card fin-fold" style="margin-top:18px" id="model-profit"><summary>Model Bazlı Kârlılık <span>⌄</span></summary><div class="fold-body"><div class="sub">Yalnızca seçilen tarih aralığındaki onaylı ve aktarılmış föyler. Tutarlar KDV hariç TL.</div>
 <div style="overflow-x:auto"><table style="width:100%;min-width:780px;border-collapse:collapse">
-<thead><tr><th>Model</th><th>Adet</th><th>Ort. Satış</th><th>Ort. Maliyet</th><th>Ciro</th><th>Kâr</th><th>Kâr %</th></tr></thead>
-<tbody>{% for m in model_rows %}<tr class="model-row" data-code="{{ m.code }}" data-price="{{ m.unit_price }}" data-cost="{{ m.unit_cost }}" data-qty="{{ m.quantity }}" style="cursor:pointer;border-top:1px solid #edf0f5"><td><strong>{{ m.code }}</strong></td><td>{{ m.quantity }}</td><td>{{ m.unit_price|floatformat:2 }}</td><td>{{ m.unit_cost|floatformat:2 }}</td><td>{{ m.revenue|floatformat:2 }}</td><td>{{ m.profit|floatformat:2 }}</td><td>%{{ m.profit_rate|floatformat:2 }}</td></tr>{% empty %}<tr><td colspan="7">Seçilen tarihlerde model bulunamadı.</td></tr>{% endfor %}</tbody></table></div>
-</section>
-<section class="fin-card" style="margin-top:14px" id="simulator">
-<h3>Fiyat ve Kâr Simülatörü</h3><div class="sub">Seçilen dönemdeki modellerin ortalama KDV hariç satış ve maliyetleri kullanılır. Sipariş kayıtları değiştirilmez.</div>
+<thead><tr><th><button type="button" class="sort-model" data-column="0">Model <span>↕</span></button></th><th><button type="button" class="sort-model" data-column="1">Adet <span>↕</span></button></th><th><button type="button" class="sort-model" data-column="2">Ort. Satış <span>↕</span></button></th><th><button type="button" class="sort-model" data-column="3">Ort. Maliyet <span>↕</span></button></th><th><button type="button" class="sort-model" data-column="4">Ciro <span>↕</span></button></th><th><button type="button" class="sort-model" data-column="5">Kâr <span>↕</span></button></th><th><button type="button" class="sort-model" data-column="6">Kâr % <span>↕</span></button></th></tr></thead>
+<tbody>{% for m in model_rows %}<tr class="model-row" data-code="{{ m.code }}" data-price="{{ m.unit_price }}" data-cost="{{ m.unit_cost }}" data-qty="{{ m.quantity }}" data-revenue="{{ m.revenue }}" data-profit="{{ m.profit }}" data-rate="{{ m.profit_rate }}" style="cursor:pointer;border-top:1px solid #edf0f5"><td><strong>{{ m.code }}</strong></td><td>{{ m.quantity }}</td><td>{{ m.unit_price|floatformat:2 }}</td><td>{{ m.unit_cost|floatformat:2 }}</td><td>{{ m.revenue|floatformat:2 }}</td><td>{{ m.profit|floatformat:2 }}</td><td>%{{ m.profit_rate|floatformat:2 }}</td></tr>{% empty %}<tr><td colspan="7">Seçilen tarihlerde model bulunamadı.</td></tr>{% endfor %}</tbody></table></div></div></details>
+<details class="fin-card fin-fold" style="margin-top:14px" id="simulator"><summary>Fiyat ve Kâr Simülatörü <span>⌄</span></summary><div class="fold-body"><div class="sub">Seçilen dönemdeki modellerin ortalama KDV hariç satış ve maliyetleri kullanılır. Sipariş kayıtları değiştirilmez.</div>
 <div class="date-box"><div><label>Model</label><select id="sim-model" style="height:40px;border:1px solid #dfe5ef;border-radius:10px;padding:0 10px"><option value="">Model seçiniz</option>{% for m in model_rows %}<option value="{{ m.code }}" data-price="{{ m.unit_price }}" data-cost="{{ m.unit_cost }}" data-qty="{{ m.quantity }}">{{ m.code }}</option>{% endfor %}</select></div><div><label>Yeni birim satış fiyatı (TL, KDV hariç)</label><input id="sim-price" type="number" min="0" step="0.01" placeholder="Fiyat"></div><div><label>Adet</label><input id="sim-qty" type="number" min="1" step="1" placeholder="Adet"></div></div>
-<div class="metrics" style="margin-top:14px"><div class="metric"><span>Mevcut birim kâr</span><strong id="sim-old">—</strong></div><div class="metric"><span>Yeni birim kâr</span><strong id="sim-new">—</strong></div><div class="metric"><span>Yeni kâr marjı</span><strong id="sim-rate">—</strong></div><div class="metric"><span>Toplam kâr farkı</span><strong id="sim-diff">—</strong></div></div>
-</section>
+<div class="metrics" style="margin-top:14px"><div class="metric"><span>Mevcut birim kâr</span><strong id="sim-old">—</strong></div><div class="metric"><span>Yeni birim kâr</span><strong id="sim-new">—</strong></div><div class="metric"><span>Yeni kâr marjı</span><strong id="sim-rate">—</strong></div><div class="metric"><span>Toplam kâr farkı</span><strong id="sim-diff">—</strong></div></div></div></details>
 <script>
 (function(){
 const model=document.getElementById('sim-model'),price=document.getElementById('sim-price'),qty=document.getElementById('sim-qty');
@@ -66,9 +62,20 @@ document.getElementById('sim-diff').textContent=fmt((newPrice-original)*count);
 }
 model.addEventListener('change',()=>{const o=model.selectedOptions[0];price.value=o.dataset.price||'';qty.value=o.dataset.qty||'';update()});
 price.addEventListener('input',update);qty.addEventListener('input',update);
-document.querySelectorAll('.model-row').forEach(row=>row.addEventListener('click',()=>{model.value=row.dataset.code;model.dispatchEvent(new Event('change'));document.getElementById('simulator').scrollIntoView({behavior:'smooth',block:'center'})}));
+document.querySelectorAll('.model-row').forEach(row=>row.addEventListener('click',()=>{model.value=row.dataset.code;model.dispatchEvent(new Event('change'));document.getElementById('simulator').open=true;document.getElementById('simulator').scrollIntoView({behavior:'smooth',block:'center'})}));
+const tbody=document.querySelector('#model-profit tbody');
+let lastColumn=-1,direction=1;
+document.querySelectorAll('.sort-model').forEach(button=>button.addEventListener('click',()=>{
+ const col=Number(button.dataset.column);
+ direction=lastColumn===col?-direction:1;lastColumn=col;
+ const fields=['code','qty','price','cost','revenue','profit','rate'];
+ const rows=Array.from(tbody.querySelectorAll('.model-row'));
+ rows.sort((a,b)=>{const x=a.dataset[fields[col]],y=b.dataset[fields[col]];return direction*(col===0?x.localeCompare(y,'tr',{numeric:true}):Number(x)-Number(y))});
+ rows.forEach(row=>tbody.appendChild(row));
+ document.querySelectorAll('.sort-model').forEach(el=>el.querySelector('span').textContent=el===button?(direction===1?'↑':'↓'):'↕');
+}));
 })();
 </script>
-<style>.fin-card th,.fin-card td{padding:11px 8px;text-align:right;font-size:12px}.fin-card th:first-child,.fin-card td:first-child{text-align:left}.model-row:hover{background:#f7f8fc}</style>
+<style>.fin-fold{padding:0}.fin-fold>summary{cursor:pointer;list-style:none;padding:18px;font-size:18px;font-weight:900;color:#263044;display:flex;justify-content:space-between}.fin-fold>summary::-webkit-details-marker{display:none}.fin-fold[open]>summary span{transform:rotate(180deg)}.fold-body{padding:0 18px 18px}.sort-model{border:0;background:transparent;color:inherit;font:inherit;font-weight:800;cursor:pointer;white-space:nowrap}.sort-model:hover{color:#3b45d9}.fin-card th,.fin-card td{padding:11px 8px;text-align:right;font-size:12px}.fin-card th:first-child,.fin-card td:first-child{text-align:left}.model-row:hover{background:#f7f8fc}</style>
 </main>
 {% endblock %}
