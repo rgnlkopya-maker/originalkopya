@@ -44,7 +44,7 @@
 {% for album in albums %}
 <a class="album" href="{% if album.google_photos_url %}{{ album.google_photos_url }}{% else %}?album={{ album.pk }}{% endif %}" {% if album.google_photos_url %}target="_blank" rel="noopener noreferrer"{% endif %} aria-label="{{ album.code }} albümünü aç">
 {% if album.cover_data_url %}<img src="{{ album.cover_data_url }}" alt="{{ album.code }} kapak fotoğrafı" loading="lazy">{% else %}<span class="no-photo">Kapak eklenmedi</span>{% endif %}
-<strong>{{ album.code }}</strong></a>
+<strong>{{ album.code }}</strong></a><a href="?album={{ album.pk }}" style="display:block;text-align:center;margin:4px 0 12px">Bağlantı / kapak düzenle</a>
 {% empty %}<p>Henüz albüm yok.</p>{% endfor %}
 </div>
 {% if page_obj.paginator.num_pages > 1 %}<nav class="formrow" style="margin-top:20px">
@@ -53,7 +53,7 @@
 {% if page_obj.has_next %}<a href="?q={{ search_query|urlencode }}&page={{ page_obj.next_page_number }}">Sonraki →</a>{% endif %}
 </nav>{% endif %}
 </section>
-<p>Bağlantı ve kapak düzenlemek için albümün Google Photos bağlantısı yoksa albüme tıklayın; varsa <a href="?album={{ albums.0.pk }}">düzenleme ekranına</a> ürün kodunu kullanarak ulaşabilirsiniz.</p>
+
 {% endif %}
 </div>
 {% endblock %}
