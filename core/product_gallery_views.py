@@ -1,5 +1,7 @@
 import os
+import logging
 from uuid import uuid4
+from django.db import IntegrityError
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
@@ -71,12 +73,23 @@ def create_group(request, album_id):
     album = get_object_or_404(GalleryAlbum, pk=album_id)
     name = " ".join(request.POST.get("name", "").split())
     if not name or len(name) > 160:
-        messages.error(request, "Grup adını girin.")
-    else:
-        _, created = GalleryGroup.objects.get_or_create(album=album, name=name)
-        messages.success(request, "Grup oluşturuldu." if created else "Bu grup zaten mevcut.")
-    group = GalleryGroup.objects.filter(album=album, name=name).first()
-    return redirect("/urun-albumu/?album=" + str(album.pk) + ("&group=" + str(group.pk) if group else ""))
+        messages.error(request, "Lütfen geçerli bir müşteri adı girin.")
+        return redirect("/urun-albumu/?album=" + str(album.pk))
+    try:
+        group, created = GalleryGroup.objects.get_or_create(album=album, name=name)
+    except IntegrityError:
+        group = GalleryGroup.objects.filter(album=album, name=name).first()
+        if group is None:
+            logging.getLogger(__name__).exception("Gallery group creation integrity error album=%s", album.pk)
+            messages.error(request, "Grup oluşturulamadı. Lütfen tekrar deneyin.")
+            return redirect("/urun-albumu/?album=" + str(album.pk))
+        created = False
+    except Exception:
+        logging.getLogger(__name__).exception("Gallery group creation failed album=%s", album.pk)
+        messages.error(request, "Grup oluşturulurken hata oluştu. Lütfen tekrar deneyin.")
+        return redirect("/urun-albumu/?album=" + str(album.pk))
+    messages.success(request, "Müşteri sekmesi oluşturuldu." if created else "Bu müşteri sekmesi zaten mevcut.")
+    return redirect("/urun-albumu/?album=" + str(album.pk) + "&group=" + str(group.pk))
 
 @login_required
 @require_POST
