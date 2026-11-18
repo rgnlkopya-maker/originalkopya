@@ -19,6 +19,11 @@ from supabase import create_client
 def _allowed(user):
     return bool(user and user.is_authenticated and user.is_active)
 
+
+def _gallery_editor(user):
+    return _allowed(user) and user.groups.filter(name="mudur").exists()
+
+
 @lru_cache(maxsize=1)
 def _bucket():
     if not settings.SUPABASE_URL or not settings.SUPABASE_SERVICE_ROLE_KEY:
@@ -100,7 +105,7 @@ def product_gallery(request):
 @login_required
 @require_POST
 def create_album(request):
-    if not _allowed(request.user):
+    if not _gallery_editor(request.user):
         return HttpResponseForbidden("Yetkiniz yok.")
     product = UrunKod.objects.filter(pk=request.POST.get("product_id"), aktif=True).first() if request.POST.get("product_id", "").isdigit() else None
     if product is None:
@@ -116,7 +121,7 @@ def create_album(request):
 def create_group(request, album_id):
     logger = logging.getLogger(__name__)
     try:
-        if not _allowed(request.user):
+        if not _gallery_editor(request.user):
             return HttpResponseForbidden("Yetkiniz yok.")
         album = get_object_or_404(GalleryAlbum, pk=album_id)
         name = " ".join(request.POST.get("name", "").split())
@@ -137,7 +142,7 @@ def create_group(request, album_id):
 @login_required
 @require_POST
 def upload_media(request, group_id):
-    if not _allowed(request.user):
+    if not _gallery_editor(request.user):
         return HttpResponseForbidden("Yetkiniz yok.")
     group = get_object_or_404(GalleryGroup, pk=group_id)
     files = request.FILES.getlist("media")
@@ -248,7 +253,7 @@ def media_view(request, media_id):
 @login_required
 @require_POST
 def cover_media(request, media_id):
-    if not _allowed(request.user):
+    if not _gallery_editor(request.user):
         return HttpResponseForbidden("Yetkiniz yok.")
     media = get_object_or_404(GalleryMedia, pk=media_id)
     GalleryMedia.objects.filter(group__album_id=media.group.album_id).update(is_cover=False)
@@ -259,7 +264,7 @@ def cover_media(request, media_id):
 @login_required
 @require_POST
 def gallery_new_product(request):
-    if not _allowed(request.user):
+    if not _gallery_editor(request.user):
         return HttpResponseForbidden("Yetkiniz yok.")
     code = (request.POST.get("kod") or "").strip().upper()
     kind = (request.POST.get("urun_tipi") or "").strip()
@@ -286,7 +291,7 @@ def gallery_new_product(request):
 @login_required
 @require_POST
 def reorder_media(request, group_id):
-    if not _allowed(request.user):
+    if not _gallery_editor(request.user):
         return HttpResponseForbidden("Yetkiniz yok.")
     group = get_object_or_404(GalleryGroup, pk=group_id)
     try:
@@ -306,7 +311,7 @@ def reorder_media(request, group_id):
 @login_required
 @require_POST
 def delete_media(request, media_id):
-    if not _allowed(request.user):
+    if not _gallery_editor(request.user):
         return HttpResponseForbidden("Yetkiniz yok.")
     media = get_object_or_404(GalleryMedia, pk=media_id)
     album_id, group_id = media.group.album_id, media.group_id
