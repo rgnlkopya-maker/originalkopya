@@ -229,7 +229,7 @@ def delete_media(request, media_id):
     media = get_object_or_404(GalleryMedia, pk=media_id)
     album_id, group_id = media.group.album_id, media.group_id
     try:
-        _bucket().remove([media.storage_path])
+        _bucket().remove([media.storage_path] + ([media.thumbnail_path] if media.thumbnail_path else []))
     except Exception:
         logging.getLogger(__name__).exception("Gallery deletion failed media=%s", media_id)
         messages.error(request, "Fotoğraf silinemedi.")
