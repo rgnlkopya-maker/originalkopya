@@ -1,12 +1,15 @@
 """Simple product album links. No Supabase reads, writes or deletions."""
 import base64
+import binascii
+import hashlib
 from io import BytesIO
 from urllib.parse import urlparse
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
-from django.http import HttpResponseForbidden
+from django.db.models import BooleanField, Case, Value, When
+from django.http import Http404, HttpResponse, HttpResponseForbidden, HttpResponseNotModified
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
 from PIL import Image, ImageOps
@@ -38,7 +41,14 @@ def gallery_links(request):
     if not _allowed(request.user):
         return HttpResponseForbidden("Yetkiniz yok.")
     query = (request.GET.get("q") or "").strip()[:80]
-    albums = GalleryAlbum.objects.all()
+    # Never include large base64 cover data in the HTML or listing query results.
+    albums = GalleryAlbum.objects.defer("cover_data_url").annotate(
+        has_cover=Case(
+            When(cover_data_url="", then=Value(False)),
+            default=Value(True),
+            output_field=BooleanField(),
+        )
+    )
     if query:
         albums = albums.filter(code__icontains=query)
     page = Paginator(albums.order_by("code", "pk"), 24).get_page(request.GET.get("page"))
@@ -46,7 +56,7 @@ def gallery_links(request):
     selected_id = request.GET.get("album", "")
     if selected_id.isdigit() and not can_edit_album:
         return HttpResponseForbidden("Albüm düzenleme yetkisi yalnızca müdüre aittir.")
-    selected = GalleryAlbum.objects.filter(pk=selected_id).first() if selected_id.isdigit() else None
+    selected = albums.filter(pk=selected_id).first() if selected_id.isdigit() else None
     return render(request, "core/gallery_links.html", {
         "albums": page.object_list, "page_obj": page, "selected": selected,
         "can_edit_album": can_edit_album,
@@ -54,6 +64,41 @@ def gallery_links(request):
         "products": UrunKod.objects.filter(aktif=True).order_by("kod"),
         "product_types": URUN_TIPI_CHOICES,
     })
+
+
+
+@login_required
+def gallery_cover_image(request, album_id):
+    """Serve one existing cover on demand. No Supabase access or mutations."""
+    if not _allowed(request.user):
+        return HttpResponseForbidden("Yetkiniz yok.")
+    stored = get_object_or_404(
+        GalleryAlbum.objects.only("id", "cover_data_url"), pk=album_id
+    ).cover_data_url
+    if not stored:
+        raise Http404("Kapak bulunamadı.")
+    try:
+        data_header, encoded = stored.split(",", 1)
+        content_type = data_header.removeprefix("data:").removesuffix(";base64")
+        if content_type not in {"image/jpeg", "image/png", "image/webp"}:
+            raise ValueError("Unsupported cover format")
+        data = base64.b64decode(encoded, validate=True)
+        if not data:
+            raise ValueError("Empty cover")
+    except (ValueError, binascii.Error):
+        raise Http404("Kapak okunamadı.")
+
+    etag = '"' + hashlib.sha256(data).hexdigest() + '"'
+    if request.headers.get("If-None-Match") == etag:
+        response = HttpResponseNotModified()
+    else:
+        response = HttpResponse(data, content_type=content_type)
+    response["ETag"] = etag
+    # Revalidate when revisiting so a changed cover appears immediately.
+    # The browser can reuse its cached bytes on 304 responses.
+    response["Cache-Control"] = "private, no-cache"
+    response["X-Content-Type-Options"] = "nosniff"
+    return response
 
 
 @login_required
