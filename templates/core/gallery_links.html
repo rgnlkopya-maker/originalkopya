@@ -14,14 +14,86 @@
 .link-gallery .formrow{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
 .link-gallery .formstack{display:grid;gap:12px;max-width:650px}
 @media(max-width:700px){.link-gallery .albums{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.link-gallery .panel{box-shadow:0 6px 22px #24344c0b}
+.link-gallery .gallery-heading{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.link-gallery .gallery-heading h1{margin:0;flex-shrink:0}
+.link-gallery .gallery-description{font-size:13px;color:#718096;margin:8px 0 16px}
+.link-gallery .album-toolbar{display:flex;align-items:center;justify-content:flex-end;gap:10px;min-width:0;flex-wrap:nowrap}
+.link-gallery .album-toolbar form{margin:0;min-width:0}
+.link-gallery .album-toolbar input{width:185px;min-width:0;margin:0;padding:7px 10px;font-size:13px}
+.link-gallery .album-toolbar .btn-main{font-size:12px;padding:8px 11px;border-radius:8px;white-space:nowrap}
+.link-gallery .gallery-dialog{border:1px solid #e1e7ef;border-radius:16px;padding:22px;width:min(430px,calc(100vw - 32px));max-height:calc(100dvh - 32px);overflow-y:auto;color:#25334a;box-shadow:0 18px 55px #12213f3d}
+.link-gallery .gallery-dialog::backdrop{background:rgba(21,33,58,.4)}
+.link-gallery .gallery-dialog-header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:15px}
+.link-gallery .gallery-dialog-header h2{margin:0;font-size:19px;font-weight:700}
+.link-gallery .gallery-dialog-close{border:none;background:#f0f3f9;color:#425370;width:32px;height:32px;border-radius:8px;font-size:21px;cursor:pointer}
+.link-gallery .gallery-add-form{display:grid;gap:9px}
+.link-gallery .gallery-add-form label{font-size:13px;font-weight:600}
+.link-gallery .gallery-add-form input,.link-gallery .gallery-add-form select{min-width:0;width:100%;border:1px solid #d6dfec;border-radius:9px;padding:10px;background:#fff}
+.link-gallery .gallery-add-form .btn-main{justify-self:start;margin-top:4px}
+.link-gallery .gallery-dialog-divider{font-size:12px;text-align:center;color:#758399;margin:17px 0;padding-top:16px;border-top:1px solid #e1e7ef}
+.link-gallery .album.no-cover strong{color:#263650;background:none;text-shadow:none}
+.link-gallery .album.no-cover .no-photo{font-size:12px}
+.link-gallery .album-cell .edit-link{color:#4056ba;text-decoration:none}
+.link-gallery .album-cell .edit-link:hover{text-decoration:underline}
+@media(max-width:600px){
+ .link-gallery .gallery-heading h1{font-size:19px}
+ .link-gallery .gallery-heading{gap:6px}
+ .link-gallery .album-toolbar{gap:5px}
+ .link-gallery .album-toolbar input{width:105px;font-size:12px}
+ .link-gallery .album-toolbar .btn-main{font-size:11px;padding:7px 6px}
+}
+@media(max-width:390px){
+ .link-gallery .gallery-heading h1{font-size:17px}
+ .link-gallery .album-toolbar input{width:82px}
+ .link-gallery .album-toolbar .btn-main{font-size:10px;padding:7px 5px}
+}
+@media(max-width:340px){
+ .link-gallery .gallery-heading{flex-wrap:wrap}
+ .link-gallery .album-toolbar{width:100%;justify-content:space-between}
+ .link-gallery .album-toolbar input{width:140px}
+}
 </style>
 <div class="link-gallery">
-<h1>Ürün Albümleri</h1>
-<p>Her ürünün kapak fotoğrafına tıklayarak Google Photos albümünü açın.</p>
-<section class="panel">
-<form method="get" class="formrow"><input name="q" value="{{ search_query }}" placeholder="Ürün kodu ara" aria-label="Ürün kodu ara"><button class="btn-main" type="submit">Ara</button></form>
-</section>
-<section class="panel"><form method="post" action="{% url 'gallery_create_album' %}" class="formrow">{% csrf_token %}<label>Yeni ürün albümü <select name="product_id" required style="padding:10px;border:1px solid #d6dfec;border-radius:9px"><option value="">Ürün seçin</option>{% for product in products %}<option value="{{ product.pk }}">{{ product.kod }}</option>{% endfor %}</select></label><button type="submit" class="btn-main">Albüm Oluştur</button></form></section>
+<div class="gallery-heading">
+  <h1><i class="bi bi-images me-2" aria-hidden="true"></i>Ürün Albümleri</h1>
+  {% if not selected %}
+  <div class="album-toolbar">
+    <form method="get" action="{% url 'product_gallery' %}" id="albumSearchForm" role="search">
+      <input type="search" name="q" id="albumSearch" value="{{ search_query }}" placeholder="Albüm ara" aria-label="Ürün kodu ara" autocomplete="off">
+    </form>
+    <button type="button" class="btn-main gallery-add-button" id="galleryOpenAdd"><i class="bi bi-plus-lg" aria-hidden="true"></i> Albüm Ekle</button>
+  </div>
+  {% endif %}
+</div>
+<p class="gallery-description">Her ürünün kapak fotoğrafına tıklayarak Google Photos albümünü açın.</p>
+{% for message in messages %}<div class="alert alert-{{ message.tags|default:'info' }}" role="status">{{ message }}</div>{% endfor %}
+{% if not selected %}
+<dialog id="galleryAddDialog" class="gallery-dialog" aria-labelledby="galleryDialogTitle">
+  <div class="gallery-dialog-header"><h2 id="galleryDialogTitle">Albüm Ekle</h2><button type="button" class="gallery-dialog-close" id="galleryCloseAdd" aria-label="Kapat">×</button></div>
+  <form method="post" action="{% url 'gallery_create_album' %}" class="gallery-add-form">
+    {% csrf_token %}
+    <label for="galleryProduct">Mevcut ürün kodunu seçin</label>
+    <select id="galleryProduct" name="product_id" required>
+      <option value="">Ürün seçin</option>
+      {% for product in products %}<option value="{{ product.pk }}">{{ product.kod }}</option>{% endfor %}
+    </select>
+    <button type="submit" class="btn-main">Albüm Oluştur</button>
+  </form>
+  <div class="gallery-dialog-divider">veya yeni bir ürün kodu ekleyin</div>
+  <form method="post" action="{% url 'gallery_new_product' %}" class="gallery-add-form">
+    {% csrf_token %}
+    <label for="galleryNewCode">Yeni ürün kodu</label>
+    <input id="galleryNewCode" type="text" name="kod" maxlength="100" required placeholder="Ör. 7119">
+    <label for="galleryNewType">Ürün tipi</label>
+    <select id="galleryNewType" name="urun_tipi" required>
+      <option value="">Ürün tipi seçin</option>
+      {% for kind, title in product_types %}<option value="{{ kind }}">{{ title }}</option>{% endfor %}
+    </select>
+    <button type="submit" class="btn-main">Ürün Ekle ve Albüm Oluştur</button>
+  </form>
+</dialog>
+{% endif %}
 {% if selected %}
 <section class="panel">
 <p><a href="{% url 'product_gallery' %}">← Albümlere dön</a></p>
@@ -43,7 +115,7 @@
 <section class="panel">
 <div class="albums">
 {% for album in albums %}
-<div class="album-cell"><a class="album" href="{% if album.google_photos_url %}{{ album.google_photos_url }}{% else %}?album={{ album.pk }}{% endif %}" {% if album.google_photos_url %}target="_blank" rel="noopener noreferrer"{% endif %} aria-label="{{ album.code }} albümünü aç">
+<div class="album-cell"><a class="album{% if not album.cover_data_url %} no-cover{% endif %}" href="{% if album.google_photos_url %}{{ album.google_photos_url }}{% else %}?album={{ album.pk }}{% endif %}" {% if album.google_photos_url %}target="_blank" rel="noopener noreferrer"{% endif %} aria-label="{{ album.code }} albümünü aç">
 {% if album.cover_data_url %}<img src="{{ album.cover_data_url }}" alt="{{ album.code }} kapak fotoğrafı" loading="lazy">{% else %}<span class="no-photo">Kapak eklenmedi</span>{% endif %}
 <strong>{{ album.code }}</strong></a><a class="edit-link" href="?album={{ album.pk }}">Kapak ve bağlantıyı düzenle</a></div>
 {% empty %}<p>Henüz albüm yok.</p>{% endfor %}
@@ -57,4 +129,25 @@
 
 {% endif %}
 </div>
+<script>
+(function(){
+  const search=document.getElementById('albumSearch');
+  if(search){
+    let timer;
+    search.addEventListener('input',function(){
+      window.clearTimeout(timer);
+      timer=window.setTimeout(function(){
+        document.getElementById('albumSearchForm').requestSubmit();
+      },450);
+    });
+  }
+  const dialog=document.getElementById('galleryAddDialog');
+  if(!dialog)return;
+  const open=document.getElementById('galleryOpenAdd');
+  const close=document.getElementById('galleryCloseAdd');
+  open.addEventListener('click',function(){dialog.showModal();});
+  close.addEventListener('click',function(){dialog.close();});
+  dialog.addEventListener('click',function(e){if(e.target===dialog)dialog.close();});
+})();
+</script>
 {% endblock %}
