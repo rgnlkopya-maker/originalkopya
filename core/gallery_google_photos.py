@@ -5,7 +5,7 @@ from urllib.parse import urlencode
 import requests
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from django.http import HttpResponseBadRequest, HttpResponseForbidden
+from django.http import HttpResponseBadRequest, HttpResponseForbidden, JsonResponse
 from django.shortcuts import redirect, get_object_or_404
 from django.urls import reverse
 from django.utils.crypto import get_random_string
@@ -78,7 +78,65 @@ def photos_picker_callback(request):
             "group_id": group.pk, "user_id": request.user.pk,
             "access_token": access_token, "session_id": picker["id"],
         }
-        return redirect(picker["pickerUri"])
+        request.session["gallery_photos_picker"]["picker_uri"] = picker["pickerUri"]
+        return redirect(reverse("gallery_photos_picker_wait"))
     except (requests.RequestException, KeyError, ValueError):
         messages.error(request, "Google Photos seçim ekranı açılamadı. Lütfen tekrar deneyin.")
         return redirect(back)
+
+
+@login_required
+def photos_picker_wait(request):
+    """Show a local return point while Google Photos selection runs in another tab."""
+    pending = request.session.get("gallery_photos_picker") or {}
+    if pending.get("user_id") != request.user.pk:
+        return HttpResponseBadRequest("Aktif Google Photos seçimi bulunamadı.")
+    from django.shortcuts import render
+    return render(request, "core/gallery_photos_picker_wait.html", {
+        "picker_uri": pending["picker_uri"],
+        "group_id": pending["group_id"],
+    })
+
+
+@login_required
+def photos_picker_status(request):
+    """Poll Google Picker; never expose OAuth credentials to the browser."""
+    pending = request.session.get("gallery_photos_picker") or {}
+    if pending.get("user_id") != request.user.pk:
+        return JsonResponse({"error": "Oturum bulunamadı."}, status=400)
+    session_id = pending["session_id"]
+    try:
+        response = requests.get(
+            "https://photospicker.googleapis.com/v1/sessions/" + session_id,
+            headers={"Authorization": "Bearer " + pending["access_token"]},
+            timeout=12,
+        )
+        response.raise_for_status()
+        data = response.json()
+        if not data.get("mediaItemsSet"):
+            return JsonResponse({"ready": False})
+        items = []
+        page_token = None
+        while len(items) < 2000:
+            params = {"sessionId": session_id, "pageSize": 100}
+            if page_token:
+                params["pageToken"] = page_token
+            result = requests.get(
+                "https://photospicker.googleapis.com/v1/mediaItems",
+                headers={"Authorization": "Bearer " + pending["access_token"]},
+                params=params, timeout=20,
+            )
+            result.raise_for_status()
+            body = result.json()
+            for media in body.get("mediaItems", []):
+                items.append({
+                    "id": media.get("id"),
+                    "filename": media.get("mediaFile", {}).get("filename", ""),
+                    "mimeType": media.get("mediaFile", {}).get("mimeType", ""),
+                })
+            page_token = body.get("nextPageToken")
+            if not page_token:
+                break
+        return JsonResponse({"ready": True, "count": len(items), "items": items[:2000]})
+    except requests.RequestException:
+        return JsonResponse({"error": "Google Photos durumu alınamadı. Yeniden deneyin."}, status=502)
