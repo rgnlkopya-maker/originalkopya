@@ -49,4 +49,4 @@ document.querySelectorAll('.ga-upload-form').forEach(form=>{const input=form.que
  save.addEventListener('click',async()=>{const panel=active();if(!panel)return;save.disabled=true;save.textContent='Kaydediliyor...';try{const csrf=document.querySelector('[name=csrfmiddlewaretoken]')?.value;const response=await fetch(panel.dataset.saveUrl,{method:'POST',headers:{'Content-Type':'application/json','X-CSRFToken':csrf},body:JSON.stringify({ids:tiles(panel).map(tile=>Number(tile.dataset.mediaId))})});const result=await response.json();if(!response.ok||!result.ok)throw Error(result.error||'Sıralama kaydedilemedi');setEdit(false);}catch(err){alert(err.message);}finally{save.disabled=false;save.textContent='Kaydet';}});
 })();
 </script>
-{% endblock %>
+{% endblock %}
