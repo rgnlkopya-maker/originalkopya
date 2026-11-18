@@ -7,7 +7,7 @@ from django.http import HttpResponseForbidden, Http404
 from django.shortcuts import render, redirect, get_object_or_404
 from django.views.decorators.http import require_POST
 from app_settings.access import has_full_access
-from core.models import GalleryAlbum, GalleryGroup, GalleryMedia
+from core.models import GalleryAlbum, GalleryGroup, GalleryMedia, UrunKod
 from supabase import create_client
 
 def _allowed(user):
@@ -39,17 +39,18 @@ def product_gallery(request):
         album.cover = next((m for g in album.groups.all() for m in g.media.all() if m.is_cover), None)
         if album.cover is None:
             album.cover = next((m for g in album.groups.all() for m in g.media.all()), None)
-    return render(request, "core/product_gallery.html", {"albums": albums, "selected": selected})
+    return render(request, "core/product_gallery.html", {"albums": albums, "selected": selected, "products": UrunKod.objects.filter(aktif=True).order_by("kod")})
 
 @login_required
 @require_POST
 def create_album(request):
     if not _allowed(request.user):
         return HttpResponseForbidden("Yetkiniz yok.")
-    code = request.POST.get("code", "").strip().upper()
-    if not code or len(code) > 80 or not all(c.isalnum() or c in "-_" for c in code):
-        messages.error(request, "Geçerli bir ürün kodu girin.")
+    product = UrunKod.objects.filter(pk=request.POST.get("product_id"), aktif=True).first() if request.POST.get("product_id", "").isdigit() else None
+    if product is None:
+        messages.error(request, "Lütfen mevcut ürün listesinden bir ürün seçin.")
         return redirect("product_gallery")
+    code = product.kod
     album, created = GalleryAlbum.objects.get_or_create(code=code)
     messages.success(request, "Albüm oluşturuldu." if created else "Bu ürün kodunun albümü zaten mevcut.")
     return redirect("/urun-albumu/?album=" + str(album.pk))
