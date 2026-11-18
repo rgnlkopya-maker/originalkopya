@@ -5,7 +5,7 @@ from django.conf.urls.static import static
 from django.contrib.auth import logout
 from django.shortcuts import redirect
 from core import views
-from core.product_gallery_views import gallery_new_product, product_gallery, create_album, create_group as gallery_create_group_view, upload_media, media_view, cover_media
+from core.product_gallery_views import gallery_new_product, product_gallery, create_album, create_group as gallery_create_group_view, upload_media, media_view, cover_media, reorder_media, delete_media
 from core.notification_center_views import notification_center
 from core.notification_inbox import notification_list as manager_notification_list, notification_unread_status, notification_delete, notification_delete_all
 from core.instrument_views import instrument_list, instrument_edit, instrument_detail, instrument_endorser_add, instrument_mapping_save, instrument_inline_add, instrument_inline_status_update
@@ -61,6 +61,8 @@ urlpatterns = [
     path("urun-albumu/grup/<int:group_id>/yukle/", upload_media, name="gallery_upload_media"),
     path("urun-albumu/medya/<int:media_id>/", media_view, name="gallery_media_view"),
     path("urun-albumu/medya/<int:media_id>/kapak/", cover_media, name="gallery_cover_media"),
+    path("urun-albumu/medya/<int:media_id>/sil/", delete_media, name="gallery_delete_media"),
+    path("urun-albumu/grup/<int:group_id>/sirala/", reorder_media, name="gallery_reorder_media"),
     path("internal/backup-scheduler/tick/", scheduler_tick, name="backup_scheduler_tick"),
     path("yonetim/yedekleme-merkezi/", backup_center, name="backup_center"),
     path("yonetim/yedekleme-merkezi/ayar/", backup_policy_update, name="backup_policy_update"),
