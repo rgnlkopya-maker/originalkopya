@@ -1,13 +1,14 @@
 import os
 import logging
+import json
 from uuid import uuid4
 from functools import lru_cache
-from django.db import IntegrityError
+from django.db import IntegrityError, transaction
 from django.conf import settings
 from django.core.cache import cache
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.http import HttpResponseForbidden, Http404
+from django.http import HttpResponseForbidden, Http404, JsonResponse
 from django.shortcuts import render, redirect, get_object_or_404
 from django.views.decorators.http import require_POST
 from app_settings.access import has_full_access
@@ -125,7 +126,7 @@ def upload_media(request, group_id):
         try:
             f.seek(0)
             _bucket().upload(path, f.read(), file_options={"content-type": mime, "upsert": "false"})
-            GalleryMedia.objects.create(group=group, storage_path=path, original_name=f.name[:255], content_type=mime)
+            GalleryMedia.objects.create(group=group, storage_path=path, original_name=f.name[:255], content_type=mime, sort_order=(GalleryMedia.objects.filter(group=group).order_by("-sort_order").values_list("sort_order", flat=True).first() or 0) + 1)
             messages.success(request, f.name + " yüklendi.")
         except Exception:
             logging.getLogger(__name__).exception("GALLERY_UPLOAD_FAILURE group=%s file=%s", group.pk, f.name)
@@ -162,7 +163,7 @@ def cover_media(request, media_id):
     GalleryMedia.objects.filter(group__album_id=media.group.album_id).update(is_cover=False)
     media.is_cover = True
     media.save(update_fields=["is_cover"])
-    return redirect("/urun-albumu/?album=" + str(media.group.album_id))
+    return redirect("/urun-albumu/?album=" + str(media.group.album_id) + "&group=" + str(media.group_id))
 
 @login_required
 @require_POST
@@ -190,3 +191,40 @@ def gallery_new_product(request):
             messages.success(request, "Ürün eklendi.")
         album, _ = GalleryAlbum.objects.get_or_create(code=product.kod)
     return redirect("/urun-albumu/?album=" + str(album.pk))
+
+@login_required
+@require_POST
+def reorder_media(request, group_id):
+    if not _allowed(request.user):
+        return HttpResponseForbidden("Yetkiniz yok.")
+    group = get_object_or_404(GalleryGroup, pk=group_id)
+    try:
+        ids = json.loads(request.body.decode("utf-8")).get("ids")
+        if not isinstance(ids, list) or any(type(pk) is not int for pk in ids) or len(set(ids)) != len(ids):
+            return JsonResponse({"error": "Geçersiz sıralama."}, status=400)
+        existing = set(GalleryMedia.objects.filter(group=group).values_list("pk", flat=True))
+        if set(ids) != existing or len(ids) != len(existing):
+            return JsonResponse({"error": "Fotoğraf listesi değişti. Sayfayı yenileyin."}, status=409)
+        with transaction.atomic():
+            for order, pk in enumerate(ids, 1):
+                GalleryMedia.objects.filter(pk=pk, group=group).update(sort_order=order)
+        return JsonResponse({"ok": True})
+    except (ValueError, TypeError, UnicodeDecodeError):
+        return JsonResponse({"error": "Geçersiz istek."}, status=400)
+
+@login_required
+@require_POST
+def delete_media(request, media_id):
+    if not _allowed(request.user):
+        return HttpResponseForbidden("Yetkiniz yok.")
+    media = get_object_or_404(GalleryMedia, pk=media_id)
+    album_id, group_id = media.group.album_id, media.group_id
+    try:
+        _bucket().remove([media.storage_path])
+    except Exception:
+        logging.getLogger(__name__).exception("Gallery deletion failed media=%s", media_id)
+        messages.error(request, "Fotoğraf silinemedi.")
+        return redirect("/urun-albumu/?album=" + str(album_id) + "&group=" + str(group_id))
+    media.delete()
+    messages.success(request, "Fotoğraf silindi.")
+    return redirect("/urun-albumu/?album=" + str(album_id) + "&group=" + str(group_id))
