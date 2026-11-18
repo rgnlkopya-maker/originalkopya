@@ -3,6 +3,7 @@ from io import BytesIO
 
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
+from django.conf import settings
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase, override_settings
 from PIL import Image
@@ -10,7 +11,14 @@ from PIL import Image
 from core.models import GalleryAlbum
 
 
-@override_settings(SECURE_SSL_REDIRECT=False)
+@override_settings(
+    SECURE_SSL_REDIRECT=False,
+    # Test gallery authorization independently from staff attendance/time gates.
+    MIDDLEWARE=[
+        middleware for middleware in settings.MIDDLEWARE
+        if middleware != "app_settings.middleware.MoliAccessMiddleware"
+    ],
+)
 class GalleryLinksPermissionTests(TestCase):
     def setUp(self):
         User = get_user_model()
