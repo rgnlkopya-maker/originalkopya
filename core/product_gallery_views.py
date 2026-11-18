@@ -35,7 +35,6 @@ def product_gallery(request):
     from django.core.paginator import Paginator
     from django.db.models import OuterRef, Subquery, Case, When, Value, IntegerField
     from django.db.models.functions import Lower
-    from django.db.models import Prefetch
 
     selected = None
     albums = []
@@ -46,11 +45,25 @@ def product_gallery(request):
         selected = GalleryAlbum.objects.filter(pk=album_id).first()
     if selected:
         GalleryGroup.objects.get_or_create(album=selected, name="Standart Model")
-        selected = GalleryAlbum.objects.prefetch_related(
-            Prefetch("groups", queryset=GalleryGroup.objects.prefetch_related(
-                Prefetch("media", queryset=GalleryMedia.objects.order_by("sort_order", "pk"))
-            ))
-        ).get(pk=selected.pk)
+        selected = GalleryAlbum.objects.prefetch_related("groups").get(pk=selected.pk)
+        requested_group = request.GET.get("group", "")
+        active_group = next(
+            (g for g in selected.groups.all() if str(g.pk) == requested_group),
+            selected.groups.all()[0] if selected.groups.all() else None,
+        )
+        if active_group:
+            group_page = Paginator(
+                GalleryMedia.objects.filter(group=active_group).order_by("sort_order", "pk"),
+                24,
+            ).get_page(request.GET.get("media_page"))
+            active_group.page_media = list(group_page.object_list)
+            active_group.media_page = group_page
+            active_group.paginated = group_page.paginator.num_pages > 1
+        for group in selected.groups.all():
+            if group is not active_group:
+                group.page_media = []
+                group.media_page = None
+                group.paginated = False
     else:
         cover_media = GalleryMedia.objects.filter(
             group__album_id=OuterRef("pk")
