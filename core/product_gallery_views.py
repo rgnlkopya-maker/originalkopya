@@ -39,7 +39,7 @@ def product_gallery(request):
         album.cover = next((m for g in album.groups.all() for m in g.media.all() if m.is_cover), None)
         if album.cover is None:
             album.cover = next((m for g in album.groups.all() for m in g.media.all()), None)
-    return render(request, "core/product_gallery.html", {"albums": albums, "selected": selected, "products": UrunKod.objects.filter(aktif=True).order_by("kod"), "product_types": URUN_TIPI_CHOICES})
+    return render(request, "core/product_gallery.html", {"albums": albums, "selected": selected, "products": UrunKod.objects.filter(aktif=True).order_by("kod"), "product_types": URUN_TIPI_CHOICES, "urun_tipi_secenekleri": URUN_TIPI_CHOICES, "aktif_urun_kodlari": UrunKod.objects.filter(aktif=True).order_by("kod")})
 
 @login_required
 @require_POST
