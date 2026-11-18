@@ -8,5 +8,6 @@ class CoreConfig(AppConfig):
         import core.customer_models  # Müşteri iletişim ve adres detayları
         import core.reminder_models  # Hatırlatma modellerini kaydet
         import core.signals       # admin ensure (post_migrate)
+        import core.gallery_signals  # Automatically create albums for new products
         import core.signals_qr    # ✅ QR üretimi (post_save)
         import core.manager_notification_signals  # Yönetici operasyon bildirimleri
