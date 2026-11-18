@@ -7,7 +7,7 @@ from django.http import HttpResponseForbidden, Http404
 from django.shortcuts import render, redirect, get_object_or_404
 from django.views.decorators.http import require_POST
 from app_settings.access import has_full_access
-from core.models import GalleryAlbum, GalleryGroup, GalleryMedia, UrunKod
+from core.models import GalleryAlbum, GalleryGroup, GalleryMedia, UrunKod, URUN_TIPI_CHOICES
 from supabase import create_client
 
 def _allowed(user):
@@ -39,7 +39,7 @@ def product_gallery(request):
         album.cover = next((m for g in album.groups.all() for m in g.media.all() if m.is_cover), None)
         if album.cover is None:
             album.cover = next((m for g in album.groups.all() for m in g.media.all()), None)
-    return render(request, "core/product_gallery.html", {"albums": albums, "selected": selected, "products": UrunKod.objects.filter(aktif=True).order_by("kod")})
+    return render(request, "core/product_gallery.html", {"albums": albums, "selected": selected, "products": UrunKod.objects.filter(aktif=True).order_by("kod"), "product_types": URUN_TIPI_CHOICES})
 
 @login_required
 @require_POST
@@ -134,3 +134,30 @@ def cover_media(request, media_id):
     media.is_cover = True
     media.save(update_fields=["is_cover"])
     return redirect("/urun-albumu/?album=" + str(media.group.album_id))
+
+@login_required
+@require_POST
+def gallery_new_product(request):
+    if not _allowed(request.user):
+        return HttpResponseForbidden("Yetkiniz yok.")
+    code = (request.POST.get("kod") or "").strip().upper()
+    kind = (request.POST.get("urun_tipi") or "").strip()
+    if not code or len(code) > 100 or kind not in dict(URUN_TIPI_CHOICES):
+        messages.error(request, "Ürün kodunu ve geçerli ürün tipini girin.")
+        return redirect("product_gallery")
+    from django.db import transaction
+    with transaction.atomic():
+        product = UrunKod.objects.filter(kod__iexact=code).first()
+        if product:
+            if product.aktif:
+                messages.error(request, "Bu ürün zaten kayıtlı.")
+            else:
+                product.aktif = True
+                product.urun_tipi = kind
+                product.save(update_fields=["aktif", "urun_tipi"])
+                messages.success(request, "Ürün yeniden aktifleştirildi.")
+        else:
+            product = UrunKod.objects.create(kod=code, urun_tipi=kind)
+            messages.success(request, "Ürün eklendi.")
+        album, _ = GalleryAlbum.objects.get_or_create(code=product.kod)
+    return redirect("/urun-albumu/?album=" + str(album.pk))
