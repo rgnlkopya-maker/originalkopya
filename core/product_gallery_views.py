@@ -31,7 +31,7 @@ def product_gallery(request):
     if not _allowed(request.user):
         return HttpResponseForbidden("Ürün Albümü erişim yetkiniz yok.")
     from django.core.paginator import Paginator
-    from django.db.models import OuterRef, Subquery
+    from django.db.models import OuterRef, Subquery, Case, When, Value, IntegerField
     from django.db.models.functions import Lower
     from django.db.models import Prefetch
 
@@ -52,7 +52,10 @@ def product_gallery(request):
     else:
         cover_media = GalleryMedia.objects.filter(
             group__album_id=OuterRef("pk")
-        ).order_by("-is_cover", "sort_order", "pk")
+        ).annotate(cover_rank=Case(
+            When(content_type="video/mp4", then=Value(1)),
+            default=Value(0), output_field=IntegerField(),
+        )).order_by("cover_rank", "-is_cover", "sort_order", "pk")
         queryset = GalleryAlbum.objects.annotate(
             cover_media_id=Subquery(cover_media.values("pk")[:1]),
             cover_media_type=Subquery(cover_media.values("content_type")[:1]),
