@@ -1,5 +1,6 @@
 import os
 import logging
+import time
 import json
 from io import BytesIO
 from uuid import uuid4
@@ -28,6 +29,7 @@ def _bucket():
 
 @login_required
 def product_gallery(request):
+    started_at = time.monotonic()
     if not _allowed(request.user):
         return HttpResponseForbidden("Ürün Albümü erişim yetkiniz yok.")
     from django.core.paginator import Paginator
@@ -66,7 +68,7 @@ def product_gallery(request):
         page_obj = Paginator(queryset, 24).get_page(request.GET.get("page"))
         albums = list(page_obj.object_list)
     active_products = UrunKod.objects.filter(aktif=True).order_by("kod")
-    return render(request, "core/product_gallery.html", {
+    response = render(request, "core/product_gallery.html", {
         "albums": albums, "selected": selected, "page_obj": page_obj,
         "search_query": search_query,
         "products": active_products,
@@ -74,6 +76,13 @@ def product_gallery(request):
         "urun_tipi_secenekleri": URUN_TIPI_CHOICES,
         "aktif_urun_kodlari": active_products,
     })
+    elapsed_ms = round((time.monotonic() - started_at) * 1000)
+    response["Server-Timing"] = "gallery;dur=" + str(elapsed_ms)
+    logging.getLogger(__name__).info(
+        "GALLERY_PAGE_PERF mode=%s duration_ms=%s album_count=%s",
+        "detail" if selected else "list", elapsed_ms, len(albums),
+    )
+    return response
 
 @login_required
 @require_POST
@@ -199,6 +208,7 @@ def upload_media(request, group_id):
 
 @login_required
 def media_view(request, media_id):
+    started_at = time.monotonic()
     if not _allowed(request.user):
         return HttpResponseForbidden("Yetkiniz yok.")
     media = get_object_or_404(GalleryMedia, pk=media_id)
@@ -206,6 +216,7 @@ def media_view(request, media_id):
         thumbnail = request.GET.get("thumb") == "1" and bool(media.thumbnail_path)
         cache_key = "gallery_signed_media_v2_" + str(media.pk) + ("_thumb" if thumbnail else "")
         url = cache.get(cache_key)
+        cache_hit = bool(url)
         if not url:
             signed = _bucket().create_signed_url(media.thumbnail_path if thumbnail else media.storage_path, 3600)
             url = signed.get("signedURL") or signed.get("signedUrl") or signed.get("signed_url")
@@ -214,6 +225,8 @@ def media_view(request, media_id):
             cache.set(cache_key, url, 3300)
         response = redirect(url)
         response["Cache-Control"] = "private, max-age=300"
+        response["Server-Timing"] = "gallery-media;dur=" + str(round((time.monotonic() - started_at) * 1000))
+        logging.getLogger(__name__).info("GALLERY_MEDIA_PERF cache_hit=%s thumbnail=%s duration_ms=%s", cache_hit, thumbnail, round((time.monotonic() - started_at) * 1000))
         return response
     except Exception:
         logging.getLogger(__name__).exception("Gallery media redirect failed media=%s", media.pk)
