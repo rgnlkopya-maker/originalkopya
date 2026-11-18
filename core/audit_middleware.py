@@ -1,4 +1,5 @@
 import ipaddress
+import logging
 import re
 
 from django.db import OperationalError, ProgrammingError
@@ -126,7 +127,7 @@ class UserActionAuditMiddleware:
                     status_code=getattr(response, "status_code", 500),
                     success=getattr(response, "status_code", 500) < 400,
                 )
-            except (OperationalError, ProgrammingError):
-                pass
+            except Exception:
+                logging.getLogger(__name__).exception("Audit logging failed for %s %s", request.method, request.path)
 
         return response
