@@ -150,14 +150,22 @@ def upload_media(request, group_id):
     with ThreadPoolExecutor(max_workers=min(3, len(files))) as pool:
         results = sorted(pool.map(process_file, enumerate(files)), key=lambda row: row[0])
     next_order = (GalleryMedia.objects.filter(group=group).order_by("-sort_order").values_list("sort_order", flat=True).first() or 0)
+    failures = []
+    successes = 0
     for _, name, uploaded, error in results:
         if error:
-            messages.error(request, name + ": " + error)
+            failures.append((name, error))
             continue
         path, thumbnail_path, mime = uploaded
         next_order += 1
         GalleryMedia.objects.create(group=group, storage_path=path, thumbnail_path=thumbnail_path, original_name=name[:255], content_type=mime, sort_order=next_order)
-        messages.success(request, name + " yüklendi.")
+        successes += 1
+    if failures:
+        details = "; ".join(name + ": " + reason for name, reason in failures)
+        messages.error(request, f"{group.album.code} kodlu albüme {len(files)} dosyadan {successes} tanesi yüklendi, {len(failures)} dosya eksik. Başarısız dosyalar: {details}")
+        logging.getLogger(__name__).warning("GALLERY_PARTIAL_UPLOAD album=%s group=%s success=%s failed=%s details=%s", group.album.code, group.pk, successes, len(failures), details)
+    elif successes:
+        messages.success(request, f"{group.album.code} kodlu albüme {successes} dosya başarıyla yüklendi.")
     return redirect("/urun-albumu/?album=" + str(group.album_id) + "&group=" + str(group.pk))
 
 @login_required
