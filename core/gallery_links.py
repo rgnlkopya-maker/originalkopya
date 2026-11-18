@@ -126,11 +126,11 @@ def gallery_link_save(request, album_id):
                 if source.format not in ("JPEG", "PNG", "WEBP"):
                     raise ValueError("unsupported")
                 cover = ImageOps.exif_transpose(source)
-                cover.thumbnail((600, 800))
+                cover.thumbnail((360, 480))
                 if cover.mode != "RGB":
                     cover = cover.convert("RGB")
                 output = BytesIO()
-                cover.save(output, format="JPEG", quality=75, optimize=True)
+                cover.save(output, format="JPEG", quality=72, optimize=True)
             album.cover_data_url = "data:image/jpeg;base64," + base64.b64encode(output.getvalue()).decode("ascii")
             fields.append("cover_data_url")
         except (OSError, ValueError, Image.DecompressionBombError):
