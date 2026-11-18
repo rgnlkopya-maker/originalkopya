@@ -897,4 +897,5 @@ class GalleryMedia(models.Model):
     original_name = models.CharField(max_length=255)
     content_type = models.CharField(max_length=100)
     is_cover = models.BooleanField(default=False)
+    sort_order = models.PositiveIntegerField(default=0, db_index=True)
     created_at = models.DateTimeField(auto_now_add=True)
