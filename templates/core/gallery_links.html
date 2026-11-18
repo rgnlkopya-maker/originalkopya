@@ -17,7 +17,8 @@
 .link-gallery .no-photo{display:flex;align-items:center;justify-content:center;height:100%;font-size:12px;color:#758399}
 .link-gallery .album strong{position:absolute;bottom:0;left:0;right:0;padding:25px 8px 10px;text-align:center;color:white;font-size:22px;font-weight:800;line-height:1.15;overflow-wrap:anywhere;background:linear-gradient(transparent,#000a);text-shadow:0 1px 3px #0007}
 .link-gallery .album.no-cover strong{background:none;color:#263650;text-shadow:none}
-.link-gallery .album-edit-overlay{position:absolute;top:9px;right:9px;z-index:2;display:inline-flex;align-items:center;gap:5px;padding:6px 9px;border:1px solid rgba(255,255,255,.65);border-radius:9px;background:rgba(255,255,255,.78);backdrop-filter:blur(7px);-webkit-backdrop-filter:blur(7px);color:#24344c;font-size:12px;font-weight:650;text-decoration:none;box-shadow:0 2px 7px #10213c2b}
+.link-gallery .album-edit-overlay{position:absolute;top:8px;right:8px;z-index:2;display:grid;place-items:center;width:30px;height:30px;padding:0;border:1px solid rgba(255,255,255,.72);border-radius:9px;background:rgba(255,255,255,.7);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);color:#263650;font-size:15px;text-decoration:none;box-shadow:0 2px 7px #10213c24}
+.link-gallery .album-edit-overlay i{margin:0;line-height:1}
 .link-gallery .album-edit-overlay:hover,.link-gallery .album-edit-overlay:focus-visible{background:rgba(255,255,255,.95);color:#223a80}
 .link-gallery .formrow{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
 .link-gallery .formstack{display:grid;gap:12px;max-width:650px}
@@ -27,8 +28,43 @@
 .link-gallery .edit-heading{margin:10px 0 18px;font-size:19px}
 .link-gallery .cover-preview{width:170px;max-width:100%;max-height:230px;object-fit:cover;border-radius:12px}
 @media(max-width:700px){.link-gallery .albums{grid-template-columns:repeat(2,minmax(0,1fr))}}
-@media(max-width:600px){.link-gallery .gallery-heading h1{font-size:19px}.link-gallery .gallery-heading{gap:6px}.link-gallery .album-toolbar input{width:105px;font-size:12px}.link-gallery .album-edit-overlay{font-size:11px;top:7px;right:7px;padding:5px 7px}}
+@media(max-width:600px){.link-gallery .gallery-heading h1{font-size:19px}.link-gallery .gallery-heading{gap:6px}.link-gallery .album-toolbar input{width:105px;font-size:12px}.link-gallery .album-edit-overlay{width:28px;height:28px;font-size:14px;top:7px;right:7px}}
 @media(max-width:340px){.link-gallery .gallery-heading{flex-wrap:wrap}.link-gallery .album-toolbar{width:100%;justify-content:flex-start}.link-gallery .album-toolbar input{width:160px}}
+
+/* Compact album editing page */
+.link-gallery .gallery-editor{padding:25px 28px}
+.link-gallery .gallery-back{display:inline-flex;align-items:center;gap:7px;color:#54668f;font-size:13px;text-decoration:none;font-weight:600;margin-bottom:20px}
+.link-gallery .gallery-back:hover{text-decoration:underline}
+.link-gallery .gallery-editor-heading h2{font-size:22px;font-weight:750;margin:0 0 6px}
+.link-gallery .gallery-editor-heading h2 span{font-size:18px;font-weight:500;color:#77859c}
+.link-gallery .gallery-editor-heading p{font-size:13px;color:#748298;margin:0 0 23px}
+.link-gallery .gallery-editor-form{display:grid;grid-template-columns:minmax(175px,245px) minmax(0,1fr);align-items:start;gap:30px}
+.link-gallery .gallery-cover-block{min-width:0}
+.link-gallery .gallery-cover-frame{aspect-ratio:3/4;background:#f0f4fa;border:1px solid #e1e7ef;border-radius:13px;display:flex;justify-content:center;align-items:center;overflow:hidden}
+.link-gallery .gallery-cover-frame img{width:100%;height:100%;object-fit:cover;object-position:center top;display:block}
+.link-gallery .gallery-cover-frame img[hidden],.link-gallery .gallery-cover-placeholder[hidden]{display:none}
+.link-gallery .gallery-cover-placeholder{display:flex;flex-direction:column;align-items:center;gap:9px;color:#8795ab;font-size:13px}
+.link-gallery .gallery-cover-placeholder i{font-size:33px;color:#9caac0}
+.link-gallery .gallery-cover-label{font-size:13px;font-weight:700;margin-top:11px}
+.link-gallery .gallery-cover-hint{font-size:11px;color:#8793a4;margin-top:4px}
+.link-gallery .gallery-editor-fields{display:grid;gap:22px;padding-top:4px;min-width:0}
+.link-gallery .gallery-field{display:grid;gap:9px;min-width:0}
+.link-gallery .gallery-field label{font-size:13px;color:#263650;font-weight:700}
+.link-gallery .gallery-field input[type=file]{display:block;max-width:100%;width:100%;border:1px dashed #b9c8dd;border-radius:10px;background:#f7f9fd;padding:10px;font-size:13px;color:#485774}
+.link-gallery .gallery-field input[type=file]::file-selector-button{background:#eaf0fc;color:#3c57a3;border:1px solid #d3dff2;padding:8px 12px;border-radius:7px;margin-right:12px;font-weight:650;cursor:pointer}
+.link-gallery .gallery-field small{font-size:12px;color:#8a97aa}
+.link-gallery .gallery-url-wrap{display:flex;align-items:center;position:relative}
+.link-gallery .gallery-url-wrap i{position:absolute;left:12px;font-size:19px;color:#8594aa;pointer-events:none}
+.link-gallery .gallery-url-wrap input{display:block;width:100%;min-width:0;border:1px solid #d3ddec;border-radius:10px;padding:12px 12px 12px 40px;font-size:13px;color:#263650;background:white}
+.link-gallery .gallery-url-wrap input:focus{outline:2px solid #a7b7ed;outline-offset:1px}
+.link-gallery .gallery-editor-actions{display:flex;align-items:center;flex-wrap:wrap;gap:14px;margin-top:3px}
+.link-gallery .gallery-editor-actions .btn-main{display:inline-flex;align-items:center;gap:8px;padding:11px 16px}
+.link-gallery .gallery-cancel{font-size:13px;color:#5c6b86;text-decoration:none}
+.link-gallery .gallery-cancel:hover{text-decoration:underline}
+.link-gallery .gallery-external-link{font-size:13px;color:#4056ba;text-decoration:none;justify-self:start}
+.link-gallery .gallery-external-link:hover{text-decoration:underline}
+@media(max-width:700px){.link-gallery .gallery-editor-form{grid-template-columns:minmax(135px,190px) minmax(0,1fr);gap:18px}.link-gallery .gallery-editor{padding:20px}}
+@media(max-width:520px){.link-gallery .gallery-editor-form{grid-template-columns:1fr}.link-gallery .gallery-cover-block{max-width:185px}.link-gallery .gallery-editor-heading h2{font-size:20px}.link-gallery .gallery-editor-heading h2 span{font-size:16px}.link-gallery .gallery-editor-heading p{margin-bottom:17px}.link-gallery .gallery-editor-fields{gap:18px}.link-gallery .gallery-editor-actions .btn-main{padding:10px 12px}}
 </style>
 <div class="link-gallery">
   <div class="gallery-heading">
@@ -45,21 +81,54 @@
   {% for message in messages %}<div class="alert alert-{{ message.tags|default:'info' }}" role="status">{{ message }}</div>{% endfor %}
 
   {% if selected %}
-  <section class="panel">
-    <p><a href="{% url 'product_gallery' %}">← Albümlere dön</a></p>
-    <h2 class="edit-heading">{{ selected.code }} · Kapak ve Google Photos bağlantısını düzenle</h2>
-    <form method="post" enctype="multipart/form-data" action="{% url 'gallery_link_save' selected.pk %}" class="formstack">
+  <section class="panel gallery-editor">
+    <a class="gallery-back" href="{% url 'product_gallery' %}"><i class="bi bi-arrow-left" aria-hidden="true"></i> Albümlere dön</a>
+    <div class="gallery-editor-heading">
+      <div>
+        <h2>{{ selected.code }} <span>· Albüm düzenle</span></h2>
+        <p>Kapak fotoğrafını ve Google Photos albüm bağlantısını buradan güncelleyebilirsiniz.</p>
+      </div>
+    </div>
+    <form method="post" enctype="multipart/form-data" action="{% url 'gallery_link_save' selected.pk %}" class="gallery-editor-form">
       {% csrf_token %}
-      <label>Google Photos albüm bağlantısı
-        <input type="url" name="google_photos_url" value="{{ selected.google_photos_url }}" placeholder="https://photos.app.goo.gl/..." maxlength="1000">
-      </label>
-      <label>Kapak fotoğrafı ekle veya değiştir (JPG, PNG veya WEBP)
-        <input type="file" name="cover" accept="image/jpeg,image/png,image/webp">
-      </label>
-      {% if selected.cover_data_url %}<img class="cover-preview" src="{{ selected.cover_data_url }}" alt="{{ selected.code }} mevcut kapak">{% endif %}
-      <button class="btn-main" type="submit">Kaydet</button>
+      <div class="gallery-cover-block">
+        <div class="gallery-cover-frame" id="galleryCoverFrame">
+          {% if selected.cover_data_url %}
+            <img id="galleryCoverPreview" src="{{ selected.cover_data_url }}" alt="{{ selected.code }} mevcut kapak">
+            <div id="galleryCoverPlaceholder" class="gallery-cover-placeholder" hidden><i class="bi bi-image" aria-hidden="true"></i><span>Henüz kapak yok</span></div>
+          {% else %}
+            <img id="galleryCoverPreview" alt="Yeni kapak önizlemesi" hidden>
+            <div id="galleryCoverPlaceholder" class="gallery-cover-placeholder"><i class="bi bi-image" aria-hidden="true"></i><span>Henüz kapak yok</span></div>
+          {% endif %}
+        </div>
+        <div class="gallery-cover-label">Kapak fotoğrafı</div>
+        <div class="gallery-cover-hint">Tek fotoğraf · JPG, PNG veya WEBP · En fazla 8 MB</div>
+      </div>
+      <div class="gallery-editor-fields">
+        <div class="gallery-field">
+          <label for="galleryCoverInput">Kapak fotoğrafını değiştir</label>
+          <input id="galleryCoverInput" type="file" name="cover" accept="image/jpeg,image/png,image/webp">
+          <small>Fotoğraf seçildiğinde önizleme solda güncellenir.</small>
+        </div>
+        <div class="gallery-field">
+          <label for="galleryPhotosUrl">Google Photos albüm bağlantısı</label>
+          <div class="gallery-url-wrap">
+            <i class="bi bi-link-45deg" aria-hidden="true"></i>
+            <input id="galleryPhotosUrl" type="url" name="google_photos_url" value="{{ selected.google_photos_url }}" placeholder="https://photos.app.goo.gl/..." maxlength="1000" autocomplete="url">
+          </div>
+          <small>Kapak fotoğrafına basıldığında bu bağlantı yeni sekmede açılır.</small>
+        </div>
+        <div class="gallery-editor-actions">
+          <button class="btn-main" type="submit"><i class="bi bi-check2" aria-hidden="true"></i> Değişiklikleri kaydet</button>
+          <a class="gallery-cancel" href="{% url 'product_gallery' %}">Vazgeç</a>
+        </div>
+        {% if selected.google_photos_url %}
+        <a class="gallery-external-link" href="{{ selected.google_photos_url }}" target="_blank" rel="noopener noreferrer">
+          Google Photos albümünü aç <i class="bi bi-box-arrow-up-right" aria-hidden="true"></i>
+        </a>
+        {% endif %}
+      </div>
     </form>
-    {% if selected.google_photos_url %}<p><a href="{{ selected.google_photos_url }}" target="_blank" rel="noopener noreferrer">Google Photos albümünü aç ↗</a></p>{% endif %}
   </section>
   {% else %}
   <section class="panel gallery-list-panel">
@@ -73,7 +142,7 @@
         </a>
         {% if can_edit_album %}
         <a class="album-edit-overlay" href="?album={{ album.pk }}" aria-label="{{ album.code }} kapağını ve bağlantısını düzenle">
-          <i class="bi bi-pencil-square" aria-hidden="true"></i> Düzenle
+          <i class="bi bi-pencil" aria-hidden="true"></i>
         </a>
         {% endif %}
       </div>
@@ -91,6 +160,21 @@
 </div>
 <script>
 (function(){
+  const coverInput=document.getElementById('galleryCoverInput');
+  if(coverInput){
+    let previewUrl=null;
+    coverInput.addEventListener('change',function(){
+      const file=coverInput.files && coverInput.files[0];
+      if(previewUrl){URL.revokeObjectURL(previewUrl);previewUrl=null;}
+      if(!file)return;
+      if(!['image/jpeg','image/png','image/webp'].includes(file.type))return;
+      previewUrl=URL.createObjectURL(file);
+      const image=document.getElementById('galleryCoverPreview');
+      image.src=previewUrl;
+      image.hidden=false;
+      document.getElementById('galleryCoverPlaceholder').hidden=true;
+    });
+  }
   const input=document.getElementById('albumSearch');
   if(!input)return;
   let timer;
