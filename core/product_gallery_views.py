@@ -30,21 +30,46 @@ def _bucket():
 def product_gallery(request):
     if not _allowed(request.user):
         return HttpResponseForbidden("Ürün Albümü erişim yetkiniz yok.")
-    # Backfill albums for products created before automatic gallery creation was enabled.
-    # Existing albums are maintained by gallery_signals; avoid scanning all products on each visit.
-    albums = list(GalleryAlbum.objects.prefetch_related("groups__media")) if not request.GET.get("album") else []
-    albums.sort(key=lambda a: (0, int(a.code)) if a.code.isdigit() else (1, a.code.casefold()))
+    from django.core.paginator import Paginator
+    from django.db.models import OuterRef, Subquery
+    from django.db.models.functions import Lower
+    from django.db.models import Prefetch
+
     selected = None
-    if request.GET.get("album"):
-        selected = GalleryAlbum.objects.filter(pk=request.GET["album"]).first() if request.GET["album"].isdigit() else None
+    albums = []
+    page_obj = None
+    search_query = (request.GET.get("q") or "").strip()[:80]
+    album_id = request.GET.get("album", "")
+    if album_id.isdigit():
+        selected = GalleryAlbum.objects.filter(pk=album_id).first()
     if selected:
         GalleryGroup.objects.get_or_create(album=selected, name="Standart Model")
-        selected = GalleryAlbum.objects.prefetch_related("groups__media").get(pk=selected.pk)
-    for album in albums:
-        album.cover = next((m for g in album.groups.all() for m in g.media.all() if m.is_cover), None)
-        if album.cover is None:
-            album.cover = next((m for g in album.groups.all() for m in g.media.all()), None)
-    return render(request, "core/product_gallery.html", {"albums": albums, "selected": selected, "products": UrunKod.objects.filter(aktif=True).order_by("kod"), "product_types": URUN_TIPI_CHOICES, "urun_tipi_secenekleri": URUN_TIPI_CHOICES, "aktif_urun_kodlari": UrunKod.objects.filter(aktif=True).order_by("kod")})
+        selected = GalleryAlbum.objects.prefetch_related(
+            Prefetch("groups", queryset=GalleryGroup.objects.prefetch_related(
+                Prefetch("media", queryset=GalleryMedia.objects.order_by("sort_order", "pk"))
+            ))
+        ).get(pk=selected.pk)
+    else:
+        cover_media = GalleryMedia.objects.filter(
+            group__album_id=OuterRef("pk")
+        ).order_by("-is_cover", "sort_order", "pk")
+        queryset = GalleryAlbum.objects.annotate(
+            cover_media_id=Subquery(cover_media.values("pk")[:1]),
+            cover_media_type=Subquery(cover_media.values("content_type")[:1]),
+        )
+        if search_query:
+            queryset = queryset.filter(code__icontains=search_query)
+        queryset = queryset.order_by(Lower("code"), "pk")
+        page_obj = Paginator(queryset, 24).get_page(request.GET.get("page"))
+        albums = list(page_obj.object_list)
+    return render(request, "core/product_gallery.html", {
+        "albums": albums, "selected": selected, "page_obj": page_obj,
+        "search_query": search_query,
+        "products": UrunKod.objects.filter(aktif=True).order_by("kod"),
+        "product_types": URUN_TIPI_CHOICES,
+        "urun_tipi_secenekleri": URUN_TIPI_CHOICES,
+        "aktif_urun_kodlari": UrunKod.objects.filter(aktif=True).order_by("kod"),
+    })
 
 @login_required
 @require_POST
