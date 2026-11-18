@@ -90,7 +90,7 @@
     <li><a href="{% url 'nakisci_raporu' %}" class="dropdown-item {% if request.resolver_match.url_name == 'nakisci_raporu' or request.resolver_match.url_name == 'nakisci_detay' %}active{% endif %}"><i class="bi bi-flower1"></i>Nakış Takibi</a></li>
     <li><a href="{% url 'fasoncu_raporu' %}" class="dropdown-item {% if request.resolver_match.url_name == 'fasoncu_raporu' or request.resolver_match.url_name == 'fasoncu_detay' %}active{% endif %}"><i class="bi bi-people"></i>Fason Takibi</a></li>
     {% endif %}
-    {% if user|is_management %}<li><a href="{% url 'product_gallery' %}" class="dropdown-item {% if request.resolver_match.url_name == 'product_gallery' %}active{% endif %}"><i class="bi bi-images"></i>Ürün Albümü</a></li>{% endif %}
+    {% if user|is_management %}<li><a href="{% url 'product_gallery' %}" class="dropdown-item {% if request.resolver_match.url_name == 'product_gallery' %}active{% endif %}"><i class="bi bi-images"></i>Ürün Albümleri</a></li>{% endif %}
     {% if user|can:'can_view_assistant' %}<li><a href="{% url 'ai_assistant' %}" class="dropdown-item {% if request.resolver_match.url_name == 'ai_assistant' %}active{% endif %}"><i class="bi bi-robot"></i>Moli Asistan</a></li>{% endif %}
     {% if user|can:'can_view_depots' or user|can_feature:'consignment.view' %}
     <li><hr class="dropdown-divider"></li>
