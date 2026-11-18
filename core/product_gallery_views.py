@@ -23,12 +23,6 @@ def _bucket():
         raise RuntimeError("Görsel depolama ayarları eksik.")
     client = create_client(settings.SUPABASE_URL, settings.SUPABASE_SERVICE_ROLE_KEY)
     name = os.getenv("SUPABASE_GALLERY_BUCKET", "moli-product-gallery")
-    try:
-        client.storage.get_bucket(name)
-    except Exception as exc:
-        if not any(x in str(exc).lower() for x in ("404", "not found", "does not exist")):
-            raise
-        client.storage.create_bucket(name, options={"public": False})
     return client.storage.from_(name)
 
 @login_required
@@ -36,10 +30,7 @@ def product_gallery(request):
     if not _allowed(request.user):
         return HttpResponseForbidden("Ürün Albümü erişim yetkiniz yok.")
     # Backfill albums for products created before automatic gallery creation was enabled.
-    existing_codes = set(GalleryAlbum.objects.values_list("code", flat=True))
-    missing = [GalleryAlbum(code=code) for code in UrunKod.objects.filter(aktif=True).values_list("kod", flat=True) if code not in existing_codes]
-    if missing:
-        GalleryAlbum.objects.bulk_create(missing, ignore_conflicts=True, batch_size=500)
+    # Existing albums are maintained by gallery_signals; avoid scanning all products on each visit.
     albums = list(GalleryAlbum.objects.prefetch_related("groups__media")) if not request.GET.get("album") else []
     albums.sort(key=lambda a: (0, int(a.code)) if a.code.isdigit() else (1, a.code.casefold()))
     selected = None
