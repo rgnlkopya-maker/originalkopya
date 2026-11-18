@@ -1,8 +1,10 @@
 import os
 import logging
 from uuid import uuid4
+from functools import lru_cache
 from django.db import IntegrityError
 from django.conf import settings
+from django.core.cache import cache
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponseForbidden, Http404
@@ -15,6 +17,7 @@ from supabase import create_client
 def _allowed(user):
     return has_full_access(user)
 
+@lru_cache(maxsize=1)
 def _bucket():
     if not settings.SUPABASE_URL or not settings.SUPABASE_SERVICE_ROLE_KEY:
         raise RuntimeError("Görsel depolama ayarları eksik.")
@@ -37,11 +40,11 @@ def product_gallery(request):
     missing = [GalleryAlbum(code=code) for code in UrunKod.objects.filter(aktif=True).values_list("kod", flat=True) if code not in existing_codes]
     if missing:
         GalleryAlbum.objects.bulk_create(missing, ignore_conflicts=True, batch_size=500)
-    albums = list(GalleryAlbum.objects.prefetch_related("groups__media"))
+    albums = list(GalleryAlbum.objects.prefetch_related("groups__media")) if not request.GET.get("album") else []
     albums.sort(key=lambda a: (0, int(a.code)) if a.code.isdigit() else (1, a.code.casefold()))
     selected = None
     if request.GET.get("album"):
-        selected = next((a for a in albums if str(a.pk) == request.GET["album"]), None)
+        selected = GalleryAlbum.objects.filter(pk=request.GET["album"]).first() if request.GET["album"].isdigit() else None
     if selected:
         GalleryGroup.objects.get_or_create(album=selected, name="Standart Model")
         selected = GalleryAlbum.objects.prefetch_related("groups__media").get(pk=selected.pk)
@@ -135,14 +138,19 @@ def media_view(request, media_id):
         return HttpResponseForbidden("Yetkiniz yok.")
     media = get_object_or_404(GalleryMedia, pk=media_id)
     try:
-        signed = _bucket().create_signed_url(media.storage_path, 120)
-        url = signed.get("signedURL") or signed.get("signedUrl") or signed.get("signed_url")
+        cache_key = "gallery_signed_media_v1_" + str(media.pk)
+        url = cache.get(cache_key)
         if not url:
-            raise ValueError("No signed URL")
+            signed = _bucket().create_signed_url(media.storage_path, 3600)
+            url = signed.get("signedURL") or signed.get("signedUrl") or signed.get("signed_url")
+            if not url:
+                raise ValueError("No signed URL")
+            cache.set(cache_key, url, 3300)
         response = redirect(url)
-        response["Cache-Control"] = "private, no-store"
+        response["Cache-Control"] = "private, max-age=300"
         return response
     except Exception:
+        logging.getLogger(__name__).exception("Gallery media redirect failed media=%s", media.pk)
         raise Http404("Medya açılamadı.")
 
 @login_required
