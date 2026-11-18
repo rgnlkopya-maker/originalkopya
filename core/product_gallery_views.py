@@ -30,6 +30,11 @@ def _bucket():
 def product_gallery(request):
     if not _allowed(request.user):
         return HttpResponseForbidden("Ürün Albümü erişim yetkiniz yok.")
+    # Backfill albums for products created before automatic gallery creation was enabled.
+    existing_codes = set(GalleryAlbum.objects.values_list("code", flat=True))
+    missing = [GalleryAlbum(code=code) for code in UrunKod.objects.filter(aktif=True).values_list("kod", flat=True) if code not in existing_codes]
+    if missing:
+        GalleryAlbum.objects.bulk_create(missing, ignore_conflicts=True, batch_size=500)
     albums = list(GalleryAlbum.objects.prefetch_related("groups__media"))
     albums.sort(key=lambda a: (0, int(a.code)) if a.code.isdigit() else (1, a.code.casefold()))
     selected = None
