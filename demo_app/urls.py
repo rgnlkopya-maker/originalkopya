@@ -1,3 +1,4 @@
+from core.gallery_links import gallery_links, gallery_link_save
 from django.contrib import admin
 from django.urls import include, path
 from django.conf import settings
@@ -55,7 +56,8 @@ from core.cad_lab_views import cad_lab
 from core.showroom_views import showroom, showroom_v2
 
 urlpatterns = [
-    path("urun-albumu/", product_gallery, name="product_gallery"),
+    path("urun-albumu/", gallery_links, name="product_gallery"),
+    path("urun-albumu/<int:album_id>/baglanti/", gallery_link_save, name="gallery_link_save"),
     path("urun-albumu/google-photos/secim/", photos_picker_wait, name="gallery_photos_picker_wait"),
     path("urun-albumu/google-photos/durum/", photos_picker_status, name="gallery_photos_picker_status"),
     path("urun-albumu/google-photos/callback/", photos_picker_callback, name="gallery_photos_picker_callback"),
