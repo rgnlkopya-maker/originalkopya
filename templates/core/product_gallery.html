@@ -27,26 +27,29 @@ function urunKodPasifYap(){const id=document.getElementById('modal_urun_kod_list
   if(!images.length || !('IntersectionObserver' in window))return;
   const queue=[];let running=0;
   function pump(){
-    while(running<3 && queue.length){
+    while(running<6 && queue.length){
       const img=queue.shift();
       if(!img || !img.isConnected || !img.dataset.pendingSrc)continue;
       running++;
-      const done=()=>{running--;pump();};
+      let finished=false;
+      const done=()=>{if(finished)return;finished=true;running--;pump();};
       img.addEventListener('load',done,{once:true});
       img.addEventListener('error',done,{once:true});
+      img.loading='eager';
+      img.decoding='async';
       img.src=img.dataset.pendingSrc;
       delete img.dataset.pendingSrc;
-      if(img.complete) {img.removeEventListener('load',done);img.removeEventListener('error',done);done();}
+      if(img.complete)done();
     }
   }
   const observer=new IntersectionObserver(entries=>{
-    for(const entry of entries){
-      if(!entry.isIntersecting)continue;
+    const visible=entries.filter(entry=>entry.isIntersecting).sort((a,b)=>a.boundingClientRect.top-b.boundingClientRect.top);
+    for(const entry of visible){
       observer.unobserve(entry.target);
       queue.push(entry.target);
     }
     pump();
-  },{rootMargin:'250px'});
+  },{rootMargin:'450px'});
   for(const img of images){
     img.dataset.pendingSrc=img.getAttribute('src');
     img.removeAttribute('src');
