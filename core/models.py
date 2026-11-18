@@ -880,7 +880,7 @@ class CustomerMonitorState(models.Model):
 class GalleryAlbum(models.Model):
     code = models.CharField(max_length=80, unique=True)
     google_photos_url = models.URLField(max_length=1000, blank=True, default="")
-    cover_image = models.ImageField(upload_to="gallery_covers/", blank=True, null=True)
+    cover_data_url = models.TextField(blank=True, default="")
     created_at = models.DateTimeField(auto_now_add=True)
 
 
