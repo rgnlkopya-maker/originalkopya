@@ -1,4 +1,5 @@
 """Regression checks for the simplified Google Photos album gallery."""
+import base64
 from io import BytesIO
 
 from django.contrib.auth import get_user_model
@@ -82,3 +83,39 @@ class GalleryLinksPermissionTests(TestCase):
         self.assertEqual(response.status_code, 302)
         self.album.refresh_from_db()
         self.assertEqual(self.album.google_photos_url, "")
+
+    def test_album_list_avoids_inline_images_and_loads_covers_on_scroll(self):
+        self.client.force_login(self.manager)
+        self.album.cover_data_url = "data:image/jpeg;base64," + base64.b64encode(b"test-cover-bytes").decode("ascii")
+        self.album.save(update_fields=["cover_data_url"])
+        for index in range(24):
+            GalleryAlbum.objects.create(code=f"TEST-{index:03d}")
+        first = self.client.get("/urun-albumu/")
+        self.assertEqual(first.status_code, 200)
+        self.assertContains(first, 'class="gallery-lazy-cover"')
+        self.assertContains(first, 'data-src="/urun-albumu/')
+        self.assertNotContains(first, "data:image/jpeg;base64,")
+        self.assertContains(first, 'id="galleryNextPage"')
+        second = self.client.get("/urun-albumu/?page=2")
+        self.assertEqual(second.status_code, 200)
+        self.assertNotContains(second, 'id="galleryNextPage"')
+
+    def test_cover_is_only_fetched_when_requested_and_revalidates_by_etag(self):
+        self.client.force_login(self.staff)
+        contents = b"synthetic-cover"
+        self.album.cover_data_url = "data:image/jpeg;base64," + base64.b64encode(contents).decode("ascii")
+        self.album.save(update_fields=["cover_data_url"])
+        cover_url = f"/urun-albumu/{self.album.pk}/kapak/"
+        first = self.client.get(cover_url)
+        self.assertEqual(first.status_code, 200)
+        self.assertEqual(first.content, contents)
+        self.assertEqual(first["Content-Type"], "image/jpeg")
+        self.assertEqual(first["Cache-Control"], "private, no-cache")
+        etag = first["ETag"]
+        second = self.client.get(cover_url, HTTP_IF_NONE_MATCH=etag)
+        self.assertEqual(second.status_code, 304)
+        self.assertEqual(second.content, b"")
+
+    def test_missing_cover_is_not_served(self):
+        self.client.force_login(self.manager)
+        self.assertEqual(self.client.get(f"/urun-albumu/{self.album.pk}/kapak/").status_code, 404)
