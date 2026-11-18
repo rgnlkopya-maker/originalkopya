@@ -874,3 +874,27 @@ class CustomerMonitorState(models.Model):
 
     def __str__(self):
         return f"{self.key}: {self.last_checked_on or 'not checked'}"
+
+
+# Product gallery is deliberately independent of orders and production records.
+class GalleryAlbum(models.Model):
+    code = models.CharField(max_length=80, unique=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+
+class GalleryGroup(models.Model):
+    album = models.ForeignKey(GalleryAlbum, on_delete=models.CASCADE, related_name="groups")
+    name = models.CharField(max_length=160)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [models.UniqueConstraint(fields=["album", "name"], name="gallery_unique_album_group")]
+
+
+class GalleryMedia(models.Model):
+    group = models.ForeignKey(GalleryGroup, on_delete=models.CASCADE, related_name="media")
+    storage_path = models.CharField(max_length=500, unique=True)
+    original_name = models.CharField(max_length=255)
+    content_type = models.CharField(max_length=100)
+    is_cover = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
