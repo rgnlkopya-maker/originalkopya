@@ -97,7 +97,7 @@ def upload_media(request, group_id):
     files = request.FILES.getlist("media")
     if not files or len(files) > 15:
         messages.error(request, "Bir seferde 1-15 fotoğraf veya video seçin.")
-        return redirect("/urun-albumu/?album=" + str(group.album_id))
+        return redirect("/urun-albumu/?album=" + str(group.album_id) + "&group=" + str(group.pk))
     for f in files:
         if f.size > 100 * 1024 * 1024 or f.size == 0:
             messages.error(request, f.name + ": Dosya boyutu geçersiz (en fazla 100 MB).")
@@ -109,7 +109,7 @@ def upload_media(request, group_id):
         try:
             with Image.open(f) as img:
                 img.verify()
-            mime = "image/jpeg" if signature.startswith(b"\\xff\\xd8\\xff") else ("image/png" if signature.startswith(b"\\x89PNG") else ("image/webp" if signature.startswith(b"RIFF") and signature[8:12] == b"WEBP" else None))
+            mime = "image/jpeg" if signature.startswith(bytes.fromhex("ffd8ff")) else ("image/png" if signature.startswith(bytes.fromhex("89504e47")) else ("image/webp" if signature.startswith(b"RIFF") and signature[8:12] == b"WEBP" else None))
         except (UnidentifiedImageError, OSError, ValueError):
             pass
         if mime is None and len(signature) >= 12 and signature[4:8] == b"ftyp" and signature[8:12] in (b"isom", b"iso2", b"mp41", b"mp42", b"avc1", b"qt  "):
@@ -120,12 +120,14 @@ def upload_media(request, group_id):
         ext = {"image/jpeg": ".jpg", "image/png": ".png", "image/webp": ".webp", "video/mp4": ".mp4"}[mime]
         path = f"gallery/{group.album_id}/{uuid4().hex}{ext}"
         try:
+            f.seek(0)
             _bucket().upload(path, f.read(), file_options={"content-type": mime, "upsert": "false"})
             GalleryMedia.objects.create(group=group, storage_path=path, original_name=f.name[:255], content_type=mime)
             messages.success(request, f.name + " yüklendi.")
         except Exception:
+            logging.getLogger(__name__).exception("GALLERY_UPLOAD_FAILURE group=%s file=%s", group.pk, f.name)
             messages.error(request, f.name + ": Yüklenemedi. Depolama ayarlarını kontrol edin.")
-    return redirect("/urun-albumu/?album=" + str(group.album_id))
+    return redirect("/urun-albumu/?album=" + str(group.album_id) + "&group=" + str(group.pk))
 
 @login_required
 def media_view(request, media_id):
