@@ -68,28 +68,25 @@ def create_album(request):
 @login_required
 @require_POST
 def create_group(request, album_id):
-    if not _allowed(request.user):
-        return HttpResponseForbidden("Yetkiniz yok.")
-    album = get_object_or_404(GalleryAlbum, pk=album_id)
-    name = " ".join(request.POST.get("name", "").split())
-    if not name or len(name) > 160:
-        messages.error(request, "Lütfen geçerli bir müşteri adı girin.")
-        return redirect("/urun-albumu/?album=" + str(album.pk))
+    logger = logging.getLogger(__name__)
     try:
-        group, created = GalleryGroup.objects.get_or_create(album=album, name=name)
-    except IntegrityError:
-        group = GalleryGroup.objects.filter(album=album, name=name).first()
-        if group is None:
-            logging.getLogger(__name__).exception("Gallery group creation integrity error album=%s", album.pk)
-            messages.error(request, "Grup oluşturulamadı. Lütfen tekrar deneyin.")
+        if not _allowed(request.user):
+            return HttpResponseForbidden("Yetkiniz yok.")
+        album = get_object_or_404(GalleryAlbum, pk=album_id)
+        name = " ".join(request.POST.get("name", "").split())
+        if not name or len(name) > 160:
+            messages.error(request, "Lütfen geçerli bir müşteri adı girin.")
             return redirect("/urun-albumu/?album=" + str(album.pk))
-        created = False
+        group, created = GalleryGroup.objects.get_or_create(album=album, name=name)
+        messages.success(request, "Müşteri sekmesi oluşturuldu." if created else "Bu müşteri sekmesi zaten mevcut.")
+        return redirect("/urun-albumu/?album=" + str(album.pk) + "&group=" + str(group.pk))
     except Exception:
-        logging.getLogger(__name__).exception("Gallery group creation failed album=%s", album.pk)
-        messages.error(request, "Grup oluşturulurken hata oluştu. Lütfen tekrar deneyin.")
-        return redirect("/urun-albumu/?album=" + str(album.pk))
-    messages.success(request, "Müşteri sekmesi oluşturuldu." if created else "Bu müşteri sekmesi zaten mevcut.")
-    return redirect("/urun-albumu/?album=" + str(album.pk) + "&group=" + str(group.pk))
+        logger.exception("GALLERY_CREATE_GROUP_FAILURE album_id=%s", album_id)
+        try:
+            messages.error(request, "Müşteri sekmesi oluşturulamadı. Hata kaydedildi.")
+        except Exception:
+            pass
+        return redirect("/urun-albumu/?album=" + str(album_id))
 
 @login_required
 @require_POST
