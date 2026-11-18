@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block content %}
+<style>
+.gallery-wrap{max-width:1150px;margin:24px auto;padding:0 16px;color:#24344c}
+.gallery-head{display:flex;justify-content:space-between;gap:16px;align-items:center;flex-wrap:wrap}
+.gallery-title{font-size:27px;font-weight:750;margin:0}
+.gallery-sub{color:#718096;margin-top:5px}
+.gallery-card{background:#fff;border:1px solid #e3e8f1;border-radius:17px;padding:22px;margin-top:18px;box-shadow:0 6px 25px #20385a0b}
+.gallery-search{width:100%;padding:13px;border:1px solid #dbe3ee;border-radius:12px;margin:14px 0}
+.gallery-empty{text-align:center;padding:45px 12px;color:#6b7890}
+.gallery-empty i{font-size:38px;display:block;margin-bottom:10px;color:#8497b6}
+.gallery-note{font-size:13px;color:#718096}
+</style>
+<div class="gallery-wrap">
+ <div class="gallery-head"><div><h1 class="gallery-title"><i class="bi bi-images me-2"></i>Ürün Albümü</h1><p class="gallery-sub">Ürün kodlarına göre fotoğraf ve video arşivi</p></div></div>
+ <section class="gallery-card">
+ <label for="gallery-search" class="fw-semibold">Ürün kodu ara</label>
+ <input id="gallery-search" class="gallery-search" type="search" placeholder="Örn. 7119" aria-label="Ürün kodu ara">
+ <div class="gallery-empty"><i class="bi bi-collection"></i><strong>Henüz albüm bulunmuyor</strong><p>Ürün koduna göre albümler ve müşteri grupları bu alanda gösterilecek.</p></div>
+ <p class="gallery-note mb-0"><i class="bi bi-lock me-1"></i>Şirket içi görünüm. Sipariş ve üretim kayıtlarından bağımsızdır.</p>
+ </section>
+</div>
+{% endblock %}
