@@ -900,3 +900,15 @@ class GalleryMedia(models.Model):
     is_cover = models.BooleanField(default=False)
     sort_order = models.PositiveIntegerField(default=0, db_index=True)
     created_at = models.DateTimeField(auto_now_add=True)
+
+
+class GalleryUploadJob(models.Model):
+    group = models.ForeignKey(GalleryGroup, on_delete=models.CASCADE, related_name="upload_jobs")
+    created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
+    expected_count = models.PositiveSmallIntegerField(default=0)
+    completed_count = models.PositiveSmallIntegerField(default=0)
+    failed_count = models.PositiveSmallIntegerField(default=0)
+    errors = models.JSONField(default=list, blank=True)
+    status = models.CharField(max_length=20, default="pending")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
