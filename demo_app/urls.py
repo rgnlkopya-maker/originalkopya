@@ -5,7 +5,7 @@ from django.conf.urls.static import static
 from django.contrib.auth import logout
 from django.shortcuts import redirect
 from core import views
-from core.product_gallery_views import product_gallery, create_album, create_group, upload_media, media_view, cover_media
+from core.product_gallery_views import gallery_new_product, product_gallery, create_album, create_group, upload_media, media_view, cover_media
 from core.notification_center_views import notification_center
 from core.notification_inbox import notification_list as manager_notification_list, notification_unread_status, notification_delete, notification_delete_all
 from core.instrument_views import instrument_list, instrument_edit, instrument_detail, instrument_endorser_add, instrument_mapping_save, instrument_inline_add, instrument_inline_status_update
@@ -55,6 +55,7 @@ from core.showroom_views import showroom, showroom_v2
 
 urlpatterns = [
     path("urun-albumu/", product_gallery, name="product_gallery"),
+    path("urun-albumu/yeni-urun/", gallery_new_product, name="gallery_new_product"),
     path("urun-albumu/yeni/", create_album, name="gallery_create_album"),
     path("urun-albumu/<int:album_id>/grup/", create_group, name="gallery_create_group"),
     path("urun-albumu/grup/<int:group_id>/yukle/", upload_media, name="gallery_upload_media"),
