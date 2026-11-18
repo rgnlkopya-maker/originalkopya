@@ -100,6 +100,11 @@ def _client_ip(request):
 
 
 class UserActionAuditMiddleware:
+    def process_exception(self, request, exception):
+        if request.path.startswith("/urun-albumu/"):
+            logging.getLogger(__name__).error("GALLERY_REQUEST_EXCEPTION method=%s path=%s", request.method, request.path, exc_info=(type(exception), exception, exception.__traceback__))
+        return None
+
     """Important state-changing requests are recorded without passwords or file contents."""
 
     def __init__(self, get_response):
