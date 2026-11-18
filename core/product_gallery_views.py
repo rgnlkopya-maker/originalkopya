@@ -65,13 +65,14 @@ def product_gallery(request):
         queryset = queryset.order_by(Lower("code"), "pk")
         page_obj = Paginator(queryset, 24).get_page(request.GET.get("page"))
         albums = list(page_obj.object_list)
+    active_products = UrunKod.objects.filter(aktif=True).order_by("kod")
     return render(request, "core/product_gallery.html", {
         "albums": albums, "selected": selected, "page_obj": page_obj,
         "search_query": search_query,
-        "products": UrunKod.objects.filter(aktif=True).order_by("kod"),
+        "products": active_products,
         "product_types": URUN_TIPI_CHOICES,
         "urun_tipi_secenekleri": URUN_TIPI_CHOICES,
-        "aktif_urun_kodlari": UrunKod.objects.filter(aktif=True).order_by("kod"),
+        "aktif_urun_kodlari": active_products,
     })
 
 @login_required
