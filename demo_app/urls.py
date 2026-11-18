@@ -5,6 +5,7 @@ from django.conf.urls.static import static
 from django.contrib.auth import logout
 from django.shortcuts import redirect
 from core import views
+from core.product_gallery_views import product_gallery
 from core.notification_center_views import notification_center
 from core.notification_inbox import notification_list as manager_notification_list, notification_unread_status, notification_delete, notification_delete_all
 from core.instrument_views import instrument_list, instrument_edit, instrument_detail, instrument_endorser_add, instrument_mapping_save, instrument_inline_add, instrument_inline_status_update
@@ -53,6 +54,7 @@ from core.cad_lab_views import cad_lab
 from core.showroom_views import showroom, showroom_v2
 
 urlpatterns = [
+    path("urun-albumu/", product_gallery, name="product_gallery"),
     path("internal/backup-scheduler/tick/", scheduler_tick, name="backup_scheduler_tick"),
     path("yonetim/yedekleme-merkezi/", backup_center, name="backup_center"),
     path("yonetim/yedekleme-merkezi/ayar/", backup_policy_update, name="backup_policy_update"),
