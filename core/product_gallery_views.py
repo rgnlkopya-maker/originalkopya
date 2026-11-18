@@ -1,6 +1,7 @@
 import os
 import logging
 import json
+from io import BytesIO
 from uuid import uuid4
 from functools import lru_cache
 from django.db import IntegrityError, transaction
@@ -116,7 +117,24 @@ def upload_media(request, group_id):
         try:
             f.seek(0)
             _bucket().upload(path, f.read(), file_options={"content-type": mime, "upsert": "false"})
-            GalleryMedia.objects.create(group=group, storage_path=path, original_name=f.name[:255], content_type=mime, sort_order=(GalleryMedia.objects.filter(group=group).order_by("-sort_order").values_list("sort_order", flat=True).first() or 0) + 1)
+            thumbnail_path = ""
+            if mime.startswith("image/"):
+                try:
+                    from PIL import ImageOps
+                    f.seek(0)
+                    with Image.open(f) as source:
+                        preview = ImageOps.exif_transpose(source)
+                        preview.thumbnail((600, 800))
+                        if preview.mode != "RGB":
+                            preview = preview.convert("RGB")
+                        output = BytesIO()
+                        preview.save(output, format="JPEG", quality=78, optimize=True)
+                    thumbnail_path = path + ".thumb.jpg"
+                    _bucket().upload(thumbnail_path, output.getvalue(), file_options={"content-type": "image/jpeg", "upsert": "false"})
+                except Exception:
+                    thumbnail_path = ""
+                    logging.getLogger(__name__).exception("GALLERY_THUMBNAIL_FAILURE path=%s", path)
+            GalleryMedia.objects.create(group=group, storage_path=path, thumbnail_path=thumbnail_path, original_name=f.name[:255], content_type=mime, sort_order=(GalleryMedia.objects.filter(group=group).order_by("-sort_order").values_list("sort_order", flat=True).first() or 0) + 1)
             messages.success(request, f.name + " yüklendi.")
         except Exception:
             logging.getLogger(__name__).exception("GALLERY_UPLOAD_FAILURE group=%s file=%s", group.pk, f.name)
@@ -129,10 +147,11 @@ def media_view(request, media_id):
         return HttpResponseForbidden("Yetkiniz yok.")
     media = get_object_or_404(GalleryMedia, pk=media_id)
     try:
-        cache_key = "gallery_signed_media_v1_" + str(media.pk)
+        thumbnail = request.GET.get("thumb") == "1" and bool(media.thumbnail_path)
+        cache_key = "gallery_signed_media_v2_" + str(media.pk) + ("_thumb" if thumbnail else "")
         url = cache.get(cache_key)
         if not url:
-            signed = _bucket().create_signed_url(media.storage_path, 3600)
+            signed = _bucket().create_signed_url(media.thumbnail_path if thumbnail else media.storage_path, 3600)
             url = signed.get("signedURL") or signed.get("signedUrl") or signed.get("signed_url")
             if not url:
                 raise ValueError("No signed URL")
