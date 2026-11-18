@@ -93,52 +93,71 @@ def upload_media(request, group_id):
     if not files or len(files) > 15:
         messages.error(request, "Bir seferde 1-15 fotoğraf veya video seçin.")
         return redirect("/urun-albumu/?album=" + str(group.album_id) + "&group=" + str(group.pk))
-    for f in files:
+    from concurrent.futures import ThreadPoolExecutor
+    from PIL import Image, UnidentifiedImageError, ImageOps
+
+    def process_file(item):
+        index, f = item
         if f.size > 100 * 1024 * 1024 or f.size == 0:
-            messages.error(request, f.name + ": Dosya boyutu geçersiz (en fazla 100 MB).")
-            continue
-        signature = f.read(16)
-        f.seek(0)
-        from PIL import Image, UnidentifiedImageError
-        mime = None
-        try:
-            with Image.open(f) as img:
-                img.verify()
-            mime = "image/jpeg" if signature.startswith(bytes.fromhex("ffd8ff")) else ("image/png" if signature.startswith(bytes.fromhex("89504e47")) else ("image/webp" if signature.startswith(b"RIFF") and signature[8:12] == b"WEBP" else None))
-        except (UnidentifiedImageError, OSError, ValueError):
-            pass
-        if mime is None and len(signature) >= 12 and signature[4:8] == b"ftyp" and signature[8:12] in (b"isom", b"iso2", b"mp41", b"mp42", b"avc1", b"qt  "):
-            mime = "video/mp4"
-        if not mime:
-            messages.error(request, f.name + ": Desteklenen türler JPG, PNG, WEBP ve MP4.")
-            continue
-        ext = {"image/jpeg": ".jpg", "image/png": ".png", "image/webp": ".webp", "video/mp4": ".mp4"}[mime]
-        path = f"gallery/{group.album_id}/{uuid4().hex}{ext}"
+            return index, f.name, None, "Dosya boyutu geçersiz (en fazla 100 MB)."
         try:
             f.seek(0)
-            _bucket().upload(path, f.read(), file_options={"content-type": mime, "upsert": "false"})
-            thumbnail_path = ""
+            signature = f.read(16)
+            f.seek(0)
+            mime = None
+            try:
+                with Image.open(f) as img:
+                    img.verify()
+                mime = "image/jpeg" if signature.startswith(bytes.fromhex("ffd8ff")) else ("image/png" if signature.startswith(bytes.fromhex("89504e47")) else ("image/webp" if signature.startswith(b"RIFF") and signature[8:12] == b"WEBP" else None))
+            except (UnidentifiedImageError, OSError, ValueError):
+                pass
+            if mime is None and len(signature) >= 12 and signature[4:8] == b"ftyp" and signature[8:12] in (b"isom", b"iso2", b"mp41", b"mp42", b"avc1", b"qt  "):
+                mime = "video/mp4"
+            if not mime:
+                return index, f.name, None, "Desteklenen türler JPG, PNG, WEBP ve MP4."
+            ext = {"image/jpeg": ".jpg", "image/png": ".png", "image/webp": ".webp", "video/mp4": ".mp4"}[mime]
+            path = f"gallery/{group.album_id}/{uuid4().hex}{ext}"
+            f.seek(0)
+            original = f.read()
+            thumbnail_bytes = None
             if mime.startswith("image/"):
                 try:
-                    from PIL import ImageOps
-                    f.seek(0)
-                    with Image.open(f) as source:
+                    with Image.open(BytesIO(original)) as source:
                         preview = ImageOps.exif_transpose(source)
                         preview.thumbnail((600, 800))
                         if preview.mode != "RGB":
                             preview = preview.convert("RGB")
                         output = BytesIO()
                         preview.save(output, format="JPEG", quality=78, optimize=True)
+                        thumbnail_bytes = output.getvalue()
+                except Exception:
+                    logging.getLogger(__name__).exception("GALLERY_THUMBNAIL_FAILURE path=%s", path)
+            _bucket().upload(path, original, file_options={"content-type": mime, "upsert": "false"})
+            thumbnail_path = ""
+            if thumbnail_bytes:
+                try:
                     thumbnail_path = path + ".thumb.jpg"
-                    _bucket().upload(thumbnail_path, output.getvalue(), file_options={"content-type": "image/jpeg", "upsert": "false"})
+                    _bucket().upload(thumbnail_path, thumbnail_bytes, file_options={"content-type": "image/jpeg", "upsert": "false"})
                 except Exception:
                     thumbnail_path = ""
-                    logging.getLogger(__name__).exception("GALLERY_THUMBNAIL_FAILURE path=%s", path)
-            GalleryMedia.objects.create(group=group, storage_path=path, thumbnail_path=thumbnail_path, original_name=f.name[:255], content_type=mime, sort_order=(GalleryMedia.objects.filter(group=group).order_by("-sort_order").values_list("sort_order", flat=True).first() or 0) + 1)
-            messages.success(request, f.name + " yüklendi.")
+                    logging.getLogger(__name__).exception("GALLERY_THUMBNAIL_UPLOAD_FAILURE path=%s", path)
+            return index, f.name, (path, thumbnail_path, mime), None
         except Exception:
             logging.getLogger(__name__).exception("GALLERY_UPLOAD_FAILURE group=%s file=%s", group.pk, f.name)
-            messages.error(request, f.name + ": Yüklenemedi. Depolama ayarlarını kontrol edin.")
+            return index, f.name, None, "Yüklenemedi. Depolama ayarlarını kontrol edin."
+
+    # Parallelize independent storage transfers, but persist DB records in file order.
+    with ThreadPoolExecutor(max_workers=min(3, len(files))) as pool:
+        results = sorted(pool.map(process_file, enumerate(files)), key=lambda row: row[0])
+    next_order = (GalleryMedia.objects.filter(group=group).order_by("-sort_order").values_list("sort_order", flat=True).first() or 0)
+    for _, name, uploaded, error in results:
+        if error:
+            messages.error(request, name + ": " + error)
+            continue
+        path, thumbnail_path, mime = uploaded
+        next_order += 1
+        GalleryMedia.objects.create(group=group, storage_path=path, thumbnail_path=thumbnail_path, original_name=name[:255], content_type=mime, sort_order=next_order)
+        messages.success(request, name + " yüklendi.")
     return redirect("/urun-albumu/?album=" + str(group.album_id) + "&group=" + str(group.pk))
 
 @login_required
