@@ -22,6 +22,39 @@ function urunKodKaydet(){const kod=document.getElementById('modal_urun_kod').val
 function urunKodPasifYap(){const id=document.getElementById('modal_urun_kod_listesi').value;if(!id||!confirm('Ürünü pasife almak istiyor musunuz?'))return;fetch("{% url 'urun_kod_pasif_yap_ajax' %}",{method:'POST',headers:{'X-CSRFToken':getCSRFToken()},body:new URLSearchParams({id})}).then(r=>r.json()).then(d=>{if(d.success)location.reload();else alert(d.message||'İşlem başarısız.');});}
 </script>
 <script>
+(function(){
+  const images=[...document.querySelectorAll('.ga img[src*="thumb=1"]')];
+  if(!images.length || !('IntersectionObserver' in window))return;
+  const queue=[];let running=0;
+  function pump(){
+    while(running<3 && queue.length){
+      const img=queue.shift();
+      if(!img || !img.isConnected || !img.dataset.pendingSrc)continue;
+      running++;
+      const done=()=>{running--;pump();};
+      img.addEventListener('load',done,{once:true});
+      img.addEventListener('error',done,{once:true});
+      img.src=img.dataset.pendingSrc;
+      delete img.dataset.pendingSrc;
+      if(img.complete) {img.removeEventListener('load',done);img.removeEventListener('error',done);done();}
+    }
+  }
+  const observer=new IntersectionObserver(entries=>{
+    for(const entry of entries){
+      if(!entry.isIntersecting)continue;
+      observer.unobserve(entry.target);
+      queue.push(entry.target);
+    }
+    pump();
+  },{rootMargin:'250px'});
+  for(const img of images){
+    img.dataset.pendingSrc=img.getAttribute('src');
+    img.removeAttribute('src');
+    observer.observe(img);
+  }
+})();
+</script>
+<script>
 (function(){const tabs=[...document.querySelectorAll('.ga-tab[data-group]')],panels=[...document.querySelectorAll('.ga-group-panel')];if(!tabs.length)return;const choose=id=>{tabs.forEach(t=>t.setAttribute('aria-selected',String(t.dataset.group===id)));panels.forEach(p=>p.hidden=p.dataset.group!==id);const url=new URL(location.href);url.searchParams.set('group',id);history.replaceState(null,'',url);};const initial=new URLSearchParams(location.search).get('group');choose(tabs.find(t=>t.dataset.group===initial)?.dataset.group||tabs[0].dataset.group);tabs.forEach(t=>t.addEventListener('click',()=>choose(t.dataset.group)));document.getElementById('galleryAddGroupTab')?.addEventListener('click',()=>{const form=document.getElementById('galleryAddGroupForm');form.hidden=!form.hidden;if(!form.hidden)form.querySelector('input[name=name]').focus();});})();
 </script>
 <script>
