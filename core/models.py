@@ -894,6 +894,7 @@ class GalleryGroup(models.Model):
 class GalleryMedia(models.Model):
     group = models.ForeignKey(GalleryGroup, on_delete=models.CASCADE, related_name="media")
     storage_path = models.CharField(max_length=500, unique=True)
+    thumbnail_path = models.CharField(max_length=500, blank=True, default="")
     original_name = models.CharField(max_length=255)
     content_type = models.CharField(max_length=100)
     is_cover = models.BooleanField(default=False)
