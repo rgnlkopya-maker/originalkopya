@@ -40,6 +40,9 @@ def product_gallery(request):
     selected = None
     if request.GET.get("album"):
         selected = next((a for a in albums if str(a.pk) == request.GET["album"]), None)
+    if selected:
+        GalleryGroup.objects.get_or_create(album=selected, name="Standart Model")
+        selected = GalleryAlbum.objects.prefetch_related("groups__media").get(pk=selected.pk)
     for album in albums:
         album.cover = next((m for g in album.groups.all() for m in g.media.all() if m.is_cover), None)
         if album.cover is None:
@@ -72,7 +75,8 @@ def create_group(request, album_id):
     else:
         _, created = GalleryGroup.objects.get_or_create(album=album, name=name)
         messages.success(request, "Grup oluşturuldu." if created else "Bu grup zaten mevcut.")
-    return redirect("/urun-albumu/?album=" + str(album.pk))
+    group = GalleryGroup.objects.filter(album=album, name=name).first()
+    return redirect("/urun-albumu/?album=" + str(album.pk) + ("&group=" + str(group.pk) if group else ""))
 
 @login_required
 @require_POST
