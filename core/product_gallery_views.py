@@ -11,12 +11,11 @@ from django.contrib.auth.decorators import login_required
 from django.http import HttpResponseForbidden, Http404, JsonResponse
 from django.shortcuts import render, redirect, get_object_or_404
 from django.views.decorators.http import require_POST
-from app_settings.access import has_full_access
 from core.models import GalleryAlbum, GalleryGroup, GalleryMedia, UrunKod, URUN_TIPI_CHOICES
 from supabase import create_client
 
 def _allowed(user):
-    return has_full_access(user)
+    return bool(user and user.is_authenticated and user.is_active)
 
 @lru_cache(maxsize=1)
 def _bucket():
