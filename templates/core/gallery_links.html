@@ -21,6 +21,7 @@
 <section class="panel">
 <form method="get" class="formrow"><input name="q" value="{{ search_query }}" placeholder="Ürün kodu ara" aria-label="Ürün kodu ara"><button class="btn-main" type="submit">Ara</button></form>
 </section>
+<section class="panel"><form method="post" action="{% url 'gallery_create_album' %}" class="formrow">{% csrf_token %}<label>Yeni ürün albümü <select name="product_id" required style="padding:10px;border:1px solid #d6dfec;border-radius:9px"><option value="">Ürün seçin</option>{% for product in products %}<option value="{{ product.pk }}">{{ product.kod }}</option>{% endfor %}</select></label><button type="submit" class="btn-main">Albüm Oluştur</button></form></section>
 {% if selected %}
 <section class="panel">
 <p><a href="{% url 'product_gallery' %}">← Albümlere dön</a></p>
