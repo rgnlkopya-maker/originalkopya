@@ -5,7 +5,7 @@ from django.conf.urls.static import static
 from django.contrib.auth import logout
 from django.shortcuts import redirect
 from core import views
-from core.gallery_google_photos import photos_picker_start, photos_picker_callback
+from core.gallery_google_photos import photos_picker_start, photos_picker_callback, photos_picker_wait, photos_picker_status
 from core.product_gallery_views import gallery_new_product, product_gallery, create_album, create_group as gallery_create_group_view, upload_media, media_view, cover_media, reorder_media, delete_media
 from core.notification_center_views import notification_center
 from core.notification_inbox import notification_list as manager_notification_list, notification_unread_status, notification_delete, notification_delete_all
@@ -56,6 +56,8 @@ from core.showroom_views import showroom, showroom_v2
 
 urlpatterns = [
     path("urun-albumu/", product_gallery, name="product_gallery"),
+    path("urun-albumu/google-photos/secim/", photos_picker_wait, name="gallery_photos_picker_wait"),
+    path("urun-albumu/google-photos/durum/", photos_picker_status, name="gallery_photos_picker_status"),
     path("urun-albumu/google-photos/callback/", photos_picker_callback, name="gallery_photos_picker_callback"),
     path("urun-albumu/grup/<int:group_id>/google-photos/", photos_picker_start, name="gallery_photos_picker_start"),
     path("urun-albumu/yeni-urun/", gallery_new_product, name="gallery_new_product"),
