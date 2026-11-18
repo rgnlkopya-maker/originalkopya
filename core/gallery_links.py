@@ -1,4 +1,4 @@
-"""Simple product album links. No Supabase reads, writes or deletions."""
+"""Product album tabs with per-customer photo, Google Photos URL, notes. No Supabase access."""
 import base64
 import binascii
 import hashlib
@@ -8,134 +8,207 @@ from urllib.parse import urlparse
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
-from django.db.models import BooleanField, Case, Value, When
+from django.db import transaction
+from django.db.models import BooleanField, Case, IntegerField, Value, When
 from django.http import Http404, HttpResponse, HttpResponseForbidden, HttpResponseNotModified
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
 from PIL import Image, ImageOps
+from core.models import GalleryAlbum, GalleryGroup
 
-from core.models import GalleryAlbum, UrunKod, URUN_TIPI_CHOICES
+STANDARD_NAMES = ("Standart Model", "Standart")
 
 
 def _allowed(user):
-    return user.is_authenticated and user.is_active
+    return bool(user.is_authenticated and user.is_active)
 
 
 def _can_edit_album(user):
-    """Only the active 'mudur' group may edit album covers and links."""
     return _allowed(user) and user.groups.filter(name="mudur").exists()
 
 
 def _valid_google_photos_url(value):
     try:
         parsed = urlparse(value)
-        return parsed.scheme == "https" and parsed.hostname in {
-            "photos.google.com", "photos.app.goo.gl"
-        } and bool(parsed.path and parsed.path != "/") and not parsed.username and not parsed.password
+        return (parsed.scheme == "https"
+                and parsed.hostname in {"photos.google.com", "photos.app.goo.gl"}
+                and bool(parsed.path and parsed.path != "/")
+                and not parsed.username and not parsed.password)
     except ValueError:
         return False
 
 
-@login_required
-def gallery_links(request):
-    if not _allowed(request.user):
-        return HttpResponseForbidden("Yetkiniz yok.")
-    query = (request.GET.get("q") or "").strip()[:80]
-    # Never include large base64 cover data in the HTML or listing query results.
-    albums = GalleryAlbum.objects.defer("cover_data_url").annotate(
-        has_cover=Case(
-            When(cover_data_url="", then=Value(False)),
-            default=Value(True),
-            output_field=BooleanField(),
-        )
-    )
-    if query:
-        albums = albums.filter(code__icontains=query)
-    page = Paginator(albums.order_by("code", "pk"), 24).get_page(request.GET.get("page"))
-    can_edit_album = _can_edit_album(request.user)
-    selected_id = request.GET.get("album", "")
-    if selected_id.isdigit() and not can_edit_album:
-        return HttpResponseForbidden("Albüm düzenleme yetkisi yalnızca müdüre aittir.")
-    selected = albums.filter(pk=selected_id).first() if selected_id.isdigit() else None
-    return render(request, "core/gallery_links.html", {
-        "albums": page.object_list, "page_obj": page, "selected": selected,
-        "can_edit_album": can_edit_album,
-        "search_query": query,
-        "products": UrunKod.objects.filter(aktif=True).order_by("kod"),
-        "product_types": URUN_TIPI_CHOICES,
-    })
+def _standard_group(album):
+    group = GalleryGroup.objects.filter(album=album, name__in=STANDARD_NAMES).order_by("pk").first()
+    if group:
+        return group
+    group, _ = GalleryGroup.objects.get_or_create(
+        album=album, name="Standart Model",
+        defaults={"google_photos_url": album.google_photos_url,
+                  "cover_data_url": album.cover_data_url})
+    return group
 
 
+def _process_cover(upload):
+    if not 0 < upload.size <= 8 * 1024 * 1024:
+        raise ValueError("Kapak en fazla 8 MB olabilir.")
+    try:
+        with Image.open(upload) as image:
+            image.verify()
+        upload.seek(0)
+        with Image.open(upload) as image:
+            if image.format not in ("JPEG", "PNG", "WEBP"):
+                raise ValueError("JPG, PNG veya WEBP kullanın.")
+            photo = ImageOps.exif_transpose(image)
+            photo.thumbnail((360, 480))
+            if photo.mode != "RGB":
+                photo = photo.convert("RGB")
+            output = BytesIO()
+            photo.save(output, format="JPEG", quality=72, optimize=True)
+        return "data:image/jpeg;base64," + base64.b64encode(output.getvalue()).decode("ascii")
+    except (OSError, Image.DecompressionBombError):
+        raise ValueError("Fotoğraf okunamadı.") from None
 
-@login_required
-def gallery_cover_image(request, album_id):
-    """Serve one existing cover on demand. No Supabase access or mutations."""
-    if not _allowed(request.user):
-        return HttpResponseForbidden("Yetkiniz yok.")
-    stored = get_object_or_404(
-        GalleryAlbum.objects.only("id", "cover_data_url"), pk=album_id
-    ).cover_data_url
+
+def _cover_response(stored, request):
     if not stored:
         raise Http404("Kapak bulunamadı.")
     try:
-        data_header, encoded = stored.split(",", 1)
-        content_type = data_header.removeprefix("data:").removesuffix(";base64")
-        if content_type not in {"image/jpeg", "image/png", "image/webp"}:
-            raise ValueError("Unsupported cover format")
-        data = base64.b64decode(encoded, validate=True)
-        if not data:
-            raise ValueError("Empty cover")
+        header, payload = stored.split(",", 1)
+        media_type = header.removeprefix("data:").removesuffix(";base64")
+        if media_type not in ("image/jpeg", "image/png", "image/webp"):
+            raise ValueError("unsupported format")
+        photo = base64.b64decode(payload, validate=True)
+        if not photo:
+            raise ValueError("empty photo")
     except (ValueError, binascii.Error):
-        raise Http404("Kapak okunamadı.")
-
-    etag = '"' + hashlib.sha256(data).hexdigest() + '"'
-    if request.headers.get("If-None-Match") == etag:
-        response = HttpResponseNotModified()
-    else:
-        response = HttpResponse(data, content_type=content_type)
+        raise Http404("Kapak okunamadı.") from None
+    etag = '"' + hashlib.sha256(photo).hexdigest() + '"'
+    response = (HttpResponseNotModified() if request.headers.get("If-None-Match") == etag
+                else HttpResponse(photo, content_type=media_type))
     response["ETag"] = etag
-    # Revalidate when revisiting so a changed cover appears immediately.
-    # The browser can reuse its cached bytes on 304 responses.
     response["Cache-Control"] = "private, no-cache"
     response["X-Content-Type-Options"] = "nosniff"
     return response
 
 
 @login_required
-@require_POST
-def gallery_link_save(request, album_id):
-    if not _can_edit_album(request.user):
-        return HttpResponseForbidden("Albüm düzenleme yetkisi yalnızca müdüre aittir.")
-    album = get_object_or_404(GalleryAlbum, pk=album_id)
+def gallery_links(request):
+    if not _allowed(request.user):
+        return HttpResponseForbidden("Yetkiniz yok.")
+    q = (request.GET.get("q") or "").strip()[:80]
+    albums = GalleryAlbum.objects.defer("cover_data_url").annotate(
+        has_cover=Case(When(cover_data_url="", then=Value(False)),
+                       default=Value(True), output_field=BooleanField()))
+    if q:
+        albums = albums.filter(code__icontains=q)
+    page = Paginator(albums.order_by("code", "pk"), 24).get_page(request.GET.get("page"))
+    can_edit = _can_edit_album(request.user)
+    selected, groups, active = None, [], None
+    edit = request.GET.get("edit") == "1"
+    identifier = request.GET.get("album", "")
+    if identifier.isdigit():
+        selected = get_object_or_404(GalleryAlbum, pk=int(identifier))
+        if edit and not can_edit:
+            return HttpResponseForbidden("Yalnızca müdür düzenleyebilir.")
+        standard = _standard_group(selected)
+        groups = list(GalleryGroup.objects.filter(album=selected).defer("cover_data_url").annotate(
+            has_cover=Case(When(cover_data_url="", then=Value(False)),
+                           default=Value(True), output_field=BooleanField()),
+            rank=Case(When(name__in=STANDARD_NAMES, then=Value(0)),
+                      default=Value(1), output_field=IntegerField()),
+        ).order_by("rank", "pk"))
+        requested = request.GET.get("group", "")
+        active = next((g for g in groups if str(g.pk) == requested),
+                      next((g for g in groups if g.pk == standard.pk), groups[0]))
+    return render(request, "core/gallery_links.html", {
+        "albums": page.object_list, "page_obj": page,
+        "selected": selected, "groups": groups, "active_group": active,
+        "edit_mode": edit, "can_edit_album": can_edit, "search_query": q,
+    })
+
+
+@login_required
+def gallery_cover_image(request, album_id):
+    album = get_object_or_404(GalleryAlbum.objects.only("cover_data_url"), pk=album_id)
+    return _cover_response(album.cover_data_url, request)
+
+
+@login_required
+def gallery_group_cover_image(request, group_id):
+    group = get_object_or_404(GalleryGroup.objects.only("cover_data_url"), pk=group_id)
+    return _cover_response(group.cover_data_url, request)
+
+
+def _save_changes(request, group):
     url = (request.POST.get("google_photos_url") or "").strip()
     if url and not _valid_google_photos_url(url):
-        messages.error(request, "Geçerli bir Google Photos albüm bağlantısı girin.")
-        return redirect(f"/urun-albumu/?album={album.pk}")
-    album.google_photos_url = url
-    fields = ["google_photos_url"]
+        raise ValueError("Geçerli Google Photos albüm bağlantısı girin.")
+    note = request.POST.get("production_notes", group.production_notes)
+    if len(note) > 10000:
+        raise ValueError("Üretim notu 10.000 karakteri geçemez.")
     upload = request.FILES.get("cover")
-    if upload:
-        if upload.size > 8 * 1024 * 1024 or upload.size == 0:
-            messages.error(request, "Kapak fotoğrafı en fazla 8 MB olabilir.")
-            return redirect(f"/urun-albumu/?album={album.pk}")
-        try:
-            with Image.open(upload) as source:
-                source.verify()
-            upload.seek(0)
-            with Image.open(upload) as source:
-                if source.format not in ("JPEG", "PNG", "WEBP"):
-                    raise ValueError("unsupported")
-                cover = ImageOps.exif_transpose(source)
-                cover.thumbnail((360, 480))
-                if cover.mode != "RGB":
-                    cover = cover.convert("RGB")
-                output = BytesIO()
-                cover.save(output, format="JPEG", quality=72, optimize=True)
-            album.cover_data_url = "data:image/jpeg;base64," + base64.b64encode(output.getvalue()).decode("ascii")
-            fields.append("cover_data_url")
-        except (OSError, ValueError, Image.DecompressionBombError):
-            messages.error(request, "Kapak fotoğrafı okunamadı. JPG, PNG veya WEBP kullanın.")
-            return redirect(f"/urun-albumu/?album={album.pk}")
-    album.save(update_fields=fields)
-    messages.success(request, "Albüm bağlantısı ve kapak kaydedildi.")
-    return redirect("/urun-albumu/?album=" + str(album.pk))
+    cover = _process_cover(upload) if upload else None
+    with transaction.atomic():
+        group.google_photos_url, group.production_notes = url, note
+        updates = ["google_photos_url", "production_notes"]
+        if cover is not None:
+            group.cover_data_url = cover
+            updates.append("cover_data_url")
+        group.save(update_fields=updates)
+        if group.name in STANDARD_NAMES:
+            album = group.album
+            album.google_photos_url = url
+            updates = ["google_photos_url"]
+            if cover is not None:
+                album.cover_data_url = cover
+                updates.append("cover_data_url")
+            album.save(update_fields=updates)
+
+
+@login_required
+@require_POST
+def gallery_group_save(request, group_id):
+    if not _can_edit_album(request.user):
+        return HttpResponseForbidden("Yalnızca müdür düzenleyebilir.")
+    group = get_object_or_404(GalleryGroup.objects.select_related("album"), pk=group_id)
+    destination = f"/urun-albumu/?album={group.album_id}&group={group.pk}"
+    try:
+        _save_changes(request, group)
+    except ValueError as exc:
+        messages.error(request, str(exc))
+        return redirect(destination + "&edit=1")
+    messages.success(request, "Kaydedildi.")
+    return redirect(destination)
+
+
+@login_required
+@require_POST
+def gallery_link_save(request, album_id):
+    """Keep the previous standard-album save route working safely."""
+    if not _can_edit_album(request.user):
+        return HttpResponseForbidden("Yalnızca müdür düzenleyebilir.")
+    album = get_object_or_404(GalleryAlbum, pk=album_id)
+    group = _standard_group(album)
+    try:
+        _save_changes(request, group)
+    except ValueError as exc:
+        messages.error(request, str(exc))
+        return redirect(f"/urun-albumu/?album={album.pk}&group={group.pk}&edit=1")
+    messages.success(request, "Kaydedildi.")
+    return redirect(f"/urun-albumu/?album={album.pk}&group={group.pk}")
+
+
+@login_required
+@require_POST
+def gallery_customer_add(request, album_id):
+    if not _can_edit_album(request.user):
+        return HttpResponseForbidden("Yalnızca müdür müşteri ekleyebilir.")
+    album = get_object_or_404(GalleryAlbum, pk=album_id)
+    name = " ".join((request.POST.get("name") or "").split())
+    if not name or len(name) > 160 or name.casefold() in ("standart", "standart model"):
+        messages.error(request, "Geçerli müşteri adı girin.")
+        return redirect(f"/urun-albumu/?album={album.pk}")
+    group, created = GalleryGroup.objects.get_or_create(album=album, name=name)
+    messages.success(request, "Sekme oluşturuldu." if created else "Bu sekme zaten mevcut.")
+    return redirect(f"/urun-albumu/?album={album.pk}&group={group.pk}")

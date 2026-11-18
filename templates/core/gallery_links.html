@@ -3,252 +3,133 @@
 <style>
 .link-gallery{max-width:1150px;margin:25px auto;padding:0 15px;color:#25334a}
 .link-gallery h1{font-size:27px;font-weight:750;margin:0}
-.link-gallery .gallery-heading{display:flex;align-items:center;justify-content:space-between;gap:12px}
-.link-gallery .gallery-description{font-size:13px;color:#718096;margin:8px 0 16px}
-.link-gallery .album-toolbar{display:flex;align-items:center;min-width:0;justify-content:flex-end}
-.link-gallery .album-toolbar form{margin:0}
-.link-gallery .album-toolbar input{width:185px;max-width:100%;min-width:0;border:1px solid #d6dfec;border-radius:9px;padding:7px 10px;font-size:13px}
-.link-gallery .panel{background:white;border:1px solid #e1e7ef;border-radius:16px;padding:20px;margin:15px 0;box-shadow:0 6px 22px #24344c0b}
-.link-gallery .gallery-list-panel{padding:13px;margin-top:10px}
+.link-gallery .head{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.link-gallery .head input{width:185px;max-width:100%;border:1px solid #d6dfec;border-radius:9px;padding:8px;font-size:13px}
+.link-gallery .muted{color:#8995a9;font-size:13px}
+.link-gallery .panel{background:#fff;border:1px solid #e1e7ef;border-radius:16px;padding:18px;margin:15px 0;box-shadow:0 6px 22px #24344c0b}
 .link-gallery .albums{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
 .link-gallery .album-cell{position:relative;min-width:0}
-.link-gallery .album{position:relative;display:block;aspect-ratio:3/4;overflow:hidden;border:1px solid #dce4f0;border-radius:12px;background:#eef2f7;color:#fff;text-decoration:none}
+.link-gallery .album{position:relative;display:block;aspect-ratio:3/4;border-radius:12px;overflow:hidden;background:#eef2f7;border:1px solid #dce4f0;text-decoration:none}
 .link-gallery .album img{width:100%;height:100%;object-fit:cover;object-position:center top;display:block}
-.link-gallery .no-photo{display:flex;align-items:center;justify-content:center;height:100%;font-size:12px;color:#758399}
-.link-gallery .album strong{position:absolute;bottom:0;left:0;right:0;padding:25px 8px 10px;text-align:center;color:white;font-size:22px;font-weight:800;line-height:1.15;overflow-wrap:anywhere;background:linear-gradient(transparent,#000a);text-shadow:0 1px 3px #0007}
-.link-gallery .album.no-cover strong{background:none;color:#263650;text-shadow:none}
-.link-gallery .album-edit-overlay{position:absolute;top:8px;right:8px;z-index:2;display:grid;place-items:center;width:30px;height:30px;padding:0;border:1px solid rgba(255,255,255,.72);border-radius:9px;background:rgba(255,255,255,.7);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);color:#263650;font-size:15px;text-decoration:none;box-shadow:0 2px 7px #10213c24}
-.link-gallery .album-edit-overlay i{margin:0;line-height:1}
-.link-gallery .album-edit-overlay:hover,.link-gallery .album-edit-overlay:focus-visible{background:rgba(255,255,255,.95);color:#223a80}
-.link-gallery .formrow{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
-.link-gallery .formstack{display:grid;gap:12px;max-width:650px}
-.link-gallery .formstack label{display:grid;gap:6px;font-size:14px}
-.link-gallery .formstack input{border:1px solid #d6dfec;border-radius:9px;padding:10px;width:100%;min-width:0}
-.link-gallery .btn-main{background:#4056ba;color:white;border:0;border-radius:10px;padding:10px 16px;cursor:pointer;justify-self:start}
-.link-gallery .edit-heading{margin:10px 0 18px;font-size:19px}
-.link-gallery .cover-preview{width:170px;max-width:100%;max-height:230px;object-fit:cover;border-radius:12px}
+.link-gallery .empty{height:100%;display:grid;place-items:center;color:#8995a9;font-size:12px}
+.link-gallery .album strong{position:absolute;inset:auto 0 0;text-align:center;padding:24px 8px 10px;color:#fff;font-size:22px;font-weight:800;background:linear-gradient(transparent,#0009)}
+.link-gallery .album.no-cover strong{background:none;color:#263650}
+.link-gallery .pencil{position:absolute;top:8px;right:8px;width:30px;height:30px;display:grid;place-items:center;border:1px solid #fffc;background:#ffffffb8;backdrop-filter:blur(5px);color:#25334a;border-radius:9px;text-decoration:none;z-index:2}
+.link-gallery .back{display:inline-flex;gap:7px;align-items:center;font-size:13px;color:#586b91;text-decoration:none;margin-bottom:12px}
+.link-gallery .code{font-size:20px;font-weight:750;margin:0 0 16px}
+.link-gallery .tabs{display:flex;gap:7px;overflow-x:auto;align-items:center;white-space:nowrap;border-bottom:1px solid #e1e7ef;padding-bottom:11px;margin-bottom:18px}
+.link-gallery .tab{display:block;border:1px solid #dce4f0;background:#f8faff;color:#263650;border-radius:9px;text-decoration:none;padding:9px 14px;font-size:13px;font-weight:600;flex-shrink:0}
+.link-gallery .tab.active{background:#4056ba;color:#fff;border-color:#4056ba}
+.link-gallery .add{position:relative;flex-shrink:0}
+.link-gallery .add summary{list-style:none;border:1px dashed #b9c5da;border-radius:9px;padding:9px 14px;color:#4056ba;cursor:pointer;font-size:13px}
+.link-gallery .add summary::-webkit-details-marker{display:none}
+.link-gallery .add form{position:absolute;right:0;top:44px;background:white;border:1px solid #dce4f0;border-radius:10px;box-shadow:0 6px 22px #1327472c;padding:11px;display:flex;gap:6px;z-index:5}
+.link-gallery .add input{min-width:0;width:160px;border:1px solid #dce4f0;border-radius:7px;padding:8px}
+.link-gallery .btn{border:0;border-radius:9px;padding:9px 14px;background:#4056ba;color:#fff;cursor:pointer}
+.link-gallery .body{max-width:620px;margin:auto}
+.link-gallery .photo-wrap{position:relative;width:min(100%,350px);margin:auto}
+.link-gallery .photo{display:block;width:100%;aspect-ratio:3/4;border:1px solid #dce4f0;background:#eef2f7;border-radius:12px;overflow:hidden}
+.link-gallery .photo img{width:100%;height:100%;object-fit:cover;object-position:center top;display:block}
+.link-gallery .note{margin:18px 0 0;padding:16px;border:1px solid #e0e7f0;background:#fafbfd;border-radius:12px}
+.link-gallery .note h3{font-size:14px;font-weight:700;margin:0 0 9px}
+.link-gallery .note p{font-size:14px;margin:0;line-height:1.6;white-space:pre-wrap;overflow-wrap:anywhere}
+.link-gallery .edit-grid{display:grid;grid-template-columns:minmax(160px,230px) minmax(0,1fr);gap:24px}
+.link-gallery .edit-cover{aspect-ratio:3/4;border:1px solid #dce4f0;border-radius:12px;background:#eef2f7;display:grid;place-items:center;overflow:hidden}
+.link-gallery .edit-cover img{width:100%;height:100%;object-fit:cover}
+.link-gallery .fields{display:grid;gap:15px}
+.link-gallery .fields label{display:grid;gap:7px;font-size:13px;font-weight:700}
+.link-gallery .fields input,.link-gallery .fields textarea{width:100%;min-width:0;border:1px solid #dce4f0;border-radius:9px;padding:10px;font:inherit;font-size:13px}
+.link-gallery .fields textarea{min-height:150px;resize:vertical}
+.link-gallery .actions{display:flex;gap:14px;align-items:center}
+.link-gallery .actions a{font-size:13px;color:#586b91;text-decoration:none}
+.link-gallery .pages{display:flex;justify-content:center;gap:15px;margin-top:20px}
+.link-gallery .pages[hidden]{display:none}
+#galleryScrollSentinel{height:1px}
 @media(max-width:700px){.link-gallery .albums{grid-template-columns:repeat(2,minmax(0,1fr))}}
-@media(max-width:600px){.link-gallery .gallery-heading h1{font-size:19px}.link-gallery .gallery-heading{gap:6px}.link-gallery .album-toolbar input{width:105px;font-size:12px}.link-gallery .album-edit-overlay{width:28px;height:28px;font-size:14px;top:7px;right:7px}}
-@media(max-width:340px){.link-gallery .gallery-heading{flex-wrap:wrap}.link-gallery .album-toolbar{width:100%;justify-content:flex-start}.link-gallery .album-toolbar input{width:160px}}
-
-/* Compact album editing page */
-.link-gallery .gallery-editor{padding:25px 28px}
-.link-gallery .gallery-back{display:inline-flex;align-items:center;gap:7px;color:#54668f;font-size:13px;text-decoration:none;font-weight:600;margin-bottom:20px}
-.link-gallery .gallery-back:hover{text-decoration:underline}
-.link-gallery .gallery-editor-heading h2{font-size:22px;font-weight:750;margin:0 0 6px}
-.link-gallery .gallery-editor-heading h2 span{font-size:18px;font-weight:500;color:#77859c}
-.link-gallery .gallery-editor-heading p{font-size:13px;color:#748298;margin:0 0 23px}
-.link-gallery .gallery-editor-form{display:grid;grid-template-columns:minmax(175px,245px) minmax(0,1fr);align-items:start;gap:30px}
-.link-gallery .gallery-cover-block{min-width:0}
-.link-gallery .gallery-cover-frame{aspect-ratio:3/4;background:#f0f4fa;border:1px solid #e1e7ef;border-radius:13px;display:flex;justify-content:center;align-items:center;overflow:hidden}
-.link-gallery .gallery-cover-frame img{width:100%;height:100%;object-fit:cover;object-position:center top;display:block}
-.link-gallery .gallery-cover-frame img[hidden],.link-gallery .gallery-cover-placeholder[hidden]{display:none}
-.link-gallery .gallery-cover-placeholder{display:flex;flex-direction:column;align-items:center;gap:9px;color:#8795ab;font-size:13px}
-.link-gallery .gallery-cover-placeholder i{font-size:33px;color:#9caac0}
-.link-gallery .gallery-cover-label{font-size:13px;font-weight:700;margin-top:11px}
-.link-gallery .gallery-cover-hint{font-size:11px;color:#8793a4;margin-top:4px}
-.link-gallery .gallery-editor-fields{display:grid;gap:22px;padding-top:4px;min-width:0}
-.link-gallery .gallery-field{display:grid;gap:9px;min-width:0}
-.link-gallery .gallery-field label{font-size:13px;color:#263650;font-weight:700}
-.link-gallery .gallery-field input[type=file]{display:block;max-width:100%;width:100%;border:1px dashed #b9c8dd;border-radius:10px;background:#f7f9fd;padding:10px;font-size:13px;color:#485774}
-.link-gallery .gallery-field input[type=file]::file-selector-button{background:#eaf0fc;color:#3c57a3;border:1px solid #d3dff2;padding:8px 12px;border-radius:7px;margin-right:12px;font-weight:650;cursor:pointer}
-.link-gallery .gallery-field small{font-size:12px;color:#8a97aa}
-.link-gallery .gallery-url-wrap{display:flex;align-items:center;position:relative}
-.link-gallery .gallery-url-wrap i{position:absolute;left:12px;font-size:19px;color:#8594aa;pointer-events:none}
-.link-gallery .gallery-url-wrap input{display:block;width:100%;min-width:0;border:1px solid #d3ddec;border-radius:10px;padding:12px 12px 12px 40px;font-size:13px;color:#263650;background:white}
-.link-gallery .gallery-url-wrap input:focus{outline:2px solid #a7b7ed;outline-offset:1px}
-.link-gallery .gallery-editor-actions{display:flex;align-items:center;flex-wrap:wrap;gap:14px;margin-top:3px}
-.link-gallery .gallery-editor-actions .btn-main{display:inline-flex;align-items:center;gap:8px;padding:11px 16px}
-.link-gallery .gallery-cancel{font-size:13px;color:#5c6b86;text-decoration:none}
-.link-gallery .gallery-cancel:hover{text-decoration:underline}
-.link-gallery .gallery-external-link{font-size:13px;color:#4056ba;text-decoration:none;justify-self:start}
-.link-gallery .gallery-external-link:hover{text-decoration:underline}
-@media(max-width:700px){.link-gallery .gallery-editor-form{grid-template-columns:minmax(135px,190px) minmax(0,1fr);gap:18px}.link-gallery .gallery-editor{padding:20px}}
-@media(max-width:520px){.link-gallery .gallery-editor-form{grid-template-columns:1fr}.link-gallery .gallery-cover-block{max-width:185px}.link-gallery .gallery-editor-heading h2{font-size:20px}.link-gallery .gallery-editor-heading h2 span{font-size:16px}.link-gallery .gallery-editor-heading p{margin-bottom:17px}.link-gallery .gallery-editor-fields{gap:18px}.link-gallery .gallery-editor-actions .btn-main{padding:10px 12px}}
-.link-gallery .gallery-lazy-cover{background:#eef2f7}
-.link-gallery .gallery-pages[hidden]{display:none}
-.link-gallery #galleryScrollSentinel{height:1px}
+@media(max-width:540px){.link-gallery h1{font-size:19px}.link-gallery .head input{width:110px}.link-gallery .panel{padding:13px}.link-gallery .edit-grid{grid-template-columns:1fr}.link-gallery .edit-cover{max-width:180px}.link-gallery .photo-wrap{max-width:280px}}
 </style>
 <div class="link-gallery">
-  <div class="gallery-heading">
-    <h1><i class="bi bi-images me-2" aria-hidden="true"></i>Ürün Albümleri</h1>
-    {% if not selected %}
-    <div class="album-toolbar">
-      <form method="get" action="{% url 'product_gallery' %}" id="albumSearchForm" role="search">
-        <input type="search" name="q" id="albumSearch" value="{{ search_query }}" placeholder="Albüm ara" aria-label="Ürün kodu ara" autocomplete="off">
-      </form>
-    </div>
-    {% endif %}
-  </div>
-  <p class="gallery-description">Her ürünün kapak fotoğrafına tıklayarak Google Photos albümünü açın.</p>
-  {% for message in messages %}<div class="alert alert-{{ message.tags|default:'info' }}" role="status">{{ message }}</div>{% endfor %}
-
-  {% if selected %}
-  <section class="panel gallery-editor">
-    <a class="gallery-back" href="{% url 'product_gallery' %}"><i class="bi bi-arrow-left" aria-hidden="true"></i> Albümlere dön</a>
-    <div class="gallery-editor-heading">
-      <div>
-        <h2>{{ selected.code }} <span>· Albüm düzenle</span></h2>
-        <p>Kapak fotoğrafını ve Google Photos albüm bağlantısını buradan güncelleyebilirsiniz.</p>
-      </div>
-    </div>
-    <form method="post" enctype="multipart/form-data" action="{% url 'gallery_link_save' selected.pk %}" class="gallery-editor-form">
-      {% csrf_token %}
-      <div class="gallery-cover-block">
-        <div class="gallery-cover-frame" id="galleryCoverFrame">
-          {% if selected.has_cover %}
-            <img id="galleryCoverPreview" src="{% url 'gallery_cover_image' selected.pk %}" alt="{{ selected.code }} mevcut kapak">
-            <div id="galleryCoverPlaceholder" class="gallery-cover-placeholder" hidden><i class="bi bi-image" aria-hidden="true"></i><span>Henüz kapak yok</span></div>
-          {% else %}
-            <img id="galleryCoverPreview" alt="Yeni kapak önizlemesi" hidden>
-            <div id="galleryCoverPlaceholder" class="gallery-cover-placeholder"><i class="bi bi-image" aria-hidden="true"></i><span>Henüz kapak yok</span></div>
-          {% endif %}
-        </div>
-        <div class="gallery-cover-label">Kapak fotoğrafı</div>
-        <div class="gallery-cover-hint">Tek fotoğraf · JPG, PNG veya WEBP · En fazla 8 MB</div>
-      </div>
-      <div class="gallery-editor-fields">
-        <div class="gallery-field">
-          <label for="galleryCoverInput">Kapak fotoğrafını değiştir</label>
-          <input id="galleryCoverInput" type="file" name="cover" accept="image/jpeg,image/png,image/webp">
-          <small>Fotoğraf seçildiğinde önizleme solda güncellenir.</small>
-        </div>
-        <div class="gallery-field">
-          <label for="galleryPhotosUrl">Google Photos albüm bağlantısı</label>
-          <div class="gallery-url-wrap">
-            <i class="bi bi-link-45deg" aria-hidden="true"></i>
-            <input id="galleryPhotosUrl" type="url" name="google_photos_url" value="{{ selected.google_photos_url }}" placeholder="https://photos.app.goo.gl/..." maxlength="1000" autocomplete="url">
-          </div>
-          <small>Kapak fotoğrafına basıldığında bu bağlantı yeni sekmede açılır.</small>
-        </div>
-        <div class="gallery-editor-actions">
-          <button class="btn-main" type="submit"><i class="bi bi-check2" aria-hidden="true"></i> Değişiklikleri kaydet</button>
-          <a class="gallery-cancel" href="{% url 'product_gallery' %}">Vazgeç</a>
-        </div>
-        {% if selected.google_photos_url %}
-        <a class="gallery-external-link" href="{{ selected.google_photos_url }}" target="_blank" rel="noopener noreferrer">
-          Google Photos albümünü aç <i class="bi bi-box-arrow-up-right" aria-hidden="true"></i>
-        </a>
-        {% endif %}
-      </div>
-    </form>
-  </section>
-  {% else %}
-  <section class="panel gallery-list-panel">
-    <div class="albums" id="galleryAlbumGrid">
-      {% for album in albums %}
-      <div class="album-cell">
-        <a class="album{% if not album.has_cover %} no-cover{% endif %}"
-           {% if album.google_photos_url %}href="{{ album.google_photos_url }}" target="_blank" rel="noopener noreferrer" aria-label="{{ album.code }} Google Photos albümünü aç"{% else %}aria-disabled="true" aria-label="{{ album.code }}: Google Photos bağlantısı henüz eklenmedi"{% endif %}>
-          {% if album.has_cover %}<img class="gallery-lazy-cover" data-src="{% url 'gallery_cover_image' album.pk %}" alt="{{ album.code }} kapak fotoğrafı" loading="lazy" decoding="async" width="320" height="430"><noscript><img src="{% url 'gallery_cover_image' album.pk %}" alt="{{ album.code }} kapak fotoğrafı" loading="lazy"></noscript>{% else %}<span class="no-photo">Kapak eklenmedi</span>{% endif %}
-          <strong>{{ album.code }}</strong>
-        </a>
-        {% if can_edit_album %}
-        <a class="album-edit-overlay" href="?album={{ album.pk }}" aria-label="{{ album.code }} kapağını ve bağlantısını düzenle">
-          <i class="bi bi-pencil" aria-hidden="true"></i>
-        </a>
-        {% endif %}
-      </div>
-      {% empty %}<p>Henüz albüm yok.</p>{% endfor %}
-    </div>
-    {% if page_obj.paginator.num_pages > 1 %}
-    <nav class="formrow gallery-pages" style="margin-top:20px" aria-label="Albüm sayfaları">
-      {% if page_obj.has_previous %}<a href="?q={{ search_query|urlencode }}&page={{ page_obj.previous_page_number }}">← Önceki</a>{% endif %}
-      <span>{{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span>
-      {% if page_obj.has_next %}<a id="galleryNextPage" href="?q={{ search_query|urlencode }}&page={{ page_obj.next_page_number }}">Sonraki →</a>{% endif %}
-    </nav>
-    {% endif %}
-    <div id="galleryScrollSentinel" aria-hidden="true"></div>
-  </section>
-  {% endif %}
+<div class="head"><h1><i class="bi bi-images me-2" aria-hidden="true"></i>Ürün Albümleri</h1>
+{% if not selected %}<form id="albumSearchForm" method="get"><input id="albumSearch" type="search" name="q" value="{{ search_query }}" placeholder="Albüm ara" aria-label="Ürün kodu ara"></form>{% endif %}</div>
+{% for message in messages %}<div class="alert alert-{{ message.tags|default:'info' }}">{{ message }}</div>{% endfor %}
+{% if selected %}
+<section class="panel">
+<a href="{% url 'product_gallery' %}" class="back"><i class="bi bi-arrow-left" aria-hidden="true"></i> Albümlere dön</a>
+<h2 class="code">{{ selected.code }}</h2>
+<nav class="tabs" aria-label="Ürün albümü sekmeleri">
+{% for group in groups %}
+<a class="tab{% if group.pk == active_group.pk %} active{% endif %}" href="?album={{ selected.pk }}&group={{ group.pk }}">{% if group.name == "Standart Model" or group.name == "Standart" %}Standart{% else %}{{ group.name }}{% endif %}</a>
+{% endfor %}
+{% if can_edit_album %}<details class="add"><summary>+ Müşteri Ekle</summary>
+<form method="post" action="{% url 'gallery_customer_add' selected.pk %}">{% csrf_token %}<input name="name" maxlength="160" placeholder="Müşteri adı" aria-label="Müşteri adı" required><button type="submit" class="btn">Ekle</button></form></details>{% endif %}
+</nav>
+{% if edit_mode %}
+<form method="post" enctype="multipart/form-data" action="{% url 'gallery_group_save' active_group.pk %}">
+{% csrf_token %}
+<div class="edit-grid">
+<div class="edit-cover">
+{% if active_group.has_cover %}<img id="galleryCoverPreview" src="{% url 'gallery_group_cover_image' active_group.pk %}" alt="Kapak">{% else %}<img id="galleryCoverPreview" alt="Yeni kapak" hidden><span id="galleryCoverEmpty">Fotoğraf yok</span>{% endif %}
+</div>
+<div class="fields">
+<label>Kapak fotoğrafı <input id="galleryCoverInput" type="file" name="cover" accept="image/jpeg,image/png,image/webp"></label>
+<label>Google Photos bağlantısı <input name="google_photos_url" type="url" value="{{ active_group.google_photos_url }}" maxlength="1000" placeholder="https://photos.app.goo.gl/..."></label>
+<label>Üretim Notları <textarea name="production_notes" maxlength="10000" placeholder="Üretime ait notlar...">{{ active_group.production_notes }}</textarea></label>
+<div class="actions"><button type="submit" class="btn">Kaydet</button><a href="?album={{ selected.pk }}&group={{ active_group.pk }}">Vazgeç</a></div>
+</div>
+</div>
+</form>
+{% else %}
+<div class="body">
+<div class="photo-wrap">
+{% if active_group.google_photos_url %}<a href="{{ active_group.google_photos_url }}" class="photo" target="_blank" rel="noopener noreferrer" aria-label="Google Photos albümünü aç">{% else %}<div class="photo">{% endif %}
+{% if active_group.has_cover %}<img src="{% url 'gallery_group_cover_image' active_group.pk %}" alt="{{ selected.code }} {{ active_group.name }} fotoğrafı" loading="eager">{% else %}<div class="empty">Fotoğraf eklenmedi</div>{% endif %}
+{% if active_group.google_photos_url %}</a>{% else %}</div>{% endif %}
+{% if can_edit_album %}<a class="pencil" href="?album={{ selected.pk }}&group={{ active_group.pk }}&edit=1" aria-label="Sekmeyi düzenle"><i class="bi bi-pencil" aria-hidden="true"></i></a>{% endif %}
+</div>
+<div class="note"><h3>Üretim Notları</h3>{% if active_group.production_notes %}<p>{{ active_group.production_notes }}</p>{% else %}<p class="muted">Henüz not eklenmedi.</p>{% endif %}</div>
+</div>
+{% endif %}
+</section>
+{% else %}
+<p class="muted">Ürün kodlarına göre fotoğraf arşivi</p>
+<section class="panel">
+<div class="albums" id="galleryAlbumGrid">
+{% for album in albums %}
+<div class="album-cell">
+<a href="?album={{ album.pk }}" class="album{% if not album.has_cover %} no-cover{% endif %}" aria-label="{{ album.code }} albümünü aç">
+{% if album.has_cover %}<img class="gallery-lazy-cover" data-src="{% url 'gallery_cover_image' album.pk %}" loading="lazy" alt="{{ album.code }} kapak"><noscript><img src="{% url 'gallery_cover_image' album.pk %}" alt="{{ album.code }} kapak"></noscript>{% else %}<span class="empty">Kapak eklenmedi</span>{% endif %}
+<strong>{{ album.code }}</strong></a>
+{% if can_edit_album %}<a class="pencil" href="?album={{ album.pk }}&edit=1" aria-label="{{ album.code }} albümünü düzenle"><i class="bi bi-pencil" aria-hidden="true"></i></a>{% endif %}
+</div>
+{% empty %}<p>Henüz albüm yok.</p>{% endfor %}
+</div>
+{% if page_obj.paginator.num_pages > 1 %}
+<nav class="pages" aria-label="Albüm sayfaları">{% if page_obj.has_previous %}<a href="?q={{ search_query|urlencode }}&page={{ page_obj.previous_page_number }}">Önceki</a>{% endif %}<span>{{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span>{% if page_obj.has_next %}<a id="galleryNextPage" href="?q={{ search_query|urlencode }}&page={{ page_obj.next_page_number }}">Sonraki</a>{% endif %}</nav>
+{% endif %}
+<div id="galleryScrollSentinel"></div>
+</section>
+{% endif %}
 </div>
 <script>
 (function(){
-  const coverInput=document.getElementById('galleryCoverInput');
-  if(coverInput){
-    let previewUrl=null;
-    coverInput.addEventListener('change',function(){
-      const file=coverInput.files && coverInput.files[0];
-      if(previewUrl){URL.revokeObjectURL(previewUrl);previewUrl=null;}
-      if(!file)return;
-      if(!['image/jpeg','image/png','image/webp'].includes(file.type))return;
-      previewUrl=URL.createObjectURL(file);
-      const image=document.getElementById('galleryCoverPreview');
-      image.src=previewUrl;
-      image.hidden=false;
-      document.getElementById('galleryCoverPlaceholder').hidden=true;
-    });
-  }
-  const input=document.getElementById('albumSearch');
-  if(!input)return;
-  let timer;
-  input.addEventListener('input',()=>{
-    clearTimeout(timer);
-    timer=setTimeout(()=>document.getElementById('albumSearchForm').requestSubmit(),450);
-  });
-})();
-</script>
-<script>
-/* Progressive loading: never ship base64 image data with the album listing. */
-(function(){
-  const grid=document.getElementById('galleryAlbumGrid');
-  if(!grid)return;
-  const covers=grid.querySelectorAll('img.gallery-lazy-cover[data-src]');
-  if(!('IntersectionObserver' in window)){
-    covers.forEach(img=>{img.src=img.dataset.src;delete img.dataset.src;});
-    return;
-  }
-  const imageObserver=new IntersectionObserver(entries=>{
-    for(const entry of entries){
-      if(!entry.isIntersecting)continue;
-      const img=entry.target;
-      imageObserver.unobserve(img);
-      if(img.dataset.src){img.src=img.dataset.src;delete img.dataset.src;}
-    }
-  },{rootMargin:'650px 0px',threshold:0.01});
-  function observeCovers(parent){
-    parent.querySelectorAll('img.gallery-lazy-cover[data-src]').forEach(img=>imageObserver.observe(img));
-  }
-  observeCovers(grid);
-
-  // Preload the next 24 album cards as the user nears the bottom.
-  // Keep the regular Next link as a fallback if fetching fails.
-  const next=document.getElementById('galleryNextPage');
-  const sentinel=document.getElementById('galleryScrollSentinel');
-  const pagination=document.querySelector('.gallery-pages');
-  if(!next || !sentinel)return;
-  let busy=false;
-  const pageObserver=new IntersectionObserver(async entries=>{
-    if(!entries.some(entry=>entry.isIntersecting) || busy)return;
-    busy=true;
-    pageObserver.unobserve(sentinel);
-    try{
-      const pageUrl=new URL(next.getAttribute('href'),window.location.href);
-      const response=await fetch(pageUrl.href,{credentials:'same-origin',headers:{'Accept':'text/html'}});
-      if(!response.ok)throw Error('Album page unavailable');
-      const doc=new DOMParser().parseFromString(await response.text(),'text/html');
-      const rows=doc.querySelectorAll('#galleryAlbumGrid > .album-cell');
-      if(!rows.length)throw Error('No album cards received');
-      const batch=document.createDocumentFragment();
-      rows.forEach(card=>batch.appendChild(card));
-      grid.appendChild(batch);
-      observeCovers(grid);
-      const newNext=doc.getElementById('galleryNextPage');
-      if(newNext){
-        next.setAttribute('href',newNext.getAttribute('href'));
-        pageObserver.observe(sentinel);
-      }else{
-        if(pagination)pagination.hidden=true;
-        sentinel.remove();
-      }
-    }catch(err){
-      // On network failures leave the normal pagination link visible.
-      if(pagination)pagination.hidden=false;
-      sentinel.remove();
-    }finally{busy=false;}
-  },{rootMargin:'900px 0px',threshold:0});
-  if(pagination)pagination.hidden=true;
-  pageObserver.observe(sentinel);
+ const picker=document.getElementById("galleryCoverInput");
+ if(picker){let url=null;picker.addEventListener("change",()=>{if(url)URL.revokeObjectURL(url);const f=picker.files[0];if(!f)return;url=URL.createObjectURL(f);const img=document.getElementById("galleryCoverPreview");img.src=url;img.hidden=false;const empty=document.getElementById("galleryCoverEmpty");if(empty)empty.hidden=true;});}
+ const search=document.getElementById("albumSearch");
+ if(search){let t;search.addEventListener("input",()=>{clearTimeout(t);t=setTimeout(()=>document.getElementById("albumSearchForm").requestSubmit(),450);});}
+ const grid=document.getElementById("galleryAlbumGrid");if(!grid)return;
+ const useIO=("IntersectionObserver" in window);
+ const observer=useIO?new IntersectionObserver(entries=>{for(const entry of entries){if(!entry.isIntersecting)continue;observer.unobserve(entry.target);entry.target.src=entry.target.dataset.src;delete entry.target.dataset.src;}},{rootMargin:"650px 0px"}):null;
+ const watch=root=>root.querySelectorAll("img.gallery-lazy-cover[data-src]").forEach(img=>{if(observer)observer.observe(img);else{img.src=img.dataset.src;delete img.dataset.src;}});
+ watch(grid);
+ const next=document.getElementById("galleryNextPage"),sentinel=document.getElementById("galleryScrollSentinel"),pagination=document.querySelector(".pages");
+ if(!next||!sentinel||!observer)return;
+ if(pagination)pagination.hidden=true;
+ let loading=false;
+ const pages=new IntersectionObserver(async entries=>{if(!entries.some(e=>e.isIntersecting)||loading)return;loading=true;pages.unobserve(sentinel);
+ try{const r=await fetch(new URL(next.getAttribute("href"),location.href),{credentials:"same-origin"});if(!r.ok)throw Error("page");const doc=new DOMParser().parseFromString(await r.text(),"text/html");const cards=doc.querySelectorAll("#galleryAlbumGrid > .album-cell");if(!cards.length)throw Error("cards");const fragment=document.createDocumentFragment();cards.forEach(card=>fragment.appendChild(card));grid.appendChild(fragment);watch(grid);const n=doc.getElementById("galleryNextPage");if(n){next.setAttribute("href",n.getAttribute("href"));pages.observe(sentinel);}else{if(pagination)pagination.remove();sentinel.remove();}}
+ catch(e){if(pagination)pagination.hidden=false;sentinel.remove();}finally{loading=false;}
+ },{rootMargin:"900px 0px"});
+ pages.observe(sentinel);
 })();
 </script>
 {% endblock %}

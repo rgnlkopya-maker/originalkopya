@@ -1,4 +1,4 @@
-from core.gallery_links import gallery_links, gallery_link_save, gallery_cover_image
+from core.gallery_links import gallery_links, gallery_link_save, gallery_cover_image, gallery_group_cover_image, gallery_group_save, gallery_customer_add
 from django.contrib import admin
 from django.urls import include, path
 from django.conf import settings
@@ -58,6 +58,9 @@ from core.showroom_views import showroom, showroom_v2
 urlpatterns = [
     path("urun-albumu/", gallery_links, name="product_gallery"),
     path("urun-albumu/<int:album_id>/kapak/", gallery_cover_image, name="gallery_cover_image"),
+    path("urun-albumu/grup/<int:group_id>/kapak/", gallery_group_cover_image, name="gallery_group_cover_image"),
+    path("urun-albumu/grup/<int:group_id>/baglanti/", gallery_group_save, name="gallery_group_save"),
+    path("urun-albumu/<int:album_id>/musteri-ekle/", gallery_customer_add, name="gallery_customer_add"),
     path("urun-albumu/<int:album_id>/baglanti/", gallery_link_save, name="gallery_link_save"),
     path("urun-albumu/google-photos/secim/", photos_picker_wait, name="gallery_photos_picker_wait"),
     path("urun-albumu/google-photos/durum/", photos_picker_status, name="gallery_photos_picker_status"),
