@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block content %}
+<style>
+.link-gallery{max-width:1150px;margin:25px auto;padding:0 16px;color:#25334a}
+.link-gallery h1{font-size:27px;font-weight:750}
+.link-gallery .panel{background:#fff;border:1px solid #e1e7ef;border-radius:16px;padding:20px;margin:16px 0}
+.link-gallery .albums{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
+.link-gallery .album{position:relative;display:block;aspect-ratio:3/4;border-radius:12px;overflow:hidden;background:#eef2f7;text-decoration:none;border:1px solid #dce4f0}
+.link-gallery .album img{width:100%;height:100%;object-fit:cover}
+.link-gallery .no-photo{display:flex;align-items:center;justify-content:center;height:100%;color:#758399}
+.link-gallery .album strong{position:absolute;bottom:0;left:0;right:0;text-align:center;padding:25px 8px 10px;color:white;font-size:22px;background:linear-gradient(transparent,#0009)}
+.link-gallery input{border:1px solid #d6dfec;border-radius:9px;padding:10px;max-width:100%}
+.link-gallery .btn-main{background:#4056ba;color:white;border:0;border-radius:10px;padding:10px 16px;cursor:pointer}
+.link-gallery .formrow{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.link-gallery .formstack{display:grid;gap:12px;max-width:650px}
+@media(max-width:700px){.link-gallery .albums{grid-template-columns:repeat(2,minmax(0,1fr))}}
+</style>
+<div class="link-gallery">
+<h1>Ürün Albümleri</h1>
+<p>Her ürünün kapak fotoğrafına tıklayarak Google Photos albümünü açın.</p>
+<section class="panel">
+<form method="get" class="formrow"><input name="q" value="{{ search_query }}" placeholder="Ürün kodu ara" aria-label="Ürün kodu ara"><button class="btn-main" type="submit">Ara</button></form>
+</section>
+{% if selected %}
+<section class="panel">
+<p><a href="{% url 'product_gallery' %}">← Albümlere dön</a></p>
+<h2>{{ selected.code }} · Albüm Bağlantısı</h2>
+<form method="post" enctype="multipart/form-data" action="{% url 'gallery_link_save' selected.pk %}" class="formstack">
+{% csrf_token %}
+<label>Google Photos albüm bağlantısı
+<input type="url" name="google_photos_url" value="{{ selected.google_photos_url }}" placeholder="https://photos.app.goo.gl/..." style="display:block;width:100%" maxlength="1000">
+</label>
+<label>Tek kapak fotoğrafı (JPG, PNG veya WEBP)
+<input type="file" name="cover" accept="image/jpeg,image/png,image/webp" style="display:block">
+</label>
+{% if selected.cover_data_url %}<img src="{{ selected.cover_data_url }}" alt="{{ selected.code }} kapak" style="width:170px;max-height:230px;object-fit:cover;border-radius:12px">{% endif %}
+<button class="btn-main" type="submit">Kaydet</button>
+</form>
+{% if selected.google_photos_url %}<p><a href="{{ selected.google_photos_url }}" target="_blank" rel="noopener noreferrer">Google Photos albümünü aç ↗</a></p>{% endif %}
+</section>
+{% else %}
+<section class="panel">
+<div class="albums">
+{% for album in albums %}
+<a class="album" href="{% if album.google_photos_url %}{{ album.google_photos_url }}{% else %}?album={{ album.pk }}{% endif %}" {% if album.google_photos_url %}target="_blank" rel="noopener noreferrer"{% endif %} aria-label="{{ album.code }} albümünü aç">
+{% if album.cover_data_url %}<img src="{{ album.cover_data_url }}" alt="{{ album.code }} kapak fotoğrafı" loading="lazy">{% else %}<span class="no-photo">Kapak eklenmedi</span>{% endif %}
+<strong>{{ album.code }}</strong></a>
+{% empty %}<p>Henüz albüm yok.</p>{% endfor %}
+</div>
+{% if page_obj.paginator.num_pages > 1 %}<nav class="formrow" style="margin-top:20px">
+{% if page_obj.has_previous %}<a href="?q={{ search_query|urlencode }}&page={{ page_obj.previous_page_number }}">← Önceki</a>{% endif %}
+<span>{{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span>
+{% if page_obj.has_next %}<a href="?q={{ search_query|urlencode }}&page={{ page_obj.next_page_number }}">Sonraki →</a>{% endif %}
+</nav>{% endif %}
+</section>
+<p>Bağlantı ve kapak düzenlemek için albümün Google Photos bağlantısı yoksa albüme tıklayın; varsa <a href="?album={{ albums.0.pk }}">düzenleme ekranına</a> ürün kodunu kullanarak ulaşabilirsiniz.</p>
+{% endif %}
+</div>
+{% endblock %}
