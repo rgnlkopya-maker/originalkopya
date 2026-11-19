@@ -20,11 +20,14 @@
 .link-gallery .tabs{display:flex;gap:7px;overflow-x:auto;align-items:center;white-space:nowrap;border-bottom:1px solid #e1e7ef;padding-bottom:11px;margin-bottom:18px}
 .link-gallery .tab{display:block;border:1px solid #dce4f0;background:#f8faff;color:#263650;border-radius:9px;text-decoration:none;padding:9px 14px;font-size:13px;font-weight:600;flex-shrink:0}
 .link-gallery .tab.active{background:#edf2ff;color:#3b54a2;border-color:#b7c7ee;box-shadow:inset 0 0 0 1px #dde5f8}
-.link-gallery .add{position:relative;flex-shrink:0}
-.link-gallery .add summary{list-style:none;border:1px dashed #b9c5da;border-radius:9px;padding:9px 14px;color:#4056ba;cursor:pointer;font-size:13px}
-.link-gallery .add summary::-webkit-details-marker{display:none}
-.link-gallery .add form{position:absolute;right:0;top:44px;background:white;border:1px solid #dce4f0;border-radius:10px;box-shadow:0 6px 22px #1327472c;padding:11px;display:flex;gap:6px;z-index:5}
-.link-gallery .add input{min-width:0;width:160px;border:1px solid #dce4f0;border-radius:7px;padding:8px}
+.link-gallery .add-toggle{flex-shrink:0;border:1px dashed #b9c5da;border-radius:9px;padding:9px 14px;background:#fff;color:#4056ba;cursor:pointer;font-size:13px}
+.link-gallery .add-toggle[aria-expanded="true"]{background:#f1f5ff;border-color:#9dafd2}
+.link-gallery .add-panel{display:flex;align-items:center;gap:10px;padding:12px;margin:-6px 0 18px;border:1px solid #dce4f0;border-radius:11px;background:#f8faff}
+.link-gallery .add-panel[hidden]{display:none!important}
+.link-gallery .add-panel form{display:flex;align-items:center;gap:8px;width:100%;margin:0}
+.link-gallery .add-panel input{min-width:0;flex:1;width:100%;border:1px solid #dce4f0;border-radius:8px;background:white;padding:10px;font-size:13px}
+.link-gallery .add-panel .btn{flex-shrink:0}
+@media(max-width:400px){.link-gallery .add-panel{padding:10px}.link-gallery .add-panel form{gap:6px}.link-gallery .add-panel .btn{padding:9px 11px}}
 .link-gallery .btn{border:0;border-radius:9px;padding:9px 14px;background:#4056ba;color:#fff;cursor:pointer}
 .link-gallery .body{max-width:620px;margin:auto}
 .link-gallery .photo-wrap{position:relative;width:min(100%,350px);margin:auto}
@@ -69,9 +72,17 @@
 {% for group in groups %}
 <a class="tab{% if group.pk == active_group.pk %} active{% endif %}" href="?album={{ selected.pk }}&group={{ group.pk }}">{% if group.name == "Standart Model" or group.name == "Standart" %}Standart{% else %}{{ group.name }}{% endif %}</a>
 {% endfor %}
-{% if can_edit_album %}<details class="add"><summary>+ Müşteri Ekle</summary>
-<form method="post" action="{% url 'gallery_customer_add' selected.pk %}">{% csrf_token %}<input name="name" maxlength="160" placeholder="Müşteri adı" aria-label="Müşteri adı" required><button type="submit" class="btn">Ekle</button></form></details>{% endif %}
+{% if can_edit_album %}<button type="button" class="add-toggle" id="galleryCustomerToggle" aria-controls="galleryCustomerPanel" aria-expanded="false">+ Müşteri Ekle</button>{% endif %}
 </nav>
+{% if can_edit_album %}
+<div class="add-panel" id="galleryCustomerPanel" hidden>
+<form method="post" action="{% url 'gallery_customer_add' selected.pk %}">
+{% csrf_token %}
+<input id="galleryCustomerName" name="name" maxlength="160" placeholder="Müşteri adı" aria-label="Müşteri adı" required autocomplete="off">
+<button type="submit" class="btn">Ekle</button>
+</form>
+</div>
+{% endif %}
 {% if edit_mode %}
 <form method="post" enctype="multipart/form-data" action="{% url 'gallery_group_save' active_group.pk %}">
 {% csrf_token %}
@@ -141,6 +152,16 @@
 </div>
 <script>
 (function(){
+ const customerToggle=document.getElementById("galleryCustomerToggle");
+ const customerPanel=document.getElementById("galleryCustomerPanel");
+ if(customerToggle && customerPanel){
+   customerToggle.addEventListener("click",()=>{
+     const opening=customerPanel.hidden;
+     customerPanel.hidden=!opening;
+     customerToggle.setAttribute("aria-expanded",String(opening));
+     if(opening)document.getElementById("galleryCustomerName")?.focus();
+   });
+ }
  const picker=document.getElementById("galleryCoverInput");
  if(picker){let url=null;picker.addEventListener("change",()=>{if(url)URL.revokeObjectURL(url);const f=picker.files[0];if(!f)return;url=URL.createObjectURL(f);const img=document.getElementById("galleryCoverPreview");img.src=url;img.hidden=false;const empty=document.getElementById("galleryCoverEmpty");if(empty)empty.hidden=true;});}
  const search=document.getElementById("albumSearch");
