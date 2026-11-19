@@ -25,7 +25,7 @@ from django.db.models import (
     Subquery, OuterRef, DecimalField, ExpressionWrapper, CharField, DateTimeField, Prefetch
 )
 from django.db.models.functions import Coalesce
-from django.http import HttpResponse, JsonResponse, HttpResponseForbidden
+from django.http import HttpResponse, JsonResponse, HttpResponseForbidden, HttpResponseBadRequest
 from django.shortcuts import render, redirect, get_object_or_404
 from django.template.loader import render_to_string
 from django.urls import reverse
