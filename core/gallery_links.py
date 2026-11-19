@@ -9,12 +9,13 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
 from django.db import transaction
+from django.utils import timezone
 from django.db.models import BooleanField, Case, IntegerField, Value, When
 from django.http import Http404, HttpResponse, HttpResponseForbidden, HttpResponseNotModified
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
 from PIL import Image, ImageOps
-from core.models import GalleryAlbum, GalleryGroup
+from core.models import GalleryAlbum, GalleryGroup, GalleryProductionNote
 
 STANDARD_NAMES = ("Standart Model", "Standart")
 
@@ -104,7 +105,7 @@ def gallery_links(request):
         albums = albums.filter(code__icontains=q)
     page = Paginator(albums.order_by("code", "pk"), 24).get_page(request.GET.get("page"))
     can_edit = _can_edit_album(request.user)
-    selected, groups, active = None, [], None
+    selected, groups, active, notes = None, [], None, []
     edit = request.GET.get("edit") == "1"
     identifier = request.GET.get("album", "")
     if identifier.isdigit():
@@ -121,10 +122,13 @@ def gallery_links(request):
         requested = request.GET.get("group", "")
         active = next((g for g in groups if str(g.pk) == requested),
                       next((g for g in groups if g.pk == standard.pk), groups[0]))
+        notes = list(GalleryProductionNote.objects.filter(
+            group_id=active.pk, deleted_at__isnull=True
+        ).select_related("created_by").order_by("created_at", "pk"))
     return render(request, "core/gallery_links.html", {
         "albums": page.object_list, "page_obj": page,
         "selected": selected, "groups": groups, "active_group": active,
-        "edit_mode": edit, "can_edit_album": can_edit, "search_query": q,
+        "notes": notes, "edit_mode": edit, "can_edit_album": can_edit, "search_query": q,
     })
 
 
@@ -144,14 +148,11 @@ def _save_changes(request, group):
     url = (request.POST.get("google_photos_url") or "").strip()
     if url and not _valid_google_photos_url(url):
         raise ValueError("Geçerli Google Photos albüm bağlantısı girin.")
-    note = request.POST.get("production_notes", group.production_notes)
-    if len(note) > 10000:
-        raise ValueError("Üretim notu 10.000 karakteri geçemez.")
     upload = request.FILES.get("cover")
     cover = _process_cover(upload) if upload else None
     with transaction.atomic():
-        group.google_photos_url, group.production_notes = url, note
-        updates = ["google_photos_url", "production_notes"]
+        group.google_photos_url = url
+        updates = ["google_photos_url"]
         if cover is not None:
             group.cover_data_url = cover
             updates.append("cover_data_url")
@@ -212,3 +213,36 @@ def gallery_customer_add(request, album_id):
     group, created = GalleryGroup.objects.get_or_create(album=album, name=name)
     messages.success(request, "Sekme oluşturuldu." if created else "Bu sekme zaten mevcut.")
     return redirect(f"/urun-albumu/?album={album.pk}&group={group.pk}")
+
+@login_required
+@require_POST
+def gallery_note_add(request, group_id):
+    """All active signed-in users may append; they cannot overwrite previous notes."""
+    if not _allowed(request.user):
+        return HttpResponseForbidden("Not ekleme yetkiniz yok.")
+    group = get_object_or_404(GalleryGroup, pk=group_id)
+    destination = f"/urun-albumu/?album={group.album_id}&group={group.pk}"
+    body = (request.POST.get("body") or "").strip()
+    if not body or len(body) > 5000:
+        messages.error(request, "1 ile 5.000 karakter arasında bir üretim notu girin.")
+        return redirect(destination)
+    GalleryProductionNote.objects.create(group=group, body=body, created_by=request.user)
+    messages.success(request, "Üretim notu eklendi.")
+    return redirect(destination)
+
+
+@login_required
+@require_POST
+def gallery_note_delete(request, note_id):
+    """Only managers may soft-delete. Existing note text remains in the database."""
+    if not _can_edit_album(request.user):
+        return HttpResponseForbidden("Yalnızca müdür üretim notlarını silebilir.")
+    note = get_object_or_404(
+        GalleryProductionNote.objects.select_related("group"),
+        pk=note_id, deleted_at__isnull=True
+    )
+    note.deleted_at = timezone.now()
+    note.deleted_by = request.user
+    note.save(update_fields=["deleted_at", "deleted_by"])
+    messages.success(request, "Üretim notu kaldırıldı.")
+    return redirect(f"/urun-albumu/?album={note.group.album_id}&group={note.group_id}")

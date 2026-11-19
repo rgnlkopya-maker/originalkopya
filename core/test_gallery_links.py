@@ -7,7 +7,7 @@ from django.contrib.auth.models import Group
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase, override_settings
 from PIL import Image
-from core.models import GalleryAlbum, GalleryGroup
+from core.models import GalleryAlbum, GalleryGroup, GalleryProductionNote
 
 
 @override_settings(SECURE_SSL_REDIRECT=False,
@@ -40,11 +40,15 @@ class GalleryLinksTests(TestCase):
         Image.new("RGB", (80,100),(90,40,120)).save(buffer,"PNG")
         upload=SimpleUploadedFile("cover.png",buffer.getvalue(),content_type="image/png")
         response=self.client.post(f"/urun-albumu/grup/{group.pk}/baglanti/",
-            {"google_photos_url":"https://photos.app.goo.gl/test", "production_notes":"Yaka 2 cm daha yuksek", "cover":upload})
+            {"google_photos_url":"https://photos.app.goo.gl/test", "cover":upload})
         self.assertEqual(response.status_code,302)
         group.refresh_from_db()
         self.assertTrue(group.cover_data_url.startswith("data:image/jpeg;base64,"))
-        self.assertEqual(group.production_notes,"Yaka 2 cm daha yuksek")
+        self.assertEqual(group.production_notes,"")
+        added=self.client.post(f"/urun-albumu/grup/{group.pk}/not-ekle/",
+                               {"body":"Yaka 2 cm daha yuksek"})
+        self.assertEqual(added.status_code,302)
+        self.assertEqual(GalleryProductionNote.objects.get(group=group).body,"Yaka 2 cm daha yuksek")
         detail=self.client.get(f"/urun-albumu/?album={self.album.pk}&group={group.pk}")
         self.assertContains(detail,"Yaka 2 cm daha yuksek")
         self.assertContains(detail,'href="https://photos.app.goo.gl/test"')
@@ -98,3 +102,67 @@ class GalleryLinksTests(TestCase):
         self.album.refresh_from_db()
         self.assertEqual(self.album.google_photos_url,"https://photos.app.goo.gl/example")
         self.assertEqual(GalleryGroup.objects.get(album=self.album,name="Standart Model").google_photos_url,self.album.google_photos_url)
+
+    def test_regular_user_can_append_notes_but_cannot_erase_existing_notes(self):
+        self.client.force_login(self.staff)
+        self.client.get(f"/urun-albumu/?album={self.album.pk}")
+        group=GalleryGroup.objects.get(album=self.album,name="Standart Model")
+        first=self.client.post(f"/urun-albumu/grup/{group.pk}/not-ekle/",
+                               {"body":"Dikimde dikkat edilecek"})
+        self.assertEqual(first.status_code,302)
+        second=self.client.post(f"/urun-albumu/grup/{group.pk}/not-ekle/",
+                                {"body":"Etek boyu kontrol edilsin"})
+        self.assertEqual(second.status_code,302)
+        self.assertEqual(GalleryProductionNote.objects.filter(group=group,deleted_at__isnull=True).count(),2)
+        record=GalleryProductionNote.objects.get(group=group,body="Dikimde dikkat edilecek")
+        self.assertEqual(record.created_by,self.staff)
+        attempt=self.client.post(f"/urun-albumu/not/{record.pk}/sil/")
+        self.assertEqual(attempt.status_code,403)
+        record.refresh_from_db()
+        self.assertIsNone(record.deleted_at)
+        response=self.client.get(f"/urun-albumu/?album={self.album.pk}&group={group.pk}")
+        self.assertContains(response,"Dikimde dikkat edilecek")
+        self.assertContains(response,"Etek boyu kontrol edilsin")
+        self.assertContains(response,'name="body"')
+        self.assertNotContains(response,'class="note-delete"')
+        self.assertNotContains(response,'name="production_notes"')
+
+    def test_manager_can_hide_individual_note_without_destroying_its_content(self):
+        self.client.force_login(self.manager)
+        self.client.get(f"/urun-albumu/?album={self.album.pk}")
+        group=GalleryGroup.objects.get(album=self.album,name="Standart Model")
+        a=GalleryProductionNote.objects.create(group=group,body="Ilk not",created_by=self.staff)
+        b=GalleryProductionNote.objects.create(group=group,body="Ikinci not",created_by=self.manager)
+        response=self.client.post(f"/urun-albumu/not/{a.pk}/sil/")
+        self.assertEqual(response.status_code,302)
+        a.refresh_from_db()
+        self.assertIsNotNone(a.deleted_at)
+        self.assertEqual(a.deleted_by,self.manager)
+        self.assertEqual(a.body,"Ilk not")
+        page=self.client.get(f"/urun-albumu/?album={self.album.pk}")
+        self.assertNotContains(page,"Ilk not")
+        self.assertContains(page,"Ikinci not")
+        self.assertContains(page,'class="note-delete"')
+        self.assertIsNone(GalleryProductionNote.objects.get(pk=b.pk).deleted_at)
+
+    def test_manager_cover_save_cannot_modify_production_notes(self):
+        self.client.force_login(self.manager)
+        self.client.get(f"/urun-albumu/?album={self.album.pk}")
+        group=GalleryGroup.objects.get(album=self.album,name="Standart Model")
+        group.production_notes="Eski not korunacak"
+        group.save(update_fields=["production_notes"])
+        note=GalleryProductionNote.objects.create(group=group,body="Yeni not")
+        self.client.post(f"/urun-albumu/grup/{group.pk}/baglanti/",
+                         {"google_photos_url":"https://photos.app.goo.gl/test",
+                          "production_notes":""})
+        group.refresh_from_db()
+        self.assertEqual(group.production_notes,"Eski not korunacak")
+        self.assertEqual(GalleryProductionNote.objects.get(pk=note.pk).body,"Yeni not")
+
+    def test_cover_overlay_removed_from_album_listing(self):
+        self.client.force_login(self.manager)
+        listing=self.client.get("/urun-albumu/")
+        self.assertEqual(listing.status_code,200)
+        self.assertNotContains(listing,'albümünü düzenle')
+        detail=self.client.get(f"/urun-albumu/?album={self.album.pk}")
+        self.assertContains(detail,"Sekmeyi düzenle")

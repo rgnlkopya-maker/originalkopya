@@ -896,6 +896,24 @@ class GalleryGroup(models.Model):
         constraints = [models.UniqueConstraint(fields=["album", "name"], name="gallery_unique_album_group")]
 
 
+class GalleryProductionNote(models.Model):
+    """Append-only gallery production note; manager can hide, without destroying history."""
+    group = models.ForeignKey(GalleryGroup, on_delete=models.CASCADE, related_name="note_entries")
+    body = models.TextField(max_length=5000)
+    created_by = models.ForeignKey(
+        User, on_delete=models.SET_NULL, null=True, blank=True, related_name="gallery_notes"
+    )
+    created_at = models.DateTimeField(default=timezone.now)
+    deleted_at = models.DateTimeField(null=True, blank=True)
+    deleted_by = models.ForeignKey(
+        User, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name="gallery_notes_deleted"
+    )
+
+    class Meta:
+        ordering = ["created_at", "pk"]
+
+
 class GalleryMedia(models.Model):
     group = models.ForeignKey(GalleryGroup, on_delete=models.CASCADE, related_name="media")
     storage_path = models.CharField(max_length=500, unique=True)

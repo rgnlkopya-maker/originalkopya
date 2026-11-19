@@ -19,7 +19,7 @@
 .link-gallery .code{font-size:20px;font-weight:750;margin:0 0 16px}
 .link-gallery .tabs{display:flex;gap:7px;overflow-x:auto;align-items:center;white-space:nowrap;border-bottom:1px solid #e1e7ef;padding-bottom:11px;margin-bottom:18px}
 .link-gallery .tab{display:block;border:1px solid #dce4f0;background:#f8faff;color:#263650;border-radius:9px;text-decoration:none;padding:9px 14px;font-size:13px;font-weight:600;flex-shrink:0}
-.link-gallery .tab.active{background:#4056ba;color:#fff;border-color:#4056ba}
+.link-gallery .tab.active{background:#edf2ff;color:#3b54a2;border-color:#b7c7ee;box-shadow:inset 0 0 0 1px #dde5f8}
 .link-gallery .add{position:relative;flex-shrink:0}
 .link-gallery .add summary{list-style:none;border:1px dashed #b9c5da;border-radius:9px;padding:9px 14px;color:#4056ba;cursor:pointer;font-size:13px}
 .link-gallery .add summary::-webkit-details-marker{display:none}
@@ -44,6 +44,15 @@
 .link-gallery .actions a{font-size:13px;color:#586b91;text-decoration:none}
 .link-gallery .pages{display:flex;justify-content:center;gap:15px;margin-top:20px}
 .link-gallery .pages[hidden]{display:none}
+.link-gallery .note-item{padding:11px 0;border-top:1px solid #e8edf5}
+.link-gallery .note-item p{margin:0 0 7px}
+.link-gallery .note-foot{display:flex;align-items:center;justify-content:space-between;gap:8px;color:#8190a7;font-size:11px}
+.link-gallery .note-foot form{margin:0}
+.link-gallery .note-delete{border:0;background:transparent;color:#8492a9;border-radius:6px;padding:5px 7px;cursor:pointer}
+.link-gallery .note-delete:hover{background:#fae9ea;color:#b42336}
+.link-gallery .note-compose{display:flex;flex-direction:column;align-items:flex-end;gap:9px;margin-top:14px;padding-top:13px;border-top:1px solid #e6ecf4}
+.link-gallery .note-compose textarea{width:100%;min-height:82px;resize:vertical;border:1px solid #d3deed;border-radius:9px;background:white;color:#263650;padding:10px;font:inherit;font-size:13px}
+.link-gallery .note-compose .btn{font-size:12px;padding:8px 13px}
 #galleryScrollSentinel{height:1px}
 @media(max-width:700px){.link-gallery .albums{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:540px){.link-gallery h1{font-size:19px}.link-gallery .head input{width:110px}.link-gallery .panel{padding:13px}.link-gallery .edit-grid{grid-template-columns:1fr}.link-gallery .edit-cover{max-width:180px}.link-gallery .photo-wrap{max-width:280px}}
@@ -73,7 +82,6 @@
 <div class="fields">
 <label>Kapak fotoğrafı <input id="galleryCoverInput" type="file" name="cover" accept="image/jpeg,image/png,image/webp"></label>
 <label>Google Photos bağlantısı <input name="google_photos_url" type="url" value="{{ active_group.google_photos_url }}" maxlength="1000" placeholder="https://photos.app.goo.gl/..."></label>
-<label>Üretim Notları <textarea name="production_notes" maxlength="10000" placeholder="Üretime ait notlar...">{{ active_group.production_notes }}</textarea></label>
 <div class="actions"><button type="submit" class="btn">Kaydet</button><a href="?album={{ selected.pk }}&group={{ active_group.pk }}">Vazgeç</a></div>
 </div>
 </div>
@@ -86,7 +94,28 @@
 {% if active_group.google_photos_url %}</a>{% else %}</div>{% endif %}
 {% if can_edit_album %}<a class="pencil" href="?album={{ selected.pk }}&group={{ active_group.pk }}&edit=1" aria-label="Sekmeyi düzenle"><i class="bi bi-pencil" aria-hidden="true"></i></a>{% endif %}
 </div>
-<div class="note"><h3>Üretim Notları</h3>{% if active_group.production_notes %}<p>{{ active_group.production_notes }}</p>{% else %}<p class="muted">Henüz not eklenmedi.</p>{% endif %}</div>
+<section class="note">
+<h3>Üretim Notları</h3>
+{% for entry in notes %}
+<div class="note-item">
+  <p>{{ entry.body }}</p>
+  <div class="note-foot">
+    <span>{% if entry.created_by %}{{ entry.created_by.get_full_name|default:entry.created_by.username }} · {% endif %}{{ entry.created_at|date:"d.m.Y H:i" }}</span>
+    {% if can_edit_album %}
+    <form method="post" action="{% url 'gallery_note_delete' entry.pk %}">{% csrf_token %}
+      <button type="submit" class="note-delete" aria-label="Üretim notunu sil" title="Notu sil" onclick="return confirm('Bu üretim notu silinsin mi?')"><i class="bi bi-trash" aria-hidden="true"></i></button>
+    </form>
+    {% endif %}
+  </div>
+</div>
+{% empty %}<p class="muted">Henüz not eklenmedi.</p>{% endfor %}
+<form method="post" class="note-compose" action="{% url 'gallery_note_add' active_group.pk %}">
+  {% csrf_token %}
+  <label for="newGalleryNote" class="visually-hidden">Üretim notu ekle</label>
+  <textarea id="newGalleryNote" name="body" maxlength="5000" rows="3" required placeholder="Üretimle ilgili not yazın..."></textarea>
+  <button type="submit" class="btn">Not Ekle</button>
+</form>
+</section>
 </div>
 {% endif %}
 </section>
@@ -99,7 +128,7 @@
 <a href="?album={{ album.pk }}" class="album{% if not album.has_cover %} no-cover{% endif %}" aria-label="{{ album.code }} albümünü aç">
 {% if album.has_cover %}<img class="gallery-lazy-cover" data-src="{% url 'gallery_cover_image' album.pk %}" loading="lazy" alt="{{ album.code }} kapak"><noscript><img src="{% url 'gallery_cover_image' album.pk %}" alt="{{ album.code }} kapak"></noscript>{% else %}<span class="empty">Kapak eklenmedi</span>{% endif %}
 <strong>{{ album.code }}</strong></a>
-{% if can_edit_album %}<a class="pencil" href="?album={{ album.pk }}&edit=1" aria-label="{{ album.code }} albümünü düzenle"><i class="bi bi-pencil" aria-hidden="true"></i></a>{% endif %}
+
 </div>
 {% empty %}<p>Henüz albüm yok.</p>{% endfor %}
 </div>
