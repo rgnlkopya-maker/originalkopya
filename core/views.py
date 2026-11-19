@@ -1113,6 +1113,8 @@ def update_stage(request, pk):
         ("dikim_durum", "basladi"): "Dikime Başlandı",
         ("dikim_durum", "kismi_bitti"): "Kısmi Dikim Yapıldı",
         ("dikim_durum", "bitti"): "Dikim Bitti",
+        ("etek_dikimi", "basladi"): "Etek Dikimi Başladı",
+        ("etek_dikimi", "bitti"): "Etek Dikimi Bitti",
         ("dikim_yardim", "yardim_etti"): "Dikime Yardım Etti",
         ("dikim_fason_durumu", "verildi"): "Dikim İçin Fasona Verildi",
         ("dikim_fason_durumu", "alindi"): "Dikim Fasoncusundan Alındı",
