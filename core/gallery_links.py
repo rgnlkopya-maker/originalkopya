@@ -24,8 +24,30 @@ def _allowed(user):
     return bool(user.is_authenticated and user.is_active)
 
 
+def _identity_key(value):
+    """Normalize Turkish spelling and spacing for restricted individual accounts."""
+    import unicodedata
+
+    turkish = str.maketrans({"ı": "i", "İ": "i", "ş": "s", "Ş": "s",
+                             "ğ": "g", "Ğ": "g", "ü": "u", "Ü": "u",
+                             "ö": "o", "Ö": "o", "ç": "c", "Ç": "c"})
+    normalized = unicodedata.normalize("NFKD", (value or "").translate(turkish).casefold())
+    return "".join(character for character in normalized if character.isalnum())
+
+
 def _can_edit_album(user):
-    return _allowed(user) and user.groups.filter(name="mudur").exists()
+    """Patron/mudur may edit except the two explicitly excluded accounts."""
+    if not _allowed(user):
+        return False
+    full_name = _identity_key(f"{user.first_name} {user.last_name}")
+    username = _identity_key(user.username)
+    # Match real names and commonly used username-only accounts; exclusion wins
+    # even when an excluded user has patron, mudur or superuser privileges.
+    restricted_people = {"eminekanyis", "osmankanyis"}
+    restricted_logins = {"eminekanyis", "osmankanyis", "emine", "osman"}
+    if full_name in restricted_people or username in restricted_logins:
+        return False
+    return user.groups.filter(name__in=("patron", "mudur")).exists()
 
 
 def _valid_google_photos_url(value):
@@ -111,7 +133,7 @@ def gallery_links(request):
     if identifier.isdigit():
         selected = get_object_or_404(GalleryAlbum, pk=int(identifier))
         if edit and not can_edit:
-            return HttpResponseForbidden("Yalnızca müdür düzenleyebilir.")
+            return HttpResponseForbidden("Bu albümü düzenleme yetkiniz yok.")
         standard = _standard_group(selected)
         groups = list(GalleryGroup.objects.filter(album=selected).defer("cover_data_url").annotate(
             has_cover=Case(When(cover_data_url="", then=Value(False)),
@@ -171,7 +193,7 @@ def _save_changes(request, group):
 @require_POST
 def gallery_group_save(request, group_id):
     if not _can_edit_album(request.user):
-        return HttpResponseForbidden("Yalnızca müdür düzenleyebilir.")
+        return HttpResponseForbidden("Bu albümü düzenleme yetkiniz yok.")
     group = get_object_or_404(GalleryGroup.objects.select_related("album"), pk=group_id)
     destination = f"/urun-albumu/?album={group.album_id}&group={group.pk}"
     try:
@@ -188,7 +210,7 @@ def gallery_group_save(request, group_id):
 def gallery_link_save(request, album_id):
     """Keep the previous standard-album save route working safely."""
     if not _can_edit_album(request.user):
-        return HttpResponseForbidden("Yalnızca müdür düzenleyebilir.")
+        return HttpResponseForbidden("Bu albümü düzenleme yetkiniz yok.")
     album = get_object_or_404(GalleryAlbum, pk=album_id)
     group = _standard_group(album)
     try:
@@ -204,7 +226,7 @@ def gallery_link_save(request, album_id):
 @require_POST
 def gallery_customer_add(request, album_id):
     if not _can_edit_album(request.user):
-        return HttpResponseForbidden("Yalnızca müdür müşteri ekleyebilir.")
+        return HttpResponseForbidden("Müşteri sekmesi ekleme yetkiniz yok.")
     album = get_object_or_404(GalleryAlbum, pk=album_id)
     name = " ".join((request.POST.get("name") or "").split())
     if not name or len(name) > 160 or name.casefold() in ("standart", "standart model"):
@@ -236,7 +258,7 @@ def gallery_note_add(request, group_id):
 def gallery_note_delete(request, note_id):
     """Only managers may soft-delete. Existing note text remains in the database."""
     if not _can_edit_album(request.user):
-        return HttpResponseForbidden("Yalnızca müdür üretim notlarını silebilir.")
+        return HttpResponseForbidden("Üretim notu silme yetkiniz yok.")
     note = get_object_or_404(
         GalleryProductionNote.objects.select_related("group"),
         pk=note_id, deleted_at__isnull=True

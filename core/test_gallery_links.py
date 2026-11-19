@@ -166,3 +166,122 @@ class GalleryLinksTests(TestCase):
         self.assertNotContains(listing,'albümünü düzenle')
         detail=self.client.get(f"/urun-albumu/?album={self.album.pk}")
         self.assertContains(detail,"Sekmeyi düzenle")
+
+    def test_other_patron_can_edit_covers_customer_tabs_and_delete_notes(self):
+        User = get_user_model()
+        patron = User.objects.create_user(
+            username="other-patron", first_name="Ahmet", last_name="Yilmaz", password="test"
+        )
+        patron_group, _ = Group.objects.get_or_create(name="patron")
+        patron.groups.add(patron_group)
+        self.client.force_login(patron)
+        listing = self.client.get("/urun-albumu/")
+        self.assertEqual(listing.status_code, 200)
+        self.client.get(f"/urun-albumu/?album={self.album.pk}")
+        detail = self.client.get(f"/urun-albumu/?album={self.album.pk}")
+        self.assertContains(detail, "Sekmeyi düzenle")
+        self.assertContains(detail, "+ Müşteri Ekle")
+        edit = self.client.get(f"/urun-albumu/?album={self.album.pk}&edit=1")
+        self.assertEqual(edit.status_code, 200)
+        standard = GalleryGroup.objects.get(album=self.album, name="Standart Model")
+        save = self.client.post(
+            f"/urun-albumu/grup/{standard.pk}/baglanti/",
+            {"google_photos_url": "https://photos.app.goo.gl/otherPatron"}
+        )
+        self.assertEqual(save.status_code, 302)
+        standard.refresh_from_db()
+        self.assertEqual(standard.google_photos_url, "https://photos.app.goo.gl/otherPatron")
+        customer = self.client.post(
+            f"/urun-albumu/{self.album.pk}/musteri-ekle/", {"name": "Patron Modeli"}
+        )
+        self.assertEqual(customer.status_code, 302)
+        note = GalleryProductionNote.objects.create(group=standard, body="Uretim notu")
+        deleted = self.client.post(f"/urun-albumu/not/{note.pk}/sil/")
+        self.assertEqual(deleted.status_code, 302)
+        note.refresh_from_db()
+        self.assertIsNotNone(note.deleted_at)
+
+    def test_named_excluded_patrons_cannot_edit_or_delete_but_can_add_notes(self):
+        User = get_user_model()
+        patron_group, _ = Group.objects.get_or_create(name="patron")
+        scenarios = [
+            ("emine", "Emine", "Kanyış"),
+            ("osmankanyis", "Osman", "Kanyış"),
+            ("other-login-emine", "Emine", "Kanyis"),
+            ("other-login-osman", "Osman", "Kanyış"),
+        ]
+        self.client.force_login(self.manager)
+        self.client.get(f"/urun-albumu/?album={self.album.pk}")
+        standard = GalleryGroup.objects.get(album=self.album, name="Standart Model")
+        for username, first_name, last_name in scenarios:
+            with self.subTest(username=username):
+                person = User.objects.create_user(
+                    username=username, first_name=first_name, last_name=last_name, password="test"
+                )
+                person.groups.add(patron_group)
+                self.client.force_login(person)
+                listing = self.client.get("/urun-albumu/")
+                self.assertEqual(listing.status_code, 200)
+                details = self.client.get(f"/urun-albumu/?album={self.album.pk}")
+                self.assertEqual(details.status_code, 200)
+                self.assertNotContains(details, "Sekmeyi düzenle")
+                self.assertNotContains(details, "+ Müşteri Ekle")
+                self.assertNotContains(details, 'class="note-delete"')
+                self.assertEqual(
+                    self.client.get(f"/urun-albumu/?album={self.album.pk}&edit=1").status_code, 403
+                )
+                self.assertEqual(
+                    self.client.post(
+                        f"/urun-albumu/grup/{standard.pk}/baglanti/",
+                        {"google_photos_url": "https://photos.app.goo.gl/notAllowed"}
+                    ).status_code, 403
+                )
+                self.assertEqual(
+                    self.client.post(
+                        f"/urun-albumu/{self.album.pk}/baglanti/",
+                        {"google_photos_url": "https://photos.app.goo.gl/notAllowed"}
+                    ).status_code, 403
+                )
+                self.assertEqual(
+                    self.client.post(
+                        f"/urun-albumu/{self.album.pk}/musteri-ekle/", {"name": "Yasak"}
+                    ).status_code, 403
+                )
+                note = GalleryProductionNote.objects.create(
+                    group=standard, body=f"{username} notu"
+                )
+                self.assertEqual(
+                    self.client.post(f"/urun-albumu/not/{note.pk}/sil/").status_code, 403
+                )
+                note.refresh_from_db()
+                self.assertIsNone(note.deleted_at)
+                # The user remains able to contribute new production notes.
+                self.assertEqual(
+                    self.client.post(
+                        f"/urun-albumu/grup/{standard.pk}/not-ekle/",
+                        {"body": f"{username} yeni not"}
+                    ).status_code, 302
+                )
+                self.assertTrue(
+                    GalleryProductionNote.objects.filter(
+                        group=standard, body=f"{username} yeni not", created_by=person
+                    ).exists()
+                )
+
+    def test_exclusion_precedes_manager_group_and_superuser_status(self):
+        User = get_user_model()
+        excluded = User.objects.create_superuser(
+            username="EmineKanyis", email="example@example.invalid", password="test"
+        )
+        manager_group, _ = Group.objects.get_or_create(name="mudur")
+        excluded.groups.add(manager_group)
+        self.client.force_login(excluded)
+        self.assertEqual(
+            self.client.get(f"/urun-albumu/?album={self.album.pk}&edit=1").status_code, 403
+        )
+        self.client.get(f"/urun-albumu/?album={self.album.pk}")
+        standard = GalleryGroup.objects.get(album=self.album, name="Standart Model")
+        note = GalleryProductionNote.objects.create(group=standard, body="Korunan not")
+        self.assertEqual(
+            self.client.post(f"/urun-albumu/not/{note.pk}/sil/").status_code, 403
+        )
