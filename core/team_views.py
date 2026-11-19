@@ -145,7 +145,7 @@ def user_management_view(request):
             if u==request.user:messages.warning(request,"Kendinizi silemezsiniz.")
             else:u.delete();messages.success(request,"Kullanıcı silindi 🗑️")
             return redirect("user_management")
-    return render(request,"user_management.html",{"users":users,"departed_users":departed_users,"profiles":profiles,"hr_profiles":hr_profiles,"GOREVLER":TEAM_CHOICES})
+    return render(request,"user_management.html",{"users":users,"departed_users":departed_users,"profiles":profiles,"hr_profiles":hr_profiles,"GOREVLER":TEAM_CHOICES,"can_unlock_login":request.user.is_superuser or request.user.groups.filter(name="patron").exists()})
 
 @login_required
 def employee_detail(request,user_id):
