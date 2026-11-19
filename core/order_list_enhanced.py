@@ -21,6 +21,7 @@ STAGE_TRANSLATIONS = {
     ("susleme_durum", "siraya_alindi"): "Süsleme Sırasına Alındı", ("susleme_durum", "sıraya_alındı"): "Süsleme Sırasına Alındı", ("susleme_durum", "basladi"): "Süsleme Başladı", ("susleme_durum", "kismi"): "Kısmi Süsleme", ("susleme_durum", "bitti"): "Süslendi",
     ("susleme_fason_durumu", "verildi"): "Fason Süslemeye Verildi", ("susleme_fason_durumu", "alindi"): "Fason Süslemeden Alındı",
     ("kalite_kontrol", "kontrol_ettim"): "Kontrol Ettim",
+    ("kalite_kontrol", "hata_gordum"): "Hata Gördüm",
     ("sevkiyat_durum", "gonderildi"): "Sevkedildi", ("sevkiyat_durum", "depoya"): "Depoya Girdi", ("sevkiyat_durum", "kargodan_geri_geldi"): "Kargodan Geri Geldi", ("sevkiyat_durum", "iade_geldi"): "İade Geldi",
     ("sevkiyat_durum", "yanlis_sevkiyat"): "Yanlış Sevkiyat", ("sevkiyat_durum", "tekrar_gonderildi"): "Tekrar Gönderildi",
     ("konsinye_durum", "verildi"): "Konsinyeye Verildi", ("konsinye_durum", "geri_geldi"): "Konsinyeden Geri Geldi",
