@@ -106,6 +106,29 @@ def user_management_view(request):
             hr=EmployeeHRProfile.objects.create(user=user,phone_number=request.POST.get("phone_number","").strip(),national_id=request.POST.get("national_id","").strip(),emergency_contact_name=request.POST.get("emergency_contact_name","").strip(),emergency_contact_phone=request.POST.get("emergency_contact_phone","").strip(),employment_start_date=new_date("employment_start_date"),employment_end_date=new_date("employment_end_date"),sgk_start_date=new_date("sgk_start_date"))
             if hr.employment_end_date:user.is_active=False;user.save(update_fields=["is_active"])
             messages.success(request,f"{user.get_full_name() or username} eklendi ✅");return redirect("user_management")
+        if action=="unlock_login":
+            # Only the patron may issue a temporary one-time login retry.
+            actor = getattr(request, "real_user", request.user)
+            if not (actor.is_superuser or actor.groups.filter(name="patron").exists()):
+                return HttpResponseForbidden("Giriş kilidini yalnızca patron kaldırabilir.")
+            target = get_object_or_404(User, pk=request.POST.get("user_id"), is_active=True)
+            if target.is_superuser or target.groups.filter(name__in=["patron", "mudur"]).exists():
+                messages.error(request, "Yönetici hesaplarının kilidi bu ekrandan kaldırılamaz.")
+                return redirect("user_management")
+            from core.login_security import grant_one_time_login_attempt
+            from django.contrib.admin.models import LogEntry, CHANGE
+            from django.contrib.contenttypes.models import ContentType
+            grant_one_time_login_attempt(target.username)
+            LogEntry.objects.log_action(
+                user_id=actor.pk,
+                content_type_id=ContentType.objects.get_for_model(User).pk,
+                object_id=str(target.pk),
+                object_repr=target.username[:200],
+                action_flag=CHANGE,
+                change_message="Patron, tek kullanımlık giriş kilidi açma izni verdi (5 dakika).",
+            )
+            messages.success(request, f"{target.get_full_name() or target.username} için 5 dakika geçerli tek giriş denemesi açıldı. Doğru şifre gereklidir.")
+            return redirect("user_management")
         if action=="reset_password":
             if not has_feature_access(request.user, "critical.reset_password"):
                 return HttpResponseForbidden("Şifre sıfırlama yetkiniz yok.")
