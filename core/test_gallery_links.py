@@ -285,3 +285,24 @@ class GalleryLinksTests(TestCase):
         self.assertEqual(
             self.client.post(f"/urun-albumu/not/{note.pk}/sil/").status_code, 403
         )
+
+    def test_customer_add_form_is_outside_scrollable_tab_bar(self):
+        """The customer input must not be clipped by horizontally scrolling tabs."""
+        self.client.force_login(self.manager)
+        response = self.client.get(f"/urun-albumu/?album={self.album.pk}")
+        self.assertEqual(response.status_code, 200)
+        markup = response.content.decode("utf-8")
+        tab_start = markup.index('<nav class="tabs"')
+        nav_end = markup.index("</nav>", tab_start)
+        toggle = markup.index('id="galleryCustomerToggle"', tab_start)
+        panel = markup.index('id="galleryCustomerPanel" hidden', tab_start)
+        self.assertLess(toggle, nav_end)
+        self.assertGreater(panel, nav_end)
+        self.assertIn('aria-expanded="false"', markup)
+        self.assertIn('.link-gallery .add-panel[hidden]{display:none!important}', markup)
+        self.assertIn("customerPanel.hidden=!opening", markup)
+
+        self.client.force_login(self.staff)
+        staff_response = self.client.get(f"/urun-albumu/?album={self.album.pk}")
+        self.assertNotContains(staff_response, 'id="galleryCustomerToggle"')
+        self.assertNotContains(staff_response, 'id="galleryCustomerPanel"')
