@@ -40,6 +40,7 @@ STATUS_LABELS = {
     ("utu_durum", "bitti"): "Ütü Bitti",
     ("utu_yardim", "yardim_etti"): "🤝 Ütüye Yardım Etti",
         ("kalite_kontrol", "kontrol_ettim"): "Kontrol Ettim",
+        ("kalite_kontrol", "hata_gordum"): "Hata Gördüm",
     ("sevkiyat_durum", "gonderildi"): "Sevk Edildi",
     ("sevkiyat_durum", "kargodan_geri_geldi"): "Kargodan Geri Geldi",
     ("sevkiyat_durum", "iade_geldi"): "İade Geldi",
