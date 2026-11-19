@@ -23,15 +23,31 @@ def _keys(request, username):
     return username_key, ip_key
 
 
+def _one_time_key(username):
+    return f"login-one-time:{_digest((username or '').strip().lower())}"
+
+
+def grant_one_time_login_attempt(username):
+    """Permit exactly one password check despite a shared-IP lock, for five minutes."""
+    key = f"login-fail-user:{_digest((username or '').strip().lower())}"
+    cache.delete(key)
+    cache.set(_one_time_key(username), True, timeout=5 * 60)
+
+
+def revoke_one_time_login_attempt(username):
+    cache.delete(_one_time_key(username))
+
+
 def login_lock_status(request, username):
     username_key, ip_key = _keys(request, username)
     user_count = int(cache.get(username_key, 0) or 0)
     ip_count = int(cache.get(ip_key, 0) or 0)
-    locked = user_count >= MAX_FAILED_ATTEMPTS or ip_count >= MAX_FAILED_ATTEMPTS
+    locked = user_count >= MAX_FAILED_ATTEMPTS or (ip_count >= MAX_FAILED_ATTEMPTS and not cache.get(_one_time_key(username)))
     return locked, max(user_count, ip_count)
 
 
 def register_login_failure(request, username):
+    revoke_one_time_login_attempt(username)
     counts = []
     for key in _keys(request, username):
         if cache.add(key, 1, timeout=WINDOW_SECONDS):
@@ -50,5 +66,6 @@ def register_login_failure(request, username):
 
 
 def clear_login_failures(request, username):
+    revoke_one_time_login_attempt(username)
     username_key, ip_key = _keys(request, username)
     cache.delete_many([username_key, ip_key])
