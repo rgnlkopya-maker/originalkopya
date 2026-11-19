@@ -7,7 +7,7 @@ from django.contrib.auth.models import Group
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase, override_settings
 from PIL import Image
-from core.models import GalleryAlbum, GalleryGroup, GalleryProductionNote
+from core.models import GalleryAlbum, GalleryGroup, GalleryProductionNote, Musteri
 
 
 @override_settings(SECURE_SSL_REDIRECT=False,
@@ -33,7 +33,8 @@ class GalleryLinksTests(TestCase):
 
     def test_manager_creates_customer_photo_link_note(self):
         self.client.force_login(self.manager)
-        created = self.client.post(f"/urun-albumu/{self.album.pk}/musteri-ekle/", {"name":"Lara"})
+        customer = Musteri.objects.create(ad="Lara", aktif=True)
+        created = self.client.post(f"/urun-albumu/{self.album.pk}/musteri-ekle/", {"customer_id":str(customer.pk)})
         self.assertEqual(created.status_code, 302)
         group = GalleryGroup.objects.get(album=self.album, name="Lara")
         buffer=BytesIO()
@@ -191,8 +192,9 @@ class GalleryLinksTests(TestCase):
         self.assertEqual(save.status_code, 302)
         standard.refresh_from_db()
         self.assertEqual(standard.google_photos_url, "https://photos.app.goo.gl/otherPatron")
+        existing = Musteri.objects.create(ad="Patron Modeli", aktif=True)
         customer = self.client.post(
-            f"/urun-albumu/{self.album.pk}/musteri-ekle/", {"name": "Patron Modeli"}
+            f"/urun-albumu/{self.album.pk}/musteri-ekle/", {"customer_id": str(existing.pk)}
         )
         self.assertEqual(customer.status_code, 302)
         note = GalleryProductionNote.objects.create(group=standard, body="Uretim notu")
@@ -306,3 +308,45 @@ class GalleryLinksTests(TestCase):
         staff_response = self.client.get(f"/urun-albumu/?album={self.album.pk}")
         self.assertNotContains(staff_response, 'id="galleryCustomerToggle"')
         self.assertNotContains(staff_response, 'id="galleryCustomerPanel"')
+
+    def test_gallery_customer_select_uses_active_moliapp_customers_fresh_each_request(self):
+        self.client.force_login(self.manager)
+        before = self.client.get(f"/urun-albumu/?album={self.album.pk}")
+        self.assertNotContains(before, "YENI-MUSTERI-2026")
+        current = Musteri.objects.create(ad="YENI-MUSTERI-2026", aktif=True)
+        inactive = Musteri.objects.create(ad="PASIF-MUSTERI-2026", aktif=False)
+        after = self.client.get(f"/urun-albumu/?album={self.album.pk}")
+        self.assertContains(after, f'<option value="{current.pk}">YENI-MUSTERI-2026</option>', html=True)
+        self.assertNotContains(after, "PASIF-MUSTERI-2026")
+        # This is a dropdown, not a second free-text customer register.
+        self.assertContains(after, 'name="customer_id"')
+        self.assertNotContains(after, 'name="name"')
+        current.ad = "YENI-MUSTERI-GUNCEL"
+        current.save(update_fields=["ad"])
+        newer = self.client.get(f"/urun-albumu/?album={self.album.pk}")
+        self.assertContains(newer, "YENI-MUSTERI-GUNCEL")
+        self.assertNotContains(newer, "YENI-MUSTERI-2026")
+        inactive.aktif = True
+        inactive.save(update_fields=["aktif"])
+        activated = self.client.get(f"/urun-albumu/?album={self.album.pk}")
+        self.assertContains(activated, "PASIF-MUSTERI-2026")
+
+    def test_customer_tab_add_requires_id_from_customer_registry_and_deduplicates(self):
+        self.client.force_login(self.manager)
+        current = Musteri.objects.create(ad="Sitare Yokus", aktif=True)
+        path = f"/urun-albumu/{self.album.pk}/musteri-ekle/"
+        for data in ({"name":"Uydurma Musteri"}, {"customer_id":"not-a-number"},
+                     {"customer_id":"999999999"}, {"customer_id":""}):
+            result=self.client.post(path, data)
+            self.assertEqual(result.status_code, 302)
+        self.assertFalse(GalleryGroup.objects.filter(album=self.album,name="Uydurma Musteri").exists())
+        first = self.client.post(path, {"customer_id": str(current.pk)})
+        second = self.client.post(path, {"customer_id": str(current.pk)})
+        self.assertEqual(first.status_code, 302)
+        self.assertEqual(second.status_code, 302)
+        self.assertEqual(GalleryGroup.objects.filter(album=self.album, name="Sitare Yokus").count(), 1)
+        current.aktif = False
+        current.save(update_fields=["aktif"])
+        refused = self.client.post(path, {"customer_id": str(current.pk)})
+        self.assertEqual(refused.status_code, 302)
+        self.assertEqual(GalleryGroup.objects.filter(album=self.album, name="Sitare Yokus").count(), 1)

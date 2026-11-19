@@ -15,7 +15,7 @@ from django.http import Http404, HttpResponse, HttpResponseForbidden, HttpRespon
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
 from PIL import Image, ImageOps
-from core.models import GalleryAlbum, GalleryGroup, GalleryProductionNote
+from core.models import GalleryAlbum, GalleryGroup, GalleryProductionNote, Musteri
 
 STANDARD_NAMES = ("Standart Model", "Standart")
 
@@ -128,12 +128,16 @@ def gallery_links(request):
     page = Paginator(albums.order_by("code", "pk"), 24).get_page(request.GET.get("page"))
     can_edit = _can_edit_album(request.user)
     selected, groups, active, notes = None, [], None, []
+    customer_options = Musteri.objects.none()
     edit = request.GET.get("edit") == "1"
     identifier = request.GET.get("album", "")
     if identifier.isdigit():
         selected = get_object_or_404(GalleryAlbum, pk=int(identifier))
         if edit and not can_edit:
             return HttpResponseForbidden("Bu albümü düzenleme yetkiniz yok.")
+        if can_edit:
+            # Read the canonical customer table on every album view: no sync required.
+            customer_options = Musteri.objects.filter(aktif=True).only("pk", "ad").order_by("ad", "pk")
         standard = _standard_group(selected)
         groups = list(GalleryGroup.objects.filter(album=selected).defer("cover_data_url").annotate(
             has_cover=Case(When(cover_data_url="", then=Value(False)),
@@ -151,6 +155,7 @@ def gallery_links(request):
         "albums": page.object_list, "page_obj": page,
         "selected": selected, "groups": groups, "active_group": active,
         "notes": notes, "edit_mode": edit, "can_edit_album": can_edit, "search_query": q,
+        "customer_options": customer_options,
     })
 
 
@@ -228,9 +233,18 @@ def gallery_customer_add(request, album_id):
     if not _can_edit_album(request.user):
         return HttpResponseForbidden("Müşteri sekmesi ekleme yetkiniz yok.")
     album = get_object_or_404(GalleryAlbum, pk=album_id)
-    name = " ".join((request.POST.get("name") or "").split())
+    customer_id = (request.POST.get("customer_id") or "").strip()
+    if not customer_id.isdigit():
+        messages.error(request, "Müşteriler listesinden bir müşteri seçin.")
+        return redirect(f"/urun-albumu/?album={album.pk}")
+    customer = Musteri.objects.filter(pk=int(customer_id), aktif=True).first()
+    if customer is None:
+        messages.error(request, "Müşteri bulunamadı veya pasif. Müşteriler sayfasını kontrol edin.")
+        return redirect(f"/urun-albumu/?album={album.pk}")
+    # Keep existing named customer tabs and links untouched; never create a free-text label.
+    name = " ".join(customer.ad.split())
     if not name or len(name) > 160 or name.casefold() in ("standart", "standart model"):
-        messages.error(request, "Geçerli müşteri adı girin.")
+        messages.error(request, "Müşteri adı albüm sekmesi için uygun değil.")
         return redirect(f"/urun-albumu/?album={album.pk}")
     group, created = GalleryGroup.objects.get_or_create(album=album, name=name)
     messages.success(request, "Sekme oluşturuldu." if created else "Bu sekme zaten mevcut.")
