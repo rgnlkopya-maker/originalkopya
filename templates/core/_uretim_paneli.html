@@ -112,6 +112,7 @@
                                         {% elif e.stage == 'kesim_durum' and e.value == 'bitti' %}Kesim Bitti
                                         {% elif e.stage == 'susleme_durum' and e.value == 'basladi' %}Süsleme Başladı
                                         {% elif e.stage == 'susleme_durum' and e.value == 'kismi_bitti' %}Kısmi Süsleme Yapıldı
+                                        {% elif e.stage == 'kalite_kontrol' and e.value == 'kontrol_ettim' %}Kontrol Ettim
                                         {% elif e.stage == 'susleme_durum' and e.value == 'bitti' %}Süsleme Bitti
                                         {% elif e.stage == 'susleme_yardim' and e.value == 'yardim_etti' %}🤝 Süslemeye Yardım Etti
                                         {% elif e.stage == 'dikim_fason_durumu' and e.value == 'verildi' %}Dikim İçin Fasona Verildi
@@ -218,6 +219,7 @@
         <div class="stage-card">
             <div class="stage-card-header"><div class="stage-card-title"><span class="icon">📦</span> <span>Hazır & Sevkiyat</span></div><div class="stage-card-sub">Depoya giriş & sevkiyat</div></div>
             <div class="stage-actions">
+                <button class="soft-btn btn-soft-info" hx-post="{% url 'update_stage' order.id %}" hx-headers='{"X-CSRFToken":"{{ csrf_token }}"}' hx-vals='{"stage":"kalite_kontrol","value":"kontrol_ettim"}' hx-target="#uretim-paneli" hx-swap="innerHTML">✓ Kontrol Ettim</button>
                 <button type="button" class="soft-btn btn-soft-success" data-bs-toggle="modal" data-bs-target="#stokModal">Depoya Girdi</button>
                 <button class="soft-btn btn-soft-dark" hx-post="{% url 'update_stage' order.id %}" hx-headers='{"X-CSRFToken":"{{ csrf_token }}"}' hx-vals='{"stage":"sevkiyat_durum","value":"gonderildi"}' hx-target="#uretim-paneli" hx-swap="innerHTML">🚚 Gönderildi</button>
                 {% if user|can_feature:'consignment.send' %}
