@@ -5,6 +5,25 @@
 </style>{% endblock %}
 {% block content %}<div class="container-fluid page-wrap"><div class="modern-header"><div class="header-left"><div class="stat-badge">👥 Personel: {{ users|length }}</div></div><div class="search-area"><input type="text" id="userSearch" class="search-box" placeholder="Kullanıcı ara…"><button type="button" class="add-user-btn" data-bs-toggle="modal" data-bs-target="#newUserModal"><i class="bi bi-plus-circle"></i></button></div></div>
 {% if messages %}{% for message in messages %}<div class="alert alert-{{ message.tags }}">{{ message }}</div>{% endfor %}{% endif %}
+{% if can_unlock_login %}
+<section class="team-card" style="min-height:auto;margin-bottom:20px">
+  <div class="team-head"><i class="bi bi-shield-lock me-2"></i>Giriş Kilidini Kaldır</div>
+  <div class="team-body" style="padding:16px">
+    <form method="post" action="{% url 'user_management' %}" class="d-flex flex-wrap gap-2 align-items-end" onsubmit="return confirm('Seçili personel için tek kullanımlık giriş denemesi açılsın mı?');">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="unlock_login">
+      <div style="flex:1;min-width:220px"><label class="form-label fw-semibold" for="unlockUser">Personel</label>
+        <select id="unlockUser" class="form-select" name="user_id" required>
+          <option value="">Personel seçin</option>
+          {% for u in users %}{% if not u.is_superuser %}{% if not u.is_staff %}{% if not u.groups.all|length %}<option value="{{ u.pk }}">{{ u.get_full_name|default:u.username }} ({{ u.username }})</option>{% else %}{% for g in u.groups.all %}{% if g.name != 'patron' and g.name != 'mudur' %}<option value="{{ u.pk }}">{{ u.get_full_name|default:u.username }} ({{ u.username }})</option>{% endif %}{% endfor %}{% endif %}{% endif %}{% endif %}{% endfor %}
+        </select>
+      </div>
+      <button type="submit" class="btn btn-outline-primary" style="height:46px;border-radius:12px;font-weight:700"><i class="bi bi-unlock me-1"></i>Giriş Kilidini Kaldır</button>
+    </form>
+    <small class="text-muted d-block mt-2">Yalnızca patron kullanabilir. Şifre değişmez; 5 dakika geçerli tek giriş denemesi açılır. İşlem kayıt altına alınır.</small>
+  </div>
+</section>
+{% endif %}
 <div class="teams-grid" id="teamsGrid">
 {% for team_value,team_label in GOREVLER %}{% if team_value == 'kesim' or team_value == 'dikim' or team_value == 'modelleme' or team_value == 'susleme' or team_value == 'utucu' or team_value == 'yardimci' or team_value == 'sevkiyat' %}<section class="team-card"><div class="team-head">{{ team_label }}</div><div class="team-body">{% for u in users %}{% with profiles|get_item:u.id as prof %}{% if prof.gorev == team_value %}<a href="{% url 'employee_detail' u.id %}" class="person-link"><span class="person-avatar">{{ u.get_full_name|default:u.username|first|upper }}</span><span>{{ u.get_full_name|default:u.username }}</span></a>{% endif %}{% endwith %}{% endfor %}<div class="empty-team">Bu ekipte kullanıcı yok.</div></div></section>{% endif %}{% endfor %}
 <section class="team-card"><div class="team-head">Müdür</div><div class="team-body">{% for u in users %}{% with u.groups.first as group %}{% if group.name == 'mudur' %}<a href="{% url 'employee_detail' u.id %}" class="person-link"><span class="person-avatar">{{ u.get_full_name|default:u.username|first|upper }}</span>{{ u.get_full_name|default:u.username }}</a>{% endif %}{% endwith %}{% endfor %}<div class="empty-team">Bu ekipte kullanıcı yok.</div></div></section>
