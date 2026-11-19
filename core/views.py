@@ -1126,6 +1126,7 @@ def update_stage(request, pk):
         ("susleme_durum", "kismi_bitti"): "Kısmi Süsleme Yapıldı",
         ("susleme_durum", "bitti"): "Süsleme Bitti",
         ("susleme_yardim", "yardim_etti"): "Süslemeye Yardım Etti",
+        ("kalite_kontrol", "kontrol_ettim"): "Kontrol Ettim",
         ("sevkiyat_durum", "gonderildi"): "Sevkiyata Gönderildi",
     }
     stage_label = stage_labels.get((stage, value), f"{stage.replace('_', ' ').title()} → {value.replace('_', ' ').title()}")
