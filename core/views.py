@@ -41,7 +41,7 @@ from .models import (
     Order, Musteri, Nakisci, Fasoncu, DepoStok, ConsignmentStock,
     OrderEvent, OrderSeen, UretimGecmisi,
     Notification, ProductCost, OrderImage,
-    UserProfile, Renk, Beden, UrunKod, MesaiKayit, URUN_TIPI_CHOICES
+    UserProfile, Renk, Beden, UrunKod, GalleryAlbum, MesaiKayit, URUN_TIPI_CHOICES
 )
 from .forms import OrderForm, MusteriForm
 
@@ -739,6 +739,16 @@ def order_detail(request, pk):
         except Exception:
             source_folio = None
 
+    # Ürün albümü bağlantısı yalnızca siparişin güncel ürün kodundan hesaplanır.
+    # Föyden veya manuel girişten gelen siparişler aynı davranışı kullanır.
+    # Google Photos bağlantısı/sipariş verisi kopyalanmaz veya kaydedilmez.
+    album_code = (order.urun_kodu or "").strip()
+    order_gallery_album_id = (
+        GalleryAlbum.objects.filter(code__iexact=album_code)
+        .values_list("pk", flat=True).first()
+        if album_code else None
+    )
+
     # 📌 Geri dönüş URL'si (liste, rapor veya QR için akıllı sistem)
     return_url = request.GET.get("return_url")  # 1) URL’de varsa kullan
 
@@ -756,6 +766,7 @@ def order_detail(request, pk):
         "core/order_detail.html",
         {
             "order": order,
+            "order_gallery_album_id": order_gallery_album_id,
             "nakisciler": nakisciler,
             "fasoncular": fasoncular,
             "events": events,
