@@ -26,6 +26,8 @@ STATUS_LABELS = {
     ("dikim_durum", "basladi"): "Dikim Başladı",
     ("dikim_durum", "kismi_bitti"): "Kısmi Dikim Yapıldı",
     ("dikim_durum", "bitti"): "Dikildi",
+    ("ust_etek_dikimi", "basladi"): "Üst Etek Dikimi Başladı",
+    ("ust_etek_dikimi", "bitti"): "Üst Etek Dikimi Bitti",
     ("dikim_yardim", "yardim_etti"): "🤝 Dikime Yardım Etti",
     ("susleme_durum", "siraya_alindi"): "Süsleme Sırasına Alındı",
     ("susleme_durum", "sıraya_alındı"): "Süsleme Sırasına Alındı",
