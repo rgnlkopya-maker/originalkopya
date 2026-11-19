@@ -1049,6 +1049,10 @@ def update_stage(request, pk):
     if not stage or not value:
         return HttpResponseForbidden("Eksik veri")
 
+    # Quality issue reports must include a description.
+    if stage == "kalite_kontrol" and value == "hata_gordum" and not (aciklama or "").strip():
+        return HttpResponseBadRequest("Lütfen gördüğünüz hatayı açıklayınız.")
+
     # ---------------------------------------------------------
     # 1) ORDER ÜZERİNDE AŞAMA GÜNCELLE
     # ---------------------------------------------------------
@@ -1127,6 +1131,7 @@ def update_stage(request, pk):
         ("susleme_durum", "bitti"): "Süsleme Bitti",
         ("susleme_yardim", "yardim_etti"): "Süslemeye Yardım Etti",
         ("kalite_kontrol", "kontrol_ettim"): "Kontrol Ettim",
+        ("kalite_kontrol", "hata_gordum"): "Hata Gördüm",
         ("sevkiyat_durum", "gonderildi"): "Sevkiyata Gönderildi",
     }
     stage_label = stage_labels.get((stage, value), f"{stage.replace('_', ' ').title()} → {value.replace('_', ' ').title()}")
