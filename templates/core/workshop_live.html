@@ -7,7 +7,7 @@
 .workshop-header p{font-size:12px;color:#7c899e;margin:5px 0 0}
 .live-indicator{display:flex;align-items:center;gap:8px;background:#eaf9f0;border:1px solid #ccebd8;color:#168251;border-radius:999px;padding:8px 12px;font-size:12px;font-weight:800}
 .live-dot{width:8px;height:8px;background:#22b66d;border-radius:50%;box-shadow:0 0 0 4px #dcf8e8}
-.workshop-layout{display:grid;grid-template-columns:minmax(285px,31%) minmax(0,1fr);gap:16px;align-items:start}
+.workshop-layout{display:grid;grid-template-columns:minmax(260px,27%) minmax(0,1fr);gap:16px;align-items:start}
 .today-panel{position:sticky;top:82px;max-height:calc(100vh - 102px);display:flex;flex-direction:column;background:#fff;border:1px solid #e3e8f0;border-radius:16px;overflow:hidden;box-shadow:0 3px 14px rgba(20,35,65,.04)}
 .today-head{background:#f1f4ff;padding:17px;border-bottom:1px solid #e3e8f0;flex:none}
 .today-head h2{font-size:17px;font-weight:850;margin:4px 0 0;color:#253653}
@@ -37,6 +37,7 @@
 .live-table .item-code{font-weight:850;color:#253653}
 .live-table .stage{display:inline-block;border:1px solid #d6e8fd;background:#edf5ff;color:#3268a5;font-weight:850;font-size:10px;border-radius:7px;padding:5px 6px;white-space:normal;line-height:1.35}
 .live-table .time{white-space:normal}
+.live-delivery{white-space:nowrap;font-size:10px!important;font-weight:700!important;color:#334155!important}
 .live-table .customer{font-size:11.5px;line-height:1.3}
 .live-table .ref,.live-table .description{font-size:10px;overflow-wrap:anywhere}
 .live-product-cell{line-height:1.4}
@@ -47,7 +48,7 @@
 .live-worker-meta small{font-size:9px;color:#94a3b8;display:block;line-height:1.15}
 .live-worker-meta span{font-size:10px;color:#48566a;line-height:1.3}
 .live-worker-meta .elapsed{font-weight:750;color:#246a4e}
-@media(max-width:1250px){.live-table th{font-size:9px!important;padding:8px 4px}.live-table td{padding:9px 4px!important}.live-worker-meta{grid-template-columns:max-content max-content}.workshop-layout{grid-template-columns:minmax(240px,29%) minmax(0,1fr)}}
+@media(max-width:1250px){.live-table th{font-size:9px!important;padding:8px 4px}.live-table td{padding:9px 4px!important}.live-worker-meta{grid-template-columns:max-content max-content}.workshop-layout{grid-template-columns:minmax(230px,26%) minmax(0,1fr)}}
 @media(max-width:900px){.live-table th{font-size:10px!important}.live-table td{padding:10px 6px!important}.live-worker-meta{grid-template-columns:max-content max-content}}
 @media(max-width:550px){.live-table .stage{font-size:9px;padding:4px}.live-table th{font-size:9px!important;padding:7px 3px}.live-table td{font-size:10px!important;padding:8px 3px!important}.live-table .customer{font-size:10px}.live-worker{font-size:10px}.live-worker-meta{grid-template-columns:max-content max-content;gap:0}.live-worker-meta span{font-size:9px}.live-product-cell .product-line{font-size:9px}.live-product-cell .item-code{font-size:10px}.live-table .ref,.live-table .description{font-size:9px}.live-hide-btn{padding:2px;font-size:12px}}
 .live-table a{text-decoration:none;color:inherit}
@@ -97,11 +98,12 @@
    </div>
    <div class="live-table-wrap">
     {% if open_work %}
-    <table class="live-table"><colgroup><col style="width:33%"><col style="width:16%"><col style="width:24%"><col style="width:23%"><col style="width:4%"></colgroup><thead><tr><th>Firma / Referans / Açıklama</th><th>Ürün / Renk / Beden</th><th>Devam Eden İşlem</th><th>Personel / Başlangıç / Süre</th><th class="live-hide-head" aria-label="Listeden kaldır"></th></tr></thead>
+    <table class="live-table"><colgroup><col style="width:29%"><col style="width:15%"><col style="width:20%"><col style="width:10%"><col style="width:22%"><col style="width:4%"></colgroup><thead><tr><th>Firma / Referans / Açıklama</th><th>Ürün / Renk / Beden</th><th>Devam Eden İşlem</th><th>Teslim Tarihi</th><th>Personel / Başlangıç / Süre</th><th class="live-hide-head" aria-label="Listeden kaldır"></th></tr></thead>
     <tbody>{% for row in open_work %}<tr>
      <td><a href="{% url 'order_detail' row.order.id %}?return_url={{ request.get_full_path|urlencode }}"><div class="customer">{{ row.order.musteri|default:"Stoğa Üretim" }}</div>{% if row.order.musteri_referans %}<div class="ref">Ref: {{ row.order.musteri_referans|truncatechars:60 }}</div>{% endif %}{% if row.order.aciklama %}<div class="description" title="{{ row.order.aciklama }}">Açıklama: {{ row.order.aciklama|truncatechars:60 }}</div>{% endif %}</a></td>
      <td class="live-product-cell"><span class="item-code">{{ row.order.urun_kodu|default:"—" }}</span><span class="product-line">{{ row.order.renk|default:"—" }}</span><span class="product-line">{{ row.order.beden|default:"—" }}</span></td>
      <td><span class="stage">{{ row.operation }}</span></td>
+     <td class="live-delivery">{% if row.order.teslim_tarihi %}{{ row.order.teslim_tarihi|date:"d.m.Y" }}{% else %}—{% endif %}</td>
      <td><div class="live-worker">{{ row.person }}</div><div class="live-worker-meta"><div><small>Başlangıç</small><span title="{{ row.started|date:'d.m.Y H:i' }}">{{ row.started|date:"d.m H:i" }}</span></div><div><small>Açık süre</small><span class="elapsed" data-session-id="{{ row.event_id }}">{% if row.elapsed_minutes is None %}Puantaj yok{% else %}{{ row.elapsed_minutes }} dk{% endif %}</span>{{ row.work_sessions|json_script:row.event_id }}</div></div></td>
      <td class="live-hide-cell"><button type="button" class="live-hide-btn" title="Yalnızca bu listeden kaldır" aria-label="{{ row.order.urun_kodu }} {{ row.operation }} işlemini listeden kaldır" data-event-id="{{ row.event_id }}" data-action="{% url 'workshop_live_hide' row.event_id %}" data-label="{{ row.order.urun_kodu }} · {{ row.operation }}">×</button></td>
     </tr>{% endfor %}</tbody></table>
