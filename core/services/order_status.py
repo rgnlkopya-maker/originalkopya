@@ -74,6 +74,15 @@ def latest_status_event(order):
 def status_label(event):
     if event is None:
         return "-"
+    if event.value == "basladi" and event.aciklama == "Tekrar Başladım":
+        restart_labels = {
+            "kesim_durum": "Kesime Tekrar Başladım",
+            "dikim_durum": "Dikime Tekrar Başladım",
+            "ust_etek_dikimi": "Üst Etek Dikimine Tekrar Başladım",
+            "susleme_durum": "Süslemeye Tekrar Başladım",
+        }
+        if event.stage in restart_labels:
+            return restart_labels[event.stage]
     return STATUS_LABELS.get(
         (event.stage, event.value),
         f"{event.stage.replace('_durum', '').replace('_', ' ').title()} → "
