@@ -148,6 +148,10 @@ def workshop_live(request):
         }
         for plan in shipment_plans
     ]
+    today_shipment_order_ids = {plan.order_id for plan in shipment_plans}
+    for row in open_work:
+        row["in_today_shipment_plan"] = row["order"].id in today_shipment_order_ids
+
     shipment_notes = list(
         PlanningEntry.objects.filter(section="sevkiyat", date=today).order_by("id")
     )
