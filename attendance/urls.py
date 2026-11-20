@@ -1,5 +1,5 @@
 from django.urls import path
-from . import views, salary_views
+from . import views, salary_views, excel_views
 
 urlpatterns = [
     path("maaslar/sifre/", salary_views.salary_home, name="salary_password_gate"),
@@ -23,6 +23,7 @@ urlpatterns = [
     path("panel/sifre/", views.dashboard, name="attendance_password_gate"),
     path("panel/", views.dashboard, name="attendance_dashboard"),
     path("panel/kayit-duzenle/", views.edit_record, name="attendance_edit_record"),
+    path("panel/excel/", excel_views.attendance_excel, name="attendance_excel"),
     path("panel/konum-kaydet/", views.save_workplace, name="attendance_save_workplace"),
     path("rapor/<int:user_id>/", views.month_report, name="attendance_month_report_current"),
     path("rapor/<int:user_id>/<int:year>/<int:month>/", views.month_report, name="attendance_month_report"),
