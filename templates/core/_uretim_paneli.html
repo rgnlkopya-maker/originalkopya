@@ -96,6 +96,7 @@
                                     <div class="timeline-main">
                                         {% if e.stage == 'malzeme_durum' and e.value == 'kesildi' %}Malzemesi Kesildi
                                         {% elif e.stage == 'malzeme_durum' and e.value == 'boyandi' %}Malzemesi Boyandı
+                                        {% elif e.stage == 'malzeme_durum' and e.value == 'danteli_ayarlandi' %}Danteli Ayarlandı
                                         {% elif e.stage == 'malzeme_durum' and e.value == 'eksik' %}Malzemesi Eksik
                                         {% elif e.stage == 'kesim_durum' and e.value == 'siraya_alindi' %}Kesim Sırasına Alındı
                                         {% elif e.stage == 'dikim_durum' and e.value == 'sıraya_alındı' %}Dikime Alındı
@@ -167,6 +168,7 @@
             <div class="stage-actions">
                 <button class="soft-btn btn-soft-primary" hx-post="{% url 'update_stage' order.id %}" hx-headers='{"X-CSRFToken":"{{ csrf_token }}"}' hx-vals='{"stage":"malzeme_durum","value":"kesildi"}' hx-target="#uretim-paneli" hx-swap="innerHTML">Malzemesi Kesildi</button>
                 <button class="soft-btn btn-soft-success" hx-post="{% url 'update_stage' order.id %}" hx-headers='{"X-CSRFToken":"{{ csrf_token }}"}' hx-vals='{"stage":"malzeme_durum","value":"boyandi"}' hx-target="#uretim-paneli" hx-swap="innerHTML">Malzemesi Boyandı</button>
+                <button class="soft-btn btn-soft-info" hx-post="{% url 'update_stage' order.id %}" hx-headers='{"X-CSRFToken":"{{ csrf_token }}"}' hx-vals='{"stage":"malzeme_durum","value":"danteli_ayarlandi"}' hx-target="#uretim-paneli" hx-swap="innerHTML">Danteli Ayarlandı</button>
                 <button class="soft-btn btn-soft-warning" onclick="return malzemeEksik(this);">Malzemesi Eksik</button>
             </div>
         </div>
