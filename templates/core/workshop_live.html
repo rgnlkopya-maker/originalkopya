@@ -43,6 +43,13 @@
 .live-footer{color:#8290a4;font-size:11px;padding:14px 18px;border-top:1px solid #edf0f6}
 .live-refresh{border:1px solid #dfe5ef;border-radius:9px;background:#fff;padding:8px 12px;font-size:12px;font-weight:750;color:#596a85;cursor:pointer}
 .live-refresh:hover{background:#f3f6fb}
+.live-hide-head{width:26px!important;min-width:26px;padding:0!important}
+.live-hide-cell{width:26px;padding:9px 4px!important;text-align:right;vertical-align:top}
+.live-hide-btn{border:0;background:transparent;color:#b6bfcb;padding:2px 5px;border-radius:6px;font-size:13px;line-height:1;opacity:.55;cursor:pointer}
+.live-hide-btn:hover,.live-hide-btn:focus-visible{opacity:1;color:#b44949;background:#fff1f1;outline:none}
+.live-hide-btn:focus-visible{box-shadow:0 0 0 2px #f1b9b9}
+.workshop-confirm .modal-content{border:0;border-radius:16px}
+.workshop-confirm .modal-body{font-size:13px;color:#65748b}
 @media(max-width:900px){.workshop-page{padding:14px 9px 40px}.workshop-layout{display:block}.today-panel{position:relative;top:auto;max-height:400px;margin-bottom:14px}.today-panel-content{max-height:305px}.workshop-header h1{font-size:23px}.live-panel-head{padding:14px}}
 </style>
 {% endblock %}
@@ -77,7 +84,7 @@
    </div>
    <div class="live-table-wrap">
     {% if open_work %}
-    <table class="live-table"><thead><tr><th>Firma / Referans / Açıklama</th><th>Ürün Kodu</th><th>Renk / Beden</th><th>Devam Eden İşlem</th><th>Personel</th><th>Başlangıç</th><th>Açık Süre</th></tr></thead>
+    <table class="live-table"><thead><tr><th>Firma / Referans / Açıklama</th><th>Ürün Kodu</th><th>Renk / Beden</th><th>Devam Eden İşlem</th><th>Personel</th><th>Başlangıç</th><th>Açık Süre</th><th class="live-hide-head" aria-label="Listeden kaldır"></th></tr></thead>
     <tbody>{% for row in open_work %}<tr>
      <td><a href="{% url 'order_detail' row.order.id %}?return_url={{ request.get_full_path|urlencode }}"><div class="customer">{{ row.order.musteri|default:"Stoğa Üretim" }}</div>{% if row.order.musteri_referans %}<div class="ref">Ref: {{ row.order.musteri_referans|truncatechars:60 }}</div>{% endif %}{% if row.order.aciklama %}<div class="description" title="{{ row.order.aciklama }}">Açıklama: {{ row.order.aciklama|truncatechars:60 }}</div>{% endif %}</a></td>
      <td><span class="item-code">{{ row.order.urun_kodu|default:"—" }}</span></td>
@@ -86,6 +93,7 @@
      <td>{{ row.person }}</td>
      <td class="time">{{ row.started|date:"d.m.Y" }}<br><strong>{{ row.started|date:"H:i" }}</strong></td>
      <td class="time" data-start="{{ row.started|date:'c' }}">{{ row.elapsed_minutes }} dk</td>
+     <td class="live-hide-cell"><button type="button" class="live-hide-btn" title="Yalnızca bu listeden kaldır" aria-label="{{ row.order.urun_kodu }} {{ row.operation }} işlemini listeden kaldır" data-event-id="{{ row.event_id }}" data-action="{% url 'workshop_live_hide' row.event_id %}" data-label="{{ row.order.urun_kodu }} · {{ row.operation }}">×</button></td>
     </tr>{% endfor %}</tbody></table>
     {% else %}<div class="live-empty"><i class="bi bi-check-circle fs-2 d-block mb-2"></i>Şu anda açık bir “Başladı” işlemi bulunmuyor.</div>{% endif %}
    </div>
@@ -93,10 +101,42 @@
   </section>
  </div>
 </div>
+<div class="modal fade workshop-confirm" id="workshopHideModal" tabindex="-1" aria-hidden="true">
+ <div class="modal-dialog modal-dialog-centered modal-sm">
+  <div class="modal-content">
+   <div class="modal-header border-0 pb-0"><h5 class="modal-title fw-bold fs-6">Listeden kaldır</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Kapat"></button></div>
+   <div class="modal-body"><strong id="workshopHideLabel" class="d-block mb-2 text-dark"></strong>Bu işlem yalnızca Atölye Canlı Durum listesinden kaldırılacak. Üretim geçmişi ve personelin bastığı butonlar değişmeyecek.<div class="text-danger mt-2" id="workshopHideError" role="alert"></div></div>
+   <div class="modal-footer border-0 pt-0"><button type="button" class="btn btn-light btn-sm" data-bs-dismiss="modal">Vazgeç</button><button type="button" class="btn btn-outline-secondary btn-sm" id="workshopHideConfirm">Kaldır</button></div>
+  </div>
+ </div>
+</div>
 {% endblock %}
 {% block extra_js %}
 <script>
 (function(){
+ const hideModalEl=document.getElementById('workshopHideModal');
+ const hideModal=hideModalEl?bootstrap.Modal.getOrCreateInstance(hideModalEl):null;
+ const hideConfirm=document.getElementById('workshopHideConfirm');
+ let selectedHideButton=null;
+ document.querySelectorAll('.live-hide-btn').forEach(btn=>btn.addEventListener('click',()=>{
+   selectedHideButton=btn;
+   document.getElementById('workshopHideLabel').textContent=btn.dataset.label||'Seçilen işlem';
+   document.getElementById('workshopHideError').textContent='';
+   hideConfirm.disabled=false;
+   hideModal.show();
+ }));
+ hideConfirm?.addEventListener('click',async()=>{
+   if(!selectedHideButton)return;
+   const error=document.getElementById('workshopHideError');
+   hideConfirm.disabled=true;error.textContent='';
+   try{
+     const response=await fetch(selectedHideButton.dataset.action,{method:'POST',credentials:'same-origin',headers:{'X-CSRFToken':'{{ csrf_token }}','X-Requested-With':'XMLHttpRequest'}});
+     const data=await response.json();
+     if(!response.ok||!data.ok)throw new Error(data.message||'İşlem kaldırılamadı.');
+     hideModal.hide();
+     window.location.reload();
+   }catch(e){error.textContent=e.message||'Bağlantı hatası.';hideConfirm.disabled=false;}
+ });
  const pad=n=>String(n).padStart(2,'0');
  function updateDurations(){
   document.querySelectorAll('[data-start]').forEach(cell=>{
