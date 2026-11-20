@@ -222,6 +222,7 @@ class Order(models.Model):
         ('bekliyor', 'Bekliyor'),
         ('basladi', 'Başladı'),
         ('bitti', 'Bitti'),
+        ('beklemede', 'Beklemede'),
     ]
 
     kesim_durum = models.CharField(max_length=20, choices=DURUM_SECENEKLERI, default='bekliyor')
