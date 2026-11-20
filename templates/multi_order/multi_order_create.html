@@ -344,6 +344,50 @@ hr {
 @media(max-width:950px){.order-create-shell .order-delivery-media-grid{grid-template-columns:minmax(0,1fr)}}
 @media(max-width:767px){.order-create-shell .order-step{padding:18px 14px;border-radius:14px;margin-bottom:12px}.order-create-shell .order-step-head{margin-bottom:16px}.order-create-shell .order-step-title{font-size:15px}.order-create-shell .order-submit-bar .btn{width:100%}}
 
+
+/* Sipariş Bilgileri: four equal fields on one row (not oversized Bootstrap columns). */
+@media(min-width:992px){
+  .order-create-shell .order-step--basic > .row.mb-4{
+    display:grid!important;
+    grid-template-columns:repeat(4,minmax(0,1fr));
+    column-gap:14px;
+    row-gap:12px;
+    margin:0!important;
+    padding:0!important;
+    border:0!important;
+    background:none!important;
+    align-items:start;
+  }
+  .order-create-shell .order-step--basic > .row.mb-4 > .col-md-4{
+    width:auto!important;
+    max-width:none!important;
+    min-width:0!important;
+    flex:none!important;
+    padding:0!important;
+    margin:0!important;
+  }
+  .order-create-shell .order-step--basic > .row.mb-4 > #price-history-area{
+    grid-column:1 / -1;
+    width:auto!important;
+    max-width:none!important;
+    padding:0!important;
+  }
+}
+@media(min-width:768px) and (max-width:991px){
+  .order-create-shell .order-step--basic > .row.mb-4{
+    display:grid!important;
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:12px;
+    margin:0!important;
+  }
+  .order-create-shell .order-step--basic > .row.mb-4 > .col-md-4{
+    width:auto!important;max-width:none!important;min-width:0!important;
+    padding:0!important;margin:0!important;flex:none!important;
+  }
+  .order-create-shell .order-step--basic > .row.mb-4 > #price-history-area{
+    grid-column:1 / -1;
+  }
+}
 </style>
 {% endblock %}
 
