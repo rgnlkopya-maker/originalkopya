@@ -93,7 +93,7 @@
   <section class="live-panel" aria-labelledby="live-panel-title">
    <div class="live-panel-head">
     <div><h2 id="live-panel-title">Devam Eden İşlemler <span class="text-secondary">({{ open_count }})</span></h2><small>Yalnızca son Başladı kaydı henüz Bitti ile kapanmamış işlemler</small></div>
-    <div class="small text-muted">Son kontrol: {{ updated_at|date:"H:i:s" }}</div>
+    <div class="small text-muted">Son kontrol: <span id="liveCheckedAt">{{ updated_at|date:"H:i:s" }}</span></div>
    </div>
    <div class="live-table-wrap">
     {% if open_work %}
@@ -107,7 +107,7 @@
     </tr>{% endfor %}</tbody></table>
     {% else %}<div class="live-empty"><i class="bi bi-check-circle fs-2 d-block mb-2"></i>Şu anda açık bir “Başladı” işlemi bulunmuyor.</div>{% endif %}
    </div>
-   <div class="live-footer">Bu görünüm, personelin bastığı üretim butonlarından oluşturulur. Gerçek zamanlı fiziksel çalışma doğrulaması değildir. Sayfa 45 saniyede bir güncellenir.</div>
+   <div class="live-footer">Bu görünüm, personelin bastığı üretim butonlarından oluşturulur. Gerçek zamanlı fiziksel çalışma doğrulaması değildir. Veri 3 saniyede bir kontrol edilir; yalnızca değişiklik varsa ekran güncellenir.</div>
   </section>
  </div>
 </div>
@@ -124,17 +124,22 @@
 {% block extra_js %}
 <script>
 (function(){
+
+ const versionUrl="{% url 'workshop_live_version' %}";
  const hideModalEl=document.getElementById('workshopHideModal');
  const hideModal=hideModalEl?bootstrap.Modal.getOrCreateInstance(hideModalEl):null;
  const hideConfirm=document.getElementById('workshopHideConfirm');
  let selectedHideButton=null;
- document.querySelectorAll('.live-hide-btn').forEach(btn=>btn.addEventListener('click',()=>{
+ let pending=false, version=null, lastFullRefresh=Date.now();
+ document.addEventListener('click',event=>{
+   const btn=event.target.closest('.live-hide-btn');
+   if(!btn)return;
    selectedHideButton=btn;
    document.getElementById('workshopHideLabel').textContent=btn.dataset.label||'Seçilen işlem';
    document.getElementById('workshopHideError').textContent='';
    hideConfirm.disabled=false;
    hideModal.show();
- }));
+ });
  hideConfirm?.addEventListener('click',async()=>{
    if(!selectedHideButton)return;
    const error=document.getElementById('workshopHideError');
@@ -144,22 +149,61 @@
      const data=await response.json();
      if(!response.ok||!data.ok)throw new Error(data.message||'İşlem kaldırılamadı.');
      hideModal.hide();
-     window.location.reload();
+     version=null;
+     await refreshSections();
    }catch(e){error.textContent=e.message||'Bağlantı hatası.';hideConfirm.disabled=false;}
  });
- const pad=n=>String(n).padStart(2,'0');
  function updateDurations(){
-  document.querySelectorAll('[data-start]').forEach(cell=>{
-   const started=Date.parse(cell.dataset.start);
-   if(!Number.isFinite(started))return;
-   const elapsed=Math.max(0,Math.floor((Date.now()-started)/60000));
-   const hours=Math.floor(elapsed/60);
-   cell.textContent=(hours?hours+' sa ':'')+(elapsed%60)+' dk';
-  });
+   document.querySelectorAll('[data-start]').forEach(cell=>{
+     const started=Date.parse(cell.dataset.start);
+     if(!Number.isFinite(started))return;
+     const elapsed=Math.max(0,Math.floor((Date.now()-started)/60000));
+     const hours=Math.floor(elapsed/60);
+     cell.textContent=(hours?hours+' sa ':'')+(elapsed%60)+' dk';
+   });
+ }
+ async function refreshSections(){
+   // Keep current TV page scroll and shipment sidebar position.
+   const response=await fetch(location.pathname+location.search,{credentials:'same-origin',cache:'no-store',headers:{'X-Requested-With':'XMLHttpRequest'}});
+   if(!response.ok)throw new Error('Canlı veriler alınamadı');
+   if(response.redirected && !response.url.includes('/atolye-canli-durum/')){location.reload();return;}
+   const html=await response.text();
+   const doc=new DOMParser().parseFromString(html,'text/html');
+   const current=document.querySelector('.workshop-layout');
+   const next=doc.querySelector('.workshop-layout');
+   if(!current||!next)throw new Error('Yeni tablo bulunamadı');
+   const oldShipScroll=document.querySelector('.today-panel-content')?.scrollTop||0;
+   current.replaceWith(document.importNode(next,true));
+   const newShip=document.querySelector('.today-panel-content');
+   if(newShip)newShip.scrollTop=oldShipScroll;
+   const check=doc.getElementById('liveCheckedAt');
+   const localCheck=document.getElementById('liveCheckedAt');
+   if(check&&localCheck)localCheck.textContent=check.textContent;
+   updateDurations();
+   lastFullRefresh=Date.now();
+ }
+ async function poll(){
+   if(pending||document.visibilityState!=='visible'||(hideModalEl?.classList.contains('show')))return;
+   pending=true;
+   try{
+     const response=await fetch(versionUrl,{credentials:'same-origin',cache:'no-store'});
+     if(!response.ok)throw new Error('Durum sorgusu başarısız');
+     const data=await response.json();
+     if(version===null){version=data.version;}
+     else if(data.version!==version){
+       await refreshSections();
+       version=data.version;
+     }
+   }catch(error){
+     // An occasional network error must never reload a TV dashboard endlessly.
+     console.warn('Atölye canlı güncelleme:',error);
+   }finally{pending=false;}
  }
  updateDurations();
- setInterval(updateDurations,30000);
- setInterval(()=>{if(document.visibilityState==='visible')window.location.reload()},45000);
+ setInterval(updateDurations,1000);
+ setInterval(poll,3000);
+ poll();
+
 })();
 </script>
 {% endblock %}
