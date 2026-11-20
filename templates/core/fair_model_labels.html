@@ -16,7 +16,7 @@
 .fair-controls{display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap;margin-top:18px}
 .fair-count{font-size:13px;color:#64748b;font-weight:600}
 .fair-preview{display:grid;grid-template-columns:repeat(auto-fill,minmax(205px,1fr));gap:12px;margin-top:18px}
-.fair-preview-label{display:flex;align-items:center;justify-content:center;background:#fff;border:1px solid #cbd5e1;border-radius:5px;aspect-ratio:2 / 1;font-family:Arial,Helvetica,sans-serif;font-weight:900;font-size:clamp(44px,4vw,60px);letter-spacing:-1.5px;line-height:1;color:#000}
+.fair-preview-label{display:flex;align-items:center;justify-content:center;background:#fff;border:1px solid #cbd5e1;border-radius:5px;aspect-ratio:2 / 1;font-family:Arial,Helvetica,sans-serif;font-weight:700;font-size:clamp(44px,4vw,60px);letter-spacing:-.5px;line-height:1;color:#000}
 .fair-notice{font-size:12px;color:#64748b;margin-top:12px}
 .fair-error{font-size:12px;color:#b42318;margin-top:10px;min-height:16px}
 #fairPrintArea{display:none}
@@ -26,7 +26,7 @@
  body *{visibility:hidden!important}
  #fairPrintArea,#fairPrintArea *{visibility:visible!important}
  #fairPrintArea{display:block!important;position:absolute!important;left:0;top:0;width:80mm!important}
- .fair-print-label{box-sizing:border-box;width:80mm;height:40mm;display:flex;align-items:center;justify-content:center;overflow:hidden;page-break-after:always;break-after:page;font-family:Arial,Helvetica,sans-serif;font-size:96pt;font-weight:900;line-height:1;letter-spacing:-2.2mm;color:#000;background:#fff;white-space:nowrap}
+ .fair-print-label{box-sizing:border-box;position:relative;width:80mm;height:40mm;margin:0;padding:0;overflow:hidden;page-break-after:always;break-after:page;font-family:Arial,Helvetica,sans-serif;color:#000;background:#fff}\n .fair-print-label .fair-print-code{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);display:block;width:max-content;max-width:78mm;text-align:center;font-size:84pt;font-weight:700;line-height:1;letter-spacing:-0.8mm;white-space:nowrap}
  .fair-print-label:last-child{page-break-after:auto;break-after:auto}
 }
 @media(max-width:600px){.fair-range-grid{grid-template-columns:1fr 1fr}.fair-range-grid button{grid-column:1 / -1}.fair-title{font-size:23px}.fair-panel{padding:15px}}
@@ -94,7 +94,7 @@
   error.textContent='';
   if(!ranges.length){error.textContent='Önce en az bir kod aralığı ekleyin.';return}
   const fragment=document.createDocumentFragment();
-  for(const code of codes()){const el=document.createElement('div');el.className='fair-print-label';el.textContent=String(code);fragment.append(el)}
+  for(const code of codes()){const el=document.createElement('div');el.className='fair-print-label';const digits=document.createElement('span');digits.className='fair-print-code';digits.textContent=String(code);el.append(digits);fragment.append(el)}
   printArea.replaceChildren(fragment);
   window.print();
  });
