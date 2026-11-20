@@ -4,14 +4,14 @@ A pause is a real OrderEvent in the original worker's name, explicitly marked
 as automatic. It is not a completion and never removes event history.
 """
 from django.utils import timezone
-from core.models import Order, OrderEvent
+from core.models import OrderEvent
 
 TRACKED_STAGES = ("kesim_durum", "dikim_durum", "ust_etek_dikimi", "susleme_durum", "utu_durum")
 CLOSING_VALUES = ("basladi", "bitti", "beklemede")
 
 
 def pause_previous_work(*, user, incoming_order, incoming_stage, timestamp=None):
-    """Close prior open starts made by this worker, without touching other workers' jobs.
+    """Pause the most recent open task of this worker, leaving historical records alone.
 
     Query the latest start/finish/pause per order+stage, then pause only if the
     latest open start was made by this exact logged-in employee. This respects a
@@ -27,15 +27,18 @@ def pause_previous_work(*, user, incoming_order, incoming_stage, timestamp=None)
         .order_by("order_id", "stage", "-timestamp", "-id")
         .distinct("order_id", "stage")
     )
-    paused = []
-    for event in current_states:
-        if event.value != "basladi" or event.user != user.username:
-            continue
-        if event.order_id == incoming_order.id and event.stage == incoming_stage:
-            continue
-        # Only one currently open task per worker, including existing stale starts.
-        previous = event.order
-        OrderEvent.objects.create(
+    candidates = [
+        event for event in current_states
+        if event.value == "basladi" and event.user == user.username
+        and (event.order_id != incoming_order.id or event.stage != incoming_stage)
+    ]
+    if not candidates:
+        return []
+    # Legacy records can include many unclosed starts. Alter only the latest
+    # active job rather than silently modifying every historical order.
+    event = max(candidates, key=lambda entry: (entry.timestamp, entry.id))
+    previous = event.order
+    OrderEvent.objects.create(
             order=previous,
             user=user.username,
             gorev=event.gorev,
@@ -45,9 +48,8 @@ def pause_previous_work(*, user, incoming_order, incoming_stage, timestamp=None)
             adet=previous.adet or 1,
             timestamp=timestamp,
             event_type="stage",
-        )
-        if event.stage in {"kesim_durum", "dikim_durum", "susleme_durum"}:
-            setattr(previous, event.stage, "beklemede")
-            previous.save(update_fields=[event.stage])
-        paused.append(previous.id)
-    return paused
+    )
+    if event.stage in {"kesim_durum", "dikim_durum", "susleme_durum"}:
+        setattr(previous, event.stage, "beklemede")
+        previous.save(update_fields=[event.stage])
+    return [previous.id]
