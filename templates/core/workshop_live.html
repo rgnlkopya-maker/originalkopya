@@ -31,6 +31,8 @@
 .live-table th{font-size:10px!important;font-weight:800;color:#66738a;text-transform:uppercase;background:#f7f9fc;padding:9px 6px;white-space:normal;border-bottom:1px solid #e5eaf1;overflow-wrap:anywhere}
 .live-table td{font-size:11px!important;padding:10px 6px!important;border-bottom:1px solid #edf1f6;vertical-align:top;color:#2c3b52;font-weight:500!important;overflow-wrap:anywhere}
 .live-table tr:hover{background:#f8faff}
+.live-table tr.today-shipment-row{background:#f3f7ff}
+.live-table tr.today-shipment-row:hover{background:#eaf1ff}
 .live-table .customer{font-weight:850;color:#23344f;max-width:195px}
 .live-table .ref,.live-table .description{font-size:11px;color:#728197;line-height:1.4;margin-top:4px;max-width:230px}
 .live-table .description{cursor:help}
@@ -99,7 +101,7 @@
    <div class="live-table-wrap">
     {% if open_work %}
     <table class="live-table"><colgroup><col style="width:29%"><col style="width:15%"><col style="width:20%"><col style="width:10%"><col style="width:22%"><col style="width:4%"></colgroup><thead><tr><th>Firma / Referans / Açıklama</th><th>Ürün / Renk / Beden</th><th>Devam Eden İşlem</th><th>Teslim Tarihi</th><th>Personel / Başlangıç / Süre</th><th class="live-hide-head" aria-label="Listeden kaldır"></th></tr></thead>
-    <tbody>{% for row in open_work %}<tr>
+    <tbody>{% for row in open_work %}<tr{% if row.in_today_shipment_plan %} class="today-shipment-row" title="Bugünün sevkiyat planında"{% endif %}>
      <td><a href="{% url 'order_detail' row.order.id %}?return_url={{ request.get_full_path|urlencode }}"><div class="customer">{{ row.order.musteri|default:"Stoğa Üretim" }}</div>{% if row.order.musteri_referans %}<div class="ref">Ref: {{ row.order.musteri_referans|truncatechars:60 }}</div>{% endif %}{% if row.order.aciklama %}<div class="description" title="{{ row.order.aciklama }}">Açıklama: {{ row.order.aciklama|truncatechars:60 }}</div>{% endif %}</a></td>
      <td class="live-product-cell"><span class="item-code">{{ row.order.urun_kodu|default:"—" }}</span><span class="product-line">{{ row.order.renk|default:"—" }}</span><span class="product-line">{{ row.order.beden|default:"—" }}</span></td>
      <td><span class="stage">{{ row.operation }}</span></td>
