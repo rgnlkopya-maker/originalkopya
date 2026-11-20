@@ -14,7 +14,7 @@ from django.shortcuts import render, get_object_or_404
 from django.utils import timezone
 from django.views.decorators.http import require_POST
 
-from app_settings.access import has_full_access
+from app_settings.access import can_view_workshop_live
 from planning.models import PlanningEntry, ShipmentPlan
 from .models import Order, OrderEvent, ProductionStageControlExclusion
 from .services.order_status import status_label, latest_status_event
@@ -30,7 +30,7 @@ LOCAL_STAGES = {
 
 @login_required
 def workshop_live(request):
-    if not has_full_access(request.user):
+    if not can_view_workshop_live(request.user):
         return HttpResponseForbidden("Atölye canlı durum erişim yetkiniz bulunmuyor.")
 
     now = timezone.now()
@@ -169,7 +169,7 @@ def workshop_live(request):
 @require_POST
 def workshop_live_hide(request, event_id):
     """Only hide this exact active work row; never mutate production history."""
-    if not has_full_access(request.user):
+    if not can_view_workshop_live(request.user):
         return HttpResponseForbidden("Bu işlemi yapma yetkiniz yok.")
     event = get_object_or_404(
         OrderEvent,
@@ -197,7 +197,7 @@ def workshop_live_hide(request, event_id):
 @login_required
 def workshop_live_version(request):
     """Lightweight 3-second TV poll; full HTML fetched only after a data change."""
-    if not has_full_access(request.user):
+    if not can_view_workshop_live(request.user):
         return HttpResponseForbidden("Atölye canlı durum erişim yetkiniz bulunmuyor.")
     today = timezone.localdate()
     stage = OrderEvent.objects.aggregate(last_id=Max("id"))
