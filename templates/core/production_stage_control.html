@@ -117,7 +117,7 @@
   <div class="control-card">
     {% if unshipped_orders %}
     <table class="control-table">
-      <thead><tr><th>Sipariş</th><th>Müşteri</th><th>Ürün</th><th>Renk / Beden</th><th>İlk Üretim Hareketi</th><th>Son Hareket</th><th>Süre</th><th>İşlem</th></tr></thead>
+      <thead><tr><th>Sipariş</th><th>Müşteri</th><th>Ürün</th><th>Renk / Beden</th><th>İlk Üretim Hareketi</th><th>Son Hareket</th><th>Son Durum</th><th>Süre</th><th>İşlem</th></tr></thead>
       <tbody>
       {% for row in unshipped_orders %}
       <tr>
@@ -127,6 +127,7 @@
         <td>{{ row.order.renk|default:"—" }} / {{ row.order.beden|default:"—" }}</td>
         <td>{{ row.first_event.timestamp|date:"d.m.Y H:i" }}<br><span class="text-muted">{{ row.first_event.user|default:"—" }}</span></td>
         <td>{{ row.last_event.timestamp|date:"d.m.Y H:i" }}<br><span class="text-muted">{{ row.last_event.user|default:"—" }}</span></td>
+        <td><span class="reason">{{ row.last_status_label|default:"—" }}</span></td>
         <td><span class="reason">{{ row.days_open }} gün</span></td>
         <td><div class="d-flex gap-2 flex-wrap"><form method="post" action="{% url 'exclude_from_production_stage_control' row.order.id %}">{% csrf_token %}<input type="hidden" name="control_type" value="unshipped_7d"><input type="hidden" name="hide_days" value="3"><input type="hidden" name="next" value="{{ request.get_full_path }}"><button class="btn btn-sm btn-outline-primary">3 Gün Gizle</button></form><form method="post" action="{% url 'exclude_from_production_stage_control' row.order.id %}">{% csrf_token %}<input type="hidden" name="control_type" value="unshipped_7d"><input type="hidden" name="next" value="{{ request.get_full_path }}"><button class="btn btn-sm btn-outline-secondary">Listeden Çıkar</button></form></div></td>
       </tr>
