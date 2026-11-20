@@ -97,6 +97,9 @@
                                         {% if e.stage == 'malzeme_durum' and e.value == 'kesildi' %}Malzemesi Kesildi
                                         {% elif e.stage == 'malzeme_durum' and e.value == 'boyandi' %}Malzemesi Boyandı
                                         {% elif e.stage == 'malzeme_durum' and e.value == 'danteli_ayarlandi' %}Danteli Ayarlandı
+                                        {% elif e.stage == 'malzeme_durum' and e.value == 'etek_danteli_ayarlandi' %}Etek Danteli Ayarlandı
+                                        {% elif e.stage == 'malzeme_durum' and e.value == 'beden_danteli_ayarlandi' %}Beden Danteli Ayarlandı
+                                        {% elif e.stage == 'malzeme_durum' and e.value == 'takim_olarak_danteli_ayarlandi' %}Takım Olarak Danteli Ayarlandı
                                         {% elif e.stage == 'malzeme_durum' and e.value == 'eksik' %}Malzemesi Eksik
                                         {% elif e.stage == 'kesim_durum' and e.value == 'siraya_alindi' %}Kesim Sırasına Alındı
                                         {% elif e.stage == 'dikim_durum' and e.value == 'sıraya_alındı' %}Dikime Alındı
@@ -169,6 +172,9 @@
                 <button class="soft-btn btn-soft-primary" hx-post="{% url 'update_stage' order.id %}" hx-headers='{"X-CSRFToken":"{{ csrf_token }}"}' hx-vals='{"stage":"malzeme_durum","value":"kesildi"}' hx-target="#uretim-paneli" hx-swap="innerHTML">Malzemesi Kesildi</button>
                 <button class="soft-btn btn-soft-success" hx-post="{% url 'update_stage' order.id %}" hx-headers='{"X-CSRFToken":"{{ csrf_token }}"}' hx-vals='{"stage":"malzeme_durum","value":"boyandi"}' hx-target="#uretim-paneli" hx-swap="innerHTML">Malzemesi Boyandı</button>
                 <button class="soft-btn btn-soft-info" hx-post="{% url 'update_stage' order.id %}" hx-headers='{"X-CSRFToken":"{{ csrf_token }}"}' hx-vals='{"stage":"malzeme_durum","value":"danteli_ayarlandi"}' hx-target="#uretim-paneli" hx-swap="innerHTML">Danteli Ayarlandı</button>
+                <button class="soft-btn btn-soft-info" hx-post="{% url 'update_stage' order.id %}" hx-headers='{"X-CSRFToken":"{{ csrf_token }}"}' hx-vals='{"stage":"malzeme_durum","value":"etek_danteli_ayarlandi"}' hx-target="#uretim-paneli" hx-swap="innerHTML">Etek Danteli Ayarlandı</button>
+                <button class="soft-btn btn-soft-info" hx-post="{% url 'update_stage' order.id %}" hx-headers='{"X-CSRFToken":"{{ csrf_token }}"}' hx-vals='{"stage":"malzeme_durum","value":"beden_danteli_ayarlandi"}' hx-target="#uretim-paneli" hx-swap="innerHTML">Beden Danteli Ayarlandı</button>
+                <button class="soft-btn btn-soft-info" hx-post="{% url 'update_stage' order.id %}" hx-headers='{"X-CSRFToken":"{{ csrf_token }}"}' hx-vals='{"stage":"malzeme_durum","value":"takim_olarak_danteli_ayarlandi"}' hx-target="#uretim-paneli" hx-swap="innerHTML">Takım Olarak Danteli Ayarlandı</button>
                 <button class="soft-btn btn-soft-warning" onclick="return malzemeEksik(this);">Malzemesi Eksik</button>
             </div>
         </div>
