@@ -204,12 +204,14 @@ def workshop_live_version(request):
     notes = PlanningEntry.objects.filter(section="sevkiyat", date=today).aggregate(
         count=Count("id"), last_id=Max("id"), last_update=Max("updated_at")
     )
+    attendance = AttendanceRecord.objects.aggregate(last_update=Max("updated_at"))
     # New events, manager exclusions, plan edits and date rollover change the version.
     key = "|".join(str(value or "") for value in (
         today.isoformat(), stage["last_id"],
         exclusions["count"], exclusions["last_id"],
         plans["count"], plans["last_id"], plans["last_update"],
         notes["count"], notes["last_id"], notes["last_update"],
+        attendance["last_update"],
     ))
     response = JsonResponse({"version": key})
     response["Cache-Control"] = "no-store"
