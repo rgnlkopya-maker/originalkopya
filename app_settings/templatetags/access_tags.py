@@ -1,6 +1,6 @@
 from django import template
 
-from app_settings.access import has_access, has_feature_access, has_full_access
+from app_settings.access import has_access, has_feature_access, has_full_access, can_view_workshop_live
 from app_settings.models import SystemSettings
 from app_settings.middleware import staff_break_active
 
@@ -20,6 +20,11 @@ def can_feature(user, feature_key):
 @register.filter
 def is_management(user):
     return has_full_access(user)
+
+
+@register.filter
+def can_workshop_live(user):
+    return can_view_workshop_live(user)
 
 
 @register.simple_tag
