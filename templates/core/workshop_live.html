@@ -102,7 +102,7 @@
      <td><a href="{% url 'order_detail' row.order.id %}?return_url={{ request.get_full_path|urlencode }}"><div class="customer">{{ row.order.musteri|default:"Stoğa Üretim" }}</div>{% if row.order.musteri_referans %}<div class="ref">Ref: {{ row.order.musteri_referans|truncatechars:60 }}</div>{% endif %}{% if row.order.aciklama %}<div class="description" title="{{ row.order.aciklama }}">Açıklama: {{ row.order.aciklama|truncatechars:60 }}</div>{% endif %}</a></td>
      <td class="live-product-cell"><span class="item-code">{{ row.order.urun_kodu|default:"—" }}</span><span class="product-line">{{ row.order.renk|default:"—" }}</span><span class="product-line">{{ row.order.beden|default:"—" }}</span></td>
      <td><span class="stage">{{ row.operation }}</span></td>
-     <td><div class="live-worker">{{ row.person }}</div><div class="live-worker-meta"><div><small>Başlangıç</small><span title="{{ row.started|date:'d.m.Y H:i' }}">{{ row.started|date:"d.m H:i" }}</span></div><div><small>Açık süre</small><span class="elapsed" data-start="{{ row.started|date:'c' }}">{{ row.elapsed_minutes }} dk</span></div></div></td>
+     <td><div class="live-worker">{{ row.person }}</div><div class="live-worker-meta"><div><small>Başlangıç</small><span title="{{ row.started|date:'d.m.Y H:i' }}">{{ row.started|date:"d.m H:i" }}</span></div><div><small>Açık süre</small><span class="elapsed" data-session-id="{{ row.event_id }}">{% if row.elapsed_minutes is None %}Puantaj yok{% else %}{{ row.elapsed_minutes }} dk{% endif %}</span>{{ row.work_sessions|json_script:row.event_id }}</div></div></td>
      <td class="live-hide-cell"><button type="button" class="live-hide-btn" title="Yalnızca bu listeden kaldır" aria-label="{{ row.order.urun_kodu }} {{ row.operation }} işlemini listeden kaldır" data-event-id="{{ row.event_id }}" data-action="{% url 'workshop_live_hide' row.event_id %}" data-label="{{ row.order.urun_kodu }} · {{ row.operation }}">×</button></td>
     </tr>{% endfor %}</tbody></table>
     {% else %}<div class="live-empty"><i class="bi bi-check-circle fs-2 d-block mb-2"></i>Şu anda açık bir “Başladı” işlemi bulunmuyor.</div>{% endif %}
@@ -154,12 +154,22 @@
    }catch(e){error.textContent=e.message||'Bağlantı hatası.';hideConfirm.disabled=false;}
  });
  function updateDurations(){
-   document.querySelectorAll('[data-start]').forEach(cell=>{
-     const started=Date.parse(cell.dataset.start);
-     if(!Number.isFinite(started))return;
-     const elapsed=Math.max(0,Math.floor((Date.now()-started)/60000));
-     const hours=Math.floor(elapsed/60);
-     cell.textContent=(hours?hours+' sa ':'')+(elapsed%60)+' dk';
+   document.querySelectorAll('[data-session-id]').forEach(cell=>{
+     const script=document.getElementById(cell.dataset.sessionId);
+     if(!script)return;
+     let sessions;
+     try{sessions=JSON.parse(script.textContent)}catch(e){return}
+     if(!sessions.length){cell.textContent='Puantaj yok';return}
+     const now=Date.now();
+     let seconds=0;
+     sessions.forEach(session=>{
+       const start=Date.parse(session.start);
+       const end=session.end?Date.parse(session.end):now;
+       if(Number.isFinite(start)&&Number.isFinite(end))seconds+=Math.max(0,Math.min(now,end)-start);
+     });
+     const minutes=Math.floor(seconds/60000);
+     const hours=Math.floor(minutes/60);
+     cell.textContent=(hours?hours+' sa ':'')+(minutes%60)+' dk';
    });
  }
  async function refreshSections(){
