@@ -648,6 +648,11 @@ def dashboard(request):
             user_records = [r for r in annual_records if r.user_id == user.id]
             annual_totals.append({"user": user, **totals_for(user_records)})
 
+    chosen_totals = monthly_totals if view_mode == "monthly" else annual_totals
+    grand_totals = {
+        key: sum(row[key] for row in chosen_totals)
+        for key in ("total_late", "total_early_leave", "total_overtime", "leave_days", "annual_leave_days", "sick_days")
+    }
     return render(request, "attendance_v2/dashboard.html", {
         "workplace": workplace,
         "users": users,
@@ -667,6 +672,7 @@ def dashboard(request):
         "next_month": next_month,
         "view_mode": view_mode,
         "can_edit": is_patron(request.user),
+        "grand_totals": grand_totals,
     })
 
 @login_required
