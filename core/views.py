@@ -1060,13 +1060,6 @@ def update_stage(request, pk):
         return HttpResponseBadRequest("Bu aşama beklemeye alınamaz.")
     if value == "beklemede" and not (aciklama or "").strip():
         return HttpResponseBadRequest("Beklemeye alma sebebi zorunludur.")
-    if stage in work_stages and value == "basladi":
-        # Serialize concurrent starts by the same employee; generate pause
-        # history for the job(s) they left before creating the next start.
-        User.objects.select_for_update().get(pk=request.user.pk)
-        from .services.workshop_pause import pause_previous_work
-        pause_previous_work(user=request.user, incoming_order=order, incoming_stage=stage)
-
     # Quality issue reports must include a description.
     if stage == "kalite_kontrol" and value == "hata_gordum" and not (aciklama or "").strip():
         return HttpResponseBadRequest("Lütfen gördüğünüz hatayı açıklayınız.")
