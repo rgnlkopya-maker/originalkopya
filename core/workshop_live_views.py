@@ -3,16 +3,16 @@
 This page is strictly read-only. A stage is open when its latest Başladı/Bitti
 event is Başladı, regardless of which employee eventually pressed Bitti.
 """
-from datetime import timedelta
 
 from django.contrib.auth.decorators import login_required
-from django.http import HttpResponseForbidden
-from django.shortcuts import render
+from django.http import HttpResponseForbidden, JsonResponse
+from django.shortcuts import render, get_object_or_404
 from django.utils import timezone
+from django.views.decorators.http import require_POST
 
 from app_settings.access import has_full_access
 from planning.models import PlanningEntry, ShipmentPlan
-from .models import OrderEvent
+from .models import OrderEvent, ProductionStageControlExclusion
 from .services.order_status import status_label, latest_status_event
 
 LOCAL_STAGES = {
@@ -45,12 +45,21 @@ def workshop_live(request):
         .order_by("order_id", "stage", "-timestamp", "-id")
         .distinct("order_id", "stage")
     )
+    # One hidden entry per exact "Başladı" event. A later start is visible again.
+    active_events = list(recent_states)
+    excluded = set(
+        ProductionStageControlExclusion.objects.filter(
+            order_id__in=[event.order_id for event in active_events],
+            control_type__startswith="workshop_",
+        ).values_list("order_id", "control_type")
+    )
     open_work = []
-    for event in recent_states:
-        if event.value != "basladi":
+    for event in active_events:
+        if event.value != "basladi" or (event.order_id, f"workshop_{event.id}") in excluded:
             continue
         order = event.order
         open_work.append({
+            "event_id": event.id,
             "order": order,
             "operation": status_label(event),
             "stage_name": LOCAL_STAGES[event.stage],
@@ -86,3 +95,32 @@ def workshop_live(request):
         "updated_at": now,
         "open_count": len(open_work),
     })
+
+
+@login_required
+@require_POST
+def workshop_live_hide(request, event_id):
+    """Only hide this exact active work row; never mutate production history."""
+    if not has_full_access(request.user):
+        return HttpResponseForbidden("Bu işlemi yapma yetkiniz yok.")
+    event = get_object_or_404(
+        OrderEvent,
+        pk=event_id,
+        event_type="stage",
+        stage__in=LOCAL_STAGES,
+        value="basladi",
+        order__is_active=True,
+    )
+    # Confirm this row is still the latest start/finish for the order and stage.
+    latest = (OrderEvent.objects.filter(
+        order_id=event.order_id, stage=event.stage,
+        event_type="stage", value__in=("basladi", "bitti"),
+    ).order_by("-timestamp", "-id").values_list("id", flat=True).first())
+    if latest != event.pk:
+        return JsonResponse({"ok": False, "message": "Bu işlem artık açık değil. Sayfayı yenileyin."}, status=409)
+    ProductionStageControlExclusion.objects.get_or_create(
+        order_id=event.order_id,
+        control_type=f"workshop_{event.pk}",
+        defaults={"excluded_by": request.user},
+    )
+    return JsonResponse({"ok": True})
