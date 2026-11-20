@@ -41,7 +41,7 @@ def workshop_live(request):
         OrderEvent.objects.filter(
             event_type="stage",
             stage__in=LOCAL_STAGES,
-            value__in=("basladi", "bitti"),
+            value__in=("basladi", "bitti", "beklemede"),
             order__is_active=True,
         )
         .exclude(order__siparis_tipi="MALZEME")
@@ -182,7 +182,7 @@ def workshop_live_hide(request, event_id):
     # Confirm this row is still the latest start/finish for the order and stage.
     latest = (OrderEvent.objects.filter(
         order_id=event.order_id, stage=event.stage,
-        event_type="stage", value__in=("basladi", "bitti"),
+        event_type="stage", value__in=("basladi", "bitti", "beklemede"),
     ).order_by("-timestamp", "-id").values_list("id", flat=True).first())
     if latest != event.pk:
         return JsonResponse({"ok": False, "message": "Bu işlem artık açık değil. Sayfayı yenileyin."}, status=409)
