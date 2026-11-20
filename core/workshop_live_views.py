@@ -122,6 +122,8 @@ def workshop_live(request):
                     "end": finish.isoformat() if record.check_out or record.work_date != today else None,
                 })
             row["work_sessions"] = intervals
+            if not intervals:
+                continue
             total_seconds = 0
             for segment in intervals:
                 begin = datetime.fromisoformat(segment["start"])
