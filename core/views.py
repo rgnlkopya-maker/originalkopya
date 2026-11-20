@@ -236,6 +236,7 @@ def order_list(request):
     # --- Malzeme ---
     ("malzeme_durum", "kesildi"): "Malzemesi Kesildi",
     ("malzeme_durum", "boyandi"): "Malzemesi Boyandı",
+    ("malzeme_durum", "danteli_ayarlandi"): "Danteli Ayarlandı",
     ("malzeme_durum", "eksik"): "Malzemesi Eksik",
 
     # --- Kesim ---
@@ -1119,6 +1120,7 @@ def update_stage(request, pk):
     stage_labels = {
         ("malzeme_durum", "kesildi"): "Malzemesi Kesildi",
         ("malzeme_durum", "boyandi"): "Malzemesi Boyandı",
+        ("malzeme_durum", "danteli_ayarlandi"): "Danteli Ayarlandı",
         ("malzeme_durum", "eksik"): "Malzemesi Eksik",
         ("kesim_durum", "siraya_alindi"): "Kesim Sırasına Alındı",
         ("kesim_durum", "basladi"): "Kesime Başlandı",
