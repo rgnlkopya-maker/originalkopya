@@ -110,6 +110,10 @@
                                         {% elif e.value == 'beklemede' and e.stage == 'ust_etek_dikimi' %}Üst Etek Dikimi Beklemeye Alındı
                                         {% elif e.value == 'beklemede' and e.stage == 'susleme_durum' %}Süsleme Beklemeye Alındı
                                         {% elif e.value == 'beklemede' and e.stage == 'utu_durum' %}Ütü Beklemeye Alındı
+                                        {% elif e.value == 'basladi' and e.aciklama == 'Tekrar Başladım' and e.stage == 'kesim_durum' %}Kesime Tekrar Başladım
+                                        {% elif e.value == 'basladi' and e.aciklama == 'Tekrar Başladım' and e.stage == 'dikim_durum' %}Dikime Tekrar Başladım
+                                        {% elif e.value == 'basladi' and e.aciklama == 'Tekrar Başladım' and e.stage == 'ust_etek_dikimi' %}Üst Etek Dikimine Tekrar Başladım
+                                        {% elif e.value == 'basladi' and e.aciklama == 'Tekrar Başladım' and e.stage == 'susleme_durum' %}Süslemeye Tekrar Başladım
                                         {% elif e.stage == 'ust_etek_dikimi' and e.value == 'basladi' %}Üst Etek Dikimi Başladı
                                         {% elif e.stage == 'ust_etek_dikimi' and e.value == 'bitti' %}Üst Etek Dikimi Bitti
                                         {% elif e.stage == 'dikim_durum' and e.value == 'basladi' %}Dikime Başlandı
@@ -138,7 +142,7 @@
                                     <div class="timeline-tags">
                                         {% if e.parca %}🧩 {{ e.parca }}{% endif %}
                                         {% if e.adet %}<span style="display:none;">{% if e.parca %} • {% endif %}🔢 {{ e.adet }} adet</span>{% endif %}
-                                        {% if e.aciklama %} {% if e.parca or e.adet %} • {% endif %}💬 {{ e.aciklama }}{% endif %}
+                                        {% if e.aciklama and e.aciklama != 'Tekrar Başladım' %} {% if e.parca or e.adet %} • {% endif %}💬 {{ e.aciklama }}{% endif %}
                                         {% if e.ortak_calisanlar %} • 👥 {{ e.ortak_calisanlar }}{% endif %}
                                         {% if e.fasoncu %} • 🏭 {{ e.fasoncu.ad|upper }}{% endif %}
                                         {% if e.nakisci %} • 🪡 {{ e.nakisci.ad|upper }}{% endif %}
@@ -187,6 +191,7 @@
                 <button class="soft-btn btn-soft-warning" onclick="return kismiIslem(this,'kesim_durum','kismi_bitti');">Kısmi Kesim</button>
                 <button class="soft-btn btn-soft-success" hx-post="{% url 'update_stage' order.id %}" hx-headers='{"X-CSRFToken":"{{ csrf_token }}"}' hx-vals='{"stage":"kesim_durum","value":"bitti"}' hx-target="#uretim-paneli" hx-swap="innerHTML">Kesim Bitti</button>
                 <button type="button" class="soft-btn btn-soft-warning" onclick="return beklemeyeAl('kesim_durum');">⏸ Beklemeye Al</button>
+                <button type="button" class="soft-btn btn-soft-info" hx-post="{% url 'update_stage' order.id %}" hx-headers='{"X-CSRFToken":"{{ csrf_token }}"}' hx-vals='{"stage":"kesim_durum","value":"basladi","aciklama":"Tekrar Başladım"}' hx-target="#uretim-paneli" hx-swap="innerHTML">↻ Tekrar Başladım</button>
             </div>
         </div>
 
@@ -199,10 +204,12 @@
                 <button class="soft-btn btn-soft-help" onclick="return yardimEttim('dikim_yardim','Dikime');">🤝 Yardım Ettim</button>
                 <button class="soft-btn btn-soft-success" hx-post="{% url 'update_stage' order.id %}" hx-headers='{"X-CSRFToken":"{{ csrf_token }}"}' hx-vals='{"stage":"dikim_durum","value":"bitti"}' hx-target="#uretim-paneli" hx-swap="innerHTML">Dikim Bitti</button>
                 <button type="button" class="soft-btn btn-soft-warning" onclick="return beklemeyeAl('dikim_durum');">⏸ Beklemeye Al</button>
+                <button type="button" class="soft-btn btn-soft-info" hx-post="{% url 'update_stage' order.id %}" hx-headers='{"X-CSRFToken":"{{ csrf_token }}"}' hx-vals='{"stage":"dikim_durum","value":"basladi","aciklama":"Tekrar Başladım"}' hx-target="#uretim-paneli" hx-swap="innerHTML">↻ Tekrar Başladım</button>
                 <button class="soft-btn btn-soft-secondary" hx-post="{% url 'update_stage' order.id %}" hx-headers='{"X-CSRFToken":"{{ csrf_token }}"}' hx-vals='{"stage":"ust_etek_dikimi","value":"siraya_alindi"}' hx-target="#uretim-paneli" hx-swap="innerHTML">Üst Etek Dikim Sırasına Alındı</button>
                 <button class="soft-btn btn-soft-primary" hx-post="{% url 'update_stage' order.id %}" hx-headers='{"X-CSRFToken":"{{ csrf_token }}"}' hx-vals='{"stage":"ust_etek_dikimi","value":"basladi"}' hx-target="#uretim-paneli" hx-swap="innerHTML">Üst Etek Dikimi Başladı</button>
                 <button class="soft-btn btn-soft-success" hx-post="{% url 'update_stage' order.id %}" hx-headers='{"X-CSRFToken":"{{ csrf_token }}"}' hx-vals='{"stage":"ust_etek_dikimi","value":"bitti"}' hx-target="#uretim-paneli" hx-swap="innerHTML">Üst Etek Dikimi Bitti</button>
                 <button type="button" class="soft-btn btn-soft-warning" onclick="return beklemeyeAl('ust_etek_dikimi');">⏸ Beklemeye Al</button>
+                <button type="button" class="soft-btn btn-soft-info" hx-post="{% url 'update_stage' order.id %}" hx-headers='{"X-CSRFToken":"{{ csrf_token }}"}' hx-vals='{"stage":"ust_etek_dikimi","value":"basladi","aciklama":"Tekrar Başladım"}' hx-target="#uretim-paneli" hx-swap="innerHTML">↻ Tekrar Başladım</button>
             </div>
         </div>
 
@@ -231,6 +238,7 @@
                 <button class="soft-btn btn-soft-help" onclick="return yardimEttim('susleme_yardim','Süslemeye');">🤝 Yardım Ettim</button>
                 <button class="soft-btn btn-soft-success" hx-post="{% url 'update_stage' order.id %}" hx-headers='{"X-CSRFToken":"{{ csrf_token }}"}' hx-vals='{"stage":"susleme_durum","value":"bitti"}' hx-target="#uretim-paneli" hx-swap="innerHTML">Süsleme Bitti</button>
                 <button type="button" class="soft-btn btn-soft-warning" onclick="return beklemeyeAl('susleme_durum');">⏸ Beklemeye Al</button>
+                <button type="button" class="soft-btn btn-soft-info" hx-post="{% url 'update_stage' order.id %}" hx-headers='{"X-CSRFToken":"{{ csrf_token }}"}' hx-vals='{"stage":"susleme_durum","value":"basladi","aciklama":"Tekrar Başladım"}' hx-target="#uretim-paneli" hx-swap="innerHTML">↻ Tekrar Başladım</button>
             </div>
         </div>
 
