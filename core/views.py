@@ -228,6 +228,11 @@ def order_list(request):
     # 📌 2) TÜRKÇE DURUM SÖZLÜĞÜ
     # -----------------------------------------
     STAGE_TRANSLATIONS = {
+    ("kesim_durum", "beklemede"): "Kesim Beklemeye Alındı",
+    ("dikim_durum", "beklemede"): "Dikim Beklemeye Alındı",
+    ("ust_etek_dikimi", "beklemede"): "Üst Etek Dikimi Beklemeye Alındı",
+    ("susleme_durum", "beklemede"): "Süsleme Beklemeye Alındı",
+    ("utu_durum", "beklemede"): "Ütü Beklemeye Alındı",
     # --- Malzeme ---
     ("malzeme_durum", "kesildi"): "Malzemesi Kesildi",
     ("malzeme_durum", "boyandi"): "Malzemesi Boyandı",
