@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+{% block extra_css %}
+<style>
+.fair-label-app{max-width:1120px;margin:24px auto;padding:0 16px 40px;color:#1e293b}
+.fair-title{font-size:27px;font-weight:850;margin:0 0 7px}
+.fair-sub{color:#64748b;font-size:13px}
+.fair-panel{background:#fff;border:1px solid #e1e7ef;border-radius:16px;padding:22px;margin-top:18px}
+.fair-range-grid{display:grid;grid-template-columns:1fr 1fr auto;gap:10px;align-items:end}
+.fair-field label{display:block;font-size:12px;font-weight:750;margin-bottom:5px}
+.fair-field input{width:100%;height:42px;border:1px solid #cbd5e1;border-radius:9px;padding:0 12px;font-size:16px}
+.fair-button{border:0;background:#334bd4;color:white;border-radius:9px;padding:11px 17px;font-size:13px;font-weight:800;cursor:pointer}
+.fair-button.alt{background:#eff2f9;color:#344054}
+.fair-range-list{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.fair-range-chip{display:flex;gap:10px;align-items:center;border:1px solid #dbe2ed;background:#f8fafc;border-radius:9px;padding:7px 10px;font-size:12px;font-weight:650}
+.fair-range-chip button{border:0;background:none;color:#64748b;cursor:pointer;font-size:18px;line-height:1}
+.fair-controls{display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap;margin-top:18px}
+.fair-count{font-size:13px;color:#64748b;font-weight:600}
+.fair-preview{display:grid;grid-template-columns:repeat(auto-fill,minmax(205px,1fr));gap:12px;margin-top:18px}
+.fair-preview-label{display:flex;align-items:center;justify-content:center;background:#fff;border:1px solid #cbd5e1;border-radius:5px;aspect-ratio:2 / 1;font-family:Arial,Helvetica,sans-serif;font-weight:900;font-size:clamp(44px,4vw,60px);letter-spacing:-1.5px;line-height:1;color:#000}
+.fair-notice{font-size:12px;color:#64748b;margin-top:12px}
+.fair-error{font-size:12px;color:#b42318;margin-top:10px;min-height:16px}
+#fairPrintArea{display:none}
+@page{size:80mm 40mm;margin:0}
+@media print{
+ html,body{margin:0!important;padding:0!important;width:80mm!important;background:#fff!important}
+ body *{visibility:hidden!important}
+ #fairPrintArea,#fairPrintArea *{visibility:visible!important}
+ #fairPrintArea{display:block!important;position:absolute!important;left:0;top:0;width:80mm!important}
+ .fair-print-label{box-sizing:border-box;width:80mm;height:40mm;display:flex;align-items:center;justify-content:center;overflow:hidden;page-break-after:always;break-after:page;font-family:Arial,Helvetica,sans-serif;font-size:96pt;font-weight:900;line-height:1;letter-spacing:-2.2mm;color:#000;background:#fff;white-space:nowrap}
+ .fair-print-label:last-child{page-break-after:auto;break-after:auto}
+}
+@media(max-width:600px){.fair-range-grid{grid-template-columns:1fr 1fr}.fair-range-grid button{grid-column:1 / -1}.fair-title{font-size:23px}.fair-panel{padding:15px}}
+</style>
+{% endblock %}
+{% block content %}
+<main class="fair-label-app">
+  <h1 class="fair-title">Fuar Model Kodu Etiketleri</h1>
+  <div class="fair-sub">Mankenlere yapıştırmak için 80 × 40 mm etiket üzerine büyük, siyah, dört haneli model numaraları.</div>
+  <section class="fair-panel">
+   <div class="fair-range-grid">
+    <div class="fair-field"><label for="fairStart">Başlangıç kodu</label><input id="fairStart" type="number" inputmode="numeric" min="1000" max="9999" step="1" value="8069"></div>
+    <div class="fair-field"><label for="fairEnd">Bitiş kodu</label><input id="fairEnd" type="number" inputmode="numeric" min="1000" max="9999" step="1" value="8118"></div>
+    <button type="button" class="fair-button alt" id="fairAdd">Aralığı Ekle</button>
+   </div>
+   <div id="fairError" class="fair-error" role="alert"></div>
+   <div class="fair-range-list" id="fairRanges" aria-live="polite"></div>
+   <div class="fair-controls">
+    <div class="fair-count" id="fairCount">0 etiket</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap"><button type="button" class="fair-button alt" id="fairClear">Temizle</button><button type="button" class="fair-button" id="fairPrint">Etiketleri Yazdır</button></div>
+   </div>
+   <p class="fair-notice">Her model kodu ayrı bir etikete basılır. Aynı kod birden fazla aralıkta geçerse yalnızca bir defa yazdırılır. Yazıcıda 80 × 40 mm kâğıt, %100 ölçek ve sıfır kenar boşluğu seçin.</p>
+  </section>
+  <div class="fair-preview" id="fairPreview" aria-label="Etiket önizleme"></div>
+</main>
+<div id="fairPrintArea" aria-hidden="true"></div>
+{% endblock %}
+{% block extra_js %}
+<script>
+(()=>{
+ const ranges=[];
+ const start=document.getElementById('fairStart'),end=document.getElementById('fairEnd');
+ const error=document.getElementById('fairError'),list=document.getElementById('fairRanges');
+ const count=document.getElementById('fairCount'),preview=document.getElementById('fairPreview');
+ const printArea=document.getElementById('fairPrintArea');
+ function codes(){
+  const result=[],seen=new Set();
+  for(const range of ranges){for(let n=range.start;n<=range.end;n++){if(!seen.has(n)){seen.add(n);result.push(n)}}}
+  return result;
+ }
+ function render(){
+  list.replaceChildren();
+  ranges.forEach((range,index)=>{
+   const chip=document.createElement('span');chip.className='fair-range-chip';
+   const label=document.createElement('span');label.textContent=range.start+' – '+range.end;
+   const button=document.createElement('button');button.type='button';button.title='Aralığı kaldır';button.setAttribute('aria-label',label.textContent+' aralığını kaldır');button.textContent='×';button.addEventListener('click',()=>{ranges.splice(index,1);render()});
+   chip.append(label,button);list.append(chip);
+  });
+  const all=codes();count.textContent=all.length+' etiket hazırlanacak';
+  const fragment=document.createDocumentFragment();
+  for(const code of all.slice(0,60)){const card=document.createElement('div');card.className='fair-preview-label';card.textContent=code;fragment.append(card)}
+  preview.replaceChildren(fragment);
+  if(all.length>60){const info=document.createElement('p');info.className='fair-notice';info.textContent='İlk 60 etiket önizleniyor. Yazdırmada tüm '+all.length+' etiket hazırlanır.';preview.append(info)}
+ }
+ function addRange(){
+  error.textContent='';
+  const a=Number(start.value),b=Number(end.value);
+  if(!Number.isInteger(a)||!Number.isInteger(b)||a<1000||b>9999||a>b||b-a>999){error.textContent='1000–9999 arasında, sıralı ve en fazla 1000 kodluk bir aralık girin.';return}
+  if(codes().length+(b-a+1)>1500){error.textContent='Tek yazdırma için en fazla 1500 kod ekleyebilirsiniz.';return}
+  ranges.push({start:a,end:b});render();
+ }
+ document.getElementById('fairAdd').addEventListener('click',addRange);
+ document.getElementById('fairClear').addEventListener('click',()=>{ranges.length=0;error.textContent='';render()});
+ document.getElementById('fairPrint').addEventListener('click',()=>{
+  error.textContent='';
+  if(!ranges.length){error.textContent='Önce en az bir kod aralığı ekleyin.';return}
+  const fragment=document.createDocumentFragment();
+  for(const code of codes()){const el=document.createElement('div');el.className='fair-print-label';el.textContent=String(code);fragment.append(el)}
+  printArea.replaceChildren(fragment);
+  window.print();
+ });
+ // Example fair batches are ready to print; more ranges can be added.
+ ranges.push({start:8069,end:8118},{start:7161,end:7215});render();
+})();
+</script>
+{% endblock %}
