@@ -1,0 +1,115 @@
+{% extends "base.html" %}
+{% block extra_css %}
+<style>
+.workshop-page{max-width:1800px;margin:0 auto;padding:22px 18px 48px;color:#243047}
+.workshop-header{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:18px}
+.workshop-header h1{font-size:27px;font-weight:850;letter-spacing:-.6px;margin:0}
+.workshop-header p{font-size:12px;color:#7c899e;margin:5px 0 0}
+.live-indicator{display:flex;align-items:center;gap:8px;background:#eaf9f0;border:1px solid #ccebd8;color:#168251;border-radius:999px;padding:8px 12px;font-size:12px;font-weight:800}
+.live-dot{width:8px;height:8px;background:#22b66d;border-radius:50%;box-shadow:0 0 0 4px #dcf8e8}
+.workshop-layout{display:grid;grid-template-columns:minmax(285px,31%) minmax(0,1fr);gap:16px;align-items:start}
+.today-panel{position:sticky;top:82px;max-height:calc(100vh - 102px);display:flex;flex-direction:column;background:#fff;border:1px solid #e3e8f0;border-radius:16px;overflow:hidden;box-shadow:0 3px 14px rgba(20,35,65,.04)}
+.today-head{background:#f1f4ff;padding:17px;border-bottom:1px solid #e3e8f0;flex:none}
+.today-head h2{font-size:17px;font-weight:850;margin:4px 0 0;color:#253653}
+.today-head .kicker{color:#6676a0;font-weight:850;font-size:10px;letter-spacing:1px;text-transform:uppercase}
+.today-panel-content{overflow-y:auto;padding:13px}
+.today-ship-card{display:block;padding:13px;border:1px solid #dfe5ef;border-radius:12px;margin-bottom:10px;background:#fff;color:#23334b;text-decoration:none}
+.today-ship-card:hover{border-color:#a7b6d9;background:#f8faff;color:#23334b}
+.today-ship-card.invoiced{background:#eaf9ef;border-color:#95ceab}
+.today-ship-card strong{font-size:13px;display:block;line-height:1.4}
+.today-ship-card .meta{font-size:12px;line-height:1.5;margin-top:5px}
+.today-ship-card .muted{color:#8c99aa}
+.today-ship-card .status{margin-top:7px;font-size:12px;font-weight:800}
+.today-notes-title{font-size:11px;font-weight:850;color:#6c788c;margin:18px 0 7px;text-transform:uppercase}
+.today-note{font-size:12px;white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.6;padding:11px;border:1px dashed #d6dce6;border-radius:10px;margin-top:7px}
+.live-panel{min-width:0;background:#fff;border:1px solid #e3e8f0;border-radius:16px;overflow:hidden}
+.live-panel-head{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:17px 18px;border-bottom:1px solid #e8ecf3;flex-wrap:wrap}
+.live-panel-head h2{font-size:18px;font-weight:850;margin:0}
+.live-panel-head small{display:block;color:#8792a3;font-size:11px;margin-top:4px}
+.live-table-wrap{overflow-x:auto}
+.live-table{width:100%;border-collapse:collapse;min-width:860px}
+.live-table th{font-size:11px!important;font-weight:800;color:#66738a;text-transform:uppercase;background:#f7f9fc;padding:12px 11px;white-space:nowrap;border-bottom:1px solid #e5eaf1}
+.live-table td{font-size:12.5px!important;padding:13px 11px!important;border-bottom:1px solid #edf1f6;vertical-align:top;color:#2c3b52;font-weight:500!important}
+.live-table tr:hover{background:#f8faff}
+.live-table .customer{font-weight:850;color:#23344f;max-width:195px}
+.live-table .ref,.live-table .description{font-size:11px;color:#728197;line-height:1.4;margin-top:4px;max-width:230px}
+.live-table .description{cursor:help}
+.live-table .item-code{font-weight:850;color:#253653}
+.live-table .stage{display:inline-block;border:1px solid #d6e8fd;background:#edf5ff;color:#3268a5;font-weight:850;font-size:11px;border-radius:8px;padding:6px 8px;white-space:nowrap}
+.live-table .time{white-space:nowrap}
+.live-table a{text-decoration:none;color:inherit}
+.live-table a:hover{text-decoration:underline;color:#3853a8}
+.live-empty{padding:50px 24px;text-align:center;color:#7e8a9c}
+.live-footer{color:#8290a4;font-size:11px;padding:14px 18px;border-top:1px solid #edf0f6}
+.live-refresh{border:1px solid #dfe5ef;border-radius:9px;background:#fff;padding:8px 12px;font-size:12px;font-weight:750;color:#596a85;cursor:pointer}
+.live-refresh:hover{background:#f3f6fb}
+@media(max-width:900px){.workshop-page{padding:14px 9px 40px}.workshop-layout{display:block}.today-panel{position:relative;top:auto;max-height:400px;margin-bottom:14px}.today-panel-content{max-height:305px}.workshop-header h1{font-size:23px}.live-panel-head{padding:14px}}
+</style>
+{% endblock %}
+{% block content %}
+<div class="workshop-page">
+ <div class="workshop-header">
+  <div><h1>Atölye Canlı Durum</h1><p>Şu anda açık görünen üretim işlemleri ve bugünün sevkiyat planı</p></div>
+  <div class="d-flex align-items-center gap-2"><span class="live-indicator"><span class="live-dot"></span>CANLI</span><button class="live-refresh" type="button" onclick="window.location.reload()"><i class="bi bi-arrow-clockwise"></i> Yenile</button></div>
+ </div>
+ <div class="workshop-layout">
+  <aside class="today-panel" aria-label="Bugünün sevkiyat planı">
+   <div class="today-head"><div class="kicker">Bugünün sevkiyat planı</div><h2>{{ today|date:"d F Y, l" }}</h2><div class="small text-muted mt-1">{{ shipments|length }} planlı sipariş</div></div>
+   <div class="today-panel-content">
+    {% for item in shipments %}
+     <a class="today-ship-card{% if item.invoiced %} invoiced{% endif %}" href="{% url 'order_detail' item.order.id %}?return_url={{ request.get_full_path|urlencode }}">
+      <strong>{{ item.order.musteri|default:"Stoğa Üretim" }}</strong>
+      <div class="meta"><span class="muted">#{{ item.order.siparis_numarasi }}</span> · {{ item.order.urun_kodu }}<div>{{ item.order.renk|default:"—" }} · {{ item.order.beden|default:"—" }}</div></div>
+      <div class="meta"><span class="muted">Müşteri Ref:</span> {{ item.order.musteri_referans|default:"—" }}</div>
+      {% if item.order.aciklama %}<div class="meta"><span class="muted">Açıklama:</span> {{ item.order.aciklama }}</div>{% endif %}
+      <div class="status">{{ item.status }}</div>
+     </a>
+    {% empty %}<div class="text-muted small py-3">Bugün için planlı sevkiyat bulunmuyor.</div>{% endfor %}
+    <div class="today-notes-title">Günlük notlar</div>
+    {% for note in shipment_notes %}<div class="today-note">{{ note.note }}</div>{% empty %}<div class="text-muted small">Bugüne ait not bulunmuyor.</div>{% endfor %}
+    <a href="{% url 'shipment_planning_page' %}" class="d-inline-block mt-3 text-decoration-none small fw-bold">Sevkiyat Planını Aç <i class="bi bi-box-arrow-up-right"></i></a>
+   </div>
+  </aside>
+  <section class="live-panel" aria-labelledby="live-panel-title">
+   <div class="live-panel-head">
+    <div><h2 id="live-panel-title">Devam Eden İşlemler <span class="text-secondary">({{ open_count }})</span></h2><small>Yalnızca son Başladı kaydı henüz Bitti ile kapanmamış işlemler</small></div>
+    <div class="small text-muted">Son kontrol: {{ updated_at|date:"H:i:s" }}</div>
+   </div>
+   <div class="live-table-wrap">
+    {% if open_work %}
+    <table class="live-table"><thead><tr><th>Firma / Referans / Açıklama</th><th>Ürün Kodu</th><th>Renk / Beden</th><th>Devam Eden İşlem</th><th>Personel</th><th>Başlangıç</th><th>Açık Süre</th></tr></thead>
+    <tbody>{% for row in open_work %}<tr>
+     <td><a href="{% url 'order_detail' row.order.id %}?return_url={{ request.get_full_path|urlencode }}"><div class="customer">{{ row.order.musteri|default:"Stoğa Üretim" }}</div>{% if row.order.musteri_referans %}<div class="ref">Ref: {{ row.order.musteri_referans|truncatechars:60 }}</div>{% endif %}{% if row.order.aciklama %}<div class="description" title="{{ row.order.aciklama }}">Açıklama: {{ row.order.aciklama|truncatechars:60 }}</div>{% endif %}</a></td>
+     <td><span class="item-code">{{ row.order.urun_kodu|default:"—" }}</span></td>
+     <td>{{ row.order.renk|default:"—" }}<br>{{ row.order.beden|default:"—" }}</td>
+     <td><span class="stage">{{ row.operation }}</span></td>
+     <td>{{ row.person }}</td>
+     <td class="time">{{ row.started|date:"d.m.Y" }}<br><strong>{{ row.started|date:"H:i" }}</strong></td>
+     <td class="time" data-start="{{ row.started|date:'c' }}">{{ row.elapsed_minutes }} dk</td>
+    </tr>{% endfor %}</tbody></table>
+    {% else %}<div class="live-empty"><i class="bi bi-check-circle fs-2 d-block mb-2"></i>Şu anda açık bir “Başladı” işlemi bulunmuyor.</div>{% endif %}
+   </div>
+   <div class="live-footer">Bu görünüm, personelin bastığı üretim butonlarından oluşturulur. Gerçek zamanlı fiziksel çalışma doğrulaması değildir. Sayfa 45 saniyede bir güncellenir.</div>
+  </section>
+ </div>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script>
+(function(){
+ const pad=n=>String(n).padStart(2,'0');
+ function updateDurations(){
+  document.querySelectorAll('[data-start]').forEach(cell=>{
+   const started=Date.parse(cell.dataset.start);
+   if(!Number.isFinite(started))return;
+   const elapsed=Math.max(0,Math.floor((Date.now()-started)/60000));
+   const hours=Math.floor(elapsed/60);
+   cell.textContent=(hours?hours+' sa ':'')+(elapsed%60)+' dk';
+  });
+ }
+ updateDurations();
+ setInterval(updateDurations,30000);
+ setInterval(()=>{if(document.visibilityState==='visible')window.location.reload()},45000);
+})();
+</script>
+{% endblock %}
