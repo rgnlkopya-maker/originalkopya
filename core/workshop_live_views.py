@@ -16,7 +16,7 @@ from django.views.decorators.http import require_POST
 
 from app_settings.access import has_full_access
 from planning.models import PlanningEntry, ShipmentPlan
-from .models import OrderEvent, ProductionStageControlExclusion
+from .models import Order, OrderEvent, ProductionStageControlExclusion
 from .services.order_status import status_label, latest_status_event
 
 LOCAL_STAGES = {
@@ -207,6 +207,7 @@ def workshop_live_version(request):
         count=Count("id"), last_id=Max("id"), last_update=Max("updated_at")
     )
     attendance = AttendanceRecord.objects.aggregate(last_update=Max("updated_at"))
+    orders = Order.objects.filter(is_active=True).aggregate(last_update=Max("last_updated"))
     # New events, manager exclusions, plan edits and date rollover change the version.
     key = "|".join(str(value or "") for value in (
         today.isoformat(), stage["last_id"],
@@ -214,6 +215,7 @@ def workshop_live_version(request):
         plans["count"], plans["last_id"], plans["last_update"],
         notes["count"], notes["last_id"], notes["last_update"],
         attendance["last_update"],
+        orders["last_update"],
     ))
     response = JsonResponse({"version": key})
     response["Cache-Control"] = "no-store"
