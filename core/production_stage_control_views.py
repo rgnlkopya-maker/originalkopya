@@ -11,6 +11,7 @@ from django.views.decorators.http import require_POST
 from datetime import timedelta
 
 from .models import ConsignmentMovement, ConsignmentStock, Order, OrderEvent, ProductionStageControlExclusion
+from .services.order_status import status_label
 
 
 STAGES = {
@@ -154,6 +155,7 @@ def get_unshipped_inactive_orders(user):
                     "order": order,
                     "first_event": events[0],
                     "last_event": last_event,
+                    "last_status_label": status_label(last_event),
                     "days_open": age.days,
                 })
     rows.sort(key=lambda row: (-row["days_open"], row["first_event"].timestamp))
@@ -328,6 +330,7 @@ def production_stage_control(request):
                 "reasons": reasons,
                 "attributions": attributions,
                 "last_event": last_event,
+                "last_status_label": status_label(last_event),
                 "shipped": shipped,
             })
 
