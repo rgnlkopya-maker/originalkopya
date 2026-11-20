@@ -19,7 +19,7 @@ from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib.auth.models import User, Group
 from django.core.cache import cache
 from django.core.paginator import Paginator
-from django.db import connections, close_old_connections
+from django.db import connections, close_old_connections, transaction
 from django.db.models import (
     Q, F, Max, Sum, Count, Value, Case, When,
     Subquery, OuterRef, DecimalField, ExpressionWrapper, CharField, DateTimeField, Prefetch
@@ -1033,6 +1033,7 @@ def staff_after_hours_location_verify(request):
 
 @login_required
 @require_POST
+@transaction.atomic
 def update_stage(request, pk):
     order = get_object_or_404(Order, pk=pk)
     if not order_scope_allows(request.user, order):
@@ -1048,6 +1049,18 @@ def update_stage(request, pk):
 
     if not stage or not value:
         return HttpResponseForbidden("Eksik veri")
+
+    work_stages = {"kesim_durum", "dikim_durum", "ust_etek_dikimi", "susleme_durum", "utu_durum"}
+    if value == "beklemede" and stage not in work_stages:
+        return HttpResponseBadRequest("Bu aşama beklemeye alınamaz.")
+    if value == "beklemede" and not (aciklama or "").strip():
+        return HttpResponseBadRequest("Beklemeye alma sebebi zorunludur.")
+    if stage in work_stages and value == "basladi":
+        # Serialize concurrent starts by the same employee; generate pause
+        # history for the job(s) they left before creating the next start.
+        User.objects.select_for_update().get(pk=request.user.pk)
+        from .services.workshop_pause import pause_previous_work
+        pause_previous_work(user=request.user, incoming_order=order, incoming_stage=stage)
 
     # Quality issue reports must include a description.
     if stage == "kalite_kontrol" and value == "hata_gordum" and not (aciklama or "").strip():
@@ -1111,6 +1124,11 @@ def update_stage(request, pk):
         ("malzeme_durum", "eksik"): "Malzemesi Eksik",
         ("kesim_durum", "siraya_alindi"): "Kesim Sırasına Alındı",
         ("kesim_durum", "basladi"): "Kesime Başlandı",
+        ("kesim_durum", "beklemede"): "Kesim Beklemeye Alındı",
+        ("dikim_durum", "beklemede"): "Dikim Beklemeye Alındı",
+        ("ust_etek_dikimi", "beklemede"): "Üst Etek Dikimi Beklemeye Alındı",
+        ("susleme_durum", "beklemede"): "Süsleme Beklemeye Alındı",
+        ("utu_durum", "beklemede"): "Ütü Beklemeye Alındı",
         ("kesim_durum", "kismi_bitti"): "Kısmi Kesim Yapıldı",
         ("kesim_durum", "bitti"): "Kesim Bitti",
         ("dikim_durum", "sıraya_alındı"): "Dikim Sırasına Alındı",
