@@ -57,8 +57,39 @@ window.addEventListener('pageshow', function(event) {
   .location-action-map:hover{background:#eef1ff}
   .location-help{display:flex;align-items:center;gap:7px;margin:0 22px 20px;padding:10px 12px;border-radius:12px;background:#f7f8fb;color:#6f788d;font-size:11px}
   @media(max-width:768px){.location-grid{grid-template-columns:1fr}.location-panel-head{padding:18px 16px 8px}.location-grid{padding:12px 16px 16px}.location-help{margin:0 16px 16px}.location-actions{grid-template-columns:1fr}}
+
+  /* Puantaj: minimalist, readable calendar and distinct period summary. */
+  .attendance-page{max-width:1800px;margin:0 auto;color:#263247}
+  .attendance-page .attendance-toolbar{padding:14px 17px;border-radius:14px;box-shadow:none}
+  .attendance-page .attendance-table-wrap{border:1px solid #e5eaf1;border-radius:14px;background:#fff;max-height:70vh;overflow:auto}
+  .attendance-page .attendance-table-wrap table{border-collapse:separate;border-spacing:0}
+  .attendance-page .attendance-table-wrap th{font-size:12px;font-weight:800;white-space:nowrap;color:#33415a}
+  .attendance-page .attendance-table-wrap td{border-color:#ebeff4}
+  .attendance-page .attendance-table-wrap thead th{position:sticky;top:0;z-index:4;background:#f1f5fa!important;box-shadow:0 1px 0 #d9e0e9}
+  .attendance-page .attendance-table-wrap tr>th:first-child,.attendance-page .attendance-table-wrap tr>td:first-child{position:sticky;left:0;z-index:3;background:#f8fafc;box-shadow:2px 0 4px rgba(15,23,42,.035)}
+  .attendance-page .attendance-table-wrap thead th:first-child{z-index:6!important}
+  .attendance-page .attendance-cell{min-height:89px;line-height:1.65;transition:background .12s;text-align:left}
+  .attendance-page .attendance-cell:hover{background:#edf3ff}
+  .attendance-page .attendance-table-wrap tr:hover>td:first-child{background:#eef3f8}
+  .attendance-page .attendance-table-wrap tr.table-secondary>td:first-child{background:#f1f3f6}
+  .attendance-page .attendance-fixed-head{display:none!important}
+  .attendance-summary{margin-top:20px;background:#fff;border:1px solid #e5eaf1;border-radius:16px;padding:17px;overflow:hidden}
+  .attendance-summary h3{font-size:17px;font-weight:800;margin:0 0 3px}
+  .attendance-summary p{font-size:12px;color:#768396;margin:0 0 14px}
+  .attendance-summary .table-responsive{max-height:480px;overflow:auto}
+  .attendance-summary table{font-size:13px;white-space:nowrap}
+  .attendance-summary thead th{background:#f3f6fa;color:#38465c;border-bottom:1px solid #e4eaf2;padding:12px}
+  .attendance-summary tbody td,.attendance-summary tfoot td{padding:11px 12px;border-bottom:1px solid #eef1f5}
+  .attendance-summary tfoot{background:#edf2fa;font-weight:800}
+  .attendance-export{background:#f0faf4;border:1px solid #b9e2c9;border-radius:11px;color:#17683d;text-decoration:none;font-weight:750;font-size:12px;padding:10px 14px;display:inline-flex;align-items:center;gap:8px}
+  .attendance-export:hover{background:#e3f5eb;color:#115532}
+  .attendance-administration{margin-top:22px;background:#fff;border:1px solid #e5eaf1;border-radius:15px;overflow:hidden}
+  .attendance-administration>summary{cursor:pointer;padding:16px 19px;font-weight:800;color:#33415a}
+  .attendance-administration .location-panel{margin:0!important;box-shadow:none;border:0;border-top:1px solid #edf0f6;border-radius:0}
+  @media(max-width:767px){.attendance-summary{padding:11px}.attendance-page .attendance-table-wrap{max-height:65vh}.attendance-page .attendance-cell{padding:10px!important;min-height:78px}.attendance-page .attendance-period-label{min-width:130px}}
+
 </style>
-<div class="container-fluid py-4 px-md-4">
+<div class="container-fluid py-4 px-md-4 attendance-page">
   <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
     <div><div class="text-muted small">YÖNETİM</div><h2 class="fw-bold mb-1">Puantaj & Mesai Takvimi</h2><div class="text-muted">Çalışma saatleri 08:30–19:00</div></div>
     {% if can_edit %}
@@ -76,7 +107,49 @@ window.addEventListener('pageshow', function(event) {
   </div>
   {% for message in messages %}<div class="alert alert-info">{{ message }}</div>{% endfor %}
 
-  <section class="location-panel mb-4">
+
+
+  <div class="attendance-toolbar">
+    <div class="attendance-toolbar-left">
+      <a class="attendance-view-btn {% if view_mode == 'monthly' %}active{% endif %}" href="?view=monthly&year={{ year }}&month={{ month }}">Aylık</a>
+      <a class="attendance-view-btn {% if view_mode == 'annual' %}active{% endif %}" href="?view=annual&year={{ year }}&month={{ month }}">Yıllık</a>
+    </div>
+    <div class="attendance-toolbar-right"><a class="attendance-export" href="{% url 'attendance_excel' %}?view={{ view_mode }}&year={{ year }}&month={{ month }}"><i class="bi bi-file-earmark-excel"></i>Excel İndir</a>
+      {% if view_mode == 'monthly' %}
+      <a class="attendance-period-arrow" href="?view=monthly&year={{ prev_year }}&month={{ prev_month }}">←</a>
+      <div class="attendance-period-label"><strong>{{ month_name }} {{ year }}</strong><span>{{ period_start|date:"d.m.Y" }} – {{ period_end|date:"d.m.Y" }}</span></div>
+      <a class="attendance-period-arrow" href="?view=monthly&year={{ next_year }}&month={{ next_month }}">→</a>
+      {% else %}
+      <a class="attendance-period-arrow" href="?view=annual&year={{ year|add:"-1" }}&month={{ month }}">←</a>
+      <div class="attendance-period-label"><strong>{{ year }} Maaş Dönemleri</strong><span>06.01.{{ year }} – 05.01.{{ year|add:"1" }}</span></div>
+      <a class="attendance-period-arrow" href="?view=annual&year={{ year|add:"1" }}&month={{ month }}">→</a>
+      {% endif %}
+    </div>
+  </div>
+
+  {% if view_mode == 'monthly' %}
+  <div class="card border-0 shadow-sm rounded-4"><div class="attendance-table-wrap"><table class="table table-bordered align-middle mb-0" style="min-width:1100px"><thead class="table-light attendance-sticky-head"><tr><th style="min-width:115px">Tarih</th>{% for user in users %}<th class="text-center" style="min-width:190px">{{ user.get_full_name|default:user.username }}</th>{% endfor %}</tr></thead><tbody>
+  {% for row in matrix_rows %}<tr class="{% if row.is_weekend %}table-secondary{% endif %}"><td class="fw-semibold">{{ row.date|date:"d.m.Y" }}<br><span class="text-muted small">{{ row.date|date:"l" }}</span></td>{% for cell in row.cells %}<td class="p-0"><button type="button" class="attendance-cell btn w-100 h-100 text-start rounded-0 p-3 border-0" data-user-id="{{ cell.user.id }}" data-user-name="{{ cell.user.get_full_name|default:cell.user.username }}" data-date="{{ row.date|date:'Y-m-d' }}" data-status="{% if cell.record %}{{ cell.record.status }}{% else %}worked{% endif %}" data-note="{% if cell.record %}{{ cell.record.note|escape }}{% endif %}" data-report-url="{% if cell.record %}{{ cell.record.report_image_url }}{% endif %}" data-check-in="{% if cell.record.check_in %}{{ cell.record.check_in|date:'H:i' }}{% endif %}" data-check-out="{% if cell.record.check_out %}{{ cell.record.check_out|date:'H:i' }}{% endif %}" {% if not can_edit %}disabled{% endif %}>{% if cell.record %}{% if cell.record.status == 'leave' %}<div class="fw-bold text-warning-emphasis">İzinli</div>{% if cell.record.check_in %}<div class="small mt-1">Mesaiye başladı: <strong>{{ cell.record.check_in|date:"H:i" }}</strong></div>{% endif %}{% if cell.record.check_out %}<div class="small mt-1">İzne çıktı: <strong>{{ cell.record.check_out|date:"H:i" }}</strong></div>{% endif %}{% elif cell.record.status == 'annual_leave' %}<div class="fw-bold text-info-emphasis">Yıllık İzin</div>{% elif cell.record.status == 'sick' %}<div class="fw-bold text-danger">Raporlu</div>{% elif cell.record.status == 'other' %}<div class="fw-bold text-secondary">Diğer</div>{% else %}{% if row.is_weekend %}<div class="small text-primary fw-semibold mb-2">Hafta Sonu Çalışması</div>{% endif %}<div><span class="text-muted small">Mesaiye başladı:</span> <strong>{% if cell.record.check_in %}{{ cell.record.check_in|date:"H:i" }}{% else %}—{% endif %}</strong></div><div class="mt-1"><span class="text-muted small">Mesaiyi bitirdi:</span> <strong>{% if cell.record.check_out %}{{ cell.record.check_out|date:"H:i" }}{% else %}—{% endif %}</strong></div>{% if cell.record.late_minutes %}<div class="small text-danger mt-2">Geç: {{ cell.record.late_minutes }} dk</div>{% endif %}{% if cell.record.early_leave_minutes %}<div class="small text-danger{% if not cell.record.late_minutes %} mt-2{% endif %}">Erken: {{ cell.record.early_leave_minutes }} dk</div>{% endif %}{% if cell.record.overtime_minutes %}<div class="small text-success">Fazla mesai: {{ cell.record.overtime_minutes }} dk</div>{% endif %}{% endif %}{% if cell.record.note %}<div class="small mt-2 text-muted">📝 {{ cell.record.note|truncatechars:60 }}</div>{% endif %}{% if cell.record.report_image_url %}<div class="small mt-1 text-primary">📎 Rapor görseli mevcut</div>{% endif %}{% else %}{% if row.is_weekend %}<div class="text-muted small fw-semibold">Hafta Sonu Tatili</div>{% else %}<div class="text-muted small">Kayıt yok</div>{% endif %}{% endif %}</button></td>{% endfor %}</tr>{% endfor %}
+  </tbody></table></div></div>
+  {% if can_edit %}<div class="text-muted small mt-2">Patron/Müdür: Şifre onayıyla herhangi bir hücreye tıklayarak saat, durum, açıklama ve rapor görselini düzenleyebilirsiniz.</div>{% endif %}
+  {% else %}
+  <div class="card border-0 shadow-sm rounded-4"><div class="attendance-table-wrap"><table class="table table-bordered align-middle mb-0" style="min-width:1100px"><thead class="table-light attendance-sticky-head"><tr><th style="min-width:155px">Maaş Dönemi</th>{% for user in users %}<th class="text-center" style="min-width:190px">{{ user.get_full_name|default:user.username }}</th>{% endfor %}</tr></thead><tbody>
+    {% for row in annual_rows %}
+    <tr><td class="fw-semibold">{{ row.month_name }}<br><span class="text-muted small">{{ row.start|date:"d.m.Y" }} – {{ row.end|date:"d.m.Y" }}</span></td>{% for total in row.cells %}<td class="text-start p-3"><div class="small text-muted">Geç kalma</div><div class="fw-bold">{{ total.total_late }} dk</div><div class="small text-muted mt-2">Erken çıkış</div><div class="fw-bold">{{ total.total_early_leave }} dk</div><div class="small text-muted mt-2">Fazla mesai</div><div class="fw-bold">{{ total.total_overtime }} dk</div><div class="small text-muted mt-2">İzin</div><div class="fw-bold">{{ total.leave_days }} gün</div><div class="small text-muted mt-2">Yıllık izin</div><div class="fw-bold">{{ total.annual_leave_days }} gün</div><div class="small text-muted mt-2">Rapor</div><div class="fw-bold">{{ total.sick_days }} gün</div></td>{% endfor %}</tr>
+    {% endfor %}
+  </tbody></table></div></div>
+  {% endif %}
+  <section class="attendance-summary">
+    <h3>Dönem Toplamları</h3>
+    <p>Her personelin geç kalma, erken çıkış, fazla mesai ve izin bilgileri tek tabloda.</p>
+    <div class="table-responsive"><table class="table table-borderless mb-0"><thead><tr><th>Personel</th><th>Geç kalma</th><th>Erken çıkış</th><th>Fazla mesai</th><th>İzin</th><th>Yıllık izin</th><th>Rapor</th></tr></thead>
+    <tbody>{% if view_mode == 'monthly' %}{% for t in monthly_totals %}<tr><td class="fw-semibold">{{ t.user.get_full_name|default:t.user.username }}</td><td>{{ t.total_late }} dk</td><td>{{ t.total_early_leave }} dk</td><td>{{ t.total_overtime }} dk</td><td>{{ t.leave_days }} gün</td><td>{{ t.annual_leave_days }} gün</td><td>{{ t.sick_days }} gün</td></tr>{% endfor %}{% else %}{% for t in annual_totals %}<tr><td class="fw-semibold">{{ t.user.get_full_name|default:t.user.username }}</td><td>{{ t.total_late }} dk</td><td>{{ t.total_early_leave }} dk</td><td>{{ t.total_overtime }} dk</td><td>{{ t.leave_days }} gün</td><td>{{ t.annual_leave_days }} gün</td><td>{{ t.sick_days }} gün</td></tr>{% endfor %}{% endif %}</tbody>
+    <tfoot><tr><td>Genel toplam</td><td>{{ grand_totals.total_late }} dk</td><td>{{ grand_totals.total_early_leave }} dk</td><td>{{ grand_totals.total_overtime }} dk</td><td>{{ grand_totals.leave_days }} gün</td><td>{{ grand_totals.annual_leave_days }} gün</td><td>{{ grand_totals.sick_days }} gün</td></tr></tfoot>
+    </table></div>
+  </section>
+  <details class="attendance-administration">
+    <summary><i class="bi bi-gear me-2"></i>İşyeri konumları ve yönetim ayarları</summary>
+      <section class="location-panel mb-4">
     <div class="location-panel-head">
       <div>
         <div class="location-panel-title"><span class="location-panel-title-icon">📍</span><span>İşyeri Konumları</span></div>
@@ -115,37 +188,7 @@ window.addEventListener('pageshow', function(event) {
     </div>
     <div class="location-help">🔒 Konumu yalnız Patron/Müdür tanımlar. Personel bu noktaları elle değiştiremez.</div>
   </section>
-
-  <div class="attendance-toolbar">
-    <div class="attendance-toolbar-left">
-      <a class="attendance-view-btn {% if view_mode == 'monthly' %}active{% endif %}" href="?view=monthly&year={{ year }}&month={{ month }}">Aylık</a>
-      <a class="attendance-view-btn {% if view_mode == 'annual' %}active{% endif %}" href="?view=annual&year={{ year }}&month={{ month }}">Yıllık</a>
-    </div>
-    <div class="attendance-toolbar-right">
-      {% if view_mode == 'monthly' %}
-      <a class="attendance-period-arrow" href="?view=monthly&year={{ prev_year }}&month={{ prev_month }}">←</a>
-      <div class="attendance-period-label"><strong>{{ month_name }} {{ year }}</strong><span>{{ period_start|date:"d.m.Y" }} – {{ period_end|date:"d.m.Y" }}</span></div>
-      <a class="attendance-period-arrow" href="?view=monthly&year={{ next_year }}&month={{ next_month }}">→</a>
-      {% else %}
-      <a class="attendance-period-arrow" href="?view=annual&year={{ year|add:"-1" }}&month={{ month }}">←</a>
-      <div class="attendance-period-label"><strong>{{ year }} Maaş Dönemleri</strong><span>06.01.{{ year }} – 05.01.{{ year|add:"1" }}</span></div>
-      <a class="attendance-period-arrow" href="?view=annual&year={{ year|add:"1" }}&month={{ month }}">→</a>
-      {% endif %}
-    </div>
-  </div>
-
-  {% if view_mode == 'monthly' %}
-  <div class="card border-0 shadow-sm rounded-4"><div class="attendance-table-wrap"><table class="table table-bordered align-middle mb-0" style="min-width:1100px"><thead class="table-light attendance-sticky-head"><tr><th style="min-width:115px">Tarih</th>{% for user in users %}<th class="text-center" style="min-width:190px">{{ user.get_full_name|default:user.username }}</th>{% endfor %}</tr></thead><tbody>
-  {% for row in matrix_rows %}<tr class="{% if row.is_weekend %}table-secondary{% endif %}"><td class="fw-semibold">{{ row.date|date:"d.m.Y" }}<br><span class="text-muted small">{{ row.date|date:"l" }}</span></td>{% for cell in row.cells %}<td class="p-0"><button type="button" class="attendance-cell btn w-100 h-100 text-start rounded-0 p-3 border-0" data-user-id="{{ cell.user.id }}" data-user-name="{{ cell.user.get_full_name|default:cell.user.username }}" data-date="{{ row.date|date:'Y-m-d' }}" data-status="{% if cell.record %}{{ cell.record.status }}{% else %}worked{% endif %}" data-note="{% if cell.record %}{{ cell.record.note|escape }}{% endif %}" data-report-url="{% if cell.record %}{{ cell.record.report_image_url }}{% endif %}" data-check-in="{% if cell.record.check_in %}{{ cell.record.check_in|date:'H:i' }}{% endif %}" data-check-out="{% if cell.record.check_out %}{{ cell.record.check_out|date:'H:i' }}{% endif %}" {% if not can_edit %}disabled{% endif %}>{% if cell.record %}{% if cell.record.status == 'leave' %}<div class="fw-bold text-warning-emphasis">İzinli</div>{% if cell.record.check_in %}<div class="small mt-1">Mesaiye başladı: <strong>{{ cell.record.check_in|date:"H:i" }}</strong></div>{% endif %}{% if cell.record.check_out %}<div class="small mt-1">İzne çıktı: <strong>{{ cell.record.check_out|date:"H:i" }}</strong></div>{% endif %}{% elif cell.record.status == 'annual_leave' %}<div class="fw-bold text-info-emphasis">Yıllık İzin</div>{% elif cell.record.status == 'sick' %}<div class="fw-bold text-danger">Raporlu</div>{% elif cell.record.status == 'other' %}<div class="fw-bold text-secondary">Diğer</div>{% else %}{% if row.is_weekend %}<div class="small text-primary fw-semibold mb-2">Hafta Sonu Çalışması</div>{% endif %}<div><span class="text-muted small">Mesaiye başladı:</span> <strong>{% if cell.record.check_in %}{{ cell.record.check_in|date:"H:i" }}{% else %}—{% endif %}</strong></div><div class="mt-1"><span class="text-muted small">Mesaiyi bitirdi:</span> <strong>{% if cell.record.check_out %}{{ cell.record.check_out|date:"H:i" }}{% else %}—{% endif %}</strong></div>{% if cell.record.late_minutes %}<div class="small text-danger mt-2">Geç: {{ cell.record.late_minutes }} dk</div>{% endif %}{% if cell.record.early_leave_minutes %}<div class="small text-danger{% if not cell.record.late_minutes %} mt-2{% endif %}">Erken: {{ cell.record.early_leave_minutes }} dk</div>{% endif %}{% if cell.record.overtime_minutes %}<div class="small text-success">Fazla mesai: {{ cell.record.overtime_minutes }} dk</div>{% endif %}{% endif %}{% if cell.record.note %}<div class="small mt-2 text-muted">📝 {{ cell.record.note|truncatechars:60 }}</div>{% endif %}{% if cell.record.report_image_url %}<div class="small mt-1 text-primary">📎 Rapor görseli mevcut</div>{% endif %}{% else %}{% if row.is_weekend %}<div class="text-muted small fw-semibold">Hafta Sonu Tatili</div>{% else %}<div class="text-muted small">Kayıt yok</div>{% endif %}{% endif %}</button></td>{% endfor %}</tr>{% endfor %}
-  </tbody><tfoot><tr class="table-dark"><th>AYLIK TOPLAM</th>{% for total in monthly_totals %}<th class="text-start p-3"><div class="small text-white-50">Geç kalma</div><div class="fw-bold">{{ total.total_late }} dk</div><div class="small text-white-50 mt-2">Erken çıkış</div><div class="fw-bold">{{ total.total_early_leave }} dk</div><div class="small text-white-50 mt-2">Fazla mesai</div><div class="fw-bold">{{ total.total_overtime }} dk</div><div class="small text-white-50 mt-2">İzin</div><div class="fw-bold">{{ total.leave_days }} gün</div><div class="small text-white-50 mt-2">Yıllık izin</div><div class="fw-bold">{{ total.annual_leave_days }} gün</div><div class="small text-white-50 mt-2">Rapor</div><div class="fw-bold">{{ total.sick_days }} gün</div></th>{% endfor %}</tr></tfoot></table></div></div>
-  {% if can_edit %}<div class="text-muted small mt-2">Patron/Müdür: Şifre onayıyla herhangi bir hücreye tıklayarak saat, durum, açıklama ve rapor görselini düzenleyebilirsiniz.</div>{% endif %}
-  {% else %}
-  <div class="card border-0 shadow-sm rounded-4"><div class="attendance-table-wrap"><table class="table table-bordered align-middle mb-0" style="min-width:1100px"><thead class="table-light attendance-sticky-head"><tr><th style="min-width:155px">Maaş Dönemi</th>{% for user in users %}<th class="text-center" style="min-width:190px">{{ user.get_full_name|default:user.username }}</th>{% endfor %}</tr></thead><tbody>
-    {% for row in annual_rows %}
-    <tr><td class="fw-semibold">{{ row.month_name }}<br><span class="text-muted small">{{ row.start|date:"d.m.Y" }} – {{ row.end|date:"d.m.Y" }}</span></td>{% for total in row.cells %}<td class="text-start p-3"><div class="small text-muted">Geç kalma</div><div class="fw-bold">{{ total.total_late }} dk</div><div class="small text-muted mt-2">Erken çıkış</div><div class="fw-bold">{{ total.total_early_leave }} dk</div><div class="small text-muted mt-2">Fazla mesai</div><div class="fw-bold">{{ total.total_overtime }} dk</div><div class="small text-muted mt-2">İzin</div><div class="fw-bold">{{ total.leave_days }} gün</div><div class="small text-muted mt-2">Yıllık izin</div><div class="fw-bold">{{ total.annual_leave_days }} gün</div><div class="small text-muted mt-2">Rapor</div><div class="fw-bold">{{ total.sick_days }} gün</div></td>{% endfor %}</tr>
-    {% endfor %}
-  </tbody><tfoot><tr class="table-dark"><th>YILLIK TOPLAM</th>{% for total in annual_totals %}<th class="text-start p-3"><div class="small text-white-50">Geç kalma</div><div class="fw-bold">{{ total.total_late }} dk</div><div class="small text-white-50 mt-2">Erken çıkış</div><div class="fw-bold">{{ total.total_early_leave }} dk</div><div class="small text-white-50 mt-2">Fazla mesai</div><div class="fw-bold">{{ total.total_overtime }} dk</div><div class="small text-white-50 mt-2">İzin</div><div class="fw-bold">{{ total.leave_days }} gün</div><div class="small text-white-50 mt-2">Yıllık izin</div><div class="fw-bold">{{ total.annual_leave_days }} gün</div><div class="small text-white-50 mt-2">Rapor</div><div class="fw-bold">{{ total.sick_days }} gün</div></th>{% endfor %}</tr></tfoot></table></div></div>
-  {% endif %}
+  </details>
 </div>
 
 
