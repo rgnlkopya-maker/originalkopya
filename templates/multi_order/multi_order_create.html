@@ -323,6 +323,25 @@ hr {
 .order-create-shell .order-step--finance .form-select{max-width:100%}
 .order-create-shell .order-step--images input[type="file"]{max-width:380px}
 .order-create-shell .order-step .select2-container{max-width:100%!important}
+
+/* Delivery and attachments share the same row and equal column widths. */
+.order-create-shell .order-delivery-media-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px;align-items:stretch}
+.order-create-shell .order-delivery-media-grid>.order-step{min-width:0;margin-bottom:18px}
+.order-create-shell .order-delivery-media-grid .order-step--delivery .sub-card>.row{display:flex;flex-wrap:wrap;gap:12px;margin:0}
+.order-create-shell .order-delivery-media-grid .order-step--delivery .sub-card>.row>div.col-md-6{flex:1 1 180px;width:auto;max-width:none;padding:0;min-width:0}
+.order-create-shell .order-delivery-media-grid .order-step--delivery input[name="teslim_tarihi"],
+.order-create-shell .order-delivery-media-grid .order-step--delivery input[name="aciklama"]{width:100%;max-width:100%}
+.order-create-shell .order-step--images .sub-card>.d-flex:first-child{align-items:center!important;gap:10px}
+.order-create-shell .order-step--images .sub-card>.d-flex:first-child>div:first-child{flex:1 1 180px;min-width:0}
+.order-create-shell .order-step--images .sub-card>.d-flex:first-child>div:first-child .small{line-height:1.45}
+.order-create-shell .order-upload-line{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.order-create-shell .order-step--images label[for="order-images"],
+.order-create-shell .order-step--images label[for="order-video"]{display:inline-flex;align-items:center;gap:4px;justify-content:center;white-space:nowrap;background:#f4f7fd;border:1px solid #d7e1f0;color:#304b83;border-radius:10px;padding:9px 15px;font-size:12px;font-weight:750;cursor:pointer}
+.order-create-shell .order-step--images label[for="order-images"]:hover,
+.order-create-shell .order-step--images label[for="order-video"]:hover{background:#eaf1fd}
+.order-create-shell .order-step--images .order-video-upload{margin-top:14px!important;padding-top:14px!important}
+.order-create-shell .order-step--images .order-video-upload .form-text{line-height:1.5;margin-top:6px}
+@media(max-width:950px){.order-create-shell .order-delivery-media-grid{grid-template-columns:minmax(0,1fr)}}
 @media(max-width:767px){.order-create-shell .order-step{padding:18px 14px;border-radius:14px;margin-bottom:12px}.order-create-shell .order-step-head{margin-bottom:16px}.order-create-shell .order-step-title{font-size:15px}.order-create-shell .order-submit-bar .btn{width:100%}}
 
 </style>
@@ -371,7 +390,25 @@ document.addEventListener('DOMContentLoaded',function(){
     [make('04','Sipariş fotoğrafları','Varsa modele ait görselleri ekleyin.','images'),[photos]]
   ];
   if(finance)parts.push([make('05','Fiyat ve maliyet','Satış fiyatı, para birimi, KDV ve maliyet bilgileri.','finance'),[finance]]);
-  for(const [section,nodes] of parts){nodes.filter(Boolean).forEach(n=>section.appendChild(n));form.insertBefore(section,submit);}
+  const paired=document.createElement('div');
+  paired.className='order-delivery-media-grid';
+  for(const [section,nodes] of parts){
+    nodes.filter(Boolean).forEach(n=>section.appendChild(n));
+    if(section.classList.contains('order-step--delivery')||section.classList.contains('order-step--images')){
+      paired.appendChild(section);
+      if(section.classList.contains('order-step--images'))form.insertBefore(paired,submit);
+    }else{
+      form.insertBefore(section,submit);
+    }
+  }
+  const videoInput=form.querySelector('#order-video');
+  const videoSummary=form.querySelector('#order-video-summary');
+  if(videoInput&&videoSummary){
+    videoInput.addEventListener('change',()=>{
+      const chosen=videoInput.files?.[0];
+      videoSummary.textContent=chosen?chosen.name:'Henüz video seçilmedi.';
+    });
+  }
   submit.classList.add('order-submit-bar');
   form.querySelectorAll(':scope > hr').forEach(n=>n.remove());
   form.querySelectorAll('.renk-beden-card .remove-row').forEach(n=>{n.textContent='Sil';});
