@@ -281,30 +281,48 @@ hr {
 .order-create-shell .order-submit-bar .btn{min-height:49px;padding:11px 28px!important}
 .order-create-shell .order-section-label{font-size:11px;font-weight:800;color:#8794a8;letter-spacing:.8px;text-transform:uppercase;margin-bottom:5px}
 .order-create-shell .order-step--basic .form-label{font-size:13px}
-/* Compact horizontal field widths; preserve normal input height. */
-@media(min-width:768px){
-  .order-create-shell .order-step--basic>.row:first-of-type{justify-content:flex-start}
-  .order-create-shell .order-step--basic>.row:first-of-type>div.col-md-4{
-    flex:0 0 225px;
-    width:225px;
-    max-width:225px;
+/* Compact all New Order sections: size by content, not by Bootstrap fractions. */
+@media(min-width:1100px){
+  .order-create-shell{max-width:1480px}
+  .order-create-shell .order-step--basic>.row:first-of-type,
+  .order-create-shell .order-step--items .renk-beden-card>.row,
+  .order-create-shell .order-step--delivery .sub-card>.row,
+  .order-create-shell .order-step--finance .cost-card>.row{
+    display:flex;flex-wrap:nowrap;align-items:flex-start;gap:12px;
+    margin-left:0;margin-right:0;
   }
-  .order-create-shell .order-step--items .renk-beden-card>.row>div.col-md-3,
-  .order-create-shell .order-step--items .renk-beden-card>.row>div.col-md-4{
-    flex:0 0 225px;
-    width:225px;
-    max-width:225px;
+  .order-create-shell .order-step--basic>.row:first-of-type>div,
+  .order-create-shell .order-step--items .renk-beden-card>.row>div,
+  .order-create-shell .order-step--delivery .sub-card>.row>div,
+  .order-create-shell .order-step--finance .cost-card>.row>div{
+    flex:0 1 auto;min-width:0;max-width:none;
+    padding-left:0;padding-right:0;margin-top:0!important;
   }
-  .order-create-shell .order-step--items .renk-beden-card>.row>div.col-md-2{
-    flex:0 0 130px;
-    width:130px;
-    max-width:130px;
-  }
-  .order-create-shell .order-step--delivery .form-control,
-  .order-create-shell .order-step--finance .form-control,
-  .order-create-shell .order-step--finance .form-select{max-width:225px}
+  .order-create-shell .order-step--basic>.row:first-of-type>div.col-md-4{width:clamp(170px,18vw,220px)}
+  .order-create-shell .order-step--basic #price-history-area{width:auto;align-self:center}
+  .order-create-shell .order-step--items .renk-beden-card>.row>.col-md-3,
+  .order-create-shell .order-step--items .renk-beden-card>.row>.col-md-4{width:clamp(170px,18vw,220px)}
+  .order-create-shell .order-step--items .renk-beden-card>.row>.col-md-2{width:95px;flex:0 0 95px}
+  .order-create-shell .order-step--items .renk-beden-card>.row>.hip-pricing-field{width:170px}
+  .order-create-shell .order-step--delivery .sub-card>.row>.col-md-6:first-child{width:185px;flex:0 0 185px}
+  .order-create-shell .order-step--delivery .sub-card>.row>.col-md-6:last-child{width:min(440px,45%)}
+  .order-create-shell .order-step--finance .cost-card>.row>.col-md-4{width:clamp(135px,12vw,180px)}
+  .order-create-shell .order-step--finance .cost-card>.row>.col-md-2{width:90px;flex:0 0 90px}
 }
-@media(min-width:992px){.order-create-shell .order-step--items .renk-beden-card>.row>.col-md-3:last-child{max-width:22%}}
+@media(min-width:768px) and (max-width:1099px){
+  .order-create-shell .order-step--basic>.row:first-of-type>div.col-md-4{width:25%;flex:0 0 25%}
+  .order-create-shell .order-step--items .renk-beden-card>.row>.col-md-3,
+  .order-create-shell .order-step--items .renk-beden-card>.row>.col-md-4{width:22%;flex:0 0 22%}
+  .order-create-shell .order-step--items .renk-beden-card>.row>.col-md-2{width:12%;flex:0 0 12%}
+  .order-create-shell .order-step--finance .cost-card>.row>.col-md-4{width:25%;flex:0 0 25%}
+  .order-create-shell .order-step--finance .cost-card>.row>.col-md-2{width:12.5%;flex:0 0 12.5%}
+}
+.order-create-shell .order-step--delivery input[name="teslim_tarihi"]{max-width:185px}
+.order-create-shell .order-step--delivery input[name="aciklama"]{max-width:440px}
+.order-create-shell .order-step--finance .form-control,
+.order-create-shell .order-step--finance .form-select{max-width:100%}
+.order-create-shell .order-step--images input[type="file"]{max-width:380px}
+.order-create-shell .order-step .select2-container{max-width:100%!important}
 @media(max-width:767px){.order-create-shell .order-step{padding:18px 14px;border-radius:14px;margin-bottom:12px}.order-create-shell .order-step-head{margin-bottom:16px}.order-create-shell .order-step-title{font-size:15px}.order-create-shell .order-submit-bar .btn{width:100%}}
 
 </style>
