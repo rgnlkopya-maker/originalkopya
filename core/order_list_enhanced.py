@@ -12,6 +12,11 @@ from datetime import timedelta
 from .models import Order, OrderEvent, OrderFlag, URUN_TIPI_CHOICES
 
 STAGE_TRANSLATIONS = {
+    ("kesim_durum", "beklemede"): "Kesim Beklemeye Alındı",
+    ("dikim_durum", "beklemede"): "Dikim Beklemeye Alındı",
+    ("ust_etek_dikimi", "beklemede"): "Üst Etek Dikimi Beklemeye Alındı",
+    ("susleme_durum", "beklemede"): "Süsleme Beklemeye Alındı",
+    ("utu_durum", "beklemede"): "Ütü Beklemeye Alındı",
     ("malzeme_durum", "kesildi"): "Malzemesi Kesildi", ("malzeme_durum", "boyandi"): "Malzemesi Boyandı", ("malzeme_durum", "eksik"): "Malzemesi Eksik",
     ("kesim_durum", "siraya_alindi"): "Kesim Sırasına Alındı", ("kesim_durum", "basladi"): "Kesim Başladı", ("kesim_durum", "kismi"): "Kısmi Kesim yapıldı", ("kesim_durum", "bitti"): "Kesildi",
     ("dikim_durum", "siraya_alindi"): "Dikim Sırasına Alındı", ("dikim_durum", "sıraya_alındı"): "Dikim Sırasına Alındı", ("dikim_durum", "basladi"): "Dikim Başladı", ("dikim_durum", "kismi"): "Kısmi Dikim yapıldı", ("dikim_durum", "bitti"): "Dikildi",
