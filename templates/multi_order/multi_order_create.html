@@ -388,6 +388,24 @@ hr {
     grid-column:1 / -1;
   }
 }
+
+/* Submit button matches the photo/video controls instead of a solid dark block. */
+.order-create-shell .order-submit-bar .btn.btn-primary,
+.order-create-shell form>.text-center:last-of-type .btn-primary{
+  display:inline-flex!important;align-items:center;justify-content:center;gap:6px;
+  background:#f4f7fd!important;color:#304b83!important;
+  border:1px solid #d7e1f0!important;border-radius:10px!important;
+  padding:9px 17px!important;min-height:42px!important;
+  font-size:13px!important;font-weight:750!important;
+  box-shadow:none!important;
+}
+.order-create-shell .order-submit-bar .btn.btn-primary:hover,
+.order-create-shell form>.text-center:last-of-type .btn-primary:hover{
+  background:#eaf1fd!important;color:#244477!important;border-color:#b9ccef!important;
+}
+.order-create-shell .order-submit-bar .btn.btn-primary:focus-visible{
+  outline:2px solid #5575b8;outline-offset:2px;
+}
 </style>
 {% endblock %}
 
