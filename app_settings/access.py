@@ -89,3 +89,10 @@ def customer_scope_allows(user, customer):
     if value == "active_only":
         return bool(getattr(customer, "aktif", False))
     return True
+
+
+def can_view_workshop_live(user):
+    """Atölye Canlı Durum: Tahir or patron/mudur only."""
+    if not getattr(user, "is_authenticated", False):
+        return False
+    return (user.username or "").strip().casefold() == "tahir" or has_full_access(user)
