@@ -237,6 +237,9 @@ def order_list(request):
     ("malzeme_durum", "kesildi"): "Malzemesi Kesildi",
     ("malzeme_durum", "boyandi"): "Malzemesi Boyandı",
     ("malzeme_durum", "danteli_ayarlandi"): "Danteli Ayarlandı",
+    ("malzeme_durum", "etek_danteli_ayarlandi"): "Etek Danteli Ayarlandı",
+    ("malzeme_durum", "beden_danteli_ayarlandi"): "Beden Danteli Ayarlandı",
+    ("malzeme_durum", "takim_olarak_danteli_ayarlandi"): "Takım Olarak Danteli Ayarlandı",
     ("malzeme_durum", "eksik"): "Malzemesi Eksik",
 
     # --- Kesim ---
@@ -1121,6 +1124,9 @@ def update_stage(request, pk):
         ("malzeme_durum", "kesildi"): "Malzemesi Kesildi",
         ("malzeme_durum", "boyandi"): "Malzemesi Boyandı",
         ("malzeme_durum", "danteli_ayarlandi"): "Danteli Ayarlandı",
+    ("malzeme_durum", "etek_danteli_ayarlandi"): "Etek Danteli Ayarlandı",
+    ("malzeme_durum", "beden_danteli_ayarlandi"): "Beden Danteli Ayarlandı",
+    ("malzeme_durum", "takim_olarak_danteli_ayarlandi"): "Takım Olarak Danteli Ayarlandı",
         ("malzeme_durum", "eksik"): "Malzemesi Eksik",
         ("kesim_durum", "siraya_alindi"): "Kesim Sırasına Alındı",
         ("kesim_durum", "basladi"): "Kesime Başlandı",
