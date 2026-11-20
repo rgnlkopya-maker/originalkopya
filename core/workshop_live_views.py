@@ -8,8 +8,9 @@ from django.contrib.auth.decorators import login_required
 from django.http import HttpResponseForbidden, JsonResponse
 from django.db.models import Count, Max
 from django.contrib.auth import get_user_model
-from datetime import datetime
+from datetime import datetime, timedelta
 from attendance.models import AttendanceRecord, WorkplaceSettings
+from app_settings.middleware import BREAK_WINDOWS
 from django.shortcuts import render, get_object_or_404
 from django.utils import timezone
 from django.views.decorators.http import require_POST
@@ -107,20 +108,58 @@ def workshop_live(request):
                 if record.check_out:
                     finish = record.check_out
                 elif record.work_date == today:
-                    finish = now
+                    # Preserve future non-break time segments for the client
+                    # clock so it pauses/resumes exactly at break boundaries.
+                    finish = timezone.make_aware(
+                        datetime.combine(today + timedelta(days=1), datetime.min.time()),
+                        timezone.get_current_timezone(),
+                    )
                 else:
-                    # Missing historical checkout is uncertain; cap at scheduled end.
+                    # Missing historical checkout: never count overnight.
                     finish = timezone.make_aware(
                         datetime.combine(record.work_date, settings.work_end),
-                        timezone.get_current_timezone()
+                        timezone.get_current_timezone(),
                     )
-                finish = min(finish, now)
                 if finish <= start:
                     continue
-                intervals.append({
-                    "start": start.isoformat(),
-                    "end": finish.isoformat() if record.check_out or record.work_date != today else None,
-                })
+
+                # Split attendance into working intervals using the same
+                # centralized break definitions as the access middleware.
+                # Subtract overlaps only; a worker starting during a break
+                # accumulates nothing until that break ends.
+                pieces = [(start, finish)]
+                local_start = timezone.localtime(start).date()
+                local_finish = timezone.localtime(finish).date()
+                day = local_start
+                while day <= local_finish:
+                    for break_start, break_end in BREAK_WINDOWS:
+                        pause_start = timezone.make_aware(
+                            datetime.combine(day, break_start),
+                            timezone.get_current_timezone(),
+                        )
+                        pause_end = timezone.make_aware(
+                            datetime.combine(day, break_end),
+                            timezone.get_current_timezone(),
+                        )
+                        remaining = []
+                        for piece_start, piece_end in pieces:
+                            if pause_end <= piece_start or pause_start >= piece_end:
+                                remaining.append((piece_start, piece_end))
+                                continue
+                            if piece_start < pause_start:
+                                remaining.append((piece_start, pause_start))
+                            if pause_end < piece_end:
+                                remaining.append((pause_end, piece_end))
+                        pieces = remaining
+                    day += timedelta(days=1)
+
+                is_current_open = not record.check_out and record.work_date == today
+                for piece_start, piece_end in pieces:
+                    intervals.append({
+                        "start": piece_start.isoformat(),
+                        "end": None if is_current_open and piece_end == finish else piece_end.isoformat(),
+                    })
+
             row["work_sessions"] = intervals
             if not intervals:
                 continue
@@ -128,7 +167,7 @@ def workshop_live(request):
             for segment in intervals:
                 begin = datetime.fromisoformat(segment["start"])
                 finish = datetime.fromisoformat(segment["end"]) if segment["end"] else now
-                total_seconds += max(0, (finish - begin).total_seconds())
+                total_seconds += max(0, (min(finish, now) - begin).total_seconds())
             row["elapsed_minutes"] = int(total_seconds // 60)
 
     open_work.sort(key=lambda item: item["started"], reverse=True)
