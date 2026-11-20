@@ -6,6 +6,7 @@ event is Başladı, regardless of which employee eventually pressed Bitti.
 
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponseForbidden, JsonResponse
+from django.db.models import Count, Max
 from django.shortcuts import render, get_object_or_404
 from django.utils import timezone
 from django.views.decorators.http import require_POST
@@ -124,3 +125,31 @@ def workshop_live_hide(request, event_id):
         defaults={"excluded_by": request.user},
     )
     return JsonResponse({"ok": True})
+
+
+@login_required
+def workshop_live_version(request):
+    """Lightweight 3-second TV poll; full HTML fetched only after a data change."""
+    if not has_full_access(request.user):
+        return HttpResponseForbidden("Atölye canlı durum erişim yetkiniz bulunmuyor.")
+    today = timezone.localdate()
+    stage = OrderEvent.objects.aggregate(last_id=Max("id"))
+    exclusions = ProductionStageControlExclusion.objects.aggregate(
+        count=Count("id"), last_id=Max("id")
+    )
+    plans = ShipmentPlan.objects.filter(planned_date=today).aggregate(
+        count=Count("id"), last_id=Max("id"), last_update=Max("updated_at")
+    )
+    notes = PlanningEntry.objects.filter(section="sevkiyat", date=today).aggregate(
+        count=Count("id"), last_id=Max("id"), last_update=Max("updated_at")
+    )
+    # New events, manager exclusions, plan edits and date rollover change the version.
+    key = "|".join(str(value or "") for value in (
+        today.isoformat(), stage["last_id"],
+        exclusions["count"], exclusions["last_id"],
+        plans["count"], plans["last_id"], plans["last_update"],
+        notes["count"], notes["last_id"], notes["last_update"],
+    ))
+    response = JsonResponse({"version": key})
+    response["Cache-Control"] = "no-store"
+    return response
