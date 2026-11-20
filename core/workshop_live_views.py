@@ -7,6 +7,9 @@ event is Başladı, regardless of which employee eventually pressed Bitti.
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponseForbidden, JsonResponse
 from django.db.models import Count, Max
+from django.contrib.auth import get_user_model
+from datetime import datetime
+from attendance.models import AttendanceRecord, WorkplaceSettings
 from django.shortcuts import render, get_object_or_404
 from django.utils import timezone
 from django.views.decorators.http import require_POST
@@ -68,6 +71,64 @@ def workshop_live(request):
             "started": event.timestamp,
             "elapsed_minutes": max(0, int((now - event.timestamp).total_seconds() // 60)),
         })
+
+    # Attendance limits open durations to recorded work periods, never nights.
+    # OrderEvent.user is free text, not a user FK.
+    name_to_id, ambiguous = {}, set()
+    for employee in get_user_model().objects.filter(is_active=True).only("id", "username", "first_name", "last_name"):
+        for alias in {(employee.username or "").strip().casefold(), (employee.get_full_name() or "").strip().casefold()} - {""}:
+            if alias in name_to_id and name_to_id[alias] != employee.pk:
+                ambiguous.add(alias)
+            else:
+                name_to_id[alias] = employee.pk
+    for alias in ambiguous:
+        name_to_id.pop(alias, None)
+    for row in open_work:
+        row["employee_id"] = name_to_id.get((row["person"] or "").strip().casefold())
+        row["elapsed_minutes"] = None
+        row["work_sessions"] = []
+    employee_ids = {row["employee_id"] for row in open_work if row["employee_id"]}
+    if employee_ids:
+        earliest = min(timezone.localtime(row["started"]).date() for row in open_work if row["employee_id"])
+        records = AttendanceRecord.objects.filter(
+            user_id__in=employee_ids, work_date__gte=earliest, work_date__lte=today,
+            status="worked", check_in__isnull=False,
+        ).order_by("work_date")
+        attendance_by_user = {}
+        for record in records:
+            attendance_by_user.setdefault(record.user_id, []).append(record)
+        settings = WorkplaceSettings.get_solo()
+        for row in open_work:
+            if not row["employee_id"]:
+                continue
+            intervals = []
+            for record in attendance_by_user.get(row["employee_id"], []):
+                start = max(row["started"], record.check_in)
+                if record.check_out:
+                    finish = record.check_out
+                elif record.work_date == today:
+                    finish = now
+                else:
+                    # Missing historical checkout is uncertain; cap at scheduled end.
+                    finish = timezone.make_aware(
+                        datetime.combine(record.work_date, settings.work_end),
+                        timezone.get_current_timezone()
+                    )
+                finish = min(finish, now)
+                if finish <= start:
+                    continue
+                intervals.append({
+                    "start": start.isoformat(),
+                    "end": finish.isoformat() if record.check_out or record.work_date != today else None,
+                })
+            row["work_sessions"] = intervals
+            total_seconds = 0
+            for segment in intervals:
+                begin = datetime.fromisoformat(segment["start"])
+                finish = datetime.fromisoformat(segment["end"]) if segment["end"] else now
+                total_seconds += max(0, (finish - begin).total_seconds())
+            row["elapsed_minutes"] = int(total_seconds // 60)
+
     open_work.sort(key=lambda item: item["started"], reverse=True)
 
     # Mirror today's source column from the existing Shipment Plan and its notes.
