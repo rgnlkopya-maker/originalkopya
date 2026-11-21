@@ -1858,6 +1858,8 @@ def product_cost_list(request):
                     urun_kodu=urun_kodu,
                     defaults={"maliyet": maliyet, "para_birimi": para_birimi},
                 )
+                from product_cards.missing_shipment_costs import fill_missing_shipment_costs
+                fill_missing_shipment_costs(urun_kodu)
 
         # Maliyet kayıtlarını geçmiş siparişler için silme; yalnızca aktiflik değiştir.
         elif action in ("deactivate", "activate"):
