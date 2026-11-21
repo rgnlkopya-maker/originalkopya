@@ -80,20 +80,33 @@
     <div class="table-responsive"><table class="table align-middle"><thead><tr><th>Başlangıç</th><th>Modül</th><th>Sonuç</th><th>Tarandı</th><th>Yeni/değişen dosya</th><th>Yeni fotoğraf</th><th>İncele</th></tr></thead><tbody>
       {% for run in history %}<tr><td>{{ run.started_at|date:"d.m.Y H:i" }}</td><td>{{ run.get_module_display }}</td><td>{% if run.success %}Başarılı{% elif run.completed_at %}Hata{% else %}Devam ediyor{% endif %}</td><td>{{ run.records }}</td><td>{{ run.files }}</td><td>{{ run.photos }}</td><td><button type="button" class="btn btn-outline-primary btn-sm" data-bs-toggle="collapse" data-bs-target="#backup-run-{{ run.id }}" aria-expanded="false">Detay</button></td></tr>
       <tr><td colspan="7" class="p-0 border-0"><div class="collapse" id="backup-run-{{ run.id }}"><div class="p-3 mb-2 rounded" style="background:#f7f9fd;border:1px solid #e4eaf3">
-      <div class="fw-bold mb-2">{{ run.get_module_display }} · {{ run.started_at|date:"d.m.Y H:i" }}</div>
-      <div class="backup-muted mb-2">Bitiş: {{ run.completed_at|date:"d.m.Y H:i"|default:"Sürüyor" }} · {{ run.message|default:"Durum kaydı yok" }}</div>
+      <div class="fw-bold mb-2">Neler yedeklendi? · {{ run.get_module_display }}</div>
+      <div class="small mb-2">Başlangıç: {{ run.started_at|date:"d.m.Y H:i" }} · Bitiş: {{ run.completed_at|date:"d.m.Y H:i"|default:"Sürüyor" }}</div>
+      <div class="small mb-2"><strong>Durum:</strong> {% if run.success %}Başarılı{% elif run.completed_at %}Hata{% else %}Devam ediyor{% endif %} · {{ run.message|default:"Ek açıklama kaydedilmedi." }}</div>
+      {% if run.module == 'folios' %}
+        <div class="small mb-2">Sipariş föyleri: {{ run.records }} kayıt kontrol edildi; {{ run.files }} yeni/değişen belge dosyası ve {{ run.photos }} yeni orijinal fotoğraf yüklendi. Belge türleri PDF, yazdırma HTML'si ve JSON'dur.</div>
+      {% elif run.module == 'instruments' %}
+        <div class="small mb-2">Çek/Senet: {{ run.records }} kayıt kontrol edildi; {{ run.files }} yedek dosyası oluşturuldu veya aktarıldı; {{ run.photos }} eksik belge fotoğrafı yüklendi. Kayıtlar Excel ve JSON biçiminde saklanır. Dosya sayısı yeni çek/senet sayısı değildir.</div>
+      {% elif run.module == 'database' %}
+        <div class="small mb-2">Tam veritabanı: PostgreSQL tabloları ve kayıtları şifreli .dump.enc arşivine alınır. Bu çalışmada {{ run.files }} yedek dosyası raporlandı. "Tarandı" değeri veritabanındaki toplam kayıt sayısını göstermez.</div>
+      {% elif run.module == 'salary' %}
+        <div class="small mb-2">Maaş yedeği: maaş tanımları, dönemler, ödeme ve avans hareketleri ile ödeme planları JSON ve Excel dosyalarına alınır. Bu çalışmada {{ run.files }} dosya raporlandı.</div>
+      {% endif %}
+      <div class="fw-semibold small mb-2">İşlem ayrıntıları ve dosyalar</div>
       {% for item in run.details %}
         {% if run.module == 'folios' %}
-          <details class="mb-2"><summary style="cursor:pointer;font-weight:650">Föy #{{ item.folio }} — {{ item.customer }} ({{ item.files|length }} belge kontrolü, {{ item.photos|length }} fotoğraf)</summary>
+          <details class="mb-2"><summary style="cursor:pointer;font-weight:650">Föy #{{ item.folio }} — {{ item.customer }} ({{ item.files|length }} belge kaydı, {{ item.photos|length }} fotoğraf kaydı)</summary>
             <div class="ps-3 mt-2">
-            {% for file in item.files %}<div class="small py-1"><strong>{{ file.type }}</strong>: {{ file.status }} <span class="text-muted">· {{ file.name }}</span></div>{% endfor %}
-            {% for photo in item.photos %}<div class="small py-1"><strong>Fotoğraf</strong>: {{ photo.status }} <span class="text-muted">· {{ photo.name }}</span></div>{% endfor %}
+            {% for file in item.files %}<div class="small py-1"><strong>{{ file.type }}</strong> · {{ file.status }} <span class="text-muted">· Dosya: {{ file.name }}</span></div>{% endfor %}
+            {% for photo in item.photos %}<div class="small py-1"><strong>Orijinal fotoğraf</strong> · {{ photo.status }} <span class="text-muted">· Dosya: {{ photo.name }}</span></div>{% endfor %}
             </div>
           </details>
         {% else %}
-          <div class="small mb-1">{{ item.summary }}</div><div class="small mb-1">Kayıt: {{ item.records }} · Yeni fotoğraf: {{ item.new_photos }}</div><div class="backup-muted">{{ item.comparison }}</div>
+          <div class="small mb-1">{% if item.summary %}{{ item.summary }}{% else %}Bu işlem için açıklama kaydedilmedi.{% endif %}</div>
+          {% if item.records != None %}<div class="small mb-1">Kontrol edilen kayıt: {{ item.records }}{% if item.new_photos != None %} · Yeni fotoğraf: {{ item.new_photos }}{% endif %}</div>{% endif %}
+          {% if item.comparison %}<div class="backup-muted mb-2">{{ item.comparison }}</div>{% endif %}
         {% endif %}
-      {% empty %}<div class="backup-muted">Bu eski işlem için dosya bazında detay kaydı tutulmamış. Yeni çalışmalarda ayrıntılar burada görünecek.</div>{% endfor %}
+      {% empty %}<div class="backup-muted">Bu işlem için dosya adları veya kayıt bazında ayrıntılar tutulmamış. Yukarıdaki sayılar işlem özetidir; tek tek dosyalar doğrulanamaz.</div>{% endfor %}
       </div></div></td></tr>
       {% empty %}<tr><td colspan="7" class="text-muted">Yeni sistemde henüz yedekleme kaydı bulunmuyor.</td></tr>{% endfor %}
     </tbody></table></div>
