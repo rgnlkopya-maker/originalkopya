@@ -127,4 +127,6 @@ def salary_backup():
         if remote.get("trashed") or int(remote.get("size", -1)) != len(uploaded_bytes):
             raise RuntimeError("Salary backup upload verification failed: " + extension)
         files.append({"file_id": uploaded["id"], "size": len(uploaded_bytes), "type": extension})
-    return {"file_id": files[0]["file_id"], "size": sum(f["size"] for f in files), "records": sum(len(v) for v in data["models"].values()), "files": files}
+    for file in files:
+        file["name"] = f"MoliApp-Maas-{stamp}." + ("json.enc" if file["type"] == "json" else "xlsx")
+    return {"model_counts": {name: len(rows) for name, rows in data["models"].items()}, "file_id": files[0]["file_id"], "size": sum(f["size"] for f in files), "records": sum(len(v) for v in data["models"].values()), "files": files}
