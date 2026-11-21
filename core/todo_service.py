@@ -108,7 +108,7 @@ def process_daily_management_alerts(now=None):
         summary = f"Yarın ({tomorrow:%d.%m.%Y}) teslim tarihli, henüz sevk edilmemiş {len(due_orders)} sipariş var: " + "; ".join(examples)
         if len(due_orders) > 8:
             summary += f"; ve {len(due_orders)-8} sipariş daha."
-        results["tomorrow_shipping"] = publish("tomorrow-shipping", "Yarın Teslim Edilecek Siparişler", summary, "/")
+        results["tomorrow_shipping"] = publish("tomorrow-shipping", "Yarın Teslim Edilecek Siparişler", summary, f"/?teslim=bildirim&teslim_tarihi_baslangic={tomorrow.isoformat()}&teslim_tarihi_bitis={tomorrow.isoformat()}")
 
     # Match the existing production-stage-control 3-day inactivity rule.
     # Limit to orders with actual stage history and without a completed shipment.
