@@ -66,6 +66,8 @@ def _upload_image(uploaded_file, folder, code):
     return bucket.get_public_url(path)
 
 
+from .missing_shipment_costs import fill_missing_shipment_costs
+
 SHIPPED_EVENT_VALUES = {"gonderildi", "tekrar_gonderildi", "tekrar_sevk"}
 
 
@@ -185,6 +187,8 @@ def recalculate_approved_product_costs(usd_try=None, product_codes=None):
             is_active=True,
         ).update(maliyet=total, para_birimi="TRY")
         sync_unshipped_order_costs(card.urun.kod, total)
+        from .missing_shipment_costs import fill_missing_shipment_costs
+        fill_missing_shipment_costs(card.urun.kod)
         updated += 1
 
     return updated
@@ -289,7 +293,7 @@ def product_card_detail(request, card_id):
                 if ProductCost.objects.filter(urun_kodu=card.urun.kod, is_active=True).exists(): recalculate_approved_product_costs(product_codes=[card.urun.kod])
                 messages.success(request, "Maliyet kalemleri kaydedildi. Güncel kurla toplam yeniden hesaplandı.")
             else:
-                total = card.toplam_maliyet.quantize(Decimal("0.01")); ProductCost.objects.update_or_create(urun_kodu=card.urun.kod, defaults={"maliyet": total, "para_birimi": "TRY", "is_active": True}); sync_unshipped_order_costs(card.urun.kod, total); messages.success(request, f"{card.urun.kod} maliyeti güncel kurla {total} TL olarak Ürün Maliyetleri listesine kaydedildi.")
+                total = card.toplam_maliyet.quantize(Decimal("0.01")); ProductCost.objects.update_or_create(urun_kodu=card.urun.kod, defaults={"maliyet": total, "para_birimi": "TRY", "is_active": True}); sync_unshipped_order_costs(card.urun.kod, total); fill_missing_shipment_costs(card.urun.kod); messages.success(request, f"{card.urun.kod} maliyeti güncel kurla {total} TL olarak Ürün Maliyetleri listesine kaydedildi.")
         return redirect("product_card_detail", card_id=card.id)
     materials = Material.objects.filter(aktif=True).order_by("ad"); usages = list(card.materials.select_related("material").all()); material_total = sum((usage.satir_maliyeti for usage in usages), Decimal("0")); current_product_cost = ProductCost.objects.filter(urun_kodu=card.urun.kod, is_active=True).first()
     return render(request, "product_cards/detail.html", {"card": card, "materials": materials, "usages": usages, "material_total": material_total, "calculated_total": card.toplam_maliyet, "current_product_cost": current_product_cost, "current_rate": current_rate, "rate_error": rate_error, "currency_choices": CURRENCY_CHOICES, "urun_tipi_choices": UrunKod._meta.get_field("urun_tipi").choices, "material_stage_choices": ProductMaterial.STAGE_CHOICES})
