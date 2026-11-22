@@ -1060,7 +1060,7 @@ def update_stage(request, pk):
         return HttpResponseForbidden("Eksik veri")
 
     work_stages = {"kesim_durum", "dikim_durum", "ust_etek_dikimi", "susleme_durum", "utu_durum"}
-    if value == "beklemede" and stage not in work_stages:
+    if value == "beklemede" and stage not in (work_stages | {"susleme_yardim"}):
         return HttpResponseBadRequest("Bu aşama beklemeye alınamaz.")
     if value == "beklemede" and not (aciklama or "").strip():
         return HttpResponseBadRequest("Beklemeye alma sebebi zorunludur.")
@@ -1068,31 +1068,30 @@ def update_stage(request, pk):
     if stage == "kalite_kontrol" and value == "hata_gordum" and not (aciklama or "").strip():
         return HttpResponseBadRequest("Lütfen gördüğünüz hatayı açıklayınız.")
 
-    # Süsleme: aynı personelin ikinci bir aktif sipariş başlatmasını engelle.
-    # Kayıt, siparişin genel durumundan değil personelin kendi başlangıç /
-    # bekletme / bitirme hareketlerinden hesaplanır.
-    if stage == "susleme_durum" and value == "basladi":
+    # Süsleme ve süsleme yardımı aynı personel için tek aktif iş kuralını paylaşır.
+    # Yardım başladı/beklemede/bitti olayları siparişin ana süsleme durumunu değiştirmez.
+    if stage in {"susleme_durum", "susleme_yardim"} and value == "basladi":
         from django.contrib.auth import get_user_model
-        # Aynı kullanıcının eşzamanlı isteklerini tek sıraya al.
         get_user_model().objects.select_for_update().get(pk=request.user.pk)
-        active_susleme = (
+        activity_events = (
             OrderEvent.objects.filter(
                 user=request.user.username,
-                stage="susleme_durum",
+                stage__in=["susleme_durum", "susleme_yardim"],
                 event_type="stage",
                 value__in=["basladi", "beklemede", "bitti"],
+                order__is_active=True,
             )
-            .exclude(order_id=order.pk)
             .order_by("-timestamp", "-id")
             .select_related("order", "order__musteri")
         )
-        checked_order_ids = set()
+        seen_activities = set()
         blocking_event = None
-        for previous in active_susleme:
-            if previous.order_id in checked_order_ids:
+        for previous in activity_events:
+            activity_key = (previous.order_id, previous.stage)
+            if activity_key in seen_activities:
                 continue
-            checked_order_ids.add(previous.order_id)
-            if previous.value == "basladi" and previous.order.is_active:
+            seen_activities.add(activity_key)
+            if previous.value == "basladi" and previous.order_id != order.pk:
                 blocking_event = previous
                 break
         if blocking_event is not None:
@@ -1106,6 +1105,7 @@ def update_stage(request, pk):
                     "is_manager": request.user.groups.filter(name__in=["patron", "mudur"]).exists(),
                     "consignment_active_qty": ConsignmentStock.objects.filter(source_order=order).aggregate(v=Sum("quantity_remaining"))["v"] or 0,
                     "blocked_susleme_order": blocking_order,
+                    "blocked_susleme_is_help": blocking_event.stage == "susleme_yardim",
                 })
             return JsonResponse({
                 "status": "blocked",
@@ -1200,6 +1200,9 @@ def update_stage(request, pk):
         ("susleme_durum", "kismi_bitti"): "Kısmi Süsleme Yapıldı",
         ("susleme_durum", "bitti"): "Süsleme Bitti",
         ("susleme_yardim", "yardim_etti"): "Süslemeye Yardım Etti",
+        ("susleme_yardim", "basladi"): "Süsleme Yardımına Başladı",
+        ("susleme_yardim", "beklemede"): "Süsleme Yardımını Beklemeye Aldı",
+        ("susleme_yardim", "bitti"): "Süsleme Yardımını Bitirdi",
         ("kalite_kontrol", "kontrol_ettim"): "Kontrol Ettim",
         ("kalite_kontrol", "hata_gordum"): "Hata Gördüm",
         ("sevkiyat_durum", "gonderildi"): "Sevkiyata Gönderildi",
