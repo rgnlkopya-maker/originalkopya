@@ -128,6 +128,10 @@
                                         {% elif e.stage == 'kalite_kontrol' and e.value == 'kontrol_ettim' %}Kontrol Ettim
                                         {% elif e.stage == 'kalite_kontrol' and e.value == 'hata_gordum' %}Hata Gördüm
                                         {% elif e.stage == 'susleme_durum' and e.value == 'bitti' %}Süsleme Bitti
+                                        {% elif e.stage == 'susleme_yardim' and e.value == 'basladi' and e.aciklama == 'Tekrar Başladım' %}Süsleme Yardımına Tekrar Başladım
+                                        {% elif e.stage == 'susleme_yardim' and e.value == 'basladi' %}Süsleme Yardımına Başladı
+                                        {% elif e.stage == 'susleme_yardim' and e.value == 'beklemede' %}Süsleme Yardımını Beklemeye Aldı
+                                        {% elif e.stage == 'susleme_yardim' and e.value == 'bitti' %}Süsleme Yardımını Bitirdi
                                         {% elif e.stage == 'susleme_yardim' and e.value == 'yardim_etti' %}🤝 Süslemeye Yardım Etti
                                         {% elif e.stage == 'dikim_fason_durumu' and e.value == 'verildi' %}Dikim İçin Fasona Verildi
                                         {% elif e.stage == 'dikim_fason_durumu' and e.value == 'alindi' %}Dikim Fasoncusundan Alındı
