@@ -1068,6 +1068,52 @@ def update_stage(request, pk):
     if stage == "kalite_kontrol" and value == "hata_gordum" and not (aciklama or "").strip():
         return HttpResponseBadRequest("Lütfen gördüğünüz hatayı açıklayınız.")
 
+    # Süsleme: aynı personelin ikinci bir aktif sipariş başlatmasını engelle.
+    # Kayıt, siparişin genel durumundan değil personelin kendi başlangıç /
+    # bekletme / bitirme hareketlerinden hesaplanır.
+    if stage == "susleme_durum" and value == "basladi":
+        from django.contrib.auth import get_user_model
+        # Aynı kullanıcının eşzamanlı isteklerini tek sıraya al.
+        get_user_model().objects.select_for_update().get(pk=request.user.pk)
+        active_susleme = (
+            OrderEvent.objects.filter(
+                user=request.user.username,
+                stage="susleme_durum",
+                event_type="stage",
+                value__in=["basladi", "beklemede", "bitti"],
+            )
+            .exclude(order_id=order.pk)
+            .order_by("-timestamp", "-id")
+            .select_related("order", "order__musteri")
+        )
+        checked_order_ids = set()
+        blocking_event = None
+        for previous in active_susleme:
+            if previous.order_id in checked_order_ids:
+                continue
+            checked_order_ids.add(previous.order_id)
+            if previous.value == "basladi" and previous.order.is_active:
+                blocking_event = previous
+                break
+        if blocking_event is not None:
+            blocking_order = blocking_event.order
+            if request.headers.get("HX-Request"):
+                return render(request, "core/_uretim_paneli.html", {
+                    "order": order,
+                    "events": OrderEvent.objects.filter(order=order).order_by("-timestamp"),
+                    "fasoncular": Fasoncu.objects.all(),
+                    "nakisciler": Nakisci.objects.all(),
+                    "is_manager": request.user.groups.filter(name__in=["patron", "mudur"]).exists(),
+                    "consignment_active_qty": ConsignmentStock.objects.filter(source_order=order).aggregate(v=Sum("quantity_remaining"))["v"] or 0,
+                    "blocked_susleme_order": blocking_order,
+                })
+            return JsonResponse({
+                "status": "blocked",
+                "message": "Önceki süsleme işiniz devam ediyor. Önce beklemeye alın veya bitirin.",
+                "order_id": blocking_order.pk,
+                "order_url": f"/order/{blocking_order.pk}/",
+            }, status=409)
+
     # ---------------------------------------------------------
     # 1) ORDER ÜZERİNDE AŞAMA GÜNCELLE
     # ---------------------------------------------------------
