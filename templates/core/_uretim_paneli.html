@@ -270,6 +270,34 @@
     </div>
 </div>
 
+{% if blocked_susleme_order %}
+<div id="susleme-active-warning" class="modal fade" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false" aria-labelledby="susleme-active-warning-title">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header"><h5 class="modal-title" id="susleme-active-warning-title">⚠️ Devam Eden Süsleme İşiniz Var</h5></div>
+      <div class="modal-body">
+        <p>Önceki siparişiniz hâlâ devam ediyor görünüyor. Yeni süsleme işine başlamadan önce mevcut siparişi <strong>Beklemeye Al</strong> veya <strong>Süsleme Bitti</strong> ile kapatın.</p>
+        <div class="p-3 rounded border">
+          <strong>Sipariş {{ blocked_susleme_order.siparis_numarasi }}</strong>
+          <div>Ürün: {{ blocked_susleme_order.urun_kodu }}</div>
+          <div>Müşteri: {{ blocked_susleme_order.musteri.ad|default:"Stoğa Üretim" }}</div>
+          <a class="btn btn-primary mt-2" href="/order/{{ blocked_susleme_order.pk }}/">Önceki Siparişe Git ↗</a>
+        </div>
+      </div>
+      <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Kapat</button></div>
+    </div>
+  </div>
+</div>
+<script>
+(function () {
+  var warning = document.getElementById('susleme-active-warning');
+  if (warning && window.bootstrap) {
+    bootstrap.Modal.getOrCreateInstance(warning, {backdrop: 'static', keyboard: false}).show();
+  }
+})();
+</script>
+{% endif %}
+
 {% if actor_popup_notes %}
 <div id="order-stage-flag-alert" class="modal fade" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
   <div class="modal-dialog modal-dialog-centered">
