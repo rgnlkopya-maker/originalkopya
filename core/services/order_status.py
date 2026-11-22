@@ -45,6 +45,9 @@ STATUS_LABELS = {
     ("susleme_durum", "kismi_bitti"): "Kısmi Süsleme Yapıldı",
     ("susleme_durum", "bitti"): "Süslendi",
     ("susleme_yardim", "yardim_etti"): "🤝 Süslemeye Yardım Etti",
+    ("susleme_yardim", "basladi"): "Süsleme Yardımına Başladı",
+    ("susleme_yardim", "beklemede"): "Süsleme Yardımını Beklemeye Aldı",
+    ("susleme_yardim", "bitti"): "Süsleme Yardımını Bitirdi",
     ("utu_durum", "basladi"): "Ütü Başladı",
     ("utu_durum", "bitti"): "Ütü Bitti",
     ("utu_yardim", "yardim_etti"): "🤝 Ütüye Yardım Etti",
@@ -80,6 +83,7 @@ def status_label(event):
             "dikim_durum": "Dikime Tekrar Başladım",
             "ust_etek_dikimi": "Üst Etek Dikimine Tekrar Başladım",
             "susleme_durum": "Süslemeye Tekrar Başladım",
+            "susleme_yardim": "Süsleme Yardımına Tekrar Başladım",
         }
         if event.stage in restart_labels:
             return restart_labels[event.stage]
