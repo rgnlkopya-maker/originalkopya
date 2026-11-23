@@ -1,4 +1,4 @@
-from app_settings.access import has_feature_access
+from app_settings.access import has_feature_access, has_full_access
 from decimal import Decimal, ROUND_HALF_UP
 import logging
 
@@ -213,11 +213,12 @@ def showroom_transfer_preview(request, draft_id):
     if not _can_manage(request.user):
         return HttpResponseForbidden("Bu sayfaya erişim yetkiniz yok.")
 
+    draft_qs = ShowroomDraft.objects.select_related("customer").prefetch_related("items__product_card__urun")
+    # Patron/mudur may transfer approved folios created by another user.
+    if not has_full_access(request.user):
+        draft_qs = draft_qs.filter(created_by=request.user)
     draft = get_object_or_404(
-        ShowroomDraft.objects.select_related("customer").prefetch_related("items__product_card__urun"),
-        id=draft_id,
-        created_by=request.user,
-        status__in=["APPROVED", "TRANSFERRED"],
+        draft_qs, id=draft_id, status__in=["APPROVED", "TRANSFERRED"]
     )
     if draft.import_pending_items:
         from .showroom_views import _smart_import_issues
@@ -288,10 +289,10 @@ def _showroom_transfer_create_impl(request, draft_id):
     with transaction.atomic():
         # The draft lock serializes concurrent requests so the same unit cannot
         # be consumed twice. Every successful batch commits its links together.
-        draft = get_object_or_404(
-            ShowroomDraft.objects.select_for_update(),
-            id=draft_id, created_by=request.user,
-        )
+        draft_qs = ShowroomDraft.objects.select_for_update()
+        if not has_full_access(request.user):
+            draft_qs = draft_qs.filter(created_by=request.user)
+        draft = get_object_or_404(draft_qs, id=draft_id)
         if draft.status not in {"APPROVED", "TRANSFERRED"}:
             return failure("Yalnızca onaylı Föyler aktarılabilir.")
         if draft.import_pending_items:
@@ -383,7 +384,10 @@ def showroom_transfer_qr(request, draft_id):
         return JsonResponse({"ok": False, "error": "POST gerekli"}, status=405)
     if not _can_manage(request.user):
         return HttpResponseForbidden("Bu işlem için yetkiniz yok.")
-    draft = get_object_or_404(ShowroomDraft, id=draft_id, created_by=request.user)
+    draft_qs = ShowroomDraft.objects.all()
+    if not has_full_access(request.user):
+        draft_qs = draft_qs.filter(created_by=request.user)
+    draft = get_object_or_404(draft_qs, id=draft_id, status__in=["APPROVED", "TRANSFERRED"])
     missing = (
         ShowroomOrderLink.objects.filter(draft=draft, order__isnull=False)
         .filter(order__qr_code_url__isnull=True)
