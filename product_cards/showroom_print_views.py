@@ -40,12 +40,11 @@ def showroom_print_page(request, draft_id):
     if not _can_manage(request.user):
         return HttpResponseForbidden("Bu sayfaya erişim yetkiniz yok.")
 
-    draft = get_object_or_404(
-        ShowroomDraft.objects.select_related("customer").prefetch_related("items__product_card__urun", "payments"),
-        id=draft_id,
-        created_by=request.user,
-        status__in=["PENDING", "APPROVED", "TRANSFERRED"],
-    )
+    from app_settings.access import has_full_access
+    draft_qs = ShowroomDraft.objects.select_related("customer").prefetch_related("items__product_card__urun", "payments")
+    if not has_full_access(request.user):
+        draft_qs = draft_qs.filter(created_by=request.user)
+    draft = get_object_or_404(draft_qs, id=draft_id, status__in=["PENDING", "APPROVED", "TRANSFERRED"])
 
     customer_detail = None
     if draft.customer_id:
