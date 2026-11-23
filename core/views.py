@@ -1092,6 +1092,20 @@ def update_stage(request, pk):
                 continue
             seen_activities.add(activity_key)
             if previous.value == "basladi" and previous.order_id != order.pk:
+                # A later embellishment action by someone else transfers/completes
+                # the work. Queue-only and help actions do not release it.
+                if previous.stage == "susleme_durum":
+                    later_handoff = OrderEvent.objects.filter(
+                        order_id=previous.order_id,
+                        stage="susleme_durum",
+                        event_type="stage",
+                        value__in=["basladi", "kismi_bitti", "bitti"],
+                    ).exclude(user=request.user.username).filter(
+                        Q(timestamp__gt=previous.timestamp)
+                        | Q(timestamp=previous.timestamp, pk__gt=previous.pk)
+                    ).exists()
+                    if later_handoff:
+                        continue
                 blocking_event = previous
                 break
         if blocking_event is not None:
