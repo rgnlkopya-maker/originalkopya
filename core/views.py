@@ -1080,6 +1080,9 @@ def update_stage(request, pk):
                 event_type="stage",
                 value__in=["basladi", "beklemede", "bitti"],
                 order__is_active=True,
+                # 23 Kasim 2026 10:51 (TR): Eski, acik kalmis kayitlar
+                # personelin yeni bir ise baslamasini engellemesin.
+                timestamp__gte=datetime.fromisoformat("2026-11-23T10:51:00+03:00"),
             )
             .order_by("-timestamp", "-id")
             .select_related("order", "order__musteri")
