@@ -483,7 +483,13 @@ def showroom_archive_list(request):
     if not _can_manage(request.user): return JsonResponse({"ok":False,"message":"Yetkiniz yok."},status=403)
     kind=request.GET.get("kind"); statuses=["PENDING"] if kind=="draft" else ["APPROVED","TRANSFERRED"] if kind=="approved" else None
     if not statuses: return JsonResponse({"ok":False,"message":"Liste türü geçersiz."},status=400)
-    drafts=ShowroomDraft.objects.filter(created_by=request.user,status__in=statuses).select_related("customer").prefetch_related("items","payments").order_by("-updated_at","-id")
+    drafts=ShowroomDraft.objects.filter(status__in=statuses)
+    # Approved folios are a shared archive for patron/mudur only.
+    # Draft folios and non-management access remain owner-scoped.
+    from app_settings.access import has_full_access
+    if kind != "approved" or not has_full_access(request.user):
+        drafts=drafts.filter(created_by=request.user)
+    drafts=drafts.select_related("customer").prefetch_related("items","payments").order_by("-updated_at","-id")
     return JsonResponse({"ok":True,"kind":kind,"items":[_draft_summary(d) for d in drafts]})
 
 @login_required
