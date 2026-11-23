@@ -1059,6 +1059,17 @@ def update_stage(request, pk):
     if not stage or not value:
         return HttpResponseForbidden("Eksik veri")
 
+    # Sevk edilmiş siparişte üretim hareketleri kapalıdır.
+    # Yalnızca iade veya tadilat dönüşü yeniden üretime izin verir.
+    if stage == "sevkiyat_durum" and value in {"iade_geldi", "tadilata_geldi"}:
+        if not order.production_locked:
+            return HttpResponseBadRequest("Bu işlem yalnızca sevk edilmiş sipariş için kullanılabilir.")
+    elif order.production_locked:
+        return HttpResponseBadRequest(
+            "Sipariş sevk edildi. Önce İade Geldi veya Tadilata Geldi işlemi yapmalısınız."
+        )
+
+
     work_stages = {"kesim_durum", "dikim_durum", "ust_etek_dikimi", "susleme_durum", "utu_durum"}
     if value == "beklemede" and stage not in (work_stages | {"susleme_yardim"}):
         return HttpResponseBadRequest("Bu aşama beklemeye alınamaz.")
@@ -1223,6 +1234,8 @@ def update_stage(request, pk):
         ("kalite_kontrol", "kontrol_ettim"): "Kontrol Ettim",
         ("kalite_kontrol", "hata_gordum"): "Hata Gördüm",
         ("sevkiyat_durum", "gonderildi"): "Sevkiyata Gönderildi",
+        ("sevkiyat_durum", "iade_geldi"): "İade Geldi",
+        ("sevkiyat_durum", "tadilata_geldi"): "Tadilata Geldi",
     }
     stage_label = stage_labels.get((stage, value), f"{stage.replace('_', ' ').title()} → {value.replace('_', ' ').title()}")
     actor_name = request.user.get_full_name().strip() or request.user.username
