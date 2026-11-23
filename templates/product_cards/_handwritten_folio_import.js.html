@@ -76,12 +76,12 @@ if (!EDIT_MODE) {
   status.textContent='Orijinal fotoğraflar föy #'+data.draft+' arşivine kaydedildi.';
  };
  let batchState=null;
- const readSinglePage=async(photo)=>{
+ const readSinglePage=async(photo,mode='standard')=>{
    const form=new FormData();
    form.append('photos',photo);
    form.append('model',modelSelect.value);
    // For multi-page forms send one original full-page image per request.
-   form.append('read_mode','standard');
+   form.append('read_mode',mode);
    const response=await fetch('{% url "read_handwritten_folio" %}',{
      method:'POST',credentials:'same-origin',headers:{'X-CSRFToken':csrf()},body:form
    });
@@ -135,7 +135,7 @@ if (!EDIT_MODE) {
        if(state.results[i])continue;
        status.textContent=(i+1)+'/'+state.photos.length+' sayfa okunuyor: '+state.photos[i].name;
        try{
-         state.results[i]=await readSinglePage(state.photos[i]);
+         state.results[i]=await readSinglePage(state.photos[i],state.photos.length===1?modeSelect.value:'standard');
          state.errors[i]=null;
        }catch(e){
          state.errors[i]=e.message||'Fotoğraf okunamadı';
@@ -150,10 +150,13 @@ if (!EDIT_MODE) {
        for(const key of Object.keys(usage))usage[key]+=Number((p.usage||{})[key]||0);
        for(const key of Object.keys(timing))timing[key]+=Number((p.timing||{})[key]||0);
      });
-     review={data:mergePages(pages),files:state.photos,fileName:state.photos.map(p=>p.name).join(', '),model:pages[0].model||modelSelect.value,usage,timing,readMode:'standard'};
+     review={data:mergePages(pages),files:state.photos,fileName:state.photos.map(p=>p.name).join(', '),model:pages[0].model||modelSelect.value,usage,timing,readMode:state.photos.length===1?modeSelect.value:'standard'};
      displayReview();
      status.textContent=state.photos.length+' sayfa '+Math.round((performance.now()-started)/1000)+' saniyede okundu. Tüm satırları kontrol edin.';
      batchState=null;
+   }catch(e){
+     status.textContent='Okuma sonuçları gösterilemedi: '+(e.message||'Bilinmeyen hata');
+     showBatchErrors();
    }finally{
      start.disabled=false;modelSelect.disabled=false;modeSelect.disabled=false;
    }
