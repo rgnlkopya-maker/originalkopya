@@ -56,6 +56,7 @@ STATUS_LABELS = {
     ("sevkiyat_durum", "gonderildi"): "Sevk Edildi",
     ("sevkiyat_durum", "kargodan_geri_geldi"): "Kargodan Geri Geldi",
     ("sevkiyat_durum", "iade_geldi"): "İade Geldi",
+    ("sevkiyat_durum", "tadilata_geldi"): "Tadilata Geldi",
     ("sevkiyat_durum", "yanlis_sevkiyat"): "Yanlış Sevkiyat",
     ("sevkiyat_durum", "tekrar_gonderildi"): "Tekrar Gönderildi",
     ("konsinye_durum", "verildi"): "Konsinyeye Verildi",
