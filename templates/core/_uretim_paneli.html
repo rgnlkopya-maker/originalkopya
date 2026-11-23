@@ -49,6 +49,16 @@
     .timeline-delete-btn { border:none; background:transparent; font-size:11px; padding:2px 6px; border-radius:999px; color:#b91c1c; border:1px solid rgba(239,68,68,.4); margin-left:8px; }
     .timeline-delete-btn:hover { background:rgba(239,68,68,.08); }
 
+    .shipped-lock .stage-card:not(.shipping-return-card) .stage-actions,
+    .shipped-lock .shipping-return-card .stage-actions > :not(.shipping-return-action) {
+        opacity: .38;
+        filter: grayscale(1);
+        pointer-events: none;
+        user-select: none;
+    }
+    .shipped-lock .shipping-return-card .stage-actions > :not(.shipping-return-action) {
+        cursor: not-allowed;
+    }
     .stage-column { display:flex; flex-direction:column; gap:14px; }
     .stage-card { background:#fff; border-radius:14px; padding:14px 16px 10px; box-shadow:0 6px 16px rgba(15,23,42,.06); border:1px solid #e5e7eb; }
     .stage-card-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; }
@@ -191,7 +201,7 @@
         {% endif %}
     </div>
 
-    <div class="stage-column">
+    <div class="stage-column{% if order.production_locked %} shipped-lock{% endif %}">\n        {% if order.production_locked %}<div class="alert alert-secondary mb-0" role="status">🔒 Sipariş sevk edildi. Üretim işlemlerini açmak için İade Geldi veya Tadilata Geldi seçiniz.</div>{% endif %}
         <div class="stage-card">
             <div class="stage-card-header"><div class="stage-card-title"><span class="icon">🧶</span> <span>Malzeme</span></div><div class="stage-card-sub">Kesim öncesi malzeme işlemleri</div></div>
             <div class="stage-actions">
@@ -265,13 +275,15 @@
             </div>
         </div>
 
-        <div class="stage-card">
+        <div class="stage-card shipping-return-card">
             <div class="stage-card-header"><div class="stage-card-title"><span class="icon">📦</span> <span>Hazır & Sevkiyat</span></div><div class="stage-card-sub">Depoya giriş & sevkiyat</div></div>
             <div class="stage-actions">
                 <button class="soft-btn btn-soft-info" hx-post="{% url 'update_stage' order.id %}" hx-headers='{"X-CSRFToken":"{{ csrf_token }}"}' hx-vals='{"stage":"kalite_kontrol","value":"kontrol_ettim"}' hx-target="#uretim-paneli" hx-swap="innerHTML">✓ Kontrol Ettim</button>
                 <button type="button" class="soft-btn btn-soft-warning" onclick="return kaliteHataGordum();">⚠ Hata Gördüm</button>
                 <button type="button" class="soft-btn btn-soft-success" data-bs-toggle="modal" data-bs-target="#stokModal">Depoya Girdi</button>
                 <button class="soft-btn btn-soft-dark" hx-post="{% url 'update_stage' order.id %}" hx-headers='{"X-CSRFToken":"{{ csrf_token }}"}' hx-vals='{"stage":"sevkiyat_durum","value":"gonderildi"}' hx-target="#uretim-paneli" hx-swap="innerHTML">🚚 Gönderildi</button>
+                <button class="soft-btn btn-soft-warning shipping-return-action" {% if not order.production_locked %}disabled{% endif %} hx-post="{% url 'update_stage' order.id %}" hx-headers='{"X-CSRFToken":"{{ csrf_token }}"}' hx-vals='{"stage":"sevkiyat_durum","value":"iade_geldi"}' hx-confirm="Bu siparişin iade geldiğini kaydetmek istiyor musunuz?" hx-target="#uretim-paneli" hx-swap="innerHTML">↩️ İade Geldi</button>
+                <button class="soft-btn btn-soft-info shipping-return-action" {% if not order.production_locked %}disabled{% endif %} hx-post="{% url 'update_stage' order.id %}" hx-headers='{"X-CSRFToken":"{{ csrf_token }}"}' hx-vals='{"stage":"sevkiyat_durum","value":"tadilata_geldi"}' hx-confirm="Bu siparişin tadilata geldiğini kaydetmek istiyor musunuz?" hx-target="#uretim-paneli" hx-swap="innerHTML">🪡 Tadilata Geldi</button>
                 {% if user|can_feature:'consignment.send' %}
                 <button type="button" class="soft-btn btn-soft-info"
                     hx-post="{% url 'consignment_send_order' order.id %}"
