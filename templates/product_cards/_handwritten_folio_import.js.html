@@ -75,29 +75,111 @@ if (!EDIT_MODE) {
   pendingSourcePhotos=[];
   status.textContent='Orijinal fotoğraflar föy #'+data.draft+' arşivine kaydedildi.';
  };
- start.addEventListener('click',()=>file.click());
+ let batchState=null;
+ const readSinglePage=async(photo)=>{
+   const form=new FormData();
+   form.append('photos',photo);
+   form.append('model',modelSelect.value);
+   // For multi-page forms send one original full-page image per request.
+   form.append('read_mode','standard');
+   const response=await fetch('{% url "read_handwritten_folio" %}',{
+     method:'POST',credentials:'same-origin',headers:{'X-CSRFToken':csrf()},body:form
+   });
+   let payload;
+   try{payload=await response.json();}catch(e){throw Error('Sunucu yanıtı okunamadı (HTTP '+response.status+').');}
+   if(!response.ok||!payload.ok)throw Error(payload.error||'Okuma başarısız (HTTP '+response.status+').');
+   return payload;
+ };
+ const mergePages=(pages)=>{
+   const data={items:[],unclear:[]};
+   const headFields=['customer','order_taken_by','currency','order_type','delivery_date','previous_balance'];
+   const lastFields=['written_total_qty','written_subtotal','written_discount_amount','written_folio_total','written_grand_total'];
+   for(let i=0;i<pages.length;i++){
+     const source=pages[i].data||{};
+     for(const key of headFields){
+       if((data[key]===undefined||data[key]===null||data[key]==='')&&source[key]!==undefined&&source[key]!==null&&source[key]!=='')data[key]=source[key];
+       else if(source[key]!==undefined&&source[key]!==null&&source[key]!==''&&data[key]!==source[key])
+         data.unclear.push((i+1)+'. sayfada '+key+' farklı okundu; kontrol edin.');
+     }
+     for(const key of lastFields)if(source[key]!==undefined&&source[key]!==null&&source[key]!=='')data[key]=source[key];
+     if(Array.isArray(source.pricing_operations)&&source.pricing_operations.length)data.pricing_operations=source.pricing_operations;
+     const rows=Array.isArray(source.items)?source.items:[];
+     for(const item of rows)data.items.push({...item,source_page:i+1,row_number:data.items.length+1});
+     for(const note of (Array.isArray(source.unclear)?source.unclear:[]))data.unclear.push((i+1)+'. sayfa: '+String(note));
+   }
+   if(pages.length>1){
+     // Per-page written totals may be page subtotals, not an overall total.
+     // Do not claim a grand total without human verification.
+     data.unclear.push('Birden fazla sayfa okundu. Toplam adet, indirim ve tutarları orijinal föyle karşılaştırın.');
+   }
+   return data;
+ };
+ const showBatchErrors=()=>{
+   const errors=batchState.photos.map((p,i)=>batchState.results[i]?null:(i+1)+'. sayfa ('+p.name+'): '+(batchState.errors[i]||'Okunamadı')).filter(Boolean);
+   status.textContent=batchState.results.filter(Boolean).length+'/'+batchState.photos.length+' sayfa okundu. '+errors.join(' | ')+' Başarılı sayfalar korundu.';
+   let retry=toolbar.querySelector('#moliSmartRetry');
+   if(!retry){
+     retry=document.createElement('button');retry.type='button';retry.id='moliSmartRetry';
+     retry.style.cssText='border:1px solid #b45309;background:#fffbeb;color:#92400e;border-radius:9px;padding:10px;font-weight:700;cursor:pointer';
+     retry.textContent='Okunamayan Sayfaları Tekrar Dene';
+     toolbar.appendChild(retry);
+   }
+   retry.hidden=false;
+ };
+ const runBatch=async(state)=>{
+   start.disabled=true;modelSelect.disabled=true;modeSelect.disabled=true;
+   const retry=toolbar.querySelector('#moliSmartRetry');if(retry)retry.hidden=true;
+   const started=performance.now();
+   try{
+     for(let i=0;i<state.photos.length;i++){
+       if(state.results[i])continue;
+       status.textContent=(i+1)+'/'+state.photos.length+' sayfa okunuyor: '+state.photos[i].name;
+       try{
+         state.results[i]=await readSinglePage(state.photos[i]);
+         state.errors[i]=null;
+       }catch(e){
+         state.errors[i]=e.message||'Fotoğraf okunamadı';
+       }
+     }
+     if(state.results.some(x=>!x)){showBatchErrors();return;}
+     const pages=state.results;
+     clearPhoto();photoUrls=state.photos.map(p=>URL.createObjectURL(p));
+     const usage={input_tokens:0,output_tokens:0,total_tokens:0};
+     const timing={total_ms:0,api_ms:0,preparation_ms:0,images_sent:0};
+     pages.forEach(p=>{
+       for(const key of Object.keys(usage))usage[key]+=Number((p.usage||{})[key]||0);
+       for(const key of Object.keys(timing))timing[key]+=Number((p.timing||{})[key]||0);
+     });
+     review={data:mergePages(pages),files:state.photos,fileName:state.photos.map(p=>p.name).join(', '),model:pages[0].model||modelSelect.value,usage,timing,readMode:'standard'};
+     displayReview();
+     status.textContent=state.photos.length+' sayfa '+Math.round((performance.now()-started)/1000)+' saniyede okundu. Tüm satırları kontrol edin.';
+     batchState=null;
+   }finally{
+     start.disabled=false;modelSelect.disabled=false;modeSelect.disabled=false;
+   }
+ };
+ start.addEventListener('click',()=>{
+   if(batchState&&batchState.results.some(Boolean)&&!confirm('Önceki okumada başarılı sayfalar var. Yeni fotoğraf seçimi bu sonuçları sıfırlayacak. Devam edilsin mi?'))return;
+   file.click();
+ });
  file.addEventListener('change',async()=>{
-  const photos=Array.from(file.files);if(!photos.length)return;
-  if(photos.length>15){status.textContent='Bir okumada en fazla 15 fotoğraf seçebilirsiniz.';file.value='';return;}
-  if(photos.reduce((sum,p)=>sum+p.size,0)>60*1024*1024){status.textContent='Fotoğrafların toplam boyutu 60 MB sınırını aşamaz.';file.value='';return;}
-  start.disabled=true;modelSelect.disabled=true;modeSelect.disabled=true;
-  const readStart=performance.now();
-  const elapsedText=()=>Math.floor((performance.now()-readStart)/1000);
-  status.textContent=photos.length+' orijinal fotoğraf gönderiliyor ve okunuyor... '+elapsedText()+' sn';
-  const readingClock=setInterval(()=>{status.textContent=photos.length+' orijinal fotoğraf gönderiliyor ve okunuyor... '+elapsedText()+' sn';},1000);
-  try {
-    const form=new FormData();photos.forEach(p=>form.append('photos',p));
-    form.append('model',modelSelect.value);
-    form.append('read_mode',modeSelect.value);
-    const response=await fetch('{% url "read_handwritten_folio" %}',{method:'POST',credentials:'same-origin',headers:{'X-CSRFToken':csrf()},body:form});
-    const payload=await response.json();
-    if(!response.ok||!payload.ok)throw Error(payload.error||'Okuma başarısız');
-    clearPhoto();photoUrls=photos.map(p=>URL.createObjectURL(p));
-    review={data:payload.data||{},files:photos,fileName:photos.map(p=>p.name).join(', '),model:payload.model||modelSelect.value,usage:payload.usage||{},timing:payload.timing||{},readMode:payload.read_mode||modeSelect.value};
-    displayReview();
-    status.textContent='Okuma '+elapsedText()+' saniyede tamamlandı. Bilgileri kontrol edin.';
-  }catch(e){status.textContent=e.message||'Okuma başarısız';}
-  finally {clearInterval(readingClock);start.disabled=false;modelSelect.disabled=false;modeSelect.disabled=false;file.value='';}
+   const photos=Array.from(file.files);if(!photos.length)return;
+   file.value='';
+   if(photos.length>15){status.textContent='Bir okumada en fazla 15 fotoğraf seçebilirsiniz.';return;}
+   if(photos.some(p=>p.size>10*1024*1024)){status.textContent='Her fotoğraf en fazla 10 MB olabilir. Büyük fotoğrafı küçültüp yeniden seçin.';return;}
+   if(photos.reduce((sum,p)=>sum+p.size,0)>60*1024*1024){status.textContent='Fotoğrafların toplam boyutu 60 MB sınırını aşamaz.';return;}
+   if(photos.length===1){
+     // The single-photo pathway retains detailed-mode support.
+     const state={photos,results:[null],errors:[null]};
+     batchState=state;
+     await runBatch(state);
+     return;
+   }
+   batchState={photos,results:Array(photos.length).fill(null),errors:Array(photos.length).fill(null)};
+   await runBatch(batchState);
+ });
+ toolbar.addEventListener('click',async e=>{
+   if(e.target.id==='moliSmartRetry'&&batchState)await runBatch(batchState);
  });
  function displayReview(){
   let panel=sheet.querySelector('#moliSmartReview');
