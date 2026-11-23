@@ -351,6 +351,15 @@ class Order(models.Model):
 
 
 
+    @property
+    def production_locked(self):
+        """A shipment locks production until a recorded return or alteration."""
+        latest = self.events.filter(
+            stage="sevkiyat_durum",
+            value__in=["gonderildi", "tekrar_gonderildi", "tekrar_sevk", "iade_geldi", "tadilata_geldi"],
+        ).order_by("-timestamp", "-id").first()
+        return bool(latest and latest.value in ("gonderildi", "tekrar_gonderildi", "tekrar_sevk"))
+
     def save(self, *args, **kwargs):
         creating = self._state.adding
 
