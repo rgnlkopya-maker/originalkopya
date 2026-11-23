@@ -157,7 +157,14 @@ def _folio_finance_logged(draft, include_items=False):
 def _order_type_summary(qs):
     revenue = Decimal("0")
     cost = Decimal("0")
+    product_codes = set()
+    total_qty = 0
+    order_count = 0
     for order in qs:
+        order_count += 1
+        if (order.urun_kodu or "").strip():
+            product_codes.add(order.urun_kodu.strip().casefold())
+        total_qty += int(order.adet or 1)
         sale = Decimal(order.satis_fiyati or 0)
         revenue += sale * Decimal(order.adet or 1)
         # Sipariş finans ekranında siparişe kilitlenmiş maliyet mantığını koru.
@@ -169,7 +176,9 @@ def _order_type_summary(qs):
         "cost": _q(cost),
         "profit": _q(profit),
         "profit_rate": _q(rate),
-        "count": qs.count(),
+        "count": order_count,
+        "product_count": len(product_codes),
+        "total_qty": total_qty,
     }
 
 
@@ -237,6 +246,8 @@ def siparis_finans_raporu(request):
             "profit": _q(folio_profit),
             "profit_rate": _q(folio_rate),
             "count": len(folio_rows),
+            "product_count": sum(row["product_count"] for row in folio_rows),
+            "total_qty": sum(row["total_qty"] for row in folio_rows),
         },
         "tekli_summary": _order_type_summary(orders.filter(siparis_tipi="TEKLI")),
         "ozel_summary": _order_type_summary(orders.filter(siparis_tipi="OZEL")),
