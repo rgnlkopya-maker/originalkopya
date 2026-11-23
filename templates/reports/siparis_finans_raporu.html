@@ -35,6 +35,8 @@
         <div class="metric"><span>Toplam Maliyet</span><strong>{{ folio_summary.cost|floatformat:2 }} TL</strong></div>
         <div class="metric profit"><span>Toplam Kâr</span><strong>{{ folio_summary.profit|floatformat:2 }} TL</strong></div>
         <div class="metric rate"><span>Kâr %</span><strong>%{{ folio_summary.profit_rate|floatformat:2 }}</strong></div>
+        <div class="metric"><span>Ürün Çeşidi</span><strong>{{ folio_summary.product_count }}</strong></div>
+        <div class="metric"><span>Toplam Adet</span><strong>{{ folio_summary.total_qty }}</strong></div>
       </div>
     </a>
     <div class="fin-card">
@@ -44,6 +46,8 @@
         <div class="metric"><span>Toplam Maliyet</span><strong>{{ tekli_summary.cost|floatformat:2 }} TL</strong></div>
         <div class="metric profit"><span>Toplam Kâr</span><strong>{{ tekli_summary.profit|floatformat:2 }} TL</strong></div>
         <div class="metric rate"><span>Kâr %</span><strong>%{{ tekli_summary.profit_rate|floatformat:2 }}</strong></div>
+        <div class="metric"><span>Ürün Çeşidi</span><strong>{{ tekli_summary.product_count }}</strong></div>
+        <div class="metric"><span>Toplam Adet</span><strong>{{ tekli_summary.total_qty }}</strong></div>
       </div>
     </div>
     <div class="fin-card">
@@ -53,6 +57,8 @@
         <div class="metric"><span>Toplam Maliyet</span><strong>{{ ozel_summary.cost|floatformat:2 }} TL</strong></div>
         <div class="metric profit"><span>Toplam Kâr</span><strong>{{ ozel_summary.profit|floatformat:2 }} TL</strong></div>
         <div class="metric rate"><span>Kâr %</span><strong>%{{ ozel_summary.profit_rate|floatformat:2 }}</strong></div>
+        <div class="metric"><span>Ürün Çeşidi</span><strong>{{ ozel_summary.product_count }}</strong></div>
+        <div class="metric"><span>Toplam Adet</span><strong>{{ ozel_summary.total_qty }}</strong></div>
       </div>
     </div>
   </section>
