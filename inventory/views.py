@@ -13,6 +13,10 @@ from product_cards.models import Material, MaterialStockMovement, MaterialWareho
 from .models import ProductStockMovement, ProductWarehouseStock
 
 
+def _can_cancel_movement(user):
+    return _can_manage(user) and (user.is_superuser or user.groups.filter(name__in=["patron", "mudur"]).exists())
+
+
 def _can_manage(user):
     return has_access(user, "can_view_depots")
 
@@ -45,6 +49,9 @@ def material_card(request, code, material_id):
     stock = {"miktar": stocks.aggregate(total=Sum("miktar"))["total"] or Decimal("0")}
     colors = Renk.objects.filter(aktif=True).order_by("ad")
     movements = MaterialStockMovement.objects.select_related("islem_yapan", "order").filter(material=material, warehouse=warehouse)[:100]
+    cancelable = _can_cancel_movement(request.user)
+    for movement in movements:
+        movement.can_cancel = cancelable and _is_manual_cancelable(movement)
     return render(request, "inventory/material_card.html", {"warehouse": warehouse, "material": material, "stock": stock, "movements": movements, "stocks": stocks, "colors": colors})
 
 
@@ -108,3 +115,47 @@ def add_product_movement(request, code):
         ProductStockMovement.objects.create(product=product, warehouse=warehouse, movement_type=movement_type, quantity=amount, previous_stock=before, resulting_stock=after, note=(request.POST.get("note") or "").strip(), user=request.user)
     messages.success(request, f"{product.kod} stok hareketi kaydedildi.")
     return redirect("inventory_product_card", code=code, product_id=product.id)
+
+
+_CANCEL_PREFIX = "[Stok iptali #"
+
+
+def _is_manual_cancelable(movement):
+    return (not movement.reversed and not movement.order_id and not movement.source_event_id
+            and movement.movement_type in {"GIRIS", "CIKIS", "IADE", "FIRE", "DUZELTME_ARTI", "DUZELTME_EKSI", "BASLANGIC"}
+            and not movement.aciklama.startswith(_CANCEL_PREFIX))
+
+
+@login_required
+def cancel_material_movement(request, code, material_id, movement_id):
+    if request.method != "POST" or not _can_cancel_movement(request.user):
+        return HttpResponseForbidden("Bu işlem için yetkiniz yok.")
+    warehouse = get_object_or_404(Warehouse, kod=code, aktif=True)
+    with transaction.atomic():
+        material = get_object_or_404(Material.objects.select_for_update(), pk=material_id, aktif=True)
+        movement = get_object_or_404(MaterialStockMovement.objects.select_for_update(),
+                                     pk=movement_id, material=material, warehouse=warehouse)
+        if not _is_manual_cancelable(movement):
+            messages.error(request, "Bu hareket iptal edilemez.")
+            return redirect("inventory_material_card", code=code, material_id=material_id)
+        stock = get_object_or_404(MaterialWarehouseStock.objects.select_for_update(),
+                                  material=material, warehouse=warehouse, renk=movement.renk)
+        before = stock.miktar
+        after = before - movement.signed_amount
+        if after < 0:
+            messages.error(request, "İptal sonucunda stok eksiye düşeceği için işlem yapılamadı.")
+            return redirect("inventory_material_card", code=code, material_id=material_id)
+        stock.miktar = after
+        stock.save(update_fields=["miktar", "updated_at"])
+        material.sync_total_stock()
+        MaterialStockMovement.objects.create(
+            material=material, warehouse=warehouse, renk=movement.renk,
+            movement_type="DUZELTME_EKSI" if movement.signed_amount > 0 else "DUZELTME_ARTI",
+            miktar=movement.miktar, onceki_stok=before, sonraki_stok=after,
+            aciklama=f"{_CANCEL_PREFIX}{movement.pk}] {movement.get_movement_type_display()} geri alındı.",
+            islem_yapan=request.user,
+        )
+        movement.reversed = True
+        movement.save(update_fields=["reversed"])
+    messages.success(request, "Stok hareketi iptal edildi ve stok miktarı güncellendi.")
+    return redirect("inventory_material_card", code=code, material_id=material_id)
