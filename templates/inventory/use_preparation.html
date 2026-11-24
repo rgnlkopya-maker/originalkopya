@@ -1,0 +1,13 @@
+{% extends 'base.html' %}
+{% block content %}
+<main class="container py-3" style="max-width:1000px">
+<a href="{% url 'order_detail' order.pk %}" class="btn btn-sm btn-outline-secondary mb-3">← Siparişe Dön</a>
+<div class="card p-3 mb-3"><h4>Dantel Stoğundan Karşıla</h4><div>{{ order.siparis_numarasi }} · {{ order.musteri }} · {{ order.urun_kodu }} · {{ order.renk }} · {{ order.beden }}</div><small class="text-muted">Yalnızca uygun model, renk ve beden gösterilir. Bedensiz hazırlıklar uygun renk ve modelde kullanılabilir. Onayladığınızda bir adet düşülür.</small></div>
+{% for message in messages %}<div class="alert alert-{{ message.tags }}">{{ message }}</div>{% endfor %}
+{% for s in stocks %}
+<form method="post" class="card p-3 mb-2 d-flex flex-row flex-wrap align-items-center gap-2">{% csrf_token %}<input type="hidden" name="stock_id" value="{{ s.pk }}"><div class="flex-grow-1"><strong>{{ s.get_stage_display }}</strong><div>{{ s.warehouse.ad }} · {{ s.size|default:"Bedensiz" }} · Kalan {{ s.remaining }} adet</div><small>{{ s.prepared_by }} · {{ s.created_at|date:"d.m.Y H:i" }} · {{ s.note }}</small></div><button class="btn btn-primary" onclick="return confirm('Bir adet hazırlık stoğundan düşülsün mü?');">1 Adet Karşıla</button></form>
+{% empty %}<div class="alert alert-light">Eşleşen hazırlık stoğu bulunamadı.</div>{% endfor %}
+<h5 class="mt-4">Bu siparişin stok kullanım geçmişi</h5>
+{% for u in uses %}<div class="card p-2 mb-2">{{ u.stock.get_stage_display }} · {{ u.quantity }} adet · {{ u.user|default:"—" }} · {{ u.created_at|date:"d.m.Y H:i" }}</div>{% empty %}<p class="text-muted">Henüz kullanım yok.</p>{% endfor %}
+</main>
+{% endblock %}
