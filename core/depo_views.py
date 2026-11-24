@@ -7,7 +7,7 @@ from django.db.models import Count, Max, Sum
 from django.shortcuts import redirect, render
 
 from product_cards.models import MaterialStockMovement, MaterialWarehouseStock, Warehouse
-from inventory.models import ProductStockMovement, ProductWarehouseStock
+from inventory.models import ProductStockMovement, ProductWarehouseStock, PreparationStock
 
 
 def _normalize_code(name):
@@ -37,12 +37,15 @@ def depo_ozet(request):
         product_qs = ProductWarehouseStock.objects.filter(warehouse=warehouse, quantity__gt=0)
         last_material = MaterialStockMovement.objects.filter(warehouse=warehouse).aggregate(v=Max("created_at"))["v"]
         last_product = ProductStockMovement.objects.filter(warehouse=warehouse).aggregate(v=Max("created_at"))["v"]
-        last_update = max([d for d in [last_material, last_product] if d], default=None)
+        preparation_qs = PreparationStock.objects.filter(warehouse=warehouse, remaining__gt=0)
+        last_preparation = PreparationStock.objects.filter(warehouse=warehouse).aggregate(v=Max("created_at"))["v"]
+        last_update = max([d for d in [last_material, last_product, last_preparation] if d], default=None)
         depolar.append({
             "depo": warehouse.kod,
             "depo_adi": warehouse.ad,
             "toplam_adet": product_qs.aggregate(v=Sum("quantity"))["v"] or 0,
-            "kayit_sayisi": material_qs.count() + product_qs.count(),
+            "kayit_sayisi": material_qs.count() + product_qs.count() + preparation_qs.count(),
+            "hazirlik_adet": preparation_qs.aggregate(v=Sum("remaining"))["v"] or 0,
             "son_guncelleme": last_update,
         })
     return render(request, "depolar/ozet.html", {"depolar": depolar, "can_manage_depots": can_manage})
