@@ -55,8 +55,12 @@ def order_multi_create(request):
     if request.method == "POST":
         urun_kodu = (request.POST.get("urun_kodu") or "").strip().upper()
         urun_tipi = (request.POST.get("urun_tipi") or "").strip()
-        musteri = Musteri.objects.filter(id=request.POST.get("musteri")).first()
         siparis_tipi = request.POST.get("siparis_tipi") or None
+        customer_id = (request.POST.get("musteri") or "").strip()
+        musteri = Musteri.objects.filter(id=int(customer_id)).first() if customer_id.isdecimal() else None
+        if siparis_tipi != "STOK" and musteri is None:
+            messages.error(request, "Lütfen geçerli bir müşteri seçin.")
+            return redirect("order_multi_create")
         if siparis_tipi == "KONSINYE" and not has_feature_access(request.user, "consignment.create_production"):
             messages.error(request, "KONSİNYE tipinde sipariş oluşturma yetkiniz yok.")
             return redirect("order_multi_create")
