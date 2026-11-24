@@ -8,7 +8,7 @@ from django.db.models import Q, Sum
 from django.http import HttpResponseForbidden
 from django.shortcuts import get_object_or_404, redirect, render
 
-from core.models import UrunKod
+from core.models import UrunKod, Renk
 from product_cards.models import Material, MaterialStockMovement, MaterialWarehouseStock, ProductCard, Warehouse
 from .models import ProductStockMovement, ProductWarehouseStock
 
@@ -25,14 +25,14 @@ def warehouse_detail(request, code):
     material_stocks = MaterialWarehouseStock.objects.select_related("material").filter(warehouse=warehouse, material__aktif=True, miktar__gt=0)
     product_stocks = ProductWarehouseStock.objects.select_related("product").filter(warehouse=warehouse, quantity__gt=0)
     if q:
-        material_stocks = material_stocks.filter(Q(material__kod__icontains=q) | Q(material__ad__icontains=q))
+        material_stocks = material_stocks.filter(Q(material__kod__icontains=q) | Q(material__ad__icontains=q) | Q(renk__icontains=q))
         product_stocks = product_stocks.filter(product__kod__icontains=q)
     material_stocks = material_stocks.order_by("material__ad")
     product_stocks = product_stocks.order_by("product__kod")
     return render(request, "inventory/warehouse_detail.html", {
         "warehouse": warehouse, "q": q, "material_stocks": material_stocks, "product_stocks": product_stocks,
         "material_count": material_stocks.count(), "product_count": product_stocks.count(),
-        "materials": Material.objects.filter(aktif=True).order_by("ad"), "products": UrunKod.objects.filter(aktif=True).order_by("kod"),
+        "colors": Renk.objects.filter(aktif=True).order_by("ad"), "materials": Material.objects.filter(aktif=True).order_by("ad"), "products": UrunKod.objects.filter(aktif=True).order_by("kod"),
     })
 
 
@@ -41,9 +41,11 @@ def material_card(request, code, material_id):
     if not _can_manage(request.user): return HttpResponseForbidden("Bu sayfaya erişim yetkiniz yok.")
     warehouse = get_object_or_404(Warehouse, kod=code, aktif=True)
     material = get_object_or_404(Material, pk=material_id, aktif=True)
-    stock, _ = MaterialWarehouseStock.objects.get_or_create(material=material, warehouse=warehouse, defaults={"miktar": 0})
+    stocks = MaterialWarehouseStock.objects.filter(material=material, warehouse=warehouse).order_by("renk")
+    stock = {"miktar": stocks.aggregate(total=Sum("miktar"))["total"] or Decimal("0")}
+    colors = Renk.objects.filter(aktif=True).order_by("ad")
     movements = MaterialStockMovement.objects.select_related("islem_yapan", "order").filter(material=material, warehouse=warehouse)[:100]
-    return render(request, "inventory/material_card.html", {"warehouse": warehouse, "material": material, "stock": stock, "movements": movements})
+    return render(request, "inventory/material_card.html", {"warehouse": warehouse, "material": material, "stock": stock, "movements": movements, "stocks": stocks, "colors": colors})
 
 
 @login_required
@@ -68,15 +70,19 @@ def add_material_movement(request, code):
         if amount <= 0: raise InvalidOperation
     except (InvalidOperation, ValueError):
         messages.error(request, "Geçerli bir miktar girin."); return redirect("inventory_warehouse_detail", code=code)
+    renk = (request.POST.get("renk") or "").strip()
+    if renk and not Renk.objects.filter(ad=renk, aktif=True).exists():
+        messages.error(request, "Aktif bir renk seçin."); return redirect("inventory_warehouse_detail", code=code)
     negative = movement_type in {"CIKIS", "FIRE", "DUZELTME_EKSI"}
     with transaction.atomic():
-        stock, _ = MaterialWarehouseStock.objects.select_for_update().get_or_create(material=material, warehouse=warehouse, defaults={"miktar": 0})
+        material = Material.objects.select_for_update().get(pk=material.pk)
+        stock, _ = MaterialWarehouseStock.objects.select_for_update().get_or_create(material=material, warehouse=warehouse, renk=renk, defaults={"miktar": 0})
         before = stock.miktar
         after = before - amount if negative else before + amount
         if after < 0:
             messages.error(request, "Stok miktarı eksiye düşemez."); return redirect("inventory_warehouse_detail", code=code)
         stock.miktar = after; stock.save(update_fields=["miktar", "updated_at"]); material.sync_total_stock()
-        MaterialStockMovement.objects.create(material=material, warehouse=warehouse, movement_type=movement_type, miktar=amount, onceki_stok=before, sonraki_stok=after, aciklama=(request.POST.get("note") or "").strip(), islem_yapan=request.user)
+        MaterialStockMovement.objects.create(material=material, warehouse=warehouse, renk=renk, movement_type=movement_type, miktar=amount, onceki_stok=before, sonraki_stok=after, aciklama=(request.POST.get("note") or "").strip(), islem_yapan=request.user)
     messages.success(request, f"{material.ad} stok hareketi kaydedildi.")
     return redirect("inventory_material_card", code=code, material_id=material.id)
 
