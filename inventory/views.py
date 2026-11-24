@@ -29,13 +29,18 @@ def warehouse_detail(request, code):
     material_stocks = MaterialWarehouseStock.objects.select_related("material").filter(warehouse=warehouse, material__aktif=True, miktar__gt=0)
     product_stocks = ProductWarehouseStock.objects.select_related("product").filter(warehouse=warehouse, quantity__gt=0)
     if q:
-        material_stocks = material_stocks.filter(Q(material__kod__icontains=q) | Q(material__ad__icontains=q) | Q(renk__icontains=q))
+        matching_materials = material_stocks.filter(Q(material__kod__icontains=q) | Q(material__ad__icontains=q) | Q(renk__icontains=q)).order_by().values("material_id")
+        material_stocks = material_stocks.filter(material_id__in=matching_materials)
         product_stocks = product_stocks.filter(product__kod__icontains=q)
-    material_stocks = material_stocks.order_by("material__ad")
+    grouped_materials = {}
+    for stock_row in material_stocks.order_by("material__ad", "material_id", "renk"):
+        card = grouped_materials.setdefault(stock_row.material_id, {"material": stock_row.material, "miktar": Decimal("0")})
+        card["miktar"] += stock_row.miktar
+    material_stocks = list(grouped_materials.values())
     product_stocks = product_stocks.order_by("product__kod")
     return render(request, "inventory/warehouse_detail.html", {
         "warehouse": warehouse, "q": q, "material_stocks": material_stocks, "product_stocks": product_stocks,
-        "material_count": material_stocks.count(), "product_count": product_stocks.count(),
+        "material_count": len(material_stocks), "product_count": product_stocks.count(),
         "colors": Renk.objects.filter(aktif=True).order_by("ad"), "materials": Material.objects.filter(aktif=True).order_by("ad"), "products": UrunKod.objects.filter(aktif=True).order_by("kod"),
     })
 
