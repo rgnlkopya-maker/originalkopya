@@ -454,10 +454,16 @@ $(document).ready(function () {
         const tip = $(this).val();
         const musteriSelect = document.getElementById("musteri_select");
         const musteriDiv = $(musteriSelect).closest(".col-md-4");
-        if (tip === "STOK") {
+        const visibleInput = musteriDiv.find(".moli-autocomplete-input")[0];
+        const isStock = tip === "STOK";
+        musteriSelect.required = !isStock && !visibleInput;
+        if (visibleInput) {
+            visibleInput.required = !isStock;
+            visibleInput.disabled = isStock;
+        }
+        if (isStock) {
             musteriSelect.value = "";
             $(musteriSelect).trigger("change");
-            const visibleInput = musteriDiv.find(".moli-autocomplete-input")[0];
             if (visibleInput) visibleInput.value = "";
             musteriDiv.hide();
         } else {
