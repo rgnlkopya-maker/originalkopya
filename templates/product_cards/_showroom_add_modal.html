@@ -118,7 +118,7 @@ document.addEventListener('DOMContentLoaded',function(){
      try{xhr=new XMLHttpRequest();xhr.open('POST',ACTION_URL,true);xhr.setRequestHeader('Content-Type','application/json');const token=csrf();if(token)xhr.setRequestHeader('X-CSRFToken',token);}catch(err){reject(err);return;}
      xhr.onload=function(){let data={};try{data=JSON.parse(xhr.responseText||'{}')}catch(err){reject(new Error('Sunucudan geçersiz yanıt alındı. (HTTP '+xhr.status+')'));return}if(xhr.status<200||xhr.status>=300||!data.ok){reject(new Error(data.message||'İşlem yapılamadı.'));return}try{localStorage.removeItem(STORAGE_KEY)}catch(e){}resolve(data)};
      xhr.onerror=function(){reject(new Error('Sunucuya ulaşılamadı.'))};
-     try{xhr.send(JSON.stringify({action:action}))}catch(err){reject(err)}
+     try{xhr.send(JSON.stringify({action:action,confirm_approval:action==='approve'}))}catch(err){reject(err)}
    });
  }
  // Never delete a newly auto-created draft after a save/approval.
