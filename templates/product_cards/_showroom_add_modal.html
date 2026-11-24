@@ -121,21 +121,27 @@ document.addEventListener('DOMContentLoaded',function(){
      try{xhr.send(JSON.stringify({action:action}))}catch(err){reject(err)}
    });
  }
- async function clearAnyRecreatedDraft(){
-   await new Promise(resolve=>setTimeout(resolve,700));
-   try{await runAction('delete')}catch(e){}
+ // Never delete a newly auto-created draft after a save/approval.
+ // The previous delayed cleanup could erase data entered in another tab.
+ function clearFinalizedLocalCache(){
    try{localStorage.removeItem(STORAGE_KEY)}catch(e){}
  }
  document.addEventListener('click',async function(e){
    const save=e.target.closest('#showroomDraftSaveBtn'),del=e.target.closest('#showroomDraftDeleteBtn'),approve=e.target.closest('#showroomApproveBtn');
    if(!save&&!del&&!approve)return;
+   if(window.__moliShowroomFinalizing)return;
    if(del&&!confirm('Açık taslak tamamen silinsin mi?'))return;
    if(approve&&!confirm('Bu Föy onaylanan sipariş olarak kaydedilsin mi?'))return;
    const btn=save||del||approve;btn.disabled=true;window.__moliShowroomFinalizing=true;
    try{
      if(!del&&typeof window.__moliSmartBeforeFinalize==='function')await window.__moliSmartBeforeFinalize(Boolean(save||approve));
-     const data=await runAction(save?'save_draft':del?'delete':'approve');
-     await clearAnyRecreatedDraft();
+     const requestedAction=save?'save_draft':del?'delete':'approve';
+     const data=await runAction(requestedAction);
+     const expectedStatus=save?'PENDING':approve?'APPROVED':null;
+     if(expectedStatus&&data.status!==expectedStatus){
+       throw new Error('Kaydetme durumu beklenenden farklı. Föy #'+(data.draft||'?')+' kaydını kontrol edin.');
+     }
+     clearFinalizedLocalCache();
      alert(data.message);
      window.location.replace('{% url "showroom_page" %}');
    }catch(err){window.__moliShowroomFinalizing=false;alert((err&&err.message)?err.message:'İşlem yapılamadı.');btn.disabled=false;}
