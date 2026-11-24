@@ -1,4 +1,5 @@
 import json
+import logging
 from collections import Counter
 from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 from datetime import date
@@ -20,6 +21,8 @@ from .payment_models import ShowroomPayment
 from .price_list_views import _can_manage, _ensure_price_rates, _price_rows, _real_profit_rate
 from .drive_folio_backup import queue_folio_drive_sync
 
+
+logger = logging.getLogger(__name__)
 
 CUSTOMER_BASE_PRICE_SIZE = "BAZ FİYAT (BEDENSİZ)"
 
@@ -499,6 +502,10 @@ def showroom_draft_action(request):
     try: payload=json.loads(request.body.decode("utf-8") or "{}")
     except (json.JSONDecodeError,UnicodeDecodeError): return JsonResponse({"ok":False,"message":"Geçersiz veri."},status=400)
     action=payload.get("action")
+    # Approval must be explicitly confirmed by the current form, not a stale click.
+    if action == "approve" and payload.get("confirm_approval") is not True:
+        logger.warning("Folio approval rejected without explicit confirmation: user_id=%s", request.user.pk)
+        return JsonResponse({"ok":False,"message":"Föy onayı doğrulanamadı. Sayfayı yenileyip yeniden onaylayın."},status=400)
     try:
         with transaction.atomic():
             _lock_showroom_user(request.user)
@@ -509,7 +516,9 @@ def showroom_draft_action(request):
                 if action=="delete":
                     _delete_draft_safely(draft)
                     return JsonResponse({"ok":True,"message":"Taslak silindi."})
+                old_status=draft.status
                 draft.status="PENDING" if action=="save_draft" else "APPROVED"; draft.save(update_fields=["status","updated_at"])
+                logger.info("Folio status changed: draft_id=%s user_id=%s action=%s from=%s to=%s", draft.pk, request.user.pk, action, old_status, draft.status)
                 if draft.status == "APPROVED" and not draft.import_pending_items: transaction.on_commit(lambda: queue_folio_drive_sync(draft.id))
                 return JsonResponse({"ok":True,"draft":draft.id,"status":draft.status,"message":"Taslak kaydedildi." if action=="save_draft" else "Föy onaylananlara kaydedildi."})
             if action=="open_saved":
