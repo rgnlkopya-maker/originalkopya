@@ -68,6 +68,8 @@
 .workshop-confirm .modal-body{font-size:13px;color:#65748b}
 @media(max-width:900px){.workshop-page{padding:14px 9px 40px}.workshop-layout{display:block}.today-panel{position:relative;top:auto;max-height:400px;margin-bottom:14px}.today-panel-content{max-height:305px}.workshop-header h1{font-size:23px}.live-panel-head{padding:14px}}
 {% if request.GET.tv == '1' %}
+.projection-fullscreen-trigger{position:fixed;right:20px;bottom:20px;z-index:1050;padding:10px 14px;border-radius:10px;border:1px solid #cbd5e1;background:#fff;color:#263044;box-shadow:0 3px 14px rgba(15,23,42,.14);font-size:13px;font-weight:800;cursor:pointer}
+:fullscreen .projection-fullscreen-trigger{display:none!important}
 /* Apply after the normal sticky sidebar positioning rules. */
 body>.app-navbar, body>.preview-bar, .page-nav, .page-nav-bar, .page-nav-buttons,
 .workshop-header {display:none!important}
@@ -79,10 +81,13 @@ body>.app-navbar, body>.preview-bar, .page-nav, .page-nav-bar, .page-nav-buttons
 </style>
 {% endblock %}
 {% block content %}
+{% if request.GET.tv == '1' %}
+<button type="button" id="projectionFullscreen" class="projection-fullscreen-trigger" title="Tam ekrandan çıkmak için Esc tuşuna basın"><i class="bi bi-arrows-fullscreen"></i> Tam Ekran</button>
+{% endif %}
 <div class="workshop-page">
  <div class="workshop-header">
   <div><h1>Atölye Canlı Durum</h1><p>Şu anda açık görünen üretim işlemleri ve bugünün sevkiyat planı</p></div>
-  <div class="d-flex align-items-center gap-2"><span class="live-indicator"><span class="live-dot"></span>CANLI</span><a class="live-refresh" style="text-decoration:none" href="?tv=1" target="_blank" rel="noopener"><i class="bi bi-display"></i> TV Görünümü</a><button class="live-refresh" type="button" onclick="window.location.reload()"><i class="bi bi-arrow-clockwise"></i> Yenile</button></div>
+  <div class="d-flex align-items-center gap-2"><span class="live-indicator"><span class="live-dot"></span>CANLI</span><a class="live-refresh" style="text-decoration:none" href="?tv=1" target="_blank" rel="noopener"><i class="bi bi-display"></i> Yansıtma Modu</a><button class="live-refresh" type="button" onclick="window.location.reload()"><i class="bi bi-arrow-clockwise"></i> Yenile</button></div>
  </div>
  <div class="workshop-layout">
   <aside class="today-panel" aria-label="Bugünün sevkiyat planı">
@@ -138,6 +143,17 @@ body>.app-navbar, body>.preview-bar, .page-nav, .page-nav-bar, .page-nav-buttons
 <script>
 (function(){
 
+ const fullscreenButton=document.getElementById('projectionFullscreen');
+ fullscreenButton?.addEventListener('click',async()=>{
+   try{
+     if(!document.fullscreenElement){
+       if(!document.documentElement.requestFullscreen)throw new Error('Tarayıcı tam ekranı desteklemiyor.');
+       await document.documentElement.requestFullscreen();
+     }
+   }catch(e){
+     alert('Tam ekran açılamadı. Windows üzerinde F11 tuşuyla da tarayıcıyı tam ekran yapabilirsiniz.');
+   }
+ });
  const versionUrl="{% url 'workshop_live_version' %}";
  const hideModalEl=document.getElementById('workshopHideModal');
  const hideModal=hideModalEl?bootstrap.Modal.getOrCreateInstance(hideModalEl):null;
