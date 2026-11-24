@@ -2,6 +2,15 @@
 {% block extra_css %}
 <style>
 .workshop-page{max-width:1800px;margin:0 auto;padding:22px 18px 48px;color:#243047}
+{% if request.GET.tv == '1' %}
+/* TV appearance: retain the exact shipment sidebar and ongoing-work table. */
+body>.app-navbar, body>.preview-bar, .page-nav, .page-nav-bar, .page-nav-buttons,
+.workshop-header {display:none!important}
+#mainContent{margin:0!important;padding:0!important}
+.workshop-page{max-width:none;padding:12px 14px 20px}
+.today-panel{top:12px;max-height:calc(100vh - 24px)}
+@media(max-width:900px){.today-panel{top:auto;max-height:400px}}
+{% endif %}
 .workshop-header{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:18px}
 .workshop-header h1{font-size:27px;font-weight:850;letter-spacing:-.6px;margin:0}
 .workshop-header p{font-size:12px;color:#7c899e;margin:5px 0 0}
@@ -73,7 +82,7 @@
 <div class="workshop-page">
  <div class="workshop-header">
   <div><h1>Atölye Canlı Durum</h1><p>Şu anda açık görünen üretim işlemleri ve bugünün sevkiyat planı</p></div>
-  <div class="d-flex align-items-center gap-2"><span class="live-indicator"><span class="live-dot"></span>CANLI</span><button class="live-refresh" type="button" onclick="window.location.reload()"><i class="bi bi-arrow-clockwise"></i> Yenile</button></div>
+  <div class="d-flex align-items-center gap-2"><span class="live-indicator"><span class="live-dot"></span>CANLI</span><a class="live-refresh" style="text-decoration:none" href="?tv=1" target="_blank" rel="noopener"><i class="bi bi-display"></i> TV Görünümü</a><button class="live-refresh" type="button" onclick="window.location.reload()"><i class="bi bi-arrow-clockwise"></i> Yenile</button></div>
  </div>
  <div class="workshop-layout">
   <aside class="today-panel" aria-label="Bugünün sevkiyat planı">
