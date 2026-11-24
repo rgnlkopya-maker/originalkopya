@@ -1,3 +1,4 @@
+from core.models import Renk
 from app_settings.access import has_access
 from decimal import Decimal, InvalidOperation
 import os
@@ -305,6 +306,9 @@ def material_list(request):
     current_rate, rate_error = ensure_daily_rate(); warehouses=Warehouse.objects.filter(aktif=True).order_by("ad")
     if request.method == "POST":
         action = request.POST.get("action")
+        renk = (request.POST.get("renk") or "").strip()
+        if action in {"add", "stock_movement", "transfer"} and renk and not Renk.objects.filter(ad=renk, aktif=True).exists():
+            messages.error(request, "Aktif bir renk seçin."); return redirect("material_list")
         if action == "add":
             kod=(request.POST.get("kod") or "").strip().upper(); ad=(request.POST.get("ad") or "").strip(); birim=(request.POST.get("birim") or "M").strip(); kategori=(request.POST.get("kategori") or "DIGER").strip(); kullanim_asamasi=(request.POST.get("kullanim_asamasi") or "KESIM").strip(); para_birimi=(request.POST.get("birim_maliyet_para_birimi") or "TRY").strip(); warehouse=_warehouse_from_post(request)
             if para_birimi not in {"TRY","USD"}: para_birimi="TRY"
@@ -316,7 +320,7 @@ def material_list(request):
                 with transaction.atomic():
                     material,created=Material.objects.update_or_create(kod=kod,defaults={"ad":ad,"kategori":kategori,"kullanim_asamasi":kullanim_asamasi,"birim":birim,"kritik_stok":kritik_stok,"tedarikci":(request.POST.get("tedarikci") or "").strip(),"aciklama":(request.POST.get("aciklama") or "").strip(),"birim_maliyet":birim_maliyet,"birim_maliyet_para_birimi":para_birimi,"son_alis_tarihi":son_alis_tarihi,"aktif":True})
                     if created and stok>0 and warehouse:
-                        ws,_=MaterialWarehouseStock.objects.get_or_create(material=material,warehouse=warehouse,defaults={"miktar":0}); before=ws.miktar; ws.miktar+=stok; ws.save(); material.sync_total_stock(); MaterialStockMovement.objects.create(material=material,warehouse=warehouse,movement_type="BASLANGIC",miktar=stok,onceki_stok=before,sonraki_stok=ws.miktar,aciklama="Malzeme kartı açılış stoğu",islem_yapan=request.user)
+                        ws,_=MaterialWarehouseStock.objects.get_or_create(material=material,warehouse=warehouse,renk=renk,defaults={"miktar":0}); before=ws.miktar; ws.miktar+=stok; ws.save(); material.sync_total_stock(); MaterialStockMovement.objects.create(material=material,warehouse=warehouse,renk=renk,movement_type="BASLANGIC",miktar=stok,onceki_stok=before,sonraki_stok=ws.miktar,aciklama="Malzeme kartı açılış stoğu",islem_yapan=request.user)
                     elif not created and stok!=material.stok_miktari: messages.warning(request,"Mevcut kartın stoğu kart kaydından değiştirilmedi. Stok için hareket ekleyin.")
                 uploaded_image=request.FILES.get("material_image")
                 if uploaded_image:
@@ -344,7 +348,7 @@ def material_list(request):
                 if miktar<=0: raise ValueError("Stok hareket miktarı sıfırdan büyük olmalıdır.")
             except ValueError as exc: messages.error(request,str(exc)); return redirect("material_list")
             with transaction.atomic():
-                material=Material.objects.select_for_update().get(pk=material_id,aktif=True); ws,_=MaterialWarehouseStock.objects.select_for_update().get_or_create(material=material,warehouse=warehouse,defaults={"miktar":0}); onceki=ws.miktar
+                material=Material.objects.select_for_update().get(pk=material_id,aktif=True); ws,_=MaterialWarehouseStock.objects.select_for_update().get_or_create(material=material,warehouse=warehouse,renk=renk,defaults={"miktar":0}); onceki=ws.miktar
                 if movement_type in {"CIKIS","FIRE","DUZELTME_EKSI"}:
                     sonraki=onceki-miktar
                     if sonraki<0: messages.error(request,f"{warehouse.ad} deposunda yetersiz stok. Mevcut: {onceki} {material.get_birim_display()}."); return redirect("material_list")
@@ -356,7 +360,7 @@ def material_list(request):
                     movement_currency=request.POST.get("hareket_para_birimi") or material.birim_maliyet_para_birimi
                     if movement_cost>0: material.birim_maliyet=movement_cost; material.birim_maliyet_para_birimi=movement_currency if movement_currency in {"TRY","USD"} else "TRY"
                     material.son_alis_tarihi=timezone.localdate(); material.save(update_fields=["birim_maliyet","birim_maliyet_para_birimi","son_alis_tarihi","updated_at"])
-                MaterialStockMovement.objects.create(material=material,warehouse=warehouse,movement_type=movement_type,miktar=miktar,onceki_stok=onceki,sonraki_stok=sonraki,aciklama=(request.POST.get("hareket_aciklama") or "").strip(),islem_yapan=request.user)
+                MaterialStockMovement.objects.create(material=material,warehouse=warehouse,renk=renk,movement_type=movement_type,miktar=miktar,onceki_stok=onceki,sonraki_stok=sonraki,aciklama=(request.POST.get("hareket_aciklama") or "").strip(),islem_yapan=request.user)
             if movement_type=="GIRIS": recalculate_costs_for_material(material)
             messages.success(request,f"{warehouse.ad} stok hareketi kaydedildi. Yeni depo stoğu: {sonraki} {material.get_birim_display()}.")
         elif action == "transfer":
@@ -367,9 +371,10 @@ def material_list(request):
             except ValueError as exc: messages.error(request,str(exc)); return redirect("material_list")
             if not source or not target or source.id==target.id: messages.error(request,"Kaynak ve hedef depolar farklı olmalıdır."); return redirect("material_list")
             with transaction.atomic():
-                source_stock,_=MaterialWarehouseStock.objects.select_for_update().get_or_create(material=material,warehouse=source,defaults={"miktar":0}); target_stock,_=MaterialWarehouseStock.objects.select_for_update().get_or_create(material=material,warehouse=target,defaults={"miktar":0})
+                material=Material.objects.select_for_update().get(pk=material.pk)
+                source_stock,_=MaterialWarehouseStock.objects.select_for_update().get_or_create(material=material,warehouse=source,renk=renk,defaults={"miktar":0}); target_stock,_=MaterialWarehouseStock.objects.select_for_update().get_or_create(material=material,warehouse=target,renk=renk,defaults={"miktar":0})
                 if source_stock.miktar<miktar: messages.error(request,f"{source.ad} deposunda yeterli stok yok."); return redirect("material_list")
-                sb=source_stock.miktar; tb=target_stock.miktar; source_stock.miktar-=miktar; target_stock.miktar+=miktar; source_stock.save(); target_stock.save(); aciklama=f"{source.ad} → {target.ad}"; MaterialStockMovement.objects.create(material=material,warehouse=source,movement_type="TRANSFER_CIKIS",miktar=miktar,onceki_stok=sb,sonraki_stok=source_stock.miktar,aciklama=aciklama,islem_yapan=request.user); MaterialStockMovement.objects.create(material=material,warehouse=target,movement_type="TRANSFER_GIRIS",miktar=miktar,onceki_stok=tb,sonraki_stok=target_stock.miktar,aciklama=aciklama,islem_yapan=request.user); material.sync_total_stock()
+                sb=source_stock.miktar; tb=target_stock.miktar; source_stock.miktar-=miktar; target_stock.miktar+=miktar; source_stock.save(); target_stock.save(); aciklama=f"{source.ad} → {target.ad}"; MaterialStockMovement.objects.create(material=material,warehouse=source,renk=renk,movement_type="TRANSFER_CIKIS",miktar=miktar,onceki_stok=sb,sonraki_stok=source_stock.miktar,aciklama=aciklama,islem_yapan=request.user); MaterialStockMovement.objects.create(material=material,warehouse=target,renk=renk,movement_type="TRANSFER_GIRIS",miktar=miktar,onceki_stok=tb,sonraki_stok=target_stock.miktar,aciklama=aciklama,islem_yapan=request.user); material.sync_total_stock()
             messages.success(request,f"{miktar} {material.get_birim_display()} {source.ad} → {target.ad} transfer edildi.")
         elif action == "update_cost":
             material=get_object_or_404(Material,pk=request.POST.get("id"),aktif=True)
@@ -386,7 +391,7 @@ def material_list(request):
             material=get_object_or_404(Material,pk=request.POST.get("id")); material.aktif=False; material.save(update_fields=["aktif"]); messages.success(request,"Malzeme pasife alındı.")
         return redirect("material_list")
     materials=Material.objects.filter(aktif=True).prefetch_related("stock_movements__warehouse","warehouse_stocks__warehouse").order_by("ad"); recent_movements=MaterialStockMovement.objects.select_related("material","warehouse","islem_yapan").filter(material__aktif=True)[:40]; critical_count=sum(1 for material in materials if material.kritik_mi)
-    return render(request,"product_cards/material_list.html",{"materials":materials,"recent_movements":recent_movements,"critical_count":critical_count,"current_rate":current_rate,"rate_error":rate_error,"category_choices":Material.CATEGORY_CHOICES,"usage_stage_choices":Material.USAGE_STAGE_CHOICES,"movement_choices":[c for c in MaterialStockMovement.MOVEMENT_CHOICES if c[0] in {"GIRIS","CIKIS","IADE","FIRE","DUZELTME_ARTI","DUZELTME_EKSI"}],"warehouses":warehouses})
+    return render(request,"product_cards/material_list.html",{"materials":materials,"recent_movements":recent_movements,"critical_count":critical_count,"current_rate":current_rate,"rate_error":rate_error,"category_choices":Material.CATEGORY_CHOICES,"usage_stage_choices":Material.USAGE_STAGE_CHOICES,"movement_choices":[c for c in MaterialStockMovement.MOVEMENT_CHOICES if c[0] in {"GIRIS","CIKIS","IADE","FIRE","DUZELTME_ARTI","DUZELTME_EKSI"}],"warehouses":warehouses,"colors":Renk.objects.filter(aktif=True).order_by("ad")})
 
 
 @login_required
