@@ -36,3 +36,36 @@ class ProductStockMovement(models.Model):
 
     class Meta:
         ordering = ["-created_at", "-id"]
+
+
+LACE_STAGES = [
+    ("danteli_ayarlandi", "Danteli Ayarlandı"),
+    ("etek_danteli_ayarlandi", "Etek Danteli Ayarlandı"),
+    ("beden_danteli_ayarlandi", "Beden Danteli Ayarlandı"),
+    ("takim_olarak_danteli_ayarlandi", "Takım Olarak Danteli Ayarlandı"),
+]
+
+
+class PreparationStock(models.Model):
+    product = models.ForeignKey(UrunKod, on_delete=models.PROTECT)
+    warehouse = models.ForeignKey(Warehouse, on_delete=models.PROTECT)
+    color = models.CharField(max_length=100)
+    size = models.CharField(max_length=20, blank=True, default="")
+    stage = models.CharField(max_length=40, choices=LACE_STAGES)
+    initial_quantity = models.PositiveIntegerField()
+    remaining = models.PositiveIntegerField()
+    note = models.CharField(max_length=255, blank=True, default="")
+    prepared_by = models.CharField(max_length=100)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["created_at", "id"]
+
+
+class PreparationUse(models.Model):
+    stock = models.ForeignKey(PreparationStock, on_delete=models.PROTECT, related_name="uses")
+    order = models.ForeignKey("core.Order", on_delete=models.PROTECT)
+    event = models.ForeignKey("core.OrderEvent", on_delete=models.SET_NULL, null=True)
+    quantity = models.PositiveIntegerField(default=1)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
