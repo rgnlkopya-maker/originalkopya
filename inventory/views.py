@@ -142,7 +142,7 @@ def _can_use_preparation(user, order):
     return (_can_manage(user) and has_access(user, "can_edit_orders") and
             order_scope_allows(user, order) and order.is_active and
             order.musteri_id is not None and order.siparis_tipi not in ("STOK", "MALZEME", "KONSINYE") and
-            order.sevkiyat_durum != "gonderildi")
+            order.sevkiyat_durum != "gonderildi" and order.adet == 1)
 
 
 def _matching_preparations(order):
@@ -163,7 +163,8 @@ def use_preparation(request, order_id):
             order = get_object_or_404(Order.objects.select_for_update(), pk=order_id)
             if not _can_use_preparation(request.user, order):
                 return HttpResponseForbidden("Bu sipariş için hazırlık stoğu kullanılamaz.")
-            stock = _matching_preparations(order).select_for_update().filter(pk=request.POST.get("stock_id")).first()
+            stock_id = (request.POST.get("stock_id") or "").strip()
+            stock = _matching_preparations(order).select_for_update(of=("self",)).filter(pk=int(stock_id)).first() if stock_id.isdecimal() else None
             if not stock:
                 messages.error(request, "Uygun hazırlık stoğu bulunamadı.")
                 return redirect("inventory_use_preparation", order_id=order_id)
