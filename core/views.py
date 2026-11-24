@@ -1059,6 +1059,9 @@ def update_stage(request, pk):
     if not stage or not value:
         return HttpResponseForbidden("Eksik veri")
 
+    if stage == "susleme_durum" and value in {"kismi_bitti", "kismi"}:
+        return HttpResponseBadRequest("Kısmi süsleme işlemi kaldırıldı.")
+
     # Sevk edilmiş siparişte üretim hareketleri kapalıdır.
     # Yalnızca iade veya tadilat dönüşü yeniden üretime izin verir.
     if stage == "sevkiyat_durum" and value in {"iade_geldi", "tadilata_geldi"}:
