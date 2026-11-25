@@ -1103,7 +1103,7 @@ def update_stage(request, pk):
         # Aynı stok satırının aynı siparişe tekrar gönderilmesi çift çıkış oluşturmasın.
         if MaterialStockMovement.objects.filter(order=order, material=material, warehouse=lace_stock.warehouse, renk=lace_stock.renk, movement_type="DANTEL_AYIR", reversed=False).exists():
             return HttpResponseBadRequest("Bu dantel zaten bu siparişe ayrılmış. Miktarı değiştirmek için önce yönetici eski işlemi geri almalıdır.")
-        if MaterialStockMovement.objects.filter(order=order, material=material, movement_type="URETIM", reversed=False).exists():
+        if MaterialStockMovement.objects.filter(order=order, material__kategori="DANTEL", movement_type="URETIM", reversed=False).exists():
             return HttpResponseBadRequest("Bu malzeme siparişin otomatik üretim tüketiminde zaten düşülmüş.")
         aciklama = f"{material.kod} · {material.ad} | {lace_stock.renk or 'Renksiz'} | {lace_qty.normalize():f} {material.get_birim_display()} | {lace_stock.warehouse.ad}"
 
@@ -1115,6 +1115,9 @@ def update_stage(request, pk):
     # Quality issue reports must include a description.
     if stage == "kalite_kontrol" and value == "hata_gordum" and not (aciklama or "").strip():
         return HttpResponseBadRequest("Lütfen gördüğünüz hatayı açıklayınız.")
+
+    if stage == "kesim_durum" and value == "bitti":
+        order = Order.objects.select_for_update().get(pk=order.pk)
 
     # Süsleme ve yardım işlemleri aynı sipariş ve kullanıcı için atomik doğrulanır.
     open_help = None
@@ -1769,6 +1772,22 @@ def delete_order_event(request, event_id):
 
             messages.error(request, "Bu konsinye hareketi geri alınamıyor.")
             return redirect("order_detail", pk=order_id)
+
+    if event.stage == "malzeme_durum" and event.value == "dantel_ayrildi":
+        with transaction.atomic():
+            order = Order.objects.select_for_update().get(pk=order_id)
+            event = get_object_or_404(OrderEvent.objects.select_for_update(), pk=event_id)
+            if order.production_locked or OrderEvent.objects.filter(
+                order=order, event_type="stage", stage__in=["kesim_durum", "susleme_durum"], value="bitti"
+            ).filter(Q(timestamp__gt=event.timestamp) | Q(timestamp=event.timestamp, pk__gt=event.pk)).exists():
+                messages.error(request, "Dantel tüketilmiş olabilir. Önce sonraki kesim veya süsleme bitirme kaydını geri alın.")
+                return redirect("order_detail", pk=order_id)
+            event.delete()
+            from .services.order_status import sync_order_stage_from_events
+            sync_order_stage_from_events(order, "malzeme_durum")
+        cache.clear()
+        messages.success(request, "Dantel ayırma işlemi geri alındı; stok iade edildi.")
+        return redirect("order_detail", pk=order_id)
 
     deleted_stage = event.stage if event.event_type == "stage" else None
     event.delete()
