@@ -1082,6 +1082,37 @@ def update_stage(request, pk):
     if stage == "kalite_kontrol" and value == "hata_gordum" and not (aciklama or "").strip():
         return HttpResponseBadRequest("Lütfen gördüğünüz hatayı açıklayınız.")
 
+    # Personel, bu sipariş için kendi başlangıç kaydı olmadan süslemeyi bitiremez.
+    if stage == "susleme_durum" and value == "bitti" and not (
+        request.user.is_superuser or request.user.groups.filter(name__in=["patron", "mudur"]).exists()
+    ):
+        from django.contrib.auth import get_user_model
+        get_user_model().objects.select_for_update().get(pk=request.user.pk)
+        Order.objects.select_for_update().get(pk=order.pk)
+        last_finish = OrderEvent.objects.filter(
+            order=order, stage="susleme_durum", value="bitti", event_type="stage"
+        ).order_by("-timestamp", "-id").first()
+        starts = OrderEvent.objects.filter(
+            order=order, user=request.user.username, event_type="stage",
+            stage__in=["susleme_durum", "susleme_yardim"], value="basladi"
+        )
+        if last_finish:
+            starts = starts.filter(Q(timestamp__gt=last_finish.timestamp) |
+                                   Q(timestamp=last_finish.timestamp, pk__gt=last_finish.pk))
+        if not starts.exists():
+            warning = "Önce bu siparişte süslemeye veya süsleme yardımına başlamalısınız."
+            if request.headers.get("HX-Request"):
+                return render(request, "core/_uretim_paneli.html", {
+                    "order": order,
+                    "events": OrderEvent.objects.filter(order=order).order_by("-timestamp"),
+                    "fasoncular": Fasoncu.objects.all(),
+                    "nakisciler": Nakisci.objects.all(),
+                    "is_manager": False,
+                    "consignment_active_qty": ConsignmentStock.objects.filter(source_order=order).aggregate(v=Sum("quantity_remaining"))["v"] or 0,
+                    "blocked_susleme_finish": warning,
+                })
+            return JsonResponse({"status": "blocked", "message": warning}, status=409)
+
     # Süsleme ve süsleme yardımı aynı personel için tek aktif iş kuralını paylaşır.
     # Yardım başladı/beklemede/bitti olayları siparişin ana süsleme durumunu değiştirmez.
     if stage in {"susleme_durum", "susleme_yardim"} and value == "basladi":
