@@ -1673,7 +1673,6 @@ def delete_order_event(request, event_id):
     # Konsinye stok etkileyen kayıtlar doğrudan silinmez.
     # Stok hareketi ile birlikte atomik olarak geri alınır.
     if event.event_type == "stage" and event.stage == "konsinye_durum":
-        from django.db import transaction
         from .models import ConsignmentMovement
 
         with transaction.atomic():
