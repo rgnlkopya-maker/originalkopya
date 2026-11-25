@@ -251,6 +251,7 @@
         select.replaceChildren(new Option('Dantel seçin',''));
         for(const r of rows){const label=r.code+' · '+r.name+' · '+r.warehouse+' · '+r.color+' ('+r.quantity+' '+r.unit+')';if(label.toLocaleLowerCase('tr-TR').includes(q))select.add(new Option(label,r.id));}
         if(Array.from(select.options).some(o=>o.value===selected))select.value=selected;
+        error.textContent=select.options.length===1?'Aramanıza uygun stokta dantel bulunamadı. Farklı kod veya renk arayın.':'';
         refresh();
       }
       search.oninput=filter; select.onchange=refresh; qty.oninput=refresh;
