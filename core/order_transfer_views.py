@@ -104,6 +104,10 @@ def transfer_production_history(request, source_order_id):
     if not target.is_active:
         return JsonResponse({"ok": False, "error": "Hedef sipariş pasif durumda."}, status=400)
 
+    from product_cards.models import MaterialStockMovement
+    if MaterialStockMovement.objects.filter(order=source, movement_type="DANTEL_AYIR", reversed=False).exists():
+        return JsonResponse({"ok": False, "error": "Bu siparişte stoktan ayrılmış dantel var. Önce dantel işlemini güvenli şekilde geri alın."}, status=409)
+
     source_events = list(
         OrderEvent.objects.filter(order=source, event_type="stage", stage__in=PRODUCTION_STAGES)
         .order_by("timestamp", "id")
