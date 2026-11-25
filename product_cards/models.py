@@ -185,9 +185,12 @@ def consume_materials_on_stage_completion(sender,instance,created,**kwargs):
         plan=[]
         for usage in usages:
             material=Material.objects.select_for_update().get(pk=usage.material_id);qty=(usage.miktar*multiplier).quantize(Decimal("0.001"))
-            if material.kategori == "DANTEL":
-                already=MaterialStockMovement.objects.filter(order=instance.order,material=material,movement_type="DANTEL_AYIR",reversed=False).aggregate(total=models.Sum("miktar"))["total"] or Decimal("0")
-                qty=max(Decimal("0"),qty-already)
+            # Dantel seçimi manuel yapılmışsa bu siparişin dantelleri yalnız seçilen gerçek stoklardan düşer.
+            # Başka model danteli kullanıldığında reçetedeki varsayılan dantel ikinci kez düşmemelidir.
+            if material.kategori == "DANTEL" and MaterialStockMovement.objects.filter(
+                order=instance.order,movement_type="DANTEL_AYIR",reversed=False
+            ).exists():
+                continue
             if qty<=0:continue
             allocations=_consume_from_warehouses(material,qty)
             if allocations is None: transaction.set_rollback(True); return
