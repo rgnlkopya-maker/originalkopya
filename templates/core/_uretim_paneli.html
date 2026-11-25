@@ -219,8 +219,8 @@
       <form id="lace-stock-form">
         <label class="form-label" for="lace-search">Malzeme ara</label>
         <input id="lace-search" class="form-control mb-2" placeholder="Kod, malzeme, renk veya depo">
-        <label class="form-label" for="lace-stock-select">Dantel / depo / stok rengi</label>
-        <select id="lace-stock-select" class="form-select mb-2" required></select>
+        <div class="d-flex justify-content-between align-items-center mb-2"><label class="form-label mb-0">Dantel / depo / stok rengi</label><small id="lace-result-count" class="text-muted"></small></div>
+        <div id="lace-stock-select" role="group" aria-label="Dantel seçimi" style="display:grid;gap:8px;max-height:34vh;overflow-y:auto;padding:2px;margin-bottom:12px"></div>
         <label class="form-label" for="lace-stock-qty">Miktar</label>
         <input id="lace-stock-qty" type="number" min="0.001" step="0.001" class="form-control mb-2" required>
         <div id="lace-stock-remaining" class="small text-muted mb-2"></div>
@@ -237,34 +237,51 @@
         search=document.getElementById('lace-search'), select=document.getElementById('lace-stock-select'),
         qty=document.getElementById('lace-stock-qty'), remaining=document.getElementById('lace-stock-remaining'),
         error=document.getElementById('lace-stock-error'), confirmButton=document.getElementById('lace-stock-confirm');
-      let rows=[];
+      let rows=[], selectedId=null, submitting=false;
       error.textContent=''; search.value=''; qty.value=''; select.replaceChildren(); confirmButton.disabled=true;
       d.showModal();
-      function current(){return rows.find(r=>String(r.id)===select.value)}
+      function current(){return rows.find(r=>String(r.id)===selectedId)}
       function refresh(){
         const r=current(); qty.max=r?r.quantity:''; qty.min=r&&r.integer?'1':'0.001'; qty.step=r&&r.integer?'1':'0.001';
         remaining.textContent=r?'Mevcut: '+r.quantity+' '+r.unit+' · Kalan: '+Math.max(0,Number(r.quantity)-Number(qty.value||0)).toLocaleString('tr-TR')+' '+r.unit:'';
-        confirmButton.disabled=!r;
+        confirmButton.disabled=submitting||!r||!qty.value||!qty.checkValidity();
       }
       function filter(){
-        const selected=select.value, q=search.value.toLocaleLowerCase('tr-TR');
-        select.replaceChildren(new Option('Dantel seçin',''));
-        for(const r of rows){const label=r.code+' · '+r.name+' · '+r.warehouse+' · '+r.color+' ('+r.quantity+' '+r.unit+')';if(label.toLocaleLowerCase('tr-TR').includes(q))select.add(new Option(label,r.id));}
-        if(Array.from(select.options).some(o=>o.value===selected))select.value=selected;
-        error.textContent=select.options.length===1?'Aramanıza uygun stokta dantel bulunamadı. Farklı kod veya renk arayın.':'';
+        const normalize=v=>String(v||'').toLocaleLowerCase('tr-TR').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/ı/g,'i');
+        const terms=normalize(search.value).trim().split(/\s+/).filter(Boolean);
+        const filtered=rows.filter(r=>terms.every(term=>normalize([r.code,r.name,r.warehouse,r.color].join(' ')).includes(term)));
+        if(!filtered.some(r=>String(r.id)===selectedId)){selectedId=null;qty.value='';}
+        select.replaceChildren();
+        document.getElementById('lace-result-count').textContent=filtered.length+' seçenek';
+        for(const r of filtered){
+          const item=document.createElement('button');item.type='button';item.className='btn text-start w-100';
+          item.style.cssText='display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:72px;padding:12px;border-radius:12px;border:1px solid #dbe1ed;background:#fff;white-space:normal';
+          const active=String(r.id)===selectedId;
+          if(active){item.style.border='2px solid #3456dc';item.style.background='#eef3ff';}
+          item.setAttribute('aria-pressed',String(active));item.disabled=submitting;
+          const detail=document.createElement('div');detail.style.minWidth='0';
+          const name=document.createElement('div');name.className='fw-bold';name.textContent=r.name;
+          const meta=document.createElement('small');meta.className='text-muted';meta.textContent=r.warehouse+' · '+r.color;
+          detail.append(name,meta);
+          const amount=document.createElement('div');amount.className='fw-bold text-nowrap';amount.textContent=(active?'✓ ':'')+Number(r.quantity).toLocaleString('tr-TR')+' '+r.unit;
+          item.append(detail,amount);
+          item.onclick=()=>{if(submitting)return;selectedId=String(r.id);qty.value=r.integer?'1':String(Math.min(1,Number(r.quantity)));const scroll=select.scrollTop;filter();select.scrollTop=scroll;};
+          select.append(item);
+        }
+        error.textContent=filtered.length?'':'Aramanıza uygun stokta dantel bulunamadı.';
         refresh();
       }
-      search.oninput=filter; select.onchange=refresh; qty.oninput=refresh;
+      search.oninput=()=>{filter();select.scrollTop=0;}; qty.oninput=refresh;
       form.onsubmit=async function(e){
         e.preventDefault(); const r=current(); if(!r||!form.reportValidity())return;
-        confirmButton.disabled=true; error.textContent='';
+        if(submitting)return;submitting=true; confirmButton.disabled=true; error.textContent='';
         try{
           const data=new FormData();data.append('csrfmiddlewaretoken','{{ csrf_token }}');data.append('stage','malzeme_durum');data.append('value','dantel_ayrildi');data.append('lace_stock_id',r.id);data.append('lace_quantity',qty.value);
           const response=await fetch("{% url 'update_stage' order.id %}",{method:'POST',body:data,credentials:'same-origin'});
           if(!response.ok)throw Error(await response.text());
           const result=await response.json();if(result.status!=='ok')throw Error(result.message||'İşlem kaydedilemedi.');
           d.close(); location.reload();
-        }catch(e){error.textContent=e.message;confirmButton.disabled=false;}
+        }catch(e){submitting=false;error.textContent=e.message;refresh();}
       };
       try{const response=await fetch("{% url 'order_lace_stock_options' order.id %}",{credentials:'same-origin'});if(!response.ok)throw Error('Stok listesi alınamadı.');rows=(await response.json()).stocks;filter();if(!rows.length)error.textContent='Stokta dantel bulunamadı.';}
       catch(e){error.textContent=e.message;}
