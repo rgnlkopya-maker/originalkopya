@@ -142,12 +142,12 @@ class MaterialWarehouseStock(models.Model):
     def __str__(self): return f"{self.material.kod} / {self.warehouse.ad}: {self.miktar}"
 
 class MaterialStockMovement(models.Model):
-    MOVEMENT_CHOICES=[("GIRIS","Stok Girişi"),("CIKIS","Stok Çıkışı"),("IADE","İade Girişi"),("FIRE","Fire / Zayi"),("DUZELTME_ARTI","Sayım Düzeltmesi +"),("DUZELTME_EKSI","Sayım Düzeltmesi -"),("BASLANGIC","Başlangıç Stoğu"),("URETIM","Üretim Tüketimi"),("URETIM_IADE","Üretim İadesi"),("TRANSFER_CIKIS","Depolar Arası Transfer Çıkışı"),("TRANSFER_GIRIS","Depolar Arası Transfer Girişi")]
+    MOVEMENT_CHOICES=[("GIRIS","Stok Girişi"),("CIKIS","Stok Çıkışı"),("IADE","İade Girişi"),("FIRE","Fire / Zayi"),("DUZELTME_ARTI","Sayım Düzeltmesi +"),("DUZELTME_EKSI","Sayım Düzeltmesi -"),("BASLANGIC","Başlangıç Stoğu"),("URETIM","Üretim Tüketimi"),("URETIM_IADE","Üretim İadesi"),("DANTEL_AYIR","Siparişe Dantel Ayrıldı"),("DANTEL_IADE","Dantel İadesi"),("TRANSFER_CIKIS","Depolar Arası Transfer Çıkışı"),("TRANSFER_GIRIS","Depolar Arası Transfer Girişi")]
     material=models.ForeignKey(Material,on_delete=models.PROTECT,related_name="stock_movements"); warehouse=models.ForeignKey(Warehouse,on_delete=models.PROTECT,null=True,blank=True,related_name="stock_movements"); movement_type=models.CharField(max_length=20,choices=MOVEMENT_CHOICES); miktar=models.DecimalField(max_digits=14,decimal_places=3); onceki_stok=models.DecimalField(max_digits=14,decimal_places=3); sonraki_stok=models.DecimalField(max_digits=14,decimal_places=3); aciklama=models.CharField(max_length=255,blank=True,default=""); islem_yapan=models.ForeignKey(settings.AUTH_USER_MODEL,on_delete=models.SET_NULL,null=True,blank=True,related_name="material_stock_movements"); order=models.ForeignKey(Order,on_delete=models.SET_NULL,null=True,blank=True,related_name="material_stock_movements"); source_event=models.ForeignKey(OrderEvent,on_delete=models.SET_NULL,null=True,blank=True,related_name="material_stock_movements"); reversed=models.BooleanField(default=False); created_at=models.DateTimeField(auto_now_add=True)
     renk=models.CharField(max_length=100,blank=True,default="")
     class Meta:ordering=["-created_at","-id"]
     @property
-    def signed_amount(self):return -self.miktar if self.movement_type in {"CIKIS","FIRE","DUZELTME_EKSI","URETIM","TRANSFER_CIKIS"} else self.miktar
+    def signed_amount(self):return -self.miktar if self.movement_type in {"CIKIS","FIRE","DUZELTME_EKSI","URETIM","TRANSFER_CIKIS","DANTEL_AYIR"} else self.miktar
 
 class ProductMaterial(models.Model):
     STAGE_CHOICES=Material.USAGE_STAGE_CHOICES
@@ -184,7 +184,15 @@ def consume_materials_on_stage_completion(sender,instance,created,**kwargs):
     with transaction.atomic():
         plan=[]
         for usage in usages:
-            material=Material.objects.select_for_update().get(pk=usage.material_id);qty=(usage.miktar*multiplier).quantize(Decimal("0.001")); allocations=_consume_from_warehouses(material,qty)
+            material=Material.objects.select_for_update().get(pk=usage.material_id);qty=(usage.miktar*multiplier).quantize(Decimal("0.001"))
+            # Dantel seçimi manuel yapılmışsa bu siparişin dantelleri yalnız seçilen gerçek stoklardan düşer.
+            # Başka model danteli kullanıldığında reçetedeki varsayılan dantel ikinci kez düşmemelidir.
+            if material.kategori == "DANTEL" and MaterialStockMovement.objects.filter(
+                order=instance.order,movement_type="DANTEL_AYIR",reversed=False
+            ).exists():
+                continue
+            if qty<=0:continue
+            allocations=_consume_from_warehouses(material,qty)
             if allocations is None: transaction.set_rollback(True); return
             plan.append((material,allocations))
         stage_label="kesim" if stage=="KESIM" else "süsleme"
@@ -195,15 +203,18 @@ def consume_materials_on_stage_completion(sender,instance,created,**kwargs):
 @receiver(pre_delete,sender=OrderEvent)
 def restore_materials_when_stage_deleted(sender,instance,**kwargs):
     stage=_stock_stage_for_event(instance)
-    if not stage:return
-    movements=list(MaterialStockMovement.objects.filter(source_event=instance,movement_type="URETIM",reversed=False).select_related("material","warehouse"))
+    lace=instance.event_type=="stage" and instance.stage=="malzeme_durum" and instance.value=="dantel_ayrildi"
+    if not stage and not lace:return
+    movement_type="DANTEL_AYIR" if lace else "URETIM"
+    movements=list(MaterialStockMovement.objects.filter(source_event=instance,movement_type=movement_type,reversed=False).select_related("material","warehouse").order_by("material_id","id"))
     if not movements:return
     with transaction.atomic():
-        stage_label="Kesildi" if stage=="KESIM" else "Süsleme Bitti"
+        stage_label="Dantel Ayrıldı" if lace else ("Kesildi" if stage=="KESIM" else "Süsleme Bitti")
         touched=set()
         for movement in movements:
             if not movement.warehouse:continue
-            stock,_=MaterialWarehouseStock.objects.select_for_update().get_or_create(material=movement.material,warehouse=movement.warehouse,renk=movement.renk,defaults={"miktar":0}); before=stock.miktar; stock.miktar=before+movement.miktar; stock.save(update_fields=["miktar","updated_at"]); MaterialStockMovement.objects.create(material=movement.material,warehouse=movement.warehouse,renk=movement.renk,movement_type="URETIM_IADE",miktar=movement.miktar,onceki_stok=before,sonraki_stok=stock.miktar,aciklama=f"{instance.order.siparis_numarasi} {stage_label} kaydı silindi; stok iade edildi",order=instance.order); movement.reversed=True; movement.save(update_fields=["reversed"]); touched.add(movement.material_id)
+            Material.objects.select_for_update().get(pk=movement.material_id)
+            stock,_=MaterialWarehouseStock.objects.select_for_update().get_or_create(material=movement.material,warehouse=movement.warehouse,renk=movement.renk,defaults={"miktar":0}); before=stock.miktar; stock.miktar=before+movement.miktar; stock.save(update_fields=["miktar","updated_at"]); MaterialStockMovement.objects.create(material=movement.material,warehouse=movement.warehouse,renk=movement.renk,movement_type="DANTEL_IADE" if lace else "URETIM_IADE",miktar=movement.miktar,onceki_stok=before,sonraki_stok=stock.miktar,aciklama=f"{instance.order.siparis_numarasi} {stage_label} kaydı silindi; stok iade edildi",order=instance.order); movement.reversed=True; movement.save(update_fields=["reversed"]); touched.add(movement.material_id)
         for material_id in touched: Material.objects.get(pk=material_id).sync_total_stock()
 
 

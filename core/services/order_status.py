@@ -21,6 +21,7 @@ STATUS_LABELS = {
     ("utu_durum", "beklemede"): "Ütü Beklemeye Alındı",
     ("malzeme_durum", "kesildi"): "Malzemesi Kesildi",
     ("malzeme_durum", "boyandi"): "Malzemesi Boyandı",
+    ("malzeme_durum", "dantel_ayrildi"): "Dantel Ayrıldı",
     ("malzeme_durum", "danteli_ayarlandi"): "Danteli Ayarlandı",
     ("malzeme_durum", "etek_danteli_ayarlandi"): "Etek Danteli Ayarlandı",
     ("malzeme_durum", "beden_danteli_ayarlandi"): "Beden Danteli Ayarlandı",

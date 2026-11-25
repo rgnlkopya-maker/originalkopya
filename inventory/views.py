@@ -77,6 +77,8 @@ def add_material_movement(request, code):
     warehouse = get_object_or_404(Warehouse, kod=code, aktif=True)
     material = get_object_or_404(Material, pk=request.POST.get("material_id"), aktif=True)
     movement_type = request.POST.get("movement_type") or "GIRIS"
+    if movement_type not in {"GIRIS", "CIKIS", "IADE", "FIRE", "DUZELTME_ARTI", "DUZELTME_EKSI"}:
+        return HttpResponseForbidden("Geçersiz stok hareketi.")
     try:
         amount = Decimal((request.POST.get("quantity") or "0").replace(",", "."))
         if amount <= 0: raise InvalidOperation

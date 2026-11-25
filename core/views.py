@@ -1073,6 +1073,40 @@ def update_stage(request, pk):
         )
 
 
+    # Dantel ayırma: stok satırı seçilir; geçmiş ve stok aynı transaction içinde yazılır.
+    lace_stock = None
+    lace_qty = None
+    if stage == "malzeme_durum" and value in {"danteli_ayarlandi", "etek_danteli_ayarlandi", "beden_danteli_ayarlandi", "takim_olarak_danteli_ayarlandi"}:
+        return HttpResponseBadRequest("Dantel ayırmak için yeni Dantel Ayır ekranını kullanın.")
+    if stage == "malzeme_durum" and value == "dantel_ayrildi":
+        from decimal import InvalidOperation
+        from product_cards.models import Material, MaterialWarehouseStock, MaterialStockMovement
+        order = Order.objects.select_for_update().get(pk=order.pk)
+        if not order.is_active or order.production_locked:
+            return HttpResponseBadRequest("Bu siparişe dantel ayrılamaz.")
+        try:
+            lace_qty = Decimal((request.POST.get("lace_quantity") or "").replace(",", "."))
+            if not lace_qty.is_finite() or lace_qty <= 0 or lace_qty > Decimal("99999999999.999") or lace_qty != lace_qty.quantize(Decimal("0.001")):
+                raise ValueError
+            stock_id = int(request.POST.get("lace_stock_id") or "")
+        except (InvalidOperation, ValueError, TypeError):
+            return HttpResponseBadRequest("Geçerli stok ve miktar seçin.")
+        candidate = MaterialWarehouseStock.objects.filter(pk=stock_id, material__aktif=True, warehouse__aktif=True, material__kategori="DANTEL").first()
+        if not candidate:
+            return HttpResponseBadRequest("Dantel stok kaydı bulunamadı.")
+        material = Material.objects.select_for_update().get(pk=candidate.material_id)
+        lace_stock = MaterialWarehouseStock.objects.select_for_update().select_related("warehouse", "material").filter(pk=stock_id, material__aktif=True, warehouse__aktif=True, material__kategori="DANTEL").first()
+        if not lace_stock or lace_stock.miktar < lace_qty:
+            return HttpResponseBadRequest("Yeterli dantel stoğu yok. Listeyi yenileyin.")
+        if material.birim == "ADET" and lace_qty != lace_qty.to_integral_value():
+            return HttpResponseBadRequest("Adet cinsinden dantel için tam sayı girin.")
+        # Aynı stok satırının aynı siparişe tekrar gönderilmesi çift çıkış oluşturmasın.
+        if MaterialStockMovement.objects.filter(order=order, material=material, warehouse=lace_stock.warehouse, renk=lace_stock.renk, movement_type="DANTEL_AYIR", reversed=False).exists():
+            return HttpResponseBadRequest("Bu dantel zaten bu siparişe ayrılmış. Miktarı değiştirmek için önce yönetici eski işlemi geri almalıdır.")
+        if MaterialStockMovement.objects.filter(order=order, material__kategori="DANTEL", movement_type="URETIM", reversed=False).exists():
+            return HttpResponseBadRequest("Bu malzeme siparişin otomatik üretim tüketiminde zaten düşülmüş.")
+        aciklama = f"{material.kod} · {material.ad} | {lace_stock.renk or 'Renksiz'} | {lace_qty.normalize():f} {material.get_birim_display()} | {lace_stock.warehouse.ad}"
+
     work_stages = {"kesim_durum", "dikim_durum", "ust_etek_dikimi", "susleme_durum", "utu_durum"}
     if value == "beklemede" and stage not in (work_stages | {"susleme_yardim"}):
         return HttpResponseBadRequest("Bu aşama beklemeye alınamaz.")
@@ -1081,6 +1115,9 @@ def update_stage(request, pk):
     # Quality issue reports must include a description.
     if stage == "kalite_kontrol" and value == "hata_gordum" and not (aciklama or "").strip():
         return HttpResponseBadRequest("Lütfen gördüğünüz hatayı açıklayınız.")
+
+    if stage == "kesim_durum" and value == "bitti":
+        order = Order.objects.select_for_update().get(pk=order.pk)
 
     # Süsleme ve yardım işlemleri aynı sipariş ve kullanıcı için atomik doğrulanır.
     open_help = None
@@ -1247,6 +1284,18 @@ def update_stage(request, pk):
         adet=order.adet or 1,
     )
 
+    if lace_stock is not None:
+        before = lace_stock.miktar
+        lace_stock.miktar = before - lace_qty
+        lace_stock.save(update_fields=["miktar", "updated_at"])
+        lace_stock.material.sync_total_stock()
+        MaterialStockMovement.objects.create(
+            material=lace_stock.material, warehouse=lace_stock.warehouse, renk=lace_stock.renk,
+            movement_type="DANTEL_AYIR", miktar=lace_qty, onceki_stok=before,
+            sonraki_stok=lace_stock.miktar, aciklama=f"{order.siparis_numarasi} siparişine dantel ayrıldı",
+            order=order, source_event=event, islem_yapan=request.user,
+        )
+
     # Fasoncu eklenmişse
     if fasoncu_id:
         try:
@@ -1273,6 +1322,7 @@ def update_stage(request, pk):
     stage_labels = {
         ("malzeme_durum", "kesildi"): "Malzemesi Kesildi",
         ("malzeme_durum", "boyandi"): "Malzemesi Boyandı",
+        ("malzeme_durum", "dantel_ayrildi"): "Dantel Ayrıldı",
         ("malzeme_durum", "danteli_ayarlandi"): "Danteli Ayarlandı",
     ("malzeme_durum", "etek_danteli_ayarlandi"): "Etek Danteli Ayarlandı",
     ("malzeme_durum", "beden_danteli_ayarlandi"): "Beden Danteli Ayarlandı",
@@ -1722,6 +1772,22 @@ def delete_order_event(request, event_id):
 
             messages.error(request, "Bu konsinye hareketi geri alınamıyor.")
             return redirect("order_detail", pk=order_id)
+
+    if event.stage == "malzeme_durum" and event.value == "dantel_ayrildi":
+        with transaction.atomic():
+            order = Order.objects.select_for_update().get(pk=order_id)
+            event = get_object_or_404(OrderEvent.objects.select_for_update(), pk=event_id)
+            if order.production_locked or OrderEvent.objects.filter(
+                order=order, event_type="stage", stage__in=["kesim_durum", "susleme_durum"], value="bitti"
+            ).filter(Q(timestamp__gt=event.timestamp) | Q(timestamp=event.timestamp, pk__gt=event.pk)).exists():
+                messages.error(request, "Dantel tüketilmiş olabilir. Önce sonraki kesim veya süsleme bitirme kaydını geri alın.")
+                return redirect("order_detail", pk=order_id)
+            event.delete()
+            from .services.order_status import sync_order_stage_from_events
+            sync_order_stage_from_events(order, "malzeme_durum")
+        cache.clear()
+        messages.success(request, "Dantel ayırma işlemi geri alındı; stok iade edildi.")
+        return redirect("order_detail", pk=order_id)
 
     deleted_stage = event.stage if event.event_type == "stage" else None
     event.delete()
@@ -4105,3 +4171,20 @@ from django.http import JsonResponse
 
 def health_check(request):
     return JsonResponse({"status": "ok"})
+
+
+@login_required
+def order_lace_stock_options(request, pk):
+    from product_cards.models import MaterialWarehouseStock
+    order = get_object_or_404(Order, pk=pk)
+    if not order_scope_allows(request.user, order) or not order.is_active or order.production_locked:
+        return HttpResponseForbidden("Bu siparişe dantel ayrılamaz.")
+    rows = MaterialWarehouseStock.objects.filter(
+        material__aktif=True, warehouse__aktif=True, material__kategori="DANTEL", miktar__gt=0
+    ).select_related("material", "warehouse").order_by("material__kod", "warehouse__ad", "renk")
+    result = [{"id": r.pk, "code": r.material.kod, "name": r.material.ad, "warehouse": r.warehouse.ad,
+               "color": r.renk or "Renksiz", "quantity": str(r.miktar), "unit": r.material.get_birim_display(),
+               "integer": r.material.birim == "ADET"} for r in rows]
+    code = (order.urun_kodu or "").strip().casefold()
+    result.sort(key=lambda row: not (code and (row["code"].casefold().startswith(code) or row["name"].casefold().startswith(code))))
+    return JsonResponse({"stocks": result})
