@@ -131,6 +131,7 @@
                                     <div class="timeline-main">
                                         {% if e.stage == 'malzeme_durum' and e.value == 'kesildi' %}Malzemesi Kesildi
                                         {% elif e.stage == 'malzeme_durum' and e.value == 'boyandi' %}Malzemesi Boyandı
+                                        {% elif e.stage == 'malzeme_durum' and e.value == 'dantel_ayrildi' %}Dantel Ayrıldı
                                         {% elif e.stage == 'malzeme_durum' and e.value == 'danteli_ayarlandi' %}Danteli Ayarlandı
                                         {% elif e.stage == 'malzeme_durum' and e.value == 'etek_danteli_ayarlandi' %}Etek Danteli Ayarlandı
                                         {% elif e.stage == 'malzeme_durum' and e.value == 'beden_danteli_ayarlandi' %}Beden Danteli Ayarlandı
@@ -190,7 +191,9 @@
                                     </div>
                                 </div>
                                 {% if is_manager %}
-                                    {% if e.stage == 'konsinye_durum' %}
+                                    {% if e.stage == 'malzeme_durum' and e.value == 'dantel_ayrildi' %}
+                                    <form action="{% url 'delete_order_event' e.id %}" method="POST" onsubmit="return confirm('Dantel ayırma işlemi geri alınsın ve dantel stoğa iade edilsin mi?');">{% csrf_token %}<button type="submit" class="timeline-delete-btn">İşlemi Geri Al</button></form>
+                                    {% elif e.stage == 'konsinye_durum' %}
                                     <form action="{% url 'delete_order_event' e.id %}" method="POST" onsubmit="return confirm('Bu konsinye işlemi stok hareketiyle birlikte geri alınsın mı?');">
                                         {% csrf_token %}<button type="submit" class="timeline-delete-btn">İşlemi Geri Al</button>
                                     </form>
@@ -210,16 +213,70 @@
         {% endif %}
     </div>
 
+    <dialog id="lace-stock-dialog" style="border:1px solid #dbe1ed;border-radius:16px;width:min(94vw,540px);padding:20px;max-height:85vh;overflow:auto">
+      <h5 class="fw-bold">Siparişe Dantel Ayır</h5>
+      <p class="small text-muted">{{ order.urun_kodu }} · {{ order.renk }} · {{ order.beden }}</p>
+      <form id="lace-stock-form">
+        <label class="form-label" for="lace-search">Malzeme ara</label>
+        <input id="lace-search" class="form-control mb-2" placeholder="Kod, malzeme, renk veya depo">
+        <label class="form-label" for="lace-stock-select">Dantel / depo / stok rengi</label>
+        <select id="lace-stock-select" class="form-select mb-2" required></select>
+        <label class="form-label" for="lace-stock-qty">Miktar</label>
+        <input id="lace-stock-qty" type="number" min="0.001" step="0.001" class="form-control mb-2" required>
+        <div id="lace-stock-remaining" class="small text-muted mb-2"></div>
+        <div id="lace-stock-error" class="text-danger small mb-2" role="alert"></div>
+        <div class="d-flex gap-2 justify-content-end">
+          <button type="button" class="btn btn-outline-secondary" onclick="document.getElementById('lace-stock-dialog').close()">Vazgeç</button>
+          <button type="submit" class="btn btn-primary" id="lace-stock-confirm">Onayla ve Stoktan Düş</button>
+        </div>
+      </form>
+    </dialog>
+    <script>
+    async function openLaceStock(button) {
+      const d=document.getElementById('lace-stock-dialog'), form=document.getElementById('lace-stock-form'),
+        search=document.getElementById('lace-search'), select=document.getElementById('lace-stock-select'),
+        qty=document.getElementById('lace-stock-qty'), remaining=document.getElementById('lace-stock-remaining'),
+        error=document.getElementById('lace-stock-error'), confirmButton=document.getElementById('lace-stock-confirm');
+      let rows=[];
+      error.textContent=''; search.value=''; qty.value=''; select.replaceChildren(); confirmButton.disabled=true;
+      d.showModal();
+      function current(){return rows.find(r=>String(r.id)===select.value)}
+      function refresh(){
+        const r=current(); qty.max=r?r.quantity:''; qty.min=r&&r.integer?'1':'0.001'; qty.step=r&&r.integer?'1':'0.001';
+        remaining.textContent=r?'Mevcut: '+r.quantity+' '+r.unit+' · Kalan: '+Math.max(0,Number(r.quantity)-Number(qty.value||0)).toLocaleString('tr-TR')+' '+r.unit:'';
+        confirmButton.disabled=!r;
+      }
+      function filter(){
+        const selected=select.value, q=search.value.toLocaleLowerCase('tr-TR');
+        select.replaceChildren(new Option('Dantel seçin',''));
+        for(const r of rows){const label=r.code+' · '+r.name+' · '+r.warehouse+' · '+r.color+' ('+r.quantity+' '+r.unit+')';if(label.toLocaleLowerCase('tr-TR').includes(q))select.add(new Option(label,r.id));}
+        if(Array.from(select.options).some(o=>o.value===selected))select.value=selected;
+        refresh();
+      }
+      search.oninput=filter; select.onchange=refresh; qty.oninput=refresh;
+      form.onsubmit=async function(e){
+        e.preventDefault(); const r=current(); if(!r||!form.reportValidity())return;
+        confirmButton.disabled=true; error.textContent='';
+        try{
+          const data=new FormData();data.append('csrfmiddlewaretoken','{{ csrf_token }}');data.append('stage','malzeme_durum');data.append('value','dantel_ayrildi');data.append('lace_stock_id',r.id);data.append('lace_quantity',qty.value);
+          const response=await fetch("{% url 'update_stage' order.id %}",{method:'POST',body:data,credentials:'same-origin'});
+          if(!response.ok)throw Error(await response.text());
+          const result=await response.json();if(result.status!=='ok')throw Error(result.message||'İşlem kaydedilemedi.');
+          d.close(); location.reload();
+        }catch(e){error.textContent=e.message;confirmButton.disabled=false;}
+      };
+      try{const response=await fetch("{% url 'order_lace_stock_options' order.id %}",{credentials:'same-origin'});if(!response.ok)throw Error('Stok listesi alınamadı.');rows=(await response.json()).stocks;filter();if(!rows.length)error.textContent='Stokta dantel bulunamadı.';}
+      catch(e){error.textContent=e.message;}
+      return false;
+    }
+    </script>
     <div class="stage-column{% if order.production_locked %} shipped-lock{% endif %}">\n        {% if order.production_locked %}<div class="alert alert-secondary mb-0" role="status">🔒 Sipariş sevk edildi. Üretim işlemlerini açmak için İade Geldi veya Tadilata Geldi seçiniz.</div>{% endif %}
         <div class="stage-card">
             <div class="stage-card-header"><div class="stage-card-title"><span class="icon">🧶</span> <span>Malzeme</span></div><div class="stage-card-sub">Kesim öncesi malzeme işlemleri</div></div>
             <div class="stage-actions">
                 <button class="soft-btn btn-soft-primary" hx-post="{% url 'update_stage' order.id %}" hx-headers='{"X-CSRFToken":"{{ csrf_token }}"}' hx-vals='{"stage":"malzeme_durum","value":"kesildi"}' hx-target="#uretim-paneli" hx-swap="innerHTML">Malzemesi Kesildi</button>
                 <button class="soft-btn btn-soft-success" hx-post="{% url 'update_stage' order.id %}" hx-headers='{"X-CSRFToken":"{{ csrf_token }}"}' hx-vals='{"stage":"malzeme_durum","value":"boyandi"}' hx-target="#uretim-paneli" hx-swap="innerHTML">Malzemesi Boyandı</button>
-                <button class="soft-btn btn-soft-info" hx-post="{% url 'update_stage' order.id %}" hx-headers='{"X-CSRFToken":"{{ csrf_token }}"}' hx-vals='{"stage":"malzeme_durum","value":"danteli_ayarlandi"}' hx-target="#uretim-paneli" hx-swap="innerHTML">Danteli Ayarlandı</button>
-                <button class="soft-btn btn-soft-info" hx-post="{% url 'update_stage' order.id %}" hx-headers='{"X-CSRFToken":"{{ csrf_token }}"}' hx-vals='{"stage":"malzeme_durum","value":"etek_danteli_ayarlandi"}' hx-target="#uretim-paneli" hx-swap="innerHTML">Etek Danteli Ayarlandı</button>
-                <button class="soft-btn btn-soft-info" hx-post="{% url 'update_stage' order.id %}" hx-headers='{"X-CSRFToken":"{{ csrf_token }}"}' hx-vals='{"stage":"malzeme_durum","value":"beden_danteli_ayarlandi"}' hx-target="#uretim-paneli" hx-swap="innerHTML">Beden Danteli Ayarlandı</button>
-                <button class="soft-btn btn-soft-info" hx-post="{% url 'update_stage' order.id %}" hx-headers='{"X-CSRFToken":"{{ csrf_token }}"}' hx-vals='{"stage":"malzeme_durum","value":"takim_olarak_danteli_ayarlandi"}' hx-target="#uretim-paneli" hx-swap="innerHTML">Takım Olarak Danteli Ayarlandı</button>
+                <button type="button" class="soft-btn btn-soft-info" onclick="return openLaceStock(this);">Dantel Ayır</button>
                 <button class="soft-btn btn-soft-warning" onclick="return malzemeEksik(this);">Malzemesi Eksik</button>
             </div>
         </div>
