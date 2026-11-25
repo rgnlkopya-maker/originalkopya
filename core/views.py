@@ -1091,11 +1091,11 @@ def update_stage(request, pk):
             stock_id = int(request.POST.get("lace_stock_id") or "")
         except (InvalidOperation, ValueError, TypeError):
             return HttpResponseBadRequest("Geçerli stok ve miktar seçin.")
-        candidate = MaterialWarehouseStock.objects.filter(pk=stock_id, material__aktif=True, warehouse__aktif=True, material__kategori="DANTEL").first()
+        candidate = MaterialWarehouseStock.objects.filter(Q(material__kategori="DANTEL") | Q(material__ad__icontains="DANTEL") | Q(material__kod__icontains="DANTEL"), material__aktif=True, warehouse__aktif=True, pk=stock_id).first()
         if not candidate:
             return HttpResponseBadRequest("Dantel stok kaydı bulunamadı.")
         material = Material.objects.select_for_update().get(pk=candidate.material_id)
-        lace_stock = MaterialWarehouseStock.objects.select_for_update().select_related("warehouse", "material").filter(pk=stock_id, material__aktif=True, warehouse__aktif=True, material__kategori="DANTEL").first()
+        lace_stock = MaterialWarehouseStock.objects.select_for_update().select_related("warehouse", "material").filter(Q(material__kategori="DANTEL") | Q(material__ad__icontains="DANTEL") | Q(material__kod__icontains="DANTEL"), material__aktif=True, warehouse__aktif=True, pk=stock_id).first()
         if not lace_stock or lace_stock.miktar < lace_qty:
             return HttpResponseBadRequest("Yeterli dantel stoğu yok. Listeyi yenileyin.")
         if material.birim == "ADET" and lace_qty != lace_qty.to_integral_value():
@@ -4180,7 +4180,7 @@ def order_lace_stock_options(request, pk):
     if not order_scope_allows(request.user, order) or not order.is_active or order.production_locked:
         return HttpResponseForbidden("Bu siparişe dantel ayrılamaz.")
     rows = MaterialWarehouseStock.objects.filter(
-        material__aktif=True, warehouse__aktif=True, material__kategori="DANTEL", miktar__gt=0
+        Q(material__kategori="DANTEL") | Q(material__ad__icontains="DANTEL") | Q(material__kod__icontains="DANTEL"), material__aktif=True, warehouse__aktif=True, miktar__gt=0
     ).select_related("material", "warehouse").order_by("material__kod", "warehouse__ad", "renk")
     result = [{"id": r.pk, "code": r.material.kod, "name": r.material.ad, "warehouse": r.warehouse.ad,
                "color": r.renk or "Renksiz", "quantity": str(r.miktar), "unit": r.material.get_birim_display(),
