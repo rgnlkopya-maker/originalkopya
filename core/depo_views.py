@@ -42,7 +42,7 @@ def depo_ozet(request):
             "depo": warehouse.kod,
             "depo_adi": warehouse.ad,
             "toplam_adet": product_qs.aggregate(v=Sum("quantity"))["v"] or 0,
-            "kayit_sayisi": material_qs.order_by().values("material_id").distinct().count() + product_qs.count(),
+            "malzeme_miktarlari": list(material_qs.order_by().values("material__birim").annotate(total=Sum("miktar")).order_by("material__birim")),
             "son_guncelleme": last_update,
         })
     return render(request, "depolar/ozet.html", {"depolar": depolar, "can_manage_depots": can_manage})
