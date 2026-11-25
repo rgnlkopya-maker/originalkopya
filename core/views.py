@@ -1082,32 +1082,53 @@ def update_stage(request, pk):
     if stage == "kalite_kontrol" and value == "hata_gordum" and not (aciklama or "").strip():
         return HttpResponseBadRequest("Lütfen gördüğünüz hatayı açıklayınız.")
 
-    # Personel, bu sipariş için kendi başlangıç kaydı olmadan süslemeyi bitiremez.
-    if stage == "susleme_durum" and value == "bitti" and not (
-        request.user.is_superuser or request.user.groups.filter(name__in=["patron", "mudur"]).exists()
-    ):
+    # Süsleme ve yardım işlemleri aynı sipariş ve kullanıcı için atomik doğrulanır.
+    open_help = None
+    if stage in {"susleme_durum", "susleme_yardim"}:
         from django.contrib.auth import get_user_model
         get_user_model().objects.select_for_update().get(pk=request.user.pk)
-        Order.objects.select_for_update().get(pk=order.pk)
+        order = Order.objects.select_for_update().get(pk=order.pk)
+        is_manager = request.user.is_superuser or request.user.groups.filter(name__in=["patron", "mudur"]).exists()
         last_finish = OrderEvent.objects.filter(
             order=order, stage="susleme_durum", value="bitti", event_type="stage"
         ).order_by("-timestamp", "-id").first()
-        starts = OrderEvent.objects.filter(
+        own_events = OrderEvent.objects.filter(
             order=order, user=request.user.username, event_type="stage",
-            stage__in=["susleme_durum", "susleme_yardim"], value="basladi"
+            stage__in=["susleme_durum", "susleme_yardim"],
+            value__in=["basladi", "beklemede", "bitti"]
         )
         if last_finish:
-            starts = starts.filter(Q(timestamp__gt=last_finish.timestamp) |
-                                   Q(timestamp=last_finish.timestamp, pk__gt=last_finish.pk))
-        if not starts.exists():
-            warning = "Önce bu siparişte süslemeye veya süsleme yardımına başlamalısınız."
+            own_events = own_events.filter(Q(timestamp__gt=last_finish.timestamp) |
+                                           Q(timestamp=last_finish.timestamp, pk__gt=last_finish.pk))
+        own_main = own_events.filter(stage="susleme_durum").order_by("-timestamp", "-id").first()
+        own_help = own_events.filter(stage="susleme_yardim").order_by("-timestamp", "-id").first()
+        open_help = own_help if own_help and own_help.value == "basladi" else None
+        warning = None
+        if stage == "susleme_yardim" and value == "bitti" and not open_help:
+            warning = "Yardımı bitirmek için önce bu siparişte Yardım Etmeye Başladım işlemini yapmalısınız."
+        elif stage == "susleme_durum" and value == "bitti" and not is_manager:
+            if own_main and own_main.value == "beklemede":
+                warning = "Beklemeye aldığınız süslemeyi bitirmeden önce Tekrar Başladım işlemini yapmalısınız."
+            elif not ((own_main and own_main.value == "basladi") or
+                      (own_help and own_help.value in {"basladi", "bitti"})):
+                warning = "Önce bu siparişte süslemeye veya süsleme yardımına başlamalısınız."
+        elif stage == "susleme_durum" and value == "basladi":
+            if (aciklama or "").strip() == "Tekrar Başladım":
+                if not own_main or own_main.value != "beklemede":
+                    warning = "Tekrar Başladım işlemi için önce bu siparişte süslemeyi beklemeye almalısınız."
+            elif own_main and own_main.value == "beklemede":
+                warning = "Beklemeye aldığınız işe Tekrar Başladım butonuyla devam etmelisiniz."
+        elif stage == "susleme_durum" and value == "beklemede" and not is_manager:
+            if not own_main or own_main.value != "basladi":
+                warning = "Beklemeye almak için önce bu siparişte süslemeye başlamalısınız."
+        if warning:
             if request.headers.get("HX-Request"):
                 return render(request, "core/_uretim_paneli.html", {
                     "order": order,
                     "events": OrderEvent.objects.filter(order=order).order_by("-timestamp"),
                     "fasoncular": Fasoncu.objects.all(),
                     "nakisciler": Nakisci.objects.all(),
-                    "is_manager": False,
+                    "is_manager": is_manager,
                     "consignment_active_qty": ConsignmentStock.objects.filter(source_order=order).aggregate(v=Sum("quantity_remaining"))["v"] or 0,
                     "blocked_susleme_finish": warning,
                 })
@@ -1154,6 +1175,13 @@ def update_stage(request, pk):
                     ).exists()
                     if later_handoff:
                         continue
+                if previous.stage == "susleme_yardim":
+                    if OrderEvent.objects.filter(
+                        order_id=previous.order_id, stage="susleme_durum",
+                        event_type="stage", value="bitti"
+                    ).filter(Q(timestamp__gt=previous.timestamp) |
+                             Q(timestamp=previous.timestamp, pk__gt=previous.pk)).exists():
+                        continue
                 blocking_event = previous
                 break
         if blocking_event is not None:
@@ -1175,6 +1203,20 @@ def update_stage(request, pk):
                 "order_id": blocking_order.pk,
                 "order_url": f"/order/{blocking_order.pk}/",
             }, status=409)
+
+    # Tamamlanan siparişte açık yardım kayıtları da kapanır.
+    if stage == "susleme_durum" and value == "bitti":
+        help_events = OrderEvent.objects.filter(
+            order=order, stage="susleme_yardim", event_type="stage",
+            value__in=["basladi", "beklemede", "bitti"]
+        ).order_by("user", "-timestamp", "-id").distinct("user")
+        for help_event in list(help_events):
+            if help_event.value in {"basladi", "beklemede"}:
+                OrderEvent.objects.create(
+                    order=order, user=help_event.user, stage="susleme_yardim", value="bitti",
+                    aciklama="Süsleme tamamlandığı için yardım otomatik kapatıldı.",
+                    event_type="stage", adet=order.adet or 1,
+                )
 
     # ---------------------------------------------------------
     # 1) ORDER ÜZERİNDE AŞAMA GÜNCELLE
