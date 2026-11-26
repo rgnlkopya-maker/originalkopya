@@ -16,6 +16,7 @@ from core.instrument_backup_views import instrument_backup
 from core.instrument_views import instrument_list as instrument_password_gate_view
 from core.privacy_policy_views import privacy_policy
 from core.backup_center_views import backup_center, backup_policy_update
+from core import document_archive_views
 from core.backup_scheduler_views import scheduler_tick
 from core.instrument_drive_oauth import connect as instrument_drive_connect, callback as instrument_drive_callback, disconnect as instrument_drive_disconnect
 from core.print_tracking_views import mark_order_print, reset_order_print
@@ -76,6 +77,13 @@ urlpatterns = [
     path("urun-albumu/medya/<int:media_id>/", media_view, name="gallery_media_view"),
     path("internal/backup-scheduler/tick/", scheduler_tick, name="backup_scheduler_tick"),
     path("yonetim/yedekleme-merkezi/", backup_center, name="backup_center"),
+    path("yonetim/evrak-arsivi/", document_archive_views.archive_index, name="document_archive"),
+    path("yonetim/evrak-arsivi/klasor/yeni/", document_archive_views.archive_create_folder, name="document_archive_create_folder"),
+    path("yonetim/evrak-arsivi/yukle/", document_archive_views.archive_upload, name="document_archive_upload"),
+    path("yonetim/evrak-arsivi/klasor/<uuid:folder_id>/", document_archive_views.archive_index, name="document_archive_folder"),
+    path("yonetim/evrak-arsivi/klasor/<uuid:folder_id>/yeni/", document_archive_views.archive_create_folder, name="document_archive_child"),
+    path("yonetim/evrak-arsivi/klasor/<uuid:folder_id>/yukle/", document_archive_views.archive_upload, name="document_archive_folder_upload"),
+    path("yonetim/evrak-arsivi/evrak/<uuid:document_id>/", document_archive_views.archive_file, name="document_archive_file"),
     path("yonetim/yedekleme-merkezi/ayar/", backup_policy_update, name="backup_policy_update"),
     path("gizlilik-politikasi/", privacy_policy, name="privacy_policy"),
     path("muhasebe/cek-senet/", instrument_list, name="instrument_list"),

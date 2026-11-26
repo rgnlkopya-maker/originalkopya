@@ -27,6 +27,8 @@ def _should_log(request):
 
 
 def _safe_payload(request):
+    if request.path.startswith("/yonetim/evrak-arsivi/"):
+        return {}  # Keep private archive names and file details out of the shared audit log.
     if request.path in {"/attendance/punch/", "/login/", "/custom-login/"}:
         return {}
     payload = {}

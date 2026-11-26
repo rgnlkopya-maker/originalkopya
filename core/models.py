@@ -945,3 +945,7 @@ class GalleryUploadJob(models.Model):
     status = models.CharField(max_length=20, default="pending")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+
+
+# Private archive metadata registered with the core app.
+from .document_archive_models import ArchiveDocument, ArchiveFolder  # noqa: E402,F401

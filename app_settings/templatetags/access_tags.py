@@ -35,3 +35,9 @@ def staff_access_enabled():
 @register.simple_tag
 def staff_break_is_active():
     return staff_break_active()
+
+
+@register.filter
+def can_archive_documents(user):
+    from core.document_archive_views import can_access_archive
+    return can_access_archive(user)
