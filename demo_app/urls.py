@@ -18,7 +18,7 @@ from core.privacy_policy_views import privacy_policy
 from core.backup_center_views import backup_center, backup_policy_update
 from core.backup_scheduler_views import scheduler_tick
 from core.instrument_drive_oauth import connect as instrument_drive_connect, callback as instrument_drive_callback, disconnect as instrument_drive_disconnect
-from core.print_tracking_views import mark_order_print
+from core.print_tracking_views import mark_order_print, reset_order_print
 from core.order_video_views import order_video_upload, order_video_delete
 from core.consignment_views import consignment_list, consignment_add, consignment_use, consignment_send_order, consignment_return_order
 from core.order_transfer_views import transfer_production_history, search_transfer_targets, order_by_number
@@ -110,6 +110,7 @@ urlpatterns = [
     path("attendance/", include("attendance.urls")), path("planlama/", include("planning.urls")), path("urun-kartlari/", include("product_cards.urls")), path("stok/", include("inventory.urls")), path("kalite/", include("quality_tracking.urls")), path("ayarlar/", include("app_settings.urls")),
     path("konsinye/", consignment_list, name="consignment_list"), path("konsinye/ekle/", consignment_add, name="consignment_add"), path("order/<int:order_id>/konsinye-karsila/", consignment_use, name="consignment_use"), path("order/<int:order_id>/konsinyeye-gonder/", consignment_send_order, name="consignment_send_order"), path("order/<int:order_id>/konsinyeden-geri-geldi/", consignment_return_order, name="consignment_return_order"),
     path("order/<int:pk>/mark-print/", mark_order_print, name="mark_order_print"),
+    path("order/<int:pk>/reset-print/", reset_order_print, name="reset_order_print"),
     path("order/<int:pk>/video/add/", order_video_upload, name="order_video_upload"),
     path("order/<int:pk>/video/<int:video_id>/delete/", order_video_delete, name="order_video_delete"),
     path("", enhanced_order_list, name="order_list"), path("uretim-asama-kontrolu/", production_stage_control, name="production_stage_control"), path("atolye-canli-durum/", workshop_live, name="workshop_live"), path("fuar-model-etiketleri/", fair_model_labels, name="fair_model_labels"), path("atolye-canli-durum/version/", workshop_live_version, name="workshop_live_version"), path("atolye-canli-durum/<int:event_id>/kaldir/", workshop_live_hide, name="workshop_live_hide"), path("uretim-asama-kontrolu/<int:order_id>/listeden-cikar/", exclude_from_production_stage_control, name="exclude_from_production_stage_control"), path("uretim-asama-kontrolu/cikarilan/<int:exclusion_id>/geri-al/", restore_to_production_stage_control, name="restore_to_production_stage_control"), path("order/new/", views.order_create, name="order_create"), path("order/<int:pk>/", order_detail_persistent, name="order_detail"), path("order/<int:pk>/edit/", order_edit_persistent, name="order_edit"), path("order/<int:pk>/delete-image-by-url/", delete_order_image_by_url, name="delete_order_image_by_url"),
