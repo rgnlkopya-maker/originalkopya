@@ -492,8 +492,33 @@ def showroom_archive_list(request):
     from app_settings.access import has_full_access
     if kind != "approved" or not has_full_access(request.user):
         drafts=drafts.filter(created_by=request.user)
-    drafts=drafts.select_related("customer").prefetch_related("items","payments").order_by("-updated_at","-id")
-    return JsonResponse({"ok":True,"kind":kind,"items":[_draft_summary(d) for d in drafts]})
+    drafts=list(drafts.select_related("customer").prefetch_related("items__product_card__urun","payments").order_by("-updated_at","-id"))
+    if kind != "approved":
+        return JsonResponse({"ok":True,"kind":kind,"items":[_draft_summary(d) for d in drafts]})
+    # Match the transfer screen: one linked existing order per product/color/size unit.
+    # Deleted orders (null links) and changed combinations no longer count.
+    from collections import defaultdict
+    linked=defaultdict(Counter)
+    for draft_id, code, color, size in ShowroomOrderLink.objects.filter(
+        draft_id__in=[d.pk for d in drafts], order__isnull=False
+    ).values_list("draft_id","order__urun_kodu","order__renk","order__beden"):
+        linked[draft_id][((code or "").strip().casefold(),color or "",size or "")]+=1
+    result=[]
+    for draft in drafts:
+        expected=Counter()
+        for item in draft.items.all():
+            key=((item.product_card.urun.kod or "").strip().casefold(),item.color or "",item.size or "")
+            expected[key]+=max(1,int(item.quantity or 1))
+        total=sum(expected.values())
+        created=sum(min(qty,linked[draft.pk][key]) for key,qty in expected.items())
+        missing=total-created
+        summary=_draft_summary(draft)
+        summary.update(order_expected=total,order_created=created,order_missing=missing,
+                       order_creation_status="review" if draft.import_pending_items else
+                       "complete" if total and not missing else
+                       "partial" if created else "not_created")
+        result.append(summary)
+    return JsonResponse({"ok":True,"kind":kind,"items":result})
 
 @login_required
 @require_POST
