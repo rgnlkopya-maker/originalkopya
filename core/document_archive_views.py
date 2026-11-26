@@ -137,6 +137,7 @@ def archive_index(request, folder_id=None):
     return render(request, "core/document_archive.html", {
         "folder": folder,
         "breadcrumbs": path,
+        "parent_folder": path[-2] if len(path) > 1 else None,
         "folders": ArchiveFolder.objects.filter(parent=folder),
         "documents": ArchiveDocument.objects.filter(folder=folder),
     })
@@ -152,11 +153,12 @@ def archive_create_folder(request, folder_id=None):
     else:
         try:
             with transaction.atomic():
-                ArchiveFolder.objects.create(parent=parent, name=name, name_key=name.casefold()[:240])
+                created = ArchiveFolder.objects.create(parent=parent, name=name, name_key=name.casefold()[:240])
         except IntegrityError:
             messages.error(request, "Bu konumda aynı isimde bir klasör var.")
         else:
             messages.success(request, "Klasör oluşturuldu.")
+            return _back(created)
     return _back(parent)
 
 

@@ -1,3 +1,4 @@
+from html.parser import HTMLParser
 from io import BytesIO
 from types import SimpleNamespace
 from unittest.mock import patch
@@ -20,6 +21,19 @@ def make_image():
     return data.getvalue()
 
 
+
+class ArchiveLinks(HTMLParser):
+    def __init__(self, html):
+        self.links = []
+        super().__init__()
+        self.feed(html)
+
+    def handle_starttag(self, tag, attrs):
+        attrs = dict(attrs)
+        if tag == "a" and "archive-row" in attrs.get("class", "").split():
+            self.links.append(attrs["href"])
+
+
 @override_settings(SECURE_SSL_REDIRECT=False, ALLOWED_HOSTS=["testserver"])
 class ArchiveTest(TestCase):
     def setUp(self):
@@ -32,19 +46,40 @@ class ArchiveTest(TestCase):
         self.client.force_login(self.owner)
 
     def test_root_nested_folder_and_duplicate(self):
-        response = self.client.post(reverse("document_archive_create_folder"), {"name": "Sözleşmeler"}, follow=True)
-        self.assertContains(response, "Evrak Arşivi")
-        self.assertContains(response, "Sözleşmeler")
-        self.assertContains(response, 'capture="environment"')
-        self.assertIn("no-store", response["Cache-Control"])
-        root = ArchiveFolder.objects.get(name="Sözleşmeler")
-        response = self.client.post(reverse("document_archive_create_folder"), {"name": "sözleşmeler"}, follow=True)
-        self.assertContains(response, "aynı isimde")
-        self.client.post(reverse("document_archive_child", args=[root.pk]), {"name": "2026"})
-        child = root.subfolders.get(name="2026")
-        response = self.client.get(reverse("document_archive_folder", args=[child.pk]))
-        self.assertContains(response, "Sözleşmeler")
-        self.assertContains(response, "2026")
+        home = reverse("document_archive")
+        response = self.client.post(reverse("document_archive_create_folder"), {"name": "Sözleşmeler"})
+        folder = ArchiveFolder.objects.get(name="Sözleşmeler")
+        folder_url = reverse("document_archive_folder", args=[folder.pk])
+        self.assertRedirects(response, folder_url, fetch_redirect_response=False)
+        ArchiveDocument.objects.create(name="root-only.pdf", content_type="application/pdf", byte_size=10)
+        ArchiveDocument.objects.create(folder=folder, name="folder-only.pdf", content_type="application/pdf", byte_size=10)
+        home_page = self.client.get(home)
+        self.assertContains(home_page, '<h1 class="archive-title mb-1">Evrak Arşivi</h1>')
+        self.assertContains(home_page, "root-only.pdf")
+        self.assertNotContains(home_page, "folder-only.pdf")
+        links = ArchiveLinks(home_page.content.decode()).links
+        self.assertEqual(links, [folder_url])
+        clicked = self.client.get(links[0])
+        self.assertEqual(clicked.status_code, 200)
+        self.assertEqual(clicked.request["PATH_INFO"], folder_url)
+        self.assertContains(clicked, '<h1 class="archive-title mb-1">Sözleşmeler</h1>')
+        self.assertContains(clicked, "folder-only.pdf")
+        self.assertNotContains(clicked, "root-only.pdf")
+        self.assertContains(clicked, reverse("document_archive_folder_upload", args=[folder.pk]))
+        self.assertContains(clicked, 'capture="environment"')
+        self.assertContains(clicked, 'name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"')
+        self.assertIn("no-store", clicked["Cache-Control"])
+        duplicate = self.client.post(reverse("document_archive_create_folder"), {"name": "sözleşmeler"}, follow=True)
+        self.assertContains(duplicate, "aynı isimde")
+        created_child = self.client.post(reverse("document_archive_child", args=[folder.pk]), {"name": "2026"})
+        child = folder.subfolders.get(name="2026")
+        child_url = reverse("document_archive_folder", args=[child.pk])
+        self.assertRedirects(created_child, child_url, fetch_redirect_response=False)
+        self.assertEqual(ArchiveLinks(self.client.get(folder_url).content.decode()).links, [child_url])
+        child_page = self.client.get(child_url)
+        self.assertContains(child_page, '<h1 class="archive-title mb-1">2026</h1>')
+        self.assertContains(child_page, f'href="{folder_url}"><i class="bi bi-arrow-up')
+        self.assertNotContains(child_page, "folder-only.pdf")
 
     @patch("core.document_archive_views._private_storage")
     def test_upload_and_retrieve_session_protected(self, storage):

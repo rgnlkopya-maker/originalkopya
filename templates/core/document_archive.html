@@ -1,80 +1,74 @@
 {% extends "base.html" %}
-{% block content %}
+{% block viewport %}<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">{% endblock %}
+{% block page_title %}<title>{% if folder %}{{ folder.name }} · {% endif %}Evrak Arşivi · MoliApp</title>{% endblock %}
+{% block extra_css %}
 <style>
-.archive-wrap{max-width:1100px;margin:0 auto;padding:22px clamp(12px,3vw,28px) 40px;color:#17253d}
-.archive-banner{padding:clamp(17px,4vw,28px);border:1px solid #dce6f6;border-radius:18px;background:linear-gradient(120deg,#eef5ff,#fafcff);display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}
-.archive-kicker{font-size:.76rem;font-weight:700;color:#526a8c;text-transform:uppercase;letter-spacing:.09em}
-.archive-lock{font-size:.85rem;background:white;border:1px solid #dce6f6;border-radius:20px;padding:7px 12px;color:#37587e;white-space:nowrap}
-.archive-panel{border:1px solid #e1e8f3;background:#fff;border-radius:15px;padding:16px}
-.archive-grid{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(min(100%,230px),1fr))}
-.archive-folder{display:flex;align-items:center;gap:10px;min-height:48px;border-radius:12px;border:1px solid #e0e9f7;background:#f8faff;padding:10px 12px;color:#174985;text-decoration:none;overflow-wrap:anywhere}
-.archive-folder:hover,.archive-folder:focus-visible{background:#e8f1ff;color:#113964}
-.archive-file{display:grid;grid-template-columns:32px minmax(0,1fr) auto;gap:10px;align-items:center;padding:12px 0;border-top:1px solid #edf1f7}
-.archive-filename{overflow-wrap:anywhere}
-.archive-tools{grid-template-columns:minmax(0,1.5fr) minmax(0,1fr)}
-.archive-inputs{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.archive-inputs label{font-size:.85rem;font-weight:600;margin-bottom:4px}
-@media(max-width:680px){.archive-tools,.archive-inputs{grid-template-columns:1fr}.archive-file{grid-template-columns:26px minmax(0,1fr)}.archive-file-actions{grid-column:2}}
+.archive-wrap{max-width:1050px;margin:auto;padding:18px 10px 36px}
+.archive-wrap .card{border-radius:18px;box-shadow:0 6px 20px rgba(15,23,42,.05)}
+.archive-heading{display:flex;gap:12px;align-items:flex-start}
+.archive-heading>i{font-size:25px;color:#0950c4}
+.archive-title{font-size:21px;font-weight:800;overflow-wrap:anywhere}
+.archive-path{flex-wrap:wrap;overflow-wrap:anywhere}
+.archive-row{display:grid;grid-template-columns:25px minmax(0,1fr) auto;gap:10px;align-items:center;min-height:50px;padding:10px 12px;border-top:1px solid #e8eef9}
+.archive-row>i{color:#0950c4}
+.archive-row>span,.archive-file-name{min-width:0;overflow-wrap:anywhere}
+a.archive-row{text-decoration:none}
+a.archive-row:hover,a.archive-row:focus-visible{background:#edf5ff}
+.archive-tools{display:grid;grid-template-columns:minmax(0,3fr) minmax(0,2fr);gap:12px}
+.archive-inputs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.archive-inputs input{min-width:0}
+.archive-tools summary{cursor:pointer;list-style:none;display:flex;align-items:center;justify-content:space-between;min-height:48px}
+.archive-tools summary::-webkit-details-marker{display:none}
+.archive-tools details[open] summary .bi-chevron-down{transform:rotate(180deg)}
+@media(max-width:620px){.archive-wrap{padding:10px 8px 26px}.archive-title{font-size:19px}.archive-tools,.archive-inputs{grid-template-columns:1fr}.archive-file{grid-template-columns:25px minmax(0,1fr)}.archive-file-actions{grid-column:2}}
 </style>
+{% endblock %}
+{% block content %}
 <main class="archive-wrap">
-  <header class="archive-banner mb-3">
-    <div><div class="archive-kicker mb-1">Yönetim</div><h1 class="h3 mb-1">Evrak Arşivi</h1>
-      <p class="mb-0">Önemli evraklarınızı klasörleyin ve MoliApp hesabınızla her yerden açın.</p></div>
-    <div class="archive-lock"><i class="bi bi-shield-lock me-1" aria-hidden="true"></i> Patron ve müdür erişimi</div>
+  <header class="card p-3 mb-3">
+    <nav aria-label="Klasör yolu">
+      <ol class="breadcrumb archive-path small mb-2">
+        <li class="breadcrumb-item{% if not folder %} active{% endif %}">
+          {% if folder %}<a href="{% url 'document_archive' %}">Evrak Arşivi</a>{% else %}<span aria-current="page">Yönetim</span>{% endif %}
+        </li>
+        {% for ancestor in breadcrumbs %}
+          <li class="breadcrumb-item{% if forloop.last %} active{% endif %}">
+            {% if forloop.last %}<span aria-current="page">{{ ancestor.name }}</span>{% else %}<a href="{% url 'document_archive_folder' ancestor.pk %}">{{ ancestor.name }}</a>{% endif %}
+          </li>
+        {% endfor %}
+      </ol>
+    </nav>
+    <div class="archive-heading">
+      <i class="bi {% if folder %}bi-folder2-open{% else %}bi-archive{% endif %}" aria-hidden="true"></i>
+      <div class="flex-grow-1">
+        <h1 class="archive-title mb-1">{% if folder %}{{ folder.name }}{% else %}Evrak Arşivi{% endif %}</h1>
+        <p class="text-muted small mb-0">{% if folder %}Bu klasöre ait alt klasörler ve evraklar{% else %}Klasörleriniz ve klasöre taşınmamış evraklar{% endif %}</p>
+      </div>
+      {% if folder %}
+        <a class="btn btn-sm btn-outline-primary text-nowrap" href="{% if parent_folder %}{% url 'document_archive_folder' parent_folder.pk %}{% else %}{% url 'document_archive' %}{% endif %}"><i class="bi bi-arrow-up me-1" aria-hidden="true"></i> Üst klasör</a>
+      {% endif %}
+    </div>
   </header>
-  {% for message in messages %}<div class="alert {% if message.level_tag == 'error' %}alert-danger{% elif message.level_tag == 'success' %}alert-success{% else %}alert-info{% endif %}" role="status">{{ message }}</div>{% endfor %}
-  <nav aria-label="Klasör yolu">
-    <ol class="breadcrumb small mb-3">
-      <li class="breadcrumb-item{% if not folder %} active{% endif %}">{% if folder %}<a href="{% url 'document_archive' %}">Arşiv</a>{% else %}<span aria-current="page">Arşiv</span>{% endif %}</li>
-      {% for ancestor in breadcrumbs %}<li class="breadcrumb-item{% if forloop.last %} active{% endif %}">
-        {% if forloop.last %}<span aria-current="page">{{ ancestor.name }}</span>{% else %}<a href="{% url 'document_archive_folder' ancestor.pk %}">{{ ancestor.name }}</a>{% endif %}
-      </li>{% endfor %}
-    </ol>
-  </nav>
-  <div class="archive-grid archive-tools mb-3">
-    <section class="archive-panel" aria-labelledby="archive-upload-heading">
-      <h2 class="h6" id="archive-upload-heading"><i class="bi bi-cloud-arrow-up me-1" aria-hidden="true"></i> Evrak yükle</h2>
-      <form method="post" enctype="multipart/form-data" action="{% if folder %}{% url 'document_archive_folder_upload' folder.pk %}{% else %}{% url 'document_archive_upload' %}{% endif %}">
-        {% csrf_token %}
-        <div class="archive-inputs">
-          <div><label for="archive-camera">Fotoğraf çek</label>
-            <input class="form-control form-control-sm" type="file" id="archive-camera" name="documents" accept="image/*" capture="environment" aria-describedby="archive-formats"></div>
-          <div><label for="archive-files">Galeriden veya Dosyalar’dan seç</label>
-            <input class="form-control form-control-sm" type="file" id="archive-files" name="documents" accept="application/pdf,image/jpeg,image/png,image/webp,image/heic,image/heif,.pdf,.jpg,.jpeg,.png,.webp,.heic,.heif" multiple aria-describedby="archive-formats"></div>
-        </div>
-        <div id="archive-formats" class="form-text mb-2">PDF ve fotoğraf (JPG, PNG, WEBP, HEIC). Dosya başına en fazla 12 MB; tek seferde en fazla 8 dosya.</div>
-        <label class="small fw-semibold" for="archive-title">Evrak adı <span class="text-muted fw-normal">(isteğe bağlı, tek dosya için)</span></label>
-        <input class="form-control form-control-sm mb-2" id="archive-title" name="title" maxlength="150" placeholder="Örn. 2027 kira sözleşmesi">
-        <button class="btn btn-primary btn-sm" type="submit"><i class="bi bi-upload me-1" aria-hidden="true"></i> Yükle</button>
-      </form>
-    </section>
-    <section class="archive-panel" aria-labelledby="archive-folder-heading">
-      <h2 class="h6" id="archive-folder-heading"><i class="bi bi-folder-plus me-1" aria-hidden="true"></i> Yeni klasör</h2>
-      <form method="post" action="{% if folder %}{% url 'document_archive_child' folder.pk %}{% else %}{% url 'document_archive_create_folder' %}{% endif %}">
-        {% csrf_token %}
-        <label for="archive-folder-name" class="visually-hidden">Klasör adı</label>
-        <div class="input-group input-group-sm">
-          <input class="form-control" type="text" id="archive-folder-name" name="name" maxlength="120" placeholder="Örn. Sözleşmeler" required>
-          <button class="btn btn-outline-primary" type="submit">Oluştur</button>
-        </div>
-        <div class="form-text">Bulunduğunuz konumda oluşturulur.</div>
-      </form>
-    </section>
-  </div>
-  <section class="archive-panel mb-3" aria-labelledby="archive-folders-heading">
-    <h2 class="h6" id="archive-folders-heading">Klasörler</h2>
-    {% if folders %}<div class="archive-grid">
-      {% for child in folders %}<a class="archive-folder" href="{% url 'document_archive_folder' child.pk %}">
-        <i class="bi bi-folder2 fs-5" aria-hidden="true"></i><span class="fw-semibold">{{ child.name }}</span>
-      </a>{% endfor %}
-    </div>{% else %}<p class="text-muted small mb-0">Bu konumda henüz klasör yok.</p>{% endif %}
+
+  {% for message in messages %}<div class="alert alert-{{ message.level_tag|default:'info' }}{% if message.level_tag == 'error' %} alert-danger{% endif %}" role="status">{{ message }}</div>{% endfor %}
+
+  <section class="card mb-3 p-3" aria-labelledby="archive-folders-heading">
+    <h2 class="h6 fw-bold mb-2" id="archive-folders-heading">{% if folder %}Alt klasörler{% else %}Klasörler{% endif %}</h2>
+    {% for child in folders %}
+      <a class="archive-row" href="{% url 'document_archive_folder' child.pk %}">
+        <i class="bi bi-folder2 fs-5" aria-hidden="true"></i><span class="fw-semibold">{{ child.name }}</span><i class="bi bi-chevron-right" aria-hidden="true"></i>
+      </a>
+    {% empty %}
+      <p class="small text-muted mb-0">{% if folder %}Bu klasörde henüz alt klasör yok.{% else %}Henüz klasör oluşturulmadı.{% endif %}</p>
+    {% endfor %}
   </section>
-  <section class="archive-panel" aria-labelledby="archive-files-heading">
-    <h2 class="h6" id="archive-files-heading">Evraklar</h2>
+
+  <section class="card mb-3 p-3" aria-labelledby="archive-files-heading">
+    <h2 class="h6 fw-bold mb-2" id="archive-files-heading">{% if folder %}Bu klasördeki evraklar{% else %}Klasörsüz evraklar{% endif %}</h2>
     {% for document in documents %}
-      <div class="archive-file">
-        <i class="bi {% if document.content_type == 'application/pdf' %}bi-file-earmark-pdf{% else %}bi-image{% endif %} fs-4 text-primary" aria-hidden="true"></i>
-        <div><div class="archive-filename fw-semibold">{{ document.name }}</div>
+      <div class="archive-row archive-file">
+        <i class="bi {% if document.content_type == 'application/pdf' %}bi-file-earmark-pdf{% else %}bi-image{% endif %} fs-5" aria-hidden="true"></i>
+        <div><div class="archive-file-name fw-semibold">{{ document.name }}</div>
           <div class="small text-muted">{{ document.uploaded_at|date:"d.m.Y H:i" }} · {{ document.byte_size|filesizeformat }}</div></div>
         <div class="archive-file-actions d-flex gap-2">
           {% if document.content_type != 'application/pdf' %}<a href="{% url 'document_archive_file' document.pk %}" class="btn btn-sm btn-outline-primary" target="_blank" rel="noopener noreferrer">Görüntüle</a>{% endif %}
@@ -82,8 +76,38 @@
         </div>
       </div>
     {% empty %}
-      <p class="text-muted small mb-0">Bu konuma henüz evrak yüklenmedi.</p>
+      <p class="small text-muted mb-0">{% if folder %}Bu klasörde henüz evrak yok.{% else %}Klasör dışında kayıtlı evrak yok.{% endif %}</p>
     {% endfor %}
   </section>
+
+  <div class="archive-tools">
+    <details class="card">
+      <summary class="px-3 py-2 fw-bold"><span><i class="bi bi-cloud-arrow-up me-1" aria-hidden="true"></i> Evrak yükle</span><i class="bi bi-chevron-down" aria-hidden="true"></i></summary>
+      <form class="px-3 pb-3" method="post" enctype="multipart/form-data" action="{% if folder %}{% url 'document_archive_folder_upload' folder.pk %}{% else %}{% url 'document_archive_upload' %}{% endif %}">
+        {% csrf_token %}
+        <div class="archive-inputs">
+          <div><label class="small fw-semibold mb-1" for="archive-camera">Fotoğraf çek</label>
+            <input class="form-control form-control-sm" type="file" id="archive-camera" name="documents" accept="image/*" capture="environment" aria-describedby="archive-formats"></div>
+          <div><label class="small fw-semibold mb-1" for="archive-files">Galeriden veya Dosyalar’dan seç</label>
+            <input class="form-control form-control-sm" type="file" id="archive-files" name="documents" accept="application/pdf,image/jpeg,image/png,image/webp,image/heic,image/heif,.pdf,.jpg,.jpeg,.png,.webp,.heic,.heif" multiple aria-describedby="archive-formats"></div>
+        </div>
+        <div id="archive-formats" class="form-text mb-2">PDF, JPG, PNG, WEBP, HEIC. Dosya başına 12 MB, tek seferde en fazla 8 dosya.</div>
+        <label class="small fw-semibold mb-1" for="archive-title">Evrak adı <span class="text-muted fw-normal">(isteğe bağlı, tek dosya için)</span></label>
+        <input class="form-control form-control-sm mb-2" id="archive-title" name="title" maxlength="150" placeholder="Örn. 2027 kira sözleşmesi">
+        <button class="btn btn-primary btn-sm fw-bold" type="submit">Yükle</button>
+      </form>
+    </details>
+    <details class="card">
+      <summary class="px-3 py-2 fw-bold"><span><i class="bi bi-folder-plus me-1" aria-hidden="true"></i> {% if folder %}Yeni alt klasör{% else %}Yeni klasör{% endif %}</span><i class="bi bi-chevron-down" aria-hidden="true"></i></summary>
+      <form class="px-3 pb-3" method="post" action="{% if folder %}{% url 'document_archive_child' folder.pk %}{% else %}{% url 'document_archive_create_folder' %}{% endif %}">
+        {% csrf_token %}
+        <label for="archive-folder-name" class="visually-hidden">Klasör adı</label>
+        <div class="input-group input-group-sm">
+          <input class="form-control" type="text" id="archive-folder-name" name="name" maxlength="120" placeholder="Örn. Sözleşmeler" required>
+          <button class="btn btn-outline-primary fw-bold" type="submit">Oluştur</button>
+        </div>
+      </form>
+    </details>
+  </div>
 </main>
 {% endblock %}
