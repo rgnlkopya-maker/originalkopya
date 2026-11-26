@@ -17,6 +17,7 @@ from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_safe, require_POST
 from PIL import Image, ImageOps
 from pillow_heif import register_heif_opener
+from app_settings.access import has_full_access
 from storage3.exceptions import StorageApiError
 from supabase import create_client
 
@@ -33,11 +34,7 @@ register_heif_opener()
 
 
 def can_access_archive(user):
-    if not (user.is_authenticated and user.is_active):
-        return False
-    if not hasattr(user, "_archive_access"):
-        user._archive_access = user.is_superuser or user.groups.filter(name="patron").exists()
-    return user._archive_access
+    return user.is_authenticated and user.is_active and has_full_access(user)
 
 
 def archive_only(view):
@@ -46,7 +43,7 @@ def archive_only(view):
     @wraps(view)
     def wrapped(request, *args, **kwargs):
         if not can_access_archive(request.user):
-            return HttpResponseForbidden("Evrak Arşivi yalnızca patron hesabına açıktır.")
+            return HttpResponseForbidden("Evrak Arşivi yalnızca patron ve müdür hesaplarına açıktır.")
         return view(request, *args, **kwargs)
     return wrapped
 

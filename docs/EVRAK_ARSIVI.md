@@ -1,7 +1,7 @@
 # Evrak Arşivi
 
-- Menü: Yönetim → Evrak Arşivi. MoliApp'te sadece aktif patron grubu ve sistem süper yöneticisi erişebilir. Müdür/personel rolleri menüyü görmez ve doğrudan URL üzerinden dosya alamaz. Özel varsayılan, herkese açık link üretmez.
+- Menü: Yönetim → Evrak Arşivi. MoliApp'te sadece aktif patron ve müdür grupları ile sistem süper yöneticisi erişebilir. Diğer personel rolleri menüyü görmez ve doğrudan URL üzerinden dosya alamaz. Özel varsayılan, herkese açık link üretmez.
 - Dosyalar MoliApp sunucusundan, mevcut sunucu tarafı Supabase bağlantısı ile ayrı `moli-evrak-arsivi` bucket'ına yazılır. İlk başarılı yükleme denemesinde yoksa bucket özel olarak oluşturulur. Bucket özel değilse yükleme ve okuma reddedilir; bucket için anonim veya genel Storage erişim politikaları eklenmemelidir. Hizmet anahtarı istemciye verilmez.
 - PDF, JPEG, PNG, WebP, HEIC/HEIF; dosya en fazla 12 MB (fotoğraf en fazla 32 MP), tek istekte 8 dosya. HEIC/HEIF, görüntülenebilmesi için JPEG'e çevrilir. PDF ek olarak indirilir; uygulama içinde çalıştırılmaz. MoliApp metin OCR'ı yapmaz.
 - Klasör ve evrak künyesi MoliApp PostgreSQL'inde, içerik Supabase Storage'dadır. PostgreSQL dump'ı Storage nesnelerinin içeriğini kapsamaz. Ayrı bir yedek alınacaksa özel bucket içeriği ve veritabanı birlikte yedeklenmelidir. Tek kopyası olan orijinaller, böyle bir yedek doğrulanana kadar korunmalıdır.
-- Yayın kontrolü: `python manage.py check`, `python manage.py test core.test_document_archive`, yeni migration'ın canlıda uygulandığının kontrolü; patron oturumuyla yalnız sentetik bir fotoğraf veya PDF kullanarak klasör, yükleme ve indirme doğrulaması.
+- Yayın kontrolü: `python manage.py check`, `python manage.py test core.test_document_archive`, yeni migration'ın canlıda uygulandığının kontrolü; patron veya müdür oturumuyla yalnız sentetik bir fotoğraf veya PDF kullanarak klasör, yükleme ve indirme doğrulaması.

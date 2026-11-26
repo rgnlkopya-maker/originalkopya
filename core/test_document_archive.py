@@ -28,6 +28,7 @@ class ArchiveTest(TestCase):
         self.owner.groups.add(Group.objects.create(name="patron"))
         self.mudur = user.objects.create_user(username="archive-mudur")
         self.mudur.groups.add(Group.objects.create(name="mudur"))
+        self.staff = user.objects.create_user(username="archive-staff")
         self.client.force_login(self.owner)
 
     def test_root_nested_folder_and_duplicate(self):
@@ -74,6 +75,14 @@ class ArchiveTest(TestCase):
         self.assertIn("attachment", response["Content-Disposition"])
 
         self.client.force_login(self.mudur)
+        manager_home = self.client.get(reverse("document_archive"))
+        self.assertContains(manager_home, f'href="{reverse("document_archive")}"')
+        storage.return_value.download.return_value = raw
+        self.assertEqual(self.client.get(url).content, raw)
+        # Preview as regular staff to reach the permission check independently of the shift gate.
+        session = self.client.session
+        session["moli_preview_user_id"] = self.staff.pk
+        session.save()
         denied = self.client.get(url)
         self.assertEqual(denied.status_code, 403)
         self.assertEqual(self.client.get(reverse("document_archive")).status_code, 403)

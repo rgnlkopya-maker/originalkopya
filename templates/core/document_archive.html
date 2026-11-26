@@ -20,7 +20,7 @@
   <header class="archive-banner mb-3">
     <div><div class="archive-kicker mb-1">Yönetim</div><h1 class="h3 mb-1">Evrak Arşivi</h1>
       <p class="mb-0">Önemli evraklarınızı klasörleyin ve MoliApp hesabınızla her yerden açın.</p></div>
-    <div class="archive-lock"><i class="bi bi-shield-lock me-1" aria-hidden="true"></i> Patron erişimi</div>
+    <div class="archive-lock"><i class="bi bi-shield-lock me-1" aria-hidden="true"></i> Patron ve müdür erişimi</div>
   </header>
   {% for message in messages %}<div class="alert {% if message.level_tag == 'error' %}alert-danger{% elif message.level_tag == 'success' %}alert-success{% else %}alert-info{% endif %}" role="status">{{ message }}</div>{% endfor %}
   <nav aria-label="Klasör yolu">
