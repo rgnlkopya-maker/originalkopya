@@ -24,3 +24,27 @@ def mark_order_print(request, pk):
     else:
         return JsonResponse({"ok": False, "error": "Geçersiz yazdırma türü."}, status=400)
     return JsonResponse({"ok": True})
+
+
+@login_required
+@require_POST
+def reset_order_print(request, pk):
+    if not (request.user.is_superuser or request.user.groups.filter(name__in=["patron", "mudur"]).exists()):
+        return JsonResponse({"ok": False, "error": "Bu işlem için yetkiniz yok."}, status=403)
+    from django.db import transaction
+    from app_settings.access import order_scope_allows
+    with transaction.atomic():
+        order = get_object_or_404(Order.objects.select_for_update(), pk=pk)
+        if not order_scope_allows(request.user, order):
+            return JsonResponse({"ok": False, "error": "Bu siparişe erişim yetkiniz yok."}, status=403)
+        kind = request.POST.get("kind")
+        if kind == "label":
+            Order.objects.filter(pk=pk).update(cikti_alindi=False)
+        elif kind == "detail":
+            Order.objects.filter(pk=pk).update(detail_printed=False)
+        elif kind == "images":
+            Order.objects.filter(pk=pk).update(main_image_printed=False)
+            OrderImage.objects.filter(order_id=pk, printed=True).update(printed=False)
+        else:
+            return JsonResponse({"ok": False, "error": "Geçersiz yazdırma türü."}, status=400)
+    return JsonResponse({"ok": True})
