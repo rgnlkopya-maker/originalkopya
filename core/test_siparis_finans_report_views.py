@@ -106,3 +106,35 @@ class SiparisFinansCurrencyTests(TestCase):
         self.assertEqual(cost("TRY"), D("100"))
         self.assertEqual(cost("USD"), D("5000"))
         self.assertIsNone(cost("EUR"))
+
+    def test_folio_warning_clears_when_sale_and_cost_are_completed(self):
+        draft = self.draft("TRY", price="0")
+        ProductCard.objects.filter(pk=self.card.pk).update(iscilik_maliyeti=D("0"))
+        listing = reverse("siparis_finans_foyleri")
+        red = f'class="cardx folio-finance-missing" data-folio-id="{draft.pk}"'
+        self.assertContains(self.client.get(listing), red)
+        self.assertContains(self.client.get(listing), "Eksik bilgi: Satış fiyatı, Maliyet.")
+
+        draft.items.update(unit_price=D("5000"))
+        response = self.client.get(listing)
+        self.assertContains(response, red)
+        self.assertContains(response, "Eksik bilgi: Maliyet.")
+
+        ProductCard.objects.filter(pk=self.card.pk).update(iscilik_maliyeti=D("2000"))
+        response = self.client.get(listing)
+        self.assertNotContains(response, red)
+        self.assertContains(response, f'class="cardx" data-folio-id="{draft.pk}"')
+
+    def test_missing_single_sale_price_is_flagged_even_with_positive_folio_total(self):
+        draft = self.draft("TRY", price="4000", count=1)
+        ShowroomDraftItem.objects.create(draft=draft, product_card=self.card, quantity=1, unit_price=D("0"))
+        response = self.client.get(reverse("siparis_finans_foyleri"))
+        self.assertContains(response, f'class="cardx folio-finance-missing" data-folio-id="{draft.pk}"')
+        self.assertContains(response, "Eksik bilgi: Satış fiyatı.")
+        self.assertEqual(response.context["rows"][0]["revenue"], D("4000"))
+
+    def test_discount_to_zero_is_not_a_missing_sale_price(self):
+        draft = self.draft("TRY", price="4000", count=1, discount_rate=D("100"))
+        response = self.client.get(reverse("siparis_finans_foyleri"))
+        self.assertContains(response, f'class="cardx" data-folio-id="{draft.pk}"')
+        self.assertEqual(response.context["rows"][0]["revenue"], D("0"))

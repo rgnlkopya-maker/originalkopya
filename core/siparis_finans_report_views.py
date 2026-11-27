@@ -116,6 +116,8 @@ def _folio_finance(draft, include_items=False, rate_cache=None):
 
     total_cost = Decimal("0")
     cost_missing = False
+    missing_sale_price = False
+    missing_product_cost = False
     product_count = set()
     total_qty = 0
     detail_items = []
@@ -126,7 +128,9 @@ def _folio_finance(draft, include_items=False, rate_cache=None):
         code = item.product_card.urun.kod
         product_count.add(code)
 
-        net_unit_native = Decimal(item.unit_price or 0) * net_factor
+        unit_price = Decimal(item.unit_price or 0)
+        missing_sale_price |= unit_price <= 0
+        net_unit_native = unit_price * net_factor
         net_unit = None if revenue_missing else net_unit_native * (rate or 1)
         linked_orders = linked_orders_by_item.get(item.id, [])
         valid_linked_orders = [order for order in linked_orders if order is not None]
@@ -138,11 +142,17 @@ def _folio_finance(draft, include_items=False, rate_cache=None):
         if valid_linked_orders:
             linked_costs = [(_linked_cost_try(order, rate_cache), order.adet or 1)
                             for order in valid_linked_orders]
+            missing_product_cost |= any(cost is not None and cost <= 0 for cost, _ in linked_costs)
+            # A partly transferred row still has units that depend on the product card.
+            if sum(count for _, count in linked_costs) < qty:
+                missing_product_cost |= Decimal(item.product_card.toplam_maliyet or 0) <= 0
             row_cost = (None if any(cost is None for cost, _ in linked_costs) else
                         sum((cost * count for cost, count in linked_costs), Decimal("0")))
         else:
             # Ürün kartı maliyeti zaten TL; satış kuruyla tekrar çarpmayın.
-            row_cost = Decimal(item.product_card.toplam_maliyet or 0) * qty
+            card_cost = Decimal(item.product_card.toplam_maliyet or 0)
+            missing_product_cost |= card_cost <= 0
+            row_cost = card_cost * qty
 
         unit_cost = row_cost / qty if row_cost is not None else None
         row_revenue = net_unit * qty if net_unit is not None else None
@@ -195,6 +205,8 @@ def _folio_finance(draft, include_items=False, rate_cache=None):
         "rate_day": rate_day,
         "revenue_missing": revenue_missing,
         "cost_missing": cost_missing,
+        "missing_sale_price": missing_sale_price,
+        "missing_product_cost": missing_product_cost,
         "pending_review": pending_review,
         "items": detail_items,
     }
