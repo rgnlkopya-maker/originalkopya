@@ -955,14 +955,11 @@ def showroom_edit_save(request,draft_id):
                     except Exception:
                         shipment = None
                     if shipment is not None:
-                        shipment_sale_tl = (
-                            final_price * Decimal(shipment.usd_try)
-                            if (order.para_birimi or "TRY") == "USD" and shipment.usd_try
-                            else final_price
-                        )
+                        from .shipment_fx import shipment_sale_to_try
+                        shipment_sale_tl = shipment_sale_to_try(shipment, final_price, order.para_birimi)
                         shipment_profit = (
                             shipment_sale_tl - Decimal(shipment.toplam_maliyet_tl)
-                            if shipment.toplam_maliyet_tl is not None
+                            if shipment_sale_tl is not None and shipment.toplam_maliyet_tl is not None
                             else None
                         )
                         shipment_profit_rate = (
@@ -972,7 +969,7 @@ def showroom_edit_save(request,draft_id):
                         )
                         shipment.satis_fiyati = final_price
                         shipment.satis_para_birimi = order.para_birimi or "TRY"
-                        shipment.satis_tl = shipment_sale_tl.quantize(Decimal("0.01"))
+                        shipment.satis_tl = shipment_sale_tl
                         shipment.gerceklesen_kar_tl = shipment_profit.quantize(Decimal("0.01")) if shipment_profit is not None else None
                         shipment.gerceklesen_kar_orani = shipment_profit_rate.quantize(Decimal("0.01")) if shipment_profit_rate is not None else None
                         shipment.save(update_fields=[

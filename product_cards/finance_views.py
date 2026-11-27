@@ -88,6 +88,17 @@ def _records_a_final_total(data, tl_amount):
         return False
 
 
+def prepare_shipment_report_sale(order, cache=None):
+    from .shipment_fx import SALE_RATE_FIELDS, shipment_sale_to_try
+
+    snapshot = getattr(order, "shipment_financial_snapshot", None)
+    if snapshot and (snapshot.satis_para_birimi or "TRY").upper() in SALE_RATE_FIELDS:
+        order._shipment_report_sale_tl = shipment_sale_to_try(
+            snapshot, snapshot.satis_fiyati, snapshot.satis_para_birimi,
+            events=getattr(order, "_finance_events_prefetched", None), cache=cache,
+        )
+
+
 def calculate_finance_result(order):
     """Sevkiyat snapshot + parasal hareketler + operasyonel sevkiyat durumunu birlestirir."""
     if hasattr(order, "_shipment_snapshot_prefetched"):
@@ -97,6 +108,7 @@ def calculate_finance_result(order):
     if not snapshot:
         return {
             "snapshot": None,
+            "sevk_satis_tl": None,
             "missing_sale": True,
             "missing_cost": True,
             "status": "SNAPSHOT_YOK",
@@ -109,7 +121,8 @@ def calculate_finance_result(order):
             "movements": [],
         }
 
-    snapshot_sale = Decimal(snapshot.satis_tl or 0)
+    initial_sale_tl = getattr(order, "_shipment_report_sale_tl", snapshot.satis_tl)
+    snapshot_sale = Decimal(initial_sale_tl or 0)
     satis_tl = snapshot_sale
     maliyet_tl = Decimal(snapshot.toplam_maliyet_tl or 0)
     sale_known = satis_tl > 0
@@ -216,6 +229,7 @@ def calculate_finance_result(order):
 
     return {
         "snapshot": snapshot,
+        "sevk_satis_tl": initial_sale_tl,
         "missing_sale": not sale_known,
         "missing_cost": not cost_known,
         "status": status,
@@ -235,6 +249,7 @@ def order_finance_movements(request, order_id):
         return HttpResponseForbidden("Bu sayfaya erişim yetkiniz yok.")
 
     order = get_object_or_404(Order.objects.select_related("musteri"), pk=order_id)
+    prepare_shipment_report_sale(order)
     result = calculate_finance_result(order)
     return render(request, "product_cards/order_finance_movements.html", {
         "order": order,

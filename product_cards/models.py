@@ -53,6 +53,10 @@ class OrderFinancialSnapshot(models.Model):
 
 class ShipmentFinancialSnapshot(models.Model):
     order=models.OneToOneField(Order,on_delete=models.CASCADE,related_name="shipment_financial_snapshot"); usd_try=models.DecimalField(max_digits=12,decimal_places=6,null=True,blank=True); satis_fiyati=models.DecimalField(max_digits=14,decimal_places=2,null=True,blank=True); satis_para_birimi=models.CharField(max_length=3,default="TRY"); satis_tl=models.DecimalField(max_digits=16,decimal_places=2,null=True,blank=True); urun_maliyeti_tl=models.DecimalField(max_digits=16,decimal_places=2,null=True,blank=True); sevkiyat_ekstra_maliyet_tl=models.DecimalField(max_digits=16,decimal_places=2,default=0); toplam_maliyet_tl=models.DecimalField(max_digits=16,decimal_places=2,null=True,blank=True); gerceklesen_kar_tl=models.DecimalField(max_digits=16,decimal_places=2,null=True,blank=True); gerceklesen_kar_orani=models.DecimalField(max_digits=8,decimal_places=2,null=True,blank=True); notlar=models.TextField(blank=True,default=""); created_at=models.DateTimeField(auto_now_add=True)
+    eur_try = models.DecimalField(max_digits=12, decimal_places=6, null=True, blank=True)
+    gbp_try = models.DecimalField(max_digits=12, decimal_places=6, null=True, blank=True)
+    fx_reference_date = models.DateField(null=True, blank=True)
+
     def __str__(self): return f"{self.order.siparis_numarasi} - sevkiyat gunu finans"
 
 # LEGACY: Eski siparis finans signal'i pasif tutuluyor.
@@ -81,13 +85,21 @@ def create_shipment_financial_snapshot(sender,instance,created,**kwargs):
     if not created or instance.stage!="sevkiyat_durum" or instance.value!="gonderildi":return
     order=instance.order
     if ShipmentFinancialSnapshot.objects.filter(order=order).exists():return
-    rate=ExchangeRate.objects.order_by("-rate_date","-fetched_at").first(); usd=rate.usd_try if rate else None; satis=Decimal(order.satis_fiyati) if order.satis_fiyati is not None else None; curr=order.para_birimi or "TRY"; satis_tl=amount_to_try(satis,curr,usd); pc=ProductCost.objects.filter(urun_kodu__iexact=order.urun_kodu or "",is_active=True).first()
+    from .shipment_fx import convert_shipment_sale, rates_for_shipment_day, shipment_day
+
+    day = shipment_day(instance.timestamp)
+    rates = rates_for_shipment_day(day)
+    usd = rates["usd_try"]
+    satis = Decimal(order.satis_fiyati) if order.satis_fiyati is not None else None
+    curr = order.para_birimi or "TRY"
+    satis_tl = convert_shipment_sale(satis, curr, rates)
+    pc = ProductCost.objects.filter(urun_kodu__iexact=order.urun_kodu or "", is_active=True).first()
     if order.maliyet_override is not None:cost=Decimal(order.maliyet_override);cc=order.maliyet_para_birimi or "TRY"
     elif pc:cost=Decimal(pc.maliyet);cc=pc.para_birimi or "TRY"
     elif order.maliyet_uygulanan is not None:cost=Decimal(order.maliyet_uygulanan);cc=order.maliyet_para_birimi or "TRY"
     else:cost=None;cc="TRY"
     ct=amount_to_try(cost,cc,usd);extra=amount_to_try(Decimal(order.ekstra_maliyet or 0),cc,usd) or Decimal("0");discount=amount_to_try(Decimal(order.maliyet_indirimi or 0),cc,usd) or Decimal("0");total=max(Decimal("0"),ct+extra-discount) if ct is not None else None;kar=satis_tl-total if satis_tl is not None and total is not None else None;oran=kar/satis_tl*100 if kar is not None and satis_tl else None
-    ShipmentFinancialSnapshot.objects.create(order=order,usd_try=usd,satis_fiyati=satis,satis_para_birimi=curr,satis_tl=satis_tl.quantize(Decimal('.01')) if satis_tl is not None else None,urun_maliyeti_tl=ct.quantize(Decimal('.01')) if ct is not None else None,sevkiyat_ekstra_maliyet_tl=extra.quantize(Decimal('.01')),toplam_maliyet_tl=total.quantize(Decimal('.01')) if total is not None else None,gerceklesen_kar_tl=kar.quantize(Decimal('.01')) if kar is not None else None,gerceklesen_kar_orani=oran.quantize(Decimal('.01')) if oran is not None else None)
+    ShipmentFinancialSnapshot.objects.create(order=order,usd_try=usd,eur_try=rates["eur_try"],gbp_try=rates["gbp_try"],fx_reference_date=day,satis_fiyati=satis,satis_para_birimi=curr,satis_tl=satis_tl.quantize(Decimal('.01')) if satis_tl is not None else None,urun_maliyeti_tl=ct.quantize(Decimal('.01')) if ct is not None else None,sevkiyat_ekstra_maliyet_tl=extra.quantize(Decimal('.01')),toplam_maliyet_tl=total.quantize(Decimal('.01')) if total is not None else None,gerceklesen_kar_tl=kar.quantize(Decimal('.01')) if kar is not None else None,gerceklesen_kar_orani=oran.quantize(Decimal('.01')) if oran is not None else None)
 
 class ProductCard(models.Model):
     price_list_active=models.BooleanField(default=True)

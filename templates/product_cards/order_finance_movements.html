@@ -13,7 +13,7 @@
   <div class="card shadow-sm mb-4">
     <div class="card-body">
       <div class="row g-3">
-        <div class="col-md"><div class="text-muted small">Sevkiyat Satışı</div><div class="fw-bold">{{ result.snapshot.satis_tl|floatformat:2 }} TL</div></div>
+        <div class="col-md"><div class="text-muted small">Sevkiyat Satışı</div><div class="fw-bold">{% if result.sevk_satis_tl is not None %}{{ result.sevk_satis_tl|floatformat:2 }} TL{% else %}—{% endif %}</div></div>
         <div class="col-md"><div class="text-muted small">Sevkiyat Maliyeti</div><div class="fw-bold">{{ result.snapshot.toplam_maliyet_tl|floatformat:2 }} TL</div></div>
         <div class="col-md"><div class="text-muted small">Güncel Kesinleşen Satış</div><div class="fw-bold">{{ result.satis_tl|floatformat:2 }} TL</div></div>
         <div class="col-md"><div class="text-muted small">Güncel Kesinleşen Maliyet</div><div class="fw-bold">{{ result.maliyet_tl|floatformat:2 }} TL</div></div>

@@ -93,8 +93,8 @@ def sync_order_financial_snapshot(sender, instance, created, **kwargs):
         # degisiklikleri veya siparis kaydetme islemleriyle degistirilemez.
         shipment_snapshot = ShipmentFinancialSnapshot.objects.filter(order=instance).first()
         if shipment_snapshot is not None:
-            shipment_rate = shipment_snapshot.usd_try or conversion_rate
-            shipment_sale_tl = _convert_to_try(sale, sale_currency, shipment_rate, rate_obj)
+            from .shipment_fx import shipment_sale_to_try
+            shipment_sale_tl = shipment_sale_to_try(shipment_snapshot, sale, sale_currency)
             shipment_total_cost_tl = shipment_snapshot.toplam_maliyet_tl
             shipment_profit = (
                 shipment_sale_tl - shipment_total_cost_tl

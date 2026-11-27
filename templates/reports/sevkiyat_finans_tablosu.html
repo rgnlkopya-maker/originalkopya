@@ -137,7 +137,7 @@
           <td>{{ o.urun_kodu|default:"-" }}</td>
           <td>{{ o.adet|default:"-" }}</td>
           <td>{% if o.last_status_date %}{{ o.last_status_date|date:"d.m.Y" }}{% else %}-{% endif %}</td>
-          <td class="text-end">{% if fr.snapshot %}{{ fr.snapshot.satis_tl|floatformat:2 }} TL{% else %}-{% endif %}</td>
+          <td class="text-end">{% if fr.sevk_satis_tl is not None %}{{ fr.sevk_satis_tl|floatformat:2 }} TL{% else %}-{% endif %}</td>
           <td class="text-end">{% if fr.satis_tl is not None %}{{ fr.satis_tl|floatformat:2 }} TL{% else %}-{% endif %}</td>
           <td class="text-end">{% if fr.maliyet_tl is not None %}{{ fr.maliyet_tl|floatformat:2 }} TL{% else %}-{% endif %}</td>
           <td class="text-end">{% if fr.kar_tl is not None %}<span class="{% if fr.kar_tl < 0 %}kar-negative{% else %}kar-positive{% endif %}">{{ fr.kar_tl|floatformat:2 }} TL</span>{% else %}-{% endif %}</td>
