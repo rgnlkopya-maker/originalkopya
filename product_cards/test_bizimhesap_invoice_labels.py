@@ -19,7 +19,7 @@ class BizimHesapLineLabelTests(SimpleTestCase):
         )
         self.mapping = SimpleNamespace(external_customer_id="TEST-CUSTOMER")
 
-    def test_order_code_is_not_repeated_in_product_name(self):
+    def test_product_name_retains_special_order_marker_and_reference(self):
         order = SimpleNamespace(
             urun_kodu="7182", renk="Pudra", beden="40",
             siparis_tipi="OZEL", musteri_referans="MDZI29162", para_birimi="TRY"
@@ -30,9 +30,26 @@ class BizimHesapLineLabelTests(SimpleTestCase):
         payload, problems = build_invoice_payload(self.invoice, [line], self.mapping, "TEST-FIRM")
         self.assertEqual(problems, [])
         item = payload["details"][0]
-        self.assertEqual(item["productId"], "7182 Pudra 40 ÖZEL MDZI29162")
         self.assertEqual(item["productName"], "7182 Pudra 40 ÖZEL MDZI29162")
         self.assertEqual(item["total"], "8525.00")
+
+    def test_order_label_is_sent_once_for_the_reported_invoice_row(self):
+        order = SimpleNamespace(
+            urun_kodu="8078", renk="Pudra", beden="38",
+            siparis_tipi="SERI", musteri_referans="", para_birimi="TRY"
+        )
+        line = SimpleNamespace(order=order, price=Decimal("11000"), vat_rate=Decimal("10"), quantity=1)
+        payload, problems = build_invoice_payload(self.invoice, [line], self.mapping, "TEST-FIRM")
+        self.assertEqual(problems, [])
+        self.assertEqual(len(payload["details"]), 1)
+        item = payload["details"][0]
+        self.assertRegex(item["productId"], r"^MOLI-[0-9a-f]{24}$")
+        self.assertEqual(item["productName"], "8078 Pudra 38")
+        self.assertEqual(item["note"], "")
+        self.assertEqual(item["quantity"], 1)
+        self.assertEqual(item["unitPrice"], "11000.00")
+        self.assertEqual(item["tax"], "1100.00")
+        self.assertEqual(item["total"], "12100.00")
 
     def test_missing_color_or_size_blocks_export(self):
         order = SimpleNamespace(
@@ -55,23 +72,25 @@ class BizimHesapLineLabelTests(SimpleTestCase):
         self.assertEqual(payload["details"][0]["productName"], "Accessories")
         self.assertEqual(payload["details"][0]["quantity"], "2")
 
-    def test_same_model_with_different_size_has_distinct_product_identity(self):
-        def make_line(size):
+    def test_same_model_with_different_color_or_size_has_distinct_product_identity(self):
+        def make_line(color, size):
             order = SimpleNamespace(
-                urun_kodu="7176", renk="Pudra", beden=size,
+                urun_kodu="7176", renk=color, beden=size,
                 siparis_tipi="OZEL", musteri_referans="MDZ129477", para_birimi="TRY"
             )
             return SimpleNamespace(order=order, price=Decimal("20000"),
                                    vat_rate=Decimal("10"), quantity=1)
         payload, problems = build_invoice_payload(
-            self.invoice, [make_line("40"), make_line("42")], self.mapping, "TEST-FIRM"
+            self.invoice, [make_line("Pudra", "40"), make_line("Pudra", "42"), make_line("Taş", "42")], self.mapping, "TEST-FIRM"
         )
         self.assertEqual(problems, [])
-        first, second = payload["details"]
+        first, second, third = payload["details"]
         self.assertNotEqual(first["productId"], second["productId"])
         self.assertEqual(first["productName"], "7176 Pudra 40 ÖZEL MDZ129477")
         self.assertEqual(second["productName"], "7176 Pudra 42 ÖZEL MDZ129477")
-        self.assertEqual(payload["amounts"]["total"], "44000.00")
+        self.assertNotEqual(second["productId"], third["productId"])
+        self.assertEqual(third["productName"], "7176 Taş 42 ÖZEL MDZ129477")
+        self.assertEqual(payload["amounts"]["total"], "66000.00")
 
     def test_same_exact_label_reuses_identity(self):
         order = SimpleNamespace(

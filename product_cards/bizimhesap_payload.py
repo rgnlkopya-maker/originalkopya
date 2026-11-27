@@ -1,5 +1,6 @@
 """Build BizimHesap AddInvoice JSON locally. This module performs no HTTP writes."""
 from decimal import Decimal, ROUND_HALF_UP
+from hashlib import sha256
 from .external_invoice_line_label import external_invoice_item_label
 
 CURRENCIES = {"TRY": "TL", "TL": "TL", "USD": "USD", "EUR": "EUR", "GBP": "GBP", "CHF": "CHF"}
@@ -53,11 +54,6 @@ def build_invoice_payload(invoice, lines, mapping, firm_id):
             continue
         full_label = external_invoice_item_label(line)
         if order:
-            # BizimHesap treats productId as a persistent product identity.
-            # Reusing the model code alone can pick an older product/catalogue
-            # label (and therefore the wrong color, size, or reference).
-            # Give each distinct full line label a deterministic, namespaced
-            # external identity; keep the complete label as the product name.
             color = str(getattr(order, "renk", "") or "").strip()
             size = str(getattr(order, "beden", "") or "").strip()
             if not color or not size:
@@ -66,7 +62,11 @@ def build_invoice_payload(invoice, lines, mapping, firm_id):
                     "): renk ve beden tamamlanmadan BizimHesap'a aktarılmaz."
                 )
                 continue
-            product_id = full_label
+            # Keep the display text in productName only. Repeating it as the
+            # catalogue key can surface the same text twice in BizimHesap.
+            # A stable key per complete label still prevents one color, size,
+            # or customer reference from picking another's catalogue entry.
+            product_id = "MOLI-" + sha256(full_label.encode("utf-8")).hexdigest()[:24]
             product_description = full_label
         else:
             # Keep manual-line mapping unchanged; unrelated to this fix.
