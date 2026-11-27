@@ -5,11 +5,13 @@ from io import BytesIO
 
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponse, HttpResponseForbidden, HttpResponseBadRequest
+from django.utils import timezone
 from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill, Alignment
 from openpyxl.utils import get_column_letter
 
-from .models import AttendanceRecord
+from .absence_service import is_employed_on, is_ordinary_workday
+from .models import AttendanceRecord, EmployeeHRProfile
 from .views import attendance_calendar_users, is_manager
 
 
@@ -51,6 +53,13 @@ def attendance_excel(request):
         return HttpResponseBadRequest("Geçersiz görünüm.")
     start, end = (_period(year, month) if mode == "monthly" else (date(year, 1, 6), date(year + 1, 1, 5)))
     users = list(attendance_calendar_users())
+    today = timezone.localdate()
+    employment_dates = {
+        uid: (hire, sgk, ended)
+        for uid, hire, sgk, ended in EmployeeHRProfile.objects.filter(user__in=users).values_list(
+            "user_id", "employment_start_date", "sgk_start_date", "employment_end_date"
+        )
+    }
     records = list(AttendanceRecord.objects.filter(work_date__range=(start, end), user__in=users).select_related("user"))
     by_key = {(r.user_id, r.work_date): r for r in records}
     book = Workbook()
@@ -62,6 +71,7 @@ def attendance_excel(request):
     missing.append(["Tarih", "Personel", "Sorun", "Aciklama"])
     for day_offset in range((end - start).days + 1):
         day = start + timedelta(days=day_offset)
+        check_blank = day < today and is_ordinary_workday(day)
         for user in users:
             record = by_key.get((user.pk, day))
             name = user.get_full_name() or user.username
@@ -69,11 +79,11 @@ def attendance_excel(request):
                 local_in = record.check_in.astimezone().strftime("%H:%M") if record.check_in else ""
                 local_out = record.check_out.astimezone().strftime("%H:%M") if record.check_out else ""
                 daily.append([day, name, local_in, local_out, status_names.get(record.status, record.status), record.late_minutes, record.early_leave_minutes, record.overtime_minutes, record.note])
-                if record.status == "worked" and record.check_in and not record.check_out and day < date.today():
+                if record.status == "worked" and record.check_in and not record.check_out and day < today:
                     missing.append([day, name, "Cikis eksik", record.note])
                 elif record.status == "worked" and record.check_out and not record.check_in:
                     missing.append([day, name, "Giris eksik", record.note])
-            elif day.weekday() < 5 and day < date.today():
+            elif check_blank and is_employed_on(day, *employment_dates.get(user.pk, (None, None, None))):
                 # Missing record does not automatically mean absence; show for review only.
                 missing.append([day, name, "Kayit yok - kontrol gerekli", ""])
     summary = book.create_sheet("Donem Toplamlari", 1)

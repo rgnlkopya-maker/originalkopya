@@ -702,9 +702,11 @@ def edit_record(request):
     status = (request.POST.get("status") or "worked").strip(); valid_statuses = {choice[0] for choice in AttendanceRecord.STATUS_CHOICES}
     if status not in valid_statuses: return JsonResponse({"ok": False, "message": "Geçersiz durum."}, status=400)
     check_in_text = (request.POST.get("check_in") or "").strip(); check_out_text = (request.POST.get("check_out") or "").strip(); note = (request.POST.get("note") or "").strip(); uploaded_report = request.FILES.get("report_image")
+    remove_report = request.POST.get("remove_report_image") == "1"
     record = AttendanceRecord.objects.filter(user=target_user, work_date=work_date).first()
     if not check_in_text and not check_out_text and status == "worked" and not note and not uploaded_report and not record: return JsonResponse({"ok": True, "message": "Değişiklik yok."})
     old_values = {"status": record.status if record else None, "check_in": record.check_in.isoformat() if record and record.check_in else None, "check_out": record.check_out.isoformat() if record and record.check_out else None, "note": record.note if record else None}
+    old_values["has_report_image"] = bool(record and record.report_image_url)
     if status != "absent":
         from .absence_service import AUTO_ABSENCE_NOTE
         if note == AUTO_ABSENCE_NOTE:
@@ -719,6 +721,9 @@ def edit_record(request):
     if uploaded_report:
         try: record.report_image_url = _upload_report_image(uploaded_report, target_user.id, work_date)
         except Exception as exc: return JsonResponse({"ok": False, "message": f"Rapor görseli yüklenemedi: {exc}"}, status=500)
+    elif remove_report:
+        # Remove the attachment from this record, not the underlying stored object.
+        record.report_image_url = ""
     if record.checkout_forgotten and (record.check_out or status != "worked"):
         record.checkout_forgotten_resolved_at = timezone.now()
         record.checkout_forgotten_resolved_by = request.user
@@ -742,7 +747,7 @@ def edit_record(request):
                 "employee": target_user.username,
                 "date": str(work_date),
                 "old": old_values,
-                "new": {"status": record.status, "check_in": record.check_in.isoformat() if record.check_in else None, "check_out": record.check_out.isoformat() if record.check_out else None, "note": record.note}
+                "new": {"status": record.status, "check_in": record.check_in.isoformat() if record.check_in else None, "check_out": record.check_out.isoformat() if record.check_out else None, "note": record.note, "has_report_image": bool(record.report_image_url)}
             }, ensure_ascii=False),
         )
     return JsonResponse({"ok": True, "message": "Puantaj kaydı güncellendi."})

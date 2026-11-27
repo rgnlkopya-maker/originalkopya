@@ -34,6 +34,12 @@ def is_ordinary_workday(day):
     return True
 
 
+def is_employed_on(day, hire, sgk, ended):
+    """Use the earlier recorded start date; never infer an unknown start."""
+    starts = [start for start in (hire, sgk) if start]
+    return bool(starts and min(starts) <= day and (ended is None or day <= ended))
+
+
 def process_daily_absences(now=None):
     """Process today once. No presence is inferred and no older day is filled."""
     local = (now or timezone.now()).astimezone(LOCAL)
@@ -59,8 +65,7 @@ def process_daily_absences(now=None):
         for user_id, hire, sgk, ended in EmployeeHRProfile.objects.filter(
             user_id__in=roster,
         ).values_list("user_id", "employment_start_date", "sgk_start_date", "employment_end_date"):
-            starts = [start for start in (hire, sgk) if start]
-            if starts and min(starts) <= day and (ended is None or day <= ended):
+            if is_employed_on(day, hire, sgk, ended):
                 eligible.append(user_id)
         records = AttendanceRecord.objects.filter(user_id__in=eligible, work_date=day)
         existing = set(records.values_list("user_id", flat=True))
