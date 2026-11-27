@@ -10,21 +10,29 @@
     <div><span class="lbl">Föy Tarihi</span><span class="val">{{ finance.date|date:"d.m.Y H:i" }}</span></div>
     <div><span class="lbl">Son Güncelleme</span><span class="val">{{ finance.updated_at|date:"d.m.Y H:i" }}</span></div>
   </section>
+  {% if finance.pending_review %}
+      <div class="text-muted small">Fotoğraf kontrolü bekliyor; TL hesaplarına katılmadı.</div>
+    {% elif finance.revenue_missing %}
+      <div class="text-muted small">KDV hariç: {% if finance.native_revenue is not None %}{{ finance.native_revenue|floatformat:2 }}{% else %}—{% endif %} {{ finance.currency }}. Geçerli kur bulunamadığı için TL ciro hesaplanmadı.</div>
+    {% elif finance.rate and finance.currency != 'TRY' %}
+      <div class="text-muted small">KDV hariç: {% if finance.native_revenue is not None %}{{ finance.native_revenue|floatformat:2 }}{% else %}—{% endif %} {{ finance.currency }} · {{ finance.rate_source }}{% if finance.rate_day %} (uygulama tarihi: {{ finance.rate_day|date:"d.m.Y" }}){% endif %}: 1 {{ finance.currency }} = {{ finance.rate|floatformat:"-6" }} TL</div>
+    {% endif %}
+    {% if finance.cost_missing %}<div class="text-muted small">Bazı maliyetler için geçerli kur bulunamadı.</div>{% endif %}
   <section class="tablebox">
     <table>
       <thead><tr><th>Ürün</th><th>Renk</th><th>Beden</th><th>Adet</th><th>Açıklama</th><th class="money">KDV Hariç Anlaşılan</th><th class="money">Ürün Maliyeti</th><th class="money">Kâr</th><th class="money">Kâr %</th></tr></thead>
       <tbody>
         {% for x in finance.items %}
-        <tr><td><strong>{{ x.code }}</strong></td><td>{{ x.color }}</td><td>{{ x.size }}</td><td>{{ x.quantity }}</td><td>{{ x.description }}</td><td class="money">{{ x.net_unit_price|floatformat:2 }} TL</td><td class="money">{{ x.unit_cost|floatformat:2 }} TL</td><td class="money profit">{{ x.unit_profit|floatformat:2 }} TL</td><td class="money profit">%{{ x.unit_profit_rate|floatformat:2 }}</td></tr>
+        <tr><td><strong>{{ x.code }}</strong></td><td>{{ x.color }}</td><td>{{ x.size }}</td><td>{{ x.quantity }}</td><td>{{ x.description }}</td><td class="money">{% if x.net_unit_price is not None %}{{ x.net_unit_price|floatformat:2 }} TL{% else %}—{% endif %}</td><td class="money">{% if x.unit_cost is not None %}{{ x.unit_cost|floatformat:2 }} TL{% else %}—{% endif %}</td><td class="money profit">{% if x.unit_profit is not None %}{{ x.unit_profit|floatformat:2 }} TL{% else %}—{% endif %}</td><td class="money profit">{% if x.unit_profit_rate is not None %}%{{ x.unit_profit_rate|floatformat:2 }}{% else %}—{% endif %}</td></tr>
         {% endfor %}
       </tbody>
     </table>
   </section>
   <section class="totals">
-    <div class="rowx"><span>Toplam Ciro</span><strong>{{ finance.revenue|floatformat:2 }} TL</strong></div>
-    <div class="rowx"><span>Toplam Maliyet</span><strong>{{ finance.cost|floatformat:2 }} TL</strong></div>
-    <div class="rowx grand profit"><span>Toplam Kâr</span><strong>{{ finance.profit|floatformat:2 }} TL</strong></div>
-    <div class="rowx rate"><span>Kâr Oranı</span><strong>%{{ finance.profit_rate|floatformat:2 }}</strong></div>
+    <div class="rowx"><span>Toplam Ciro</span><strong>{% if finance.revenue is not None %}{{ finance.revenue|floatformat:2 }} TL{% else %}—{% endif %}</strong></div>
+    <div class="rowx"><span>Toplam Maliyet</span><strong>{% if finance.cost is not None %}{{ finance.cost|floatformat:2 }} TL{% else %}—{% endif %}</strong></div>
+    <div class="rowx grand profit"><span>Toplam Kâr</span><strong>{% if finance.profit is not None %}{{ finance.profit|floatformat:2 }} TL{% else %}—{% endif %}</strong></div>
+    <div class="rowx rate"><span>Kâr Oranı</span><strong>{% if finance.profit_rate is not None %}%{{ finance.profit_rate|floatformat:2 }}{% else %}—{% endif %}</strong></div>
   </section>
 </main>
 {% endblock %}

@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load l10n %}
 {% block content %}
 <style>
 .fin-wrap{max-width:1250px;margin:0 auto;padding:24px 14px 50px}.fin-head{display:flex;justify-content:space-between;gap:14px;align-items:end;margin-bottom:18px}.fin-head h2{margin:0;font-weight:900}.date-box{display:flex;gap:8px;align-items:end;flex-wrap:wrap}.date-box label{font-size:10px;font-weight:800;color:#7b8493;display:block;margin-bottom:4px}.date-box input{height:40px;border:1px solid #dfe5ef;border-radius:10px;padding:0 10px}.date-box button,.clear{height:40px;border-radius:10px;padding:0 14px;font-weight:800;text-decoration:none}.date-box button{border:0;background:#263044;color:#fff}.clear{display:inline-flex;align-items:center;border:1px solid #dfe5ef;background:#fff;color:#39405a}.fin-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}.fin-card{display:block;background:#fff;border:1px solid #e4e9f1;border-radius:18px;padding:18px;text-decoration:none;color:inherit;box-shadow:0 2px 7px rgba(15,23,42,.04)}.fin-card:hover{border-color:#cfd7ff;box-shadow:0 8px 24px rgba(15,23,42,.08)}.fin-card h3{font-size:18px;font-weight:900;margin:0 0 4px;color:#263044}.sub{font-size:11px;color:#8a94a6;margin-bottom:16px}.metrics{display:grid;grid-template-columns:1fr 1fr;gap:9px}.metric{background:#f7f8fc;border-radius:12px;padding:10px}.metric span{display:block;font-size:9px;font-weight:850;color:#8a94a6;text-transform:uppercase;margin-bottom:3px}.metric strong{font-size:16px;color:#263044}.profit strong{color:#177245}.rate strong{color:#3b45d9}@media(max-width:850px){.fin-head{align-items:flex-start;flex-direction:column}.fin-grid{grid-template-columns:1fr}.date-box{width:100%}.date-box>div{flex:1}.date-box input{width:100%}}
@@ -18,7 +19,7 @@
 <div class="fin-help-top"><h3 id="fin-help-title">Sipariş Finans Raporu · Hesaplama Rehberi</h3><button type="button" class="fin-help-close" id="fin-help-close" aria-label="Kapat">×</button></div>
 <p class="fin-help-lead">Bu ekran, seçtiğiniz dönemdeki siparişlerin satış tutarını, maliyetini ve beklenen kârını karşılaştırır. Aşağıdaki hesaplama örnekleri rakamların nasıl oluştuğunu gösterir.</p>
 <div class="fin-help-item"><strong>1. Tarih aralığı hangi kayıtları getirir?</strong><p>Sipariş Föyleri ve Model Bazlı Kârlılık, oluşturulma tarihi seçilen aralıkta olan onaylı veya siparişe aktarılmış föyleri içerir. Tekli ve Özel Siparişler ise sipariş tarihine göre süzülür. Tarih seçmezseniz tüm uygun kayıtlar gösterilir. Tarih filtresi geçmişteki kuru sabitlemez; yalnızca kayıtları seçer.</p></div>
-<div class="fin-help-item"><strong>2. Ciro nasıl hesaplanır?</strong><p>Tekli ve özel siparişlerde her sipariş için satış fiyatı × adet hesaplanır ve toplanır. Föylerde önce satırların fiyat × adet toplamı bulunur; föy indirimi veya fiyat düzenlemeleri uygulanır, ardından varsa KDV ayrıştırılarak KDV hariç ciro bulunur. Örnek: 5 adet × 8.000 TL = 40.000 TL; %10 indirim sonrası KDV hariç ciro 36.000 TL.</p></div>
+<div class="fin-help-item"><strong>2. Ciro nasıl hesaplanır?</strong><p>Tekli ve özel siparişlerde her sipariş için satış fiyatı × adet hesaplanır ve toplanır. Föylerde önce satırların fiyat × adet toplamı bulunur; föy indirimi veya fiyat düzenlemeleri uygulanır, ardından varsa KDV ayrıştırılarak KDV hariç ciro bulunur. Dövizli föylerde geçerli kayıtlı föy kuru, yoksa föy tarihinde MoliApp’te geçerli son TCMB arşiv kuru (en fazla 7 gün geriye) kullanılır. Örnek: 5 adet × 8.000 TL = 40.000 TL; %10 indirim sonrası KDV hariç ciro 36.000 TL.</p></div>
 <div class="fin-help-item"><strong>3. Maliyet nereden geliyor?</strong><p>Föy henüz siparişe aktarılmadıysa ürün kartındaki güncel maliyet kullanılır. Aktarılmış föyde bağlantılı siparişlerin maliyetleri esas alınır; bağlantı bulunamazsa ürün kartına dönülür. Tekli ve özel siparişlerde siparişin kayıtlı toplam maliyeti kullanılır. Her birim maliyet adetle çarpılarak toplam maliyet elde edilir.</p></div>
 <div class="fin-help-item"><strong>4. Kâr ve kâr oranı nasıl hesaplanır?</strong><p><b>Kâr = Ciro − Toplam maliyet.</b> <b>Kâr oranı (%) = Kâr ÷ Ciro × 100.</b> Örnek: 36.000 TL ciro ve 25.000 TL maliyet varsa kâr 11.000 TL, kâr oranı yaklaşık %30,56 olur. Bu oran maliyet üzerine eklenen zam yüzdesi değil, satış üzerinden hesaplanan kâr marjıdır.</p></div>
 <div class="fin-help-item"><strong>5. Model Bazlı Kârlılık sütunları</strong><p>Aynı ürün kodu farklı föylerde geçiyorsa miktarlar ve tutarlar birleştirilir. <b>Adet</b> toplam ürün sayısıdır. <b>Ort. Satış = Model cirosu ÷ Adet.</b> <b>Ort. Maliyet = Model maliyeti ÷ Adet.</b> <b>Kâr = Model cirosu − Model maliyeti.</b> <b>Kâr % = Model kârı ÷ Model cirosu × 100.</b> Sütun başlıklarına tıklayarak artan veya azalan sıralama yapabilirsiniz.</p></div>
@@ -29,12 +30,12 @@
 <script>(function(){const dialog=document.getElementById('fin-help-dialog');document.getElementById('fin-help-open').addEventListener('click',()=>dialog.showModal());document.getElementById('fin-help-close').addEventListener('click',()=>dialog.close());dialog.addEventListener('click',event=>{if(event.target===dialog)dialog.close()});})();</script>
   <section class="fin-grid">
     <a class="fin-card" href="{% url 'siparis_finans_foyleri' %}{% if start or end %}?start={{ start }}&end={{ end }}{% endif %}">
-      <h3>Sipariş Föyleri</h3><div class="sub">{{ folio_summary.count }} onaylanmış / aktarılmış föy</div>
+      <h3>Sipariş Föyleri</h3><div class="sub">{{ folio_summary.count }} föy TL hesabına dahil</div>
       <div class="metrics">
         <div class="metric"><span>Toplam Ciro</span><strong>{{ folio_summary.revenue|floatformat:2 }} TL</strong></div>
-        <div class="metric"><span>Toplam Maliyet</span><strong>{{ folio_summary.cost|floatformat:2 }} TL</strong></div>
-        <div class="metric profit"><span>Toplam Kâr</span><strong>{{ folio_summary.profit|floatformat:2 }} TL</strong></div>
-        <div class="metric rate"><span>Kâr %</span><strong>%{{ folio_summary.profit_rate|floatformat:2 }}</strong></div>
+        <div class="metric"><span>Toplam Maliyet</span><strong>{% if folio_summary.cost is not None %}{{ folio_summary.cost|floatformat:2 }} TL{% else %}—{% endif %}</strong></div>
+        <div class="metric profit"><span>Toplam Kâr</span><strong>{% if folio_summary.profit is not None %}{{ folio_summary.profit|floatformat:2 }} TL{% else %}—{% endif %}</strong></div>
+        <div class="metric rate"><span>Kâr %</span><strong>{% if folio_summary.profit_rate is not None %}%{{ folio_summary.profit_rate|floatformat:2 }}{% else %}—{% endif %}</strong></div>
         <div class="metric"><span>Ürün Çeşidi</span><strong>{{ folio_summary.product_count }}</strong></div>
         <div class="metric"><span>Toplam Adet</span><strong>{{ folio_summary.total_qty }}</strong></div>
       </div>
@@ -62,22 +63,29 @@
       </div>
     </div>
   </section>
+{% if pending_folios or missing_folio_rates %}
+<div class="fin-help-note" role="status">
+{% if pending_folios %}Fotoğraf kontrolü bekleyen {{ pending_folios }} föy hesaba katılmadı.{% endif %}
+{% if missing_folio_rates %}Geçerli kur bulunamayan {{ missing_folio_rates }} dövizli föy TL toplamlarına katılmadı; asıl tutarları Föyler listesinde görebilirsiniz.{% endif %}
+</div>
+{% endif %}
 <details class="fin-card fin-fold" style="margin-top:18px" id="model-profit"><summary>Model Bazlı Kârlılık <span>⌄</span></summary><div class="fold-body"><div class="sub">Yalnızca seçilen tarih aralığındaki onaylı ve aktarılmış föyler. Tutarlar KDV hariç TL.</div>
 <div style="overflow-x:auto"><table style="width:100%;min-width:780px;border-collapse:collapse">
 <thead><tr><th><button type="button" class="sort-model" data-column="0">Model <span>↕</span></button></th><th><button type="button" class="sort-model" data-column="1">Adet <span>↕</span></button></th><th><button type="button" class="sort-model" data-column="2">Ort. Satış <span>↕</span></button></th><th><button type="button" class="sort-model" data-column="3">Ort. Maliyet <span>↕</span></button></th><th><button type="button" class="sort-model" data-column="4">Ciro <span>↕</span></button></th><th><button type="button" class="sort-model" data-column="5">Kâr <span>↕</span></button></th><th><button type="button" class="sort-model" data-column="6">Kâr % <span>↕</span></button></th></tr></thead>
-<tbody>{% for m in model_rows %}<tr class="model-row" data-code="{{ m.code }}" data-price="{{ m.unit_price }}" data-cost="{{ m.unit_cost }}" data-qty="{{ m.quantity }}" data-revenue="{{ m.revenue }}" data-profit="{{ m.profit }}" data-rate="{{ m.profit_rate }}" style="cursor:pointer;border-top:1px solid #edf0f5"><td><a href="{% url 'order_list' %}?urun_kodu={{ m.code|urlencode }}&amp;active=all" style="font-weight:800;color:#315ed6" onclick="event.stopPropagation()">{{ m.code }}</a></td><td>{{ m.quantity }}</td><td>{{ m.unit_price|floatformat:2 }}</td><td>{{ m.unit_cost|floatformat:2 }}</td><td>{{ m.revenue|floatformat:2 }}</td><td>{{ m.profit|floatformat:2 }}</td><td>%{{ m.profit_rate|floatformat:2 }}</td></tr>{% empty %}<tr><td colspan="7">Seçilen tarihlerde model bulunamadı.</td></tr>{% endfor %}</tbody></table></div></div></details>
+<tbody>{% for m in model_rows %}<tr class="model-row" data-code="{{ m.code }}" data-price="{{ m.unit_price|unlocalize|default_if_none:"" }}" data-cost="{{ m.unit_cost|unlocalize|default_if_none:"" }}" data-qty="{{ m.quantity|unlocalize|default_if_none:"" }}" data-revenue="{{ m.revenue|unlocalize|default_if_none:"" }}" data-profit="{{ m.profit|unlocalize|default_if_none:"" }}" data-rate="{{ m.profit_rate|unlocalize|default_if_none:"" }}" style="cursor:pointer;border-top:1px solid #edf0f5"><td><a href="{% url 'order_list' %}?urun_kodu={{ m.code|urlencode }}&amp;active=all" style="font-weight:800;color:#315ed6" onclick="event.stopPropagation()">{{ m.code }}</a></td><td>{{ m.quantity }}</td><td>{{ m.unit_price|floatformat:2 }}</td><td>{% if m.unit_cost is not None %}{{ m.unit_cost|floatformat:2 }}{% else %}—{% endif %}</td><td>{{ m.revenue|floatformat:2 }}</td><td>{% if m.profit is not None %}{{ m.profit|floatformat:2 }}{% else %}—{% endif %}</td><td>{% if m.profit_rate is not None %}%{{ m.profit_rate|floatformat:2 }}{% else %}—{% endif %}</td></tr>{% empty %}<tr><td colspan="7">Seçilen tarihlerde model bulunamadı.</td></tr>{% endfor %}</tbody></table></div></div></details>
 <details class="fin-card fin-fold" style="margin-top:14px" id="simulator"><summary>Fiyat ve Kâr Simülatörü <span>⌄</span></summary><div class="fold-body"><div class="sub">Seçilen dönemdeki modellerin ortalama KDV hariç satış ve maliyetleri kullanılır. Sipariş kayıtları değiştirilmez.</div>
-<div class="date-box"><div><label>Model</label><select id="sim-model" style="height:40px;border:1px solid #dfe5ef;border-radius:10px;padding:0 10px"><option value="">Model seçiniz</option>{% for m in model_rows %}<option value="{{ m.code }}" data-price="{{ m.unit_price }}" data-cost="{{ m.unit_cost }}" data-qty="{{ m.quantity }}">{{ m.code }}</option>{% endfor %}</select></div><div><label>Yeni birim satış fiyatı (TL, KDV hariç)</label><input id="sim-price" type="number" min="0" step="0.01" placeholder="Fiyat"></div><div><label>Adet</label><input id="sim-qty" type="number" min="1" step="1" placeholder="Adet"></div></div>
+<div class="date-box"><div><label>Model</label><select id="sim-model" style="height:40px;border:1px solid #dfe5ef;border-radius:10px;padding:0 10px"><option value="">Model seçiniz</option>{% for m in model_rows %}{% if m.unit_cost is not None %}<option value="{{ m.code }}" data-price="{{ m.unit_price|unlocalize|default_if_none:"" }}" data-cost="{{ m.unit_cost|unlocalize|default_if_none:"" }}" data-qty="{{ m.quantity|unlocalize|default_if_none:"" }}">{{ m.code }}</option>{% endif %}{% endfor %}</select></div><div><label>Yeni birim satış fiyatı (TL, KDV hariç)</label><input id="sim-price" type="number" min="0" step="0.01" placeholder="Fiyat"></div><div><label>Adet</label><input id="sim-qty" type="number" min="1" step="1" placeholder="Adet"></div></div>
 <div class="metrics" style="margin-top:14px"><div class="metric"><span>Mevcut birim kâr</span><strong id="sim-old">—</strong></div><div class="metric"><span>Yeni birim kâr</span><strong id="sim-new">—</strong></div><div class="metric"><span>Yeni kâr marjı</span><strong id="sim-rate">—</strong></div><div class="metric"><span>Toplam kâr farkı</span><strong id="sim-diff">—</strong></div></div></div></details>
 <script>
 (function(){
 const model=document.getElementById('sim-model'),price=document.getElementById('sim-price'),qty=document.getElementById('sim-qty');
 const fmt=n=>Number.isFinite(n)?new Intl.NumberFormat('tr-TR',{minimumFractionDigits:2,maximumFractionDigits:2}).format(n)+' TL':'—';
-function update(){const o=model.selectedOptions[0];if(!o||!o.dataset.price){['sim-old','sim-new','sim-rate','sim-diff'].forEach(id=>document.getElementById(id).textContent='—');return;}
+function clear(){['sim-old','sim-new','sim-rate','sim-diff'].forEach(id=>document.getElementById(id).textContent='—');}
+function update(){const o=model.selectedOptions[0];if(!o||!o.dataset.price){clear();return;}
 const original=Number(o.dataset.price),cost=Number(o.dataset.cost),newPrice=Number(price.value),count=Number(qty.value);
-if(price.value===''||qty.value===''||!Number.isFinite(newPrice)||newPrice<0||!Number.isInteger(count)||count<1)return;
+if(price.value===''||qty.value===''||!Number.isFinite(newPrice)||newPrice<0||!Number.isInteger(count)||count<1){clear();return;}
 document.getElementById('sim-old').textContent=fmt(original-cost);document.getElementById('sim-new').textContent=fmt(newPrice-cost);
-document.getElementById('sim-rate').textContent=newPrice>0?'%'+((newPrice-cost)/newPrice*100).toFixed(2):'—';
+document.getElementById('sim-rate').textContent=newPrice>0?'%'+new Intl.NumberFormat('tr-TR',{minimumFractionDigits:2,maximumFractionDigits:2}).format((newPrice-cost)/newPrice*100):'—';
 document.getElementById('sim-diff').textContent=fmt((newPrice-original)*count);
 }
 model.addEventListener('change',()=>{const o=model.selectedOptions[0];price.value=o.dataset.price||'';qty.value=o.dataset.qty||'';update()});
@@ -90,7 +98,7 @@ document.querySelectorAll('.sort-model').forEach(button=>button.addEventListener
  direction=lastColumn===col?-direction:1;lastColumn=col;
  const fields=['code','qty','price','cost','revenue','profit','rate'];
  const rows=Array.from(tbody.querySelectorAll('.model-row'));
- rows.sort((a,b)=>{const x=a.dataset[fields[col]],y=b.dataset[fields[col]];return direction*(col===0?x.localeCompare(y,'tr',{numeric:true}):Number(x)-Number(y))});
+ rows.sort((a,b)=>{const x=a.dataset[fields[col]],y=b.dataset[fields[col]];if(col!==0 && (x===''||y===''))return Number(x==='')-Number(y==='');return direction*(col===0?x.localeCompare(y,'tr',{numeric:true}):Number(x)-Number(y))});
  rows.forEach(row=>tbody.appendChild(row));
  document.querySelectorAll('.sort-model').forEach(el=>el.querySelector('span').textContent=el===button?(direction===1?'↑':'↓'):'↕');
 }));

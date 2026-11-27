@@ -1,4 +1,5 @@
 import logging
+from datetime import timedelta
 from decimal import Decimal, ROUND_HALF_UP
 
 from django.contrib.auth.decorators import login_required
@@ -8,7 +9,7 @@ from django.utils import timezone
 
 from app_settings.access import has_access
 from core.models import Order
-from product_cards.models import ShowroomDraft
+from product_cards.models import ExchangeRate, ShowroomDraft
 from product_cards.showroom_views import _apply_pricing_operations
 
 
@@ -20,7 +21,48 @@ def _q(value):
     return Decimal(value or 0).quantize(MONEY, rounding=ROUND_HALF_UP)
 
 
-def _folio_finance(draft, include_items=False):
+RATE_FIELDS = {"USD": "usd_try", "EUR": "eur_try", "GBP": "gbp_try"}
+MAX_RATE_AGE = timedelta(days=7)
+
+
+def _historical_rate(currency, rate_day, cache):
+    field = RATE_FIELDS.get(currency)
+    if field is None or rate_day is None:
+        return None, None
+    key = (currency, rate_day)
+    if key not in cache:
+        cache[key] = (
+            ExchangeRate.objects.filter(
+                rate_date__range=(rate_day - MAX_RATE_AGE, rate_day),
+                **{f"{field}__gt": 1},
+            ).order_by("-rate_date").values_list(field, "rate_date").first()
+            or (None, None)
+        )
+    return cache[key]
+
+
+def _folio_sale_rate(draft, currency, cache):
+    if currency == "TRY":
+        return Decimal("1"), "", None
+    field = RATE_FIELDS.get(currency)
+    saved = getattr(draft, field, None) if field else None
+    if saved is not None and saved > 1:
+        return saved, "Föy kuru", None
+    rate, rate_day = _historical_rate(currency, timezone.localdate(draft.created_at), cache)
+    return rate, "TCMB arşiv kuru", rate_day
+
+
+def _linked_cost_try(order, cache):
+    amount = Decimal(order.toplam_maliyet or 0)
+    currency = order.maliyet_para_birimi or "TRY"
+    if currency == "TRY" or amount == 0:
+        return amount
+    rate, _ = _historical_rate(currency, order.siparis_tarihi, cache)
+    return amount * rate if rate is not None else None
+
+
+def _folio_finance(draft, include_items=False, rate_cache=None):
+    rate_cache = {} if rate_cache is None else rate_cache
     items = list(
         draft.items.select_related("product_card__urun")
         .prefetch_related("product_card__materials__material")
@@ -59,6 +101,12 @@ def _folio_finance(draft, include_items=False):
 
     net_total = gross_total / vat_multiplier if vat_multiplier > 0 else gross_total
     net_factor = (net_total / subtotal) if subtotal > 0 else Decimal("0")
+    currency = (draft.currency or "TRY").upper()
+    rate, rate_source, rate_day = _folio_sale_rate(draft, currency, rate_cache)
+    pending_review = bool(draft.import_pending_items)
+    revenue_missing = rate is None and bool(net_total or gross_total)
+    net_total_try = None if revenue_missing else net_total * (rate or 1)
+    gross_total_try = None if revenue_missing else gross_total * (rate or 1)
 
     linked_orders_by_item = {}
     if draft.status == "TRANSFERRED":
@@ -67,6 +115,7 @@ def _folio_finance(draft, include_items=False):
                 linked_orders_by_item.setdefault(link.draft_item_id, []).append(link.order)
 
     total_cost = Decimal("0")
+    cost_missing = False
     product_count = set()
     total_qty = 0
     detail_items = []
@@ -77,7 +126,8 @@ def _folio_finance(draft, include_items=False):
         code = item.product_card.urun.kod
         product_count.add(code)
 
-        net_unit = Decimal(item.unit_price or 0) * net_factor
+        net_unit_native = Decimal(item.unit_price or 0) * net_factor
+        net_unit = None if revenue_missing else net_unit_native * (rate or 1)
         linked_orders = linked_orders_by_item.get(item.id, [])
         valid_linked_orders = [order for order in linked_orders if order is not None]
         if len(valid_linked_orders) != len(linked_orders):
@@ -86,24 +136,23 @@ def _folio_finance(draft, include_items=False):
                 draft.pk, item.pk, len(linked_orders) - len(valid_linked_orders),
             )
         if valid_linked_orders:
-            row_cost = sum(
-                (Decimal(order.toplam_maliyet or 0) * Decimal(order.adet or 1) for order in valid_linked_orders),
-                Decimal("0"),
-            )
-            unit_cost = row_cost / Decimal(qty) if qty else Decimal("0")
+            linked_costs = [(_linked_cost_try(order, rate_cache), order.adet or 1)
+                            for order in valid_linked_orders]
+            row_cost = (None if any(cost is None for cost, _ in linked_costs) else
+                        sum((cost * count for cost, count in linked_costs), Decimal("0")))
         else:
-            # Henüz siparişe dönüşmemiş veya eski bağlantısız föylerde ürün kartı maliyeti kullanılır.
-            unit_cost = Decimal(item.product_card.toplam_maliyet or 0)
-            row_cost = unit_cost * Decimal(qty)
-        row_revenue = net_unit * Decimal(qty)
-        row_profit = row_revenue - row_cost
-        unit_profit = net_unit - unit_cost
-        unit_profit_rate = (
-            (unit_profit / net_unit) * Decimal("100")
-            if net_unit > 0 else Decimal("0")
-        )
+            # Ürün kartı maliyeti zaten TL; satış kuruyla tekrar çarpmayın.
+            row_cost = Decimal(item.product_card.toplam_maliyet or 0) * qty
 
-        total_cost += row_cost
+        unit_cost = row_cost / qty if row_cost is not None else None
+        row_revenue = net_unit * qty if net_unit is not None else None
+        unit_profit = net_unit - unit_cost if net_unit is not None and unit_cost is not None else None
+        unit_profit_rate = (unit_profit / net_unit * 100
+                            if unit_profit is not None and net_unit > 0 else None)
+        if row_cost is None:
+            cost_missing = True
+        else:
+            total_cost += row_cost
 
         if include_items:
             detail_items.append({
@@ -112,20 +161,20 @@ def _folio_finance(draft, include_items=False):
                 "size": item.size or "—",
                 "quantity": qty,
                 "description": item.description or "—",
-                "net_unit_price": _q(net_unit),
-                "unit_cost": _q(unit_cost),
-                "unit_profit": _q(unit_profit),
-                "unit_profit_rate": _q(unit_profit_rate),
-                "row_revenue": _q(row_revenue),
-                "row_cost": _q(row_cost),
-                "row_profit": _q(row_profit),
+                "net_unit_price": _q(net_unit) if net_unit is not None else None,
+                "unit_cost": _q(unit_cost) if unit_cost is not None else None,
+                "unit_profit": _q(unit_profit) if unit_profit is not None else None,
+                "unit_profit_rate": _q(unit_profit_rate) if unit_profit_rate is not None else None,
+                "row_revenue": row_revenue,
+                "row_cost": row_cost,
             })
 
-    total_profit = net_total - total_cost
-    profit_rate = (
-        (total_profit / net_total) * Decimal("100")
-        if net_total > 0 else Decimal("0")
-    )
+    if cost_missing:
+        total_cost = None
+    total_profit = (net_total_try - total_cost
+                    if net_total_try is not None and total_cost is not None else None)
+    profit_rate = (total_profit / net_total_try * 100
+                   if total_profit is not None and net_total_try > 0 else None)
 
     return {
         "id": draft.id,
@@ -134,18 +183,26 @@ def _folio_finance(draft, include_items=False):
         "updated_at": draft.updated_at,
         "product_count": len(product_count),
         "total_qty": total_qty,
-        "revenue": _q(net_total),
-        "gross_total": _q(gross_total),
-        "cost": _q(total_cost),
-        "profit": _q(total_profit),
-        "profit_rate": _q(profit_rate),
+        "revenue": _q(net_total_try) if net_total_try is not None and not pending_review else None,
+        "gross_total": _q(gross_total_try) if gross_total_try is not None and not pending_review else None,
+        "cost": _q(total_cost) if total_cost is not None and not pending_review else None,
+        "profit": _q(total_profit) if total_profit is not None and not pending_review else None,
+        "profit_rate": _q(profit_rate) if profit_rate is not None and not pending_review else None,
+        "currency": currency,
+        "native_revenue": _q(net_total),
+        "rate": rate,
+        "rate_source": rate_source,
+        "rate_day": rate_day,
+        "revenue_missing": revenue_missing,
+        "cost_missing": cost_missing,
+        "pending_review": pending_review,
         "items": detail_items,
     }
 
 
-def _folio_finance_logged(draft, include_items=False):
+def _folio_finance_logged(draft, include_items=False, rate_cache=None):
     try:
-        return _folio_finance(draft, include_items=include_items)
+        return _folio_finance(draft, include_items=include_items, rate_cache=rate_cache)
     except Exception:
         logger.exception(
             "[SIPARIS_FINANS] Folio calculation failed draft_id=%s status=%s include_items=%s",
@@ -211,40 +268,58 @@ def siparis_finans_raporu(request):
 
     folio_rows = []
     model_totals = {}
+    rate_cache = {}
+    missing_rates = pending_folios = 0
     for draft in folios:
-        finance = _folio_finance_logged(draft, include_items=True)
+        finance = _folio_finance_logged(draft, include_items=True, rate_cache=rate_cache)
+        if finance["pending_review"]:
+            pending_folios += 1
+            continue
+        if finance["revenue_missing"]:
+            missing_rates += 1
+            continue
         folio_rows.append(finance)
         for item in finance["items"]:
             code = item["code"]
             row = model_totals.setdefault(code, {"code": code, "quantity": 0, "revenue": Decimal("0"), "cost": Decimal("0")})
             row["quantity"] += item["quantity"]
             row["revenue"] += item["row_revenue"]
-            row["cost"] += item["row_cost"]
+            if item["row_cost"] is None:
+                row["cost"] = None
+            elif row["cost"] is not None:
+                row["cost"] += item["row_cost"]
     model_rows = []
     for row in model_totals.values():
         qty, revenue, cost = row["quantity"], row["revenue"], row["cost"]
-        profit = revenue - cost
+        profit = revenue - cost if cost is not None else None
         model_rows.append({
-            "code": row["code"], "quantity": qty, "revenue": _q(revenue), "cost": _q(cost),
-            "profit": _q(profit), "unit_price": _q(revenue / qty), "unit_cost": _q(cost / qty),
-            "profit_rate": _q(profit / revenue * 100) if revenue > 0 else Decimal("0"),
+            "code": row["code"], "quantity": qty, "revenue": _q(revenue),
+            "cost": _q(cost) if cost is not None else None,
+            "profit": _q(profit) if profit is not None else None,
+            "unit_price": _q(revenue / qty),
+            "unit_cost": _q(cost / qty) if cost is not None else None,
+            "profit_rate": _q(profit / revenue * 100) if profit is not None and revenue > 0 else None,
         })
     model_rows.sort(key=lambda row: (-row["revenue"], row["code"]))
 
     folio_revenue = sum((x["revenue"] for x in folio_rows), Decimal("0"))
-    folio_cost = sum((x["cost"] for x in folio_rows), Decimal("0"))
-    folio_profit = folio_revenue - folio_cost
-    folio_rate = (folio_profit / folio_revenue * Decimal("100")) if folio_revenue > 0 else Decimal("0")
+    folio_cost = (None if any(x["cost_missing"] for x in folio_rows)
+                  else sum((x["cost"] for x in folio_rows), Decimal("0")))
+    folio_profit = folio_revenue - folio_cost if folio_cost is not None else None
+    folio_rate = (folio_profit / folio_revenue * 100
+                  if folio_profit is not None and folio_revenue > 0 else None)
 
     context = {
         "start": start,
         "end": end,
         "model_rows": model_rows,
+        "pending_folios": pending_folios,
+        "missing_folio_rates": missing_rates,
         "folio_summary": {
             "revenue": _q(folio_revenue),
-            "cost": _q(folio_cost),
-            "profit": _q(folio_profit),
-            "profit_rate": _q(folio_rate),
+            "cost": _q(folio_cost) if folio_cost is not None else None,
+            "profit": _q(folio_profit) if folio_profit is not None else None,
+            "profit_rate": _q(folio_rate) if folio_rate is not None else None,
             "count": len(folio_rows),
             "product_count": sum(row["product_count"] for row in folio_rows),
             "total_qty": sum(row["total_qty"] for row in folio_rows),
@@ -269,7 +344,8 @@ def siparis_finans_foyleri(request):
     )
     dummy_orders = Order.objects.none()
     start, end, folios, _ = _date_filter(request, folios, dummy_orders)
-    rows = [_folio_finance_logged(draft) for draft in folios]
+    rate_cache = {}
+    rows = [_folio_finance_logged(draft, rate_cache=rate_cache) for draft in folios]
 
     return render(request, "reports/siparis_finans_foyleri.html", {
         "rows": rows,

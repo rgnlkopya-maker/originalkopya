@@ -14,11 +14,19 @@
         <div><span class="lbl">Toplam Adet</span><span class="val">{{ x.total_qty }}</span></div>
         <a class="detail" href="{% url 'siparis_finans_foy_detay' x.id %}">Detay</a>
       </div>
+      {% if x.pending_review %}
+      <div class="text-muted small">Fotoğraf kontrolü bekliyor; TL hesaplarına katılmadı.</div>
+    {% elif x.revenue_missing %}
+      <div class="text-muted small">KDV hariç: {% if x.native_revenue is not None %}{{ x.native_revenue|floatformat:2 }}{% else %}—{% endif %} {{ x.currency }}. Geçerli kur bulunamadığı için TL ciro hesaplanmadı.</div>
+    {% elif x.rate and x.currency != 'TRY' %}
+      <div class="text-muted small">KDV hariç: {% if x.native_revenue is not None %}{{ x.native_revenue|floatformat:2 }}{% else %}—{% endif %} {{ x.currency }} · {{ x.rate_source }}{% if x.rate_day %} (uygulama tarihi: {{ x.rate_day|date:"d.m.Y" }}){% endif %}: 1 {{ x.currency }} = {{ x.rate|floatformat:"-6" }} TL</div>
+    {% endif %}
+    {% if x.cost_missing %}<div class="text-muted small">Bazı maliyetler için geçerli kur bulunamadı.</div>{% endif %}
       <div class="fin">
-        <div><span class="lbl">Toplam Ciro</span><strong>{{ x.revenue|floatformat:2 }} TL</strong></div>
-        <div><span class="lbl">Toplam Maliyet</span><strong>{{ x.cost|floatformat:2 }} TL</strong></div>
-        <div class="profit"><span class="lbl">Toplam Kâr</span><strong>{{ x.profit|floatformat:2 }} TL</strong></div>
-        <div class="rate"><span class="lbl">Kâr %</span><strong>%{{ x.profit_rate|floatformat:2 }}</strong></div>
+        <div><span class="lbl">Toplam Ciro</span><strong>{% if x.revenue is not None %}{{ x.revenue|floatformat:2 }} TL{% else %}—{% endif %}</strong></div>
+        <div><span class="lbl">Toplam Maliyet</span><strong>{% if x.cost is not None %}{{ x.cost|floatformat:2 }} TL{% else %}—{% endif %}</strong></div>
+        <div class="profit"><span class="lbl">Toplam Kâr</span><strong>{% if x.profit is not None %}{{ x.profit|floatformat:2 }} TL{% else %}—{% endif %}</strong></div>
+        <div class="rate"><span class="lbl">Kâr %</span><strong>{% if x.profit_rate is not None %}%{{ x.profit_rate|floatformat:2 }}{% else %}—{% endif %}</strong></div>
       </div>
     </section>
     {% empty %}<div class="empty">Seçilen tarih aralığında onaylanmış föy bulunmuyor.</div>{% endfor %}
