@@ -72,6 +72,22 @@ def _movement_payload(event):
     return data
 
 
+def _records_a_final_total(data, tl_amount):
+    # A positive converted amount can also come from a legacy movement
+    # without a separate original amount. Zero only counts when intentional,
+    # not when e.g. a USD movement was saved without an available rate.
+    if not tl_amount.is_finite():
+        return False
+    if tl_amount > 0:
+        return True
+    if tl_amount != 0 or data.get("tl_amount") in (None, ""):
+        return False
+    try:
+        return Decimal(str(data.get("amount"))) == 0
+    except InvalidOperation:
+        return False
+
+
 def calculate_finance_result(order):
     """Sevkiyat snapshot + parasal hareketler + operasyonel sevkiyat durumunu birlestirir."""
     if hasattr(order, "_shipment_snapshot_prefetched"):
@@ -81,6 +97,8 @@ def calculate_finance_result(order):
     if not snapshot:
         return {
             "snapshot": None,
+            "missing_sale": True,
+            "missing_cost": True,
             "status": "SNAPSHOT_YOK",
             "status_label": "Sevkiyat finans kaydı yok",
             "is_final": False,
@@ -94,6 +112,8 @@ def calculate_finance_result(order):
     snapshot_sale = Decimal(snapshot.satis_tl or 0)
     satis_tl = snapshot_sale
     maliyet_tl = Decimal(snapshot.toplam_maliyet_tl or 0)
+    sale_known = satis_tl > 0
+    cost_known = maliyet_tl > 0
     status = "SEVKEDILDI"
     status_label = "Sevk edildi"
     is_final = True
@@ -156,12 +176,14 @@ def calculate_finance_result(order):
             satis_tl += tl_amount
         elif movement_type == "FIYAT_DUZELT":
             satis_tl = max(Decimal("0"), tl_amount)
+            sale_known = _records_a_final_total(data, tl_amount)
         elif movement_type == "EK_MALIYET":
             maliyet_tl += tl_amount
         elif movement_type == "MALIYET_INDIRIMI":
             maliyet_tl = max(Decimal("0"), maliyet_tl - tl_amount)
         elif movement_type == "NIHAI_MALIYET":
             maliyet_tl = max(Decimal("0"), tl_amount)
+            cost_known = _records_a_final_total(data, tl_amount)
 
         # Eski sistemde finans_hareketi olarak kaydedilmis operasyonlari geriye donuk oku.
         elif movement_type == "KISMI_IADE":
@@ -194,6 +216,8 @@ def calculate_finance_result(order):
 
     return {
         "snapshot": snapshot,
+        "missing_sale": not sale_known,
+        "missing_cost": not cost_known,
         "status": status,
         "status_label": status_label,
         "is_final": is_final,
