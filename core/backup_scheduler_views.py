@@ -35,6 +35,16 @@ def scheduler_tick(request):
     supplied = request.headers.get("X-Moli-Backup-Key", "")
     if not secret or not hmac.compare_digest(secret, supplied):
         return JsonResponse({"error": "forbidden"}, status=403)
+    try:
+        from attendance.absence_service import process_daily_absences
+        absence_result = process_daily_absences()
+        if absence_result["status"] == "completed":
+            logger.info("Puantaj evening attendance check: %s", absence_result)
+        elif absence_result["status"] == "unverified_holiday_calendar":
+            logger.warning("Puantaj evening check skipped: holiday calendar not verified")
+    except Exception:
+        logger.exception("Puantaj evening attendance check failed")
+
     # This already-running minute scheduler also delivers due reminders and
     # to-do push alarms. Both processors keep their own interval/idempotency
     # state so repeated ticks never trigger an immediate duplicate.

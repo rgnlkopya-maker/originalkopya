@@ -77,7 +77,7 @@ def attendance_excel(request):
                 # Missing record does not automatically mean absence; show for review only.
                 missing.append([day, name, "Kayit yok - kontrol gerekli", ""])
     summary = book.create_sheet("Donem Toplamlari", 1)
-    summary.append(["Personel", "Gec (dk)", "Erken (dk)", "Fazla mesai (dk)", "Izin (gun)", "Yillik izin (gun)", "Rapor (gun)"])
+    summary.append(["Personel", "Gec (dk)", "Erken (dk)", "Fazla mesai (dk)", "Izin (gun)", "Yillik izin (gun)", "Rapor (gun)", "Gelmedi (gun)"])
     for user in users:
         group = [r for r in records if r.user_id == user.pk]
         summary.append([user.get_full_name() or user.username,
@@ -86,9 +86,10 @@ def attendance_excel(request):
                         sum(r.overtime_minutes or 0 for r in group),
                         sum(r.status == "leave" for r in group),
                         sum(r.status == "annual_leave" for r in group),
-                        sum(r.status == "sick" for r in group)])
-    summary.append(["GENEL TOPLAM"] + [sum(summary.cell(row=i, column=j).value or 0 for i in range(2, summary.max_row + 1)) for j in range(2, 8)])
-    for ws, widths in ((daily, [15, 28, 12, 12, 18, 14, 14, 21, 48]), (summary, [28, 14, 14, 21, 15, 20, 16]), (missing, [15, 28, 28, 45])):
+                        sum(r.status == "sick" for r in group),
+                        sum(r.status == "absent" for r in group)])
+    summary.append(["GENEL TOPLAM"] + [sum(summary.cell(row=i, column=j).value or 0 for i in range(2, summary.max_row + 1)) for j in range(2, 9)])
+    for ws, widths in ((daily, [15, 28, 12, 12, 18, 14, 14, 21, 48]), (summary, [28, 14, 14, 21, 15, 20, 16, 16]), (missing, [15, 28, 28, 45])):
         _style_sheet(ws, widths)
         for row in ws.iter_rows(min_row=2):
             if isinstance(row[0].value, date):

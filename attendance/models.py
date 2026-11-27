@@ -105,6 +105,7 @@ class AttendanceRecord(models.Model):
         ("annual_leave", "Yıllık İzin"),
         ("sick", "Raporlu"),
         ("other", "Diğer"),
+        ("absent", "Gelmedi"),
     ]
 
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="attendance_records")
@@ -154,6 +155,11 @@ class AttendanceRecord(models.Model):
 
     def __str__(self):
         return f"{self.user} - {self.work_date}"
+
+
+class AttendanceAbsenceRun(models.Model):
+    work_date = models.DateField(primary_key=True)
+    created_at = models.DateTimeField(auto_now_add=True)
 
 
 class SalaryProfile(models.Model):

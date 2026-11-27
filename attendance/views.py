@@ -389,19 +389,29 @@ def punch(request):
         return JsonResponse({"ok": False, "message": "Telefon konumu alınamadı."}, status=400)
     location_name, distance = _nearest_workplace(workplace, lat, lon)
     now = timezone.now(); today = timezone.localdate(); is_weekend = today.weekday() >= 5
-    record, _ = AttendanceRecord.objects.get_or_create(user=request.user, work_date=today)
-    if not record.check_in and not is_manager(request.user) and not qr_entry_permit_valid(request):
+    record = AttendanceRecord.objects.filter(user=request.user, work_date=today).first()
+    if not (record and record.check_in) and not is_manager(request.user) and not qr_entry_permit_valid(request):
         return JsonResponse({
             "ok": False,
             "message": "Mesai başlangıcı için işyerindeki QR kodunu yeniden okutun.",
         }, status=403)
-    if record.status in {"leave", "annual_leave", "sick"}:
+    if record and record.status in {"leave", "annual_leave", "sick"}:
         return JsonResponse({"ok": False, "message": "Bugün için izin/rapor kaydı var. Patron veya Müdür değiştirebilir."}, status=400)
-    record.status = "worked"
-    if not record.check_in:
+    if not (record and record.check_in):
         allowed_radius = workplace.overtime_radius_m if is_weekend else workplace.normal_radius_m
         if distance > allowed_radius:
             return JsonResponse({"ok": False, "message": f"Giriş için izin verilen alan {allowed_radius} metre. En yakın işyerine yaklaşık {distance} m."}, status=400)
+        if record is None:
+            record, _ = AttendanceRecord.objects.get_or_create(user=request.user, work_date=today)
+            if record.status in {"leave", "annual_leave", "sick"}:
+                return JsonResponse({"ok": False, "message": "Bugün için izin/rapor kaydı var. Patron veya Müdür değiştirebilir."}, status=400)
+            if record.check_in:
+                return JsonResponse({"ok": False, "message": "Giriş zaten kaydedildi. Sayfayı yenileyin."}, status=409)
+        if record.status == "absent":
+            from .absence_service import AUTO_ABSENCE_NOTE
+            if record.note == AUTO_ABSENCE_NOTE:
+                record.note = ""
+        record.status = "worked"
         record.check_in = now; record.check_in_latitude = lat; record.check_in_longitude = lon; record.check_in_distance_m = distance
         _recalculate(record, workplace); record.save()
         device.last_used_at = now; device.save(update_fields=["last_used_at"])
@@ -413,6 +423,7 @@ def punch(request):
     allowed_radius = workplace.overtime_radius_m if is_weekend or now >= work_end else workplace.normal_radius_m
     if distance > allowed_radius:
         return JsonResponse({"ok": False, "message": f"Çıkış için izin verilen alan {allowed_radius} metre. En yakın işyerine yaklaşık {distance} m."}, status=400)
+    record.status = "worked"
     record.check_out = now; record.check_out_latitude = lat; record.check_out_longitude = lon; record.check_out_distance_m = distance
     _recalculate(record, workplace); record.save()
     device.last_used_at = now; device.save(update_fields=["last_used_at"])
@@ -587,6 +598,7 @@ def dashboard(request):
             "leave_days": sum(1 for r in user_records if r.status == "leave"),
             "annual_leave_days": sum(1 for r in user_records if r.status == "annual_leave"),
             "sick_days": sum(1 for r in user_records if r.status == "sick"),
+            "absent_days": sum(1 for r in user_records if r.status == "absent"),
         }
 
     period_start, period_end = period_bounds(year, month)
@@ -651,7 +663,7 @@ def dashboard(request):
     chosen_totals = monthly_totals if view_mode == "monthly" else annual_totals
     grand_totals = {
         key: sum(row[key] for row in chosen_totals)
-        for key in ("total_late", "total_early_leave", "total_overtime", "leave_days", "annual_leave_days", "sick_days")
+        for key in ("total_late", "total_early_leave", "total_overtime", "leave_days", "annual_leave_days", "sick_days", "absent_days")
     }
     return render(request, "attendance_v2/dashboard.html", {
         "workplace": workplace,
@@ -693,6 +705,10 @@ def edit_record(request):
     record = AttendanceRecord.objects.filter(user=target_user, work_date=work_date).first()
     if not check_in_text and not check_out_text and status == "worked" and not note and not uploaded_report and not record: return JsonResponse({"ok": True, "message": "Değişiklik yok."})
     old_values = {"status": record.status if record else None, "check_in": record.check_in.isoformat() if record and record.check_in else None, "check_out": record.check_out.isoformat() if record and record.check_out else None, "note": record.note if record else None}
+    if status != "absent":
+        from .absence_service import AUTO_ABSENCE_NOTE
+        if note == AUTO_ABSENCE_NOTE:
+            note = ""
     record, _ = AttendanceRecord.objects.get_or_create(user=target_user, work_date=work_date); record.status = status; record.note = note
     if status in {"worked", "leave"}:
         try:
@@ -755,6 +771,11 @@ def month_report(request, user_id, year=None, month=None):
     target_user = get_object_or_404(User, pk=user_id); today = timezone.localdate(); year = year or today.year; month = month or today.month
     last_day = monthrange(year, month)[1]; start = date(year, month, 1); end = date(year, month, last_day); workplace = WorkplaceSettings.get_solo()
     records = AttendanceRecord.objects.filter(user=target_user, work_date__range=(start, end)).order_by("work_date")
-    totals = {"late": sum(r.late_minutes or 0 for r in records), "early_leave": sum(r.early_leave_minutes or 0 for r in records), "overtime": sum(r.overtime_minutes or 0 for r in records), "leave": records.filter(status="leave").count(), "annual_leave": records.filter(status="annual_leave").count(), "sick": records.filter(status="sick").count()}
+    totals = {"late": sum(r.late_minutes or 0 for r in records), "early_leave": sum(r.early_leave_minutes or 0 for r in records), "overtime": sum(r.overtime_minutes or 0 for r in records), "leave": records.filter(status="leave").count(), "annual_leave": records.filter(status="annual_leave").count(), "sick": records.filter(status="sick").count(), "absent": records.filter(status="absent").count()}
     prev_year, prev_month = (year - 1, 12) if month == 1 else (year, month - 1); next_year, next_month = (year + 1, 1) if month == 12 else (year, month + 1)
-    return render(request, "attendance_v2/month_report.html", {"target_user": target_user, "records": records, "totals": totals, "year": year, "month": month, "prev_year": prev_year, "prev_month": prev_month, "next_year": next_year, "next_month": next_month, "workplace": workplace})
+    by_date = {record.work_date: record for record in records}
+    days = [{"date": day, "record": by_date.get(day)} for day in (
+        start + timedelta(days=offset) for offset in range(last_day)
+    )]
+    return render(request, "attendance_v2/month_report.html", {"target_user": target_user, "records": records, "totals": totals,
+        "days": days, "weekday_count": sum(row["date"].weekday() < 5 for row in days), "year": year, "month": month, "prev_year": prev_year, "prev_month": prev_month, "next_year": next_year, "next_month": next_month, "workplace": workplace})
