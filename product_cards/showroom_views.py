@@ -6,7 +6,7 @@ from datetime import date
 
 from django.contrib.auth.decorators import login_required
 from django.db import transaction
-from django.db.models import Count, DecimalField, ExpressionWrapper, F, Sum
+from django.db.models import Count, DecimalField, Exists, ExpressionWrapper, F, OuterRef, Sum
 from django.http import HttpResponseBadRequest, HttpResponseForbidden, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
@@ -748,11 +748,54 @@ def showroom_edit_page(request,draft_id):
     context.update({"showroom_edit_mode":True,"showroom_edit_draft":draft,"showroom_edit_data":data})
     return render(request,"product_cards/showroom_page.html",context)
 
+def _sync_linked_order_delivery_dates(draft, old_date, new_date, username):
+    """Follow an explicit folio date edit; keep per-order dates and shipment history."""
+    if old_date == new_date:
+        return 0
+
+    shipped = OrderEvent.objects.filter(
+        order_id=OuterRef("pk"),
+        stage="sevkiyat_durum",
+        value__in=("gonderildi", "tekrar_gonderildi", "tekrar_sevk"),
+    )
+    # Match the old inherited date (including no date), not all linked orders.
+    # Stay linked by order even if a folio was moved back to Draft or reapproved.
+    # Lock only these orders, not nullable joins or the shipment history rows.
+    matching_orders = Order.objects.filter(
+        pk__in=draft.order_links.values("order_id"),
+        is_active=True,
+        teslim_tarihi=old_date,
+        sevkiyat_tarihi__isnull=True,
+    ).exclude(sevkiyat_durum="gonderildi").filter(~Exists(shipped))
+    order_ids = list(
+        matching_orders.order_by("pk").select_for_update().values_list("pk", flat=True)
+    )
+    if not order_ids:
+        return 0
+
+    # Update just dates, without recalculating finance or triggering QR generation.
+    now = timezone.now()
+    Order.objects.filter(pk__in=order_ids).update(teslim_tarihi=new_date, last_updated=now)
+    OrderEvent.objects.bulk_create([
+        OrderEvent(
+            order_id=order_id,
+            user=username[:100],
+            event_type="order_update",
+            stage="teslim_tarihi",
+            value="Teslim tarihi föyden güncellendi",
+            old_value=old_date.isoformat() if old_date else "",
+            new_value=new_date.isoformat() if new_date else "",
+            timestamp=now,
+        )
+        for order_id in order_ids
+    ])
+    return len(order_ids)
+
+
 @login_required
 @require_POST
 def showroom_edit_save(request,draft_id):
     if not _can_manage(request.user): return JsonResponse({"ok":False,"message":"Yetkiniz yok."},status=403)
-    draft=get_object_or_404(ShowroomDraft,id=draft_id,created_by=request.user,status__in=["PENDING","APPROVED","TRANSFERRED"])
     try: payload=json.loads(request.body.decode("utf-8") or "{}")
     except (json.JSONDecodeError,UnicodeDecodeError): return JsonResponse({"ok":False,"message":"Geçersiz veri."},status=400)
     raw_delivery_date = str(payload.get("delivery_date") or "").strip()
@@ -764,24 +807,32 @@ def showroom_edit_save(request,draft_id):
     if not isinstance(raw_items,list) or not raw_items: return JsonResponse({"ok":False,"message":"Föyde en az bir ürün olmalı."},status=400)
     if not isinstance(raw_payments,list): return JsonResponse({"ok":False,"message":"Tahsilat verisi geçersiz."},status=400)
     customer=Musteri.objects.filter(pk=customer_id).first() if customer_id else None
-    pending_issues = _smart_import_issues(raw_items, customer) if (draft.import_pending_items or payload.get("smart_import_active")) else []
-    if pending_issues and draft.status == "TRANSFERRED":
-        return JsonResponse({"ok":False,"message":"Siparişe aktarılmış föy eksik alanlarla kaydedilemez."},status=400)
-    validation_error = _validate_customer_base_price_rows(customer, raw_items)
-    if validation_error and not pending_issues:
-        return JsonResponse({"ok":False,"message":validation_error},status=400)
-    rate=max(Decimal("0"),min(Decimal("100"),_decimal(payload.get("discount_rate"),"0"))); amount=max(Decimal("0"),_decimal(payload.get("discount_amount"),"0")); vat_rate=max(Decimal("0"),min(Decimal("100"),_decimal(payload.get("vat_rate"),"0"))); previous_balance=max(Decimal("0"),_decimal(payload.get("previous_balance"),"0")); create_rows=[]
-    for item in ([] if pending_issues else raw_items):
-        code=str(item.get("urun_kodu") or "").strip(); card=ProductCard.objects.select_related("urun").filter(urun__kod__iexact=code).first() if code else None
-        if not card: continue
-        price=max(Decimal("0"),_decimal(item.get("anlasilan_fiyat"),"0"))
-        for row in item.get("satirlar") or []:
-            try: qty=max(1,int(row.get("adet") or 1))
-            except (TypeError,ValueError): qty=1
-            for size in row.get("bedenler") or []: create_rows.append(ShowroomDraftItem(draft=draft,product_card=card,color=str(row.get("renk") or "")[:120],size=str(size or "")[:120],description=str(row.get("aciklama") or "")[:500],quantity=qty,unit_price=price))
-    if not create_rows and not pending_issues: return JsonResponse({"ok":False,"message":"Geçerli ürün satırı bulunamadı."},status=400)
-    payment_rows=_build_payment_rows(draft,raw_payments)
     with transaction.atomic():
+        draft = get_object_or_404(
+            ShowroomDraft.objects.select_for_update(),
+            id=draft_id, created_by=request.user, status__in=["PENDING", "APPROVED", "TRANSFERRED"],
+        )
+        old_delivery_date = draft.delivery_date
+        if "delivery_date" not in payload:
+            delivery_date = old_delivery_date
+        pending_issues = _smart_import_issues(raw_items, customer) if (draft.import_pending_items or payload.get("smart_import_active")) else []
+        if pending_issues and draft.status == "TRANSFERRED":
+            return JsonResponse({"ok":False,"message":"Siparişe aktarılmış föy eksik alanlarla kaydedilemez."},status=400)
+        validation_error = _validate_customer_base_price_rows(customer, raw_items)
+        if validation_error and not pending_issues:
+            return JsonResponse({"ok":False,"message":validation_error},status=400)
+        rate=max(Decimal("0"),min(Decimal("100"),_decimal(payload.get("discount_rate"),"0"))); amount=max(Decimal("0"),_decimal(payload.get("discount_amount"),"0")); vat_rate=max(Decimal("0"),min(Decimal("100"),_decimal(payload.get("vat_rate"),"0"))); previous_balance=max(Decimal("0"),_decimal(payload.get("previous_balance"),"0")); create_rows=[]
+        for item in ([] if pending_issues else raw_items):
+            code=str(item.get("urun_kodu") or "").strip(); card=ProductCard.objects.select_related("urun").filter(urun__kod__iexact=code).first() if code else None
+            if not card: continue
+            price=max(Decimal("0"),_decimal(item.get("anlasilan_fiyat"),"0"))
+            for row in item.get("satirlar") or []:
+                try: qty=max(1,int(row.get("adet") or 1))
+                except (TypeError,ValueError): qty=1
+                for size in row.get("bedenler") or []: create_rows.append(ShowroomDraftItem(draft=draft,product_card=card,color=str(row.get("renk") or "")[:120],size=str(size or "")[:120],description=str(row.get("aciklama") or "")[:500],quantity=qty,unit_price=price))
+        if not create_rows and not pending_issues: return JsonResponse({"ok":False,"message":"Geçerli ürün satırı bulunamadı."},status=400)
+        payment_rows=_build_payment_rows(draft,raw_payments)
+
         # Siparişe aktarılmış föylerde bağlantıları item silinmeden önce sakla.
         existing_links = list(
             ShowroomOrderLink.objects.filter(draft=draft)
@@ -929,6 +980,27 @@ def showroom_edit_save(request,draft_id):
                             "gerceklesen_kar_tl","gerceklesen_kar_orani",
                         ])
 
+        dates_synced = _sync_linked_order_delivery_dates(
+            draft, old_delivery_date, delivery_date, request.user.get_username()
+        )
+
     if draft.status in {"APPROVED", "TRANSFERRED"}:
         transaction.on_commit(lambda: queue_folio_drive_sync(draft.id))
-    return JsonResponse({"ok":True,"requires_review":bool(pending_issues),"review_count":len(pending_issues),"review_issues":pending_issues[:12],"message":(("Onaylanan föy kaydedildi. " if draft.status == "APPROVED" else "Taslak kaydedildi. ") + f"{len(pending_issues)} kontrol konusu kaldı: " + " ".join(pending_issues[:3])) if pending_issues else ("Föy güncellendi; sipariş oluşturma kontrolü açıldı." if draft.status == "APPROVED" else "Föy güncellendi; kontrol tamamlandı.")})
+    if pending_issues:
+        message = "Onaylanan föy kaydedildi. " if draft.status == "APPROVED" else "Taslak kaydedildi. "
+        message += f"{len(pending_issues)} kontrol konusu kaldı: " + " ".join(pending_issues[:3])
+    else:
+        message = (
+            "Föy güncellendi; sipariş oluşturma kontrolü açıldı."
+            if draft.status == "APPROVED" else "Föy güncellendi; kontrol tamamlandı."
+        )
+    if dates_synced:
+        message += f" {dates_synced} bağlı siparişin teslim tarihi güncellendi."
+    return JsonResponse({
+        "ok": True,
+        "requires_review": bool(pending_issues),
+        "review_count": len(pending_issues),
+        "review_issues": pending_issues[:12],
+        "delivery_dates_synced": dates_synced,
+        "message": message,
+    })
