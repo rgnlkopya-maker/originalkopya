@@ -20,6 +20,13 @@ from core.services.order_status import latest_status_event, status_label, FINANC
 
 
 
+from .folio_release import active_release_date, order_release_block, release_notice
+
+
+def _invoice_release_date(invoice):
+    return active_release_date(Order.objects.filter(pk__in=invoice.lines.values("order_id")))
+
+
 def _assign_shared_ft_number(*, draft=None, manual=None):
     """Allocate a single FT number atomically across both invoice models."""
     from .invoice_models import SharedInvoiceNumber, InvoiceNumberSequence
@@ -168,6 +175,9 @@ def invoice_platform_status_update(request, invoice_id):
     field = "bizimhesap_display_status" if platform == "bizimhesap" else "parasut_display_status"
     with transaction.atomic():
         invoice = get_object_or_404(InvoiceDraft.objects.select_for_update(), pk=invoice_id)
+        release_on = _invoice_release_date(invoice) if recorded in ("yes", "api") else None
+        if release_on:
+            return HttpResponseForbidden(release_notice(release_on))
         setattr(invoice, field, recorded)
         invoice_fields = [field, "updated_at"]
         if recorded == "no":
@@ -227,6 +237,9 @@ def invoice_parasut_fetch_official_number(request, invoice_id):
         if invoice.official_number:
             messages.info(request, "Resmî fatura numarası zaten kayıtlı; üzerine yazılmadı.")
             return redirect("invoice_list")
+        release_on = _invoice_release_date(invoice) if number else None
+        if release_on:
+            return HttpResponseForbidden(release_notice(release_on))
         invoice.official_number = number
         invoice.save(update_fields=["official_number", "updated_at"])
         transfer.external_invoice_no = number
@@ -488,6 +501,10 @@ def invoice_bizimhesap_send(request, invoice_id):
         return HttpResponseForbidden("Yetkiniz yok.")
     from .bizimhesap_export_service import prepare_transfer, deliver_prepared_invoice, TransferBlocked
     inv = get_object_or_404(InvoiceDraft, pk=invoice_id)
+    release_on = _invoice_release_date(inv)
+    if release_on:
+        messages.error(request, release_notice(release_on))
+        return redirect("invoice_detail", invoice_id=invoice_id)
     if inv.bizimhesap_manual_recorded or inv.bizimhesap_display_status in ("yes", "skip", "api"):
         messages.error(request, "BizimHesap işlemi zaten kayıtlı veya aktarım kapalı.")
         return redirect("invoice_detail", invoice_id=invoice_id)
@@ -699,6 +716,10 @@ def invoice_add(request, order_id):
         return redirect("order_detail", pk=order_id)
     with transaction.atomic():
         order = get_object_or_404(Order.objects.select_for_update(), pk=order_id)
+        release_on = order_release_block(order, planned_date)
+        if release_on:
+            messages.error(request, release_notice(release_on))
+            return redirect("order_detail", pk=order.pk)
         if not order.musteri_id:
             messages.error(request, "Müşteri kaydı olmayan sipariş faturaya eklenemez.")
             return redirect("order_detail", pk=order.pk)
@@ -893,6 +914,9 @@ def invoice_finalize(request, invoice_id):
         return HttpResponseForbidden("Yetkiniz yok.")
     with transaction.atomic():
         invoice = get_object_or_404(InvoiceDraft.objects.select_for_update(), pk=invoice_id, status__in=("DRAFT", "OPEN"))
+        release_on = _invoice_release_date(invoice)
+        if release_on:
+            return HttpResponseForbidden(release_notice(release_on))
         if _transfer_locked(invoice):
             return HttpResponseForbidden("Aktarım sürecindeki fatura tamamlanamaz.")
         number = request.POST.get("official_number", "").strip()
@@ -911,7 +935,9 @@ def invoice_order_status(request, order_id):
         return HttpResponseForbidden("Yetkiniz yok.")
     line = InvoiceLine.objects.filter(order_id=order_id).select_related("invoice").first()
     planned = ShipmentPlan.objects.filter(order_id=order_id).exists()
-    return JsonResponse({"added": bool(line) or planned, "invoice_id": line.invoice_id if line else None})
+    blocked = active_release_date(Order.objects.filter(pk=order_id))
+    return JsonResponse({"added": bool(line) or planned, "invoice_id": line.invoice_id if line else None,
+                         "release_label": blocked.strftime("%d.%m.%Y") if blocked else ""})
 
 
 @login_required
@@ -1013,6 +1039,10 @@ def invoice_parasut_send(request, invoice_id):
         return HttpResponseForbidden("Yetkiniz yok.")
     from .parasut_export_service import send_sales_record, ParasutExportError
     inv = get_object_or_404(InvoiceDraft, pk=invoice_id)
+    release_on = _invoice_release_date(inv)
+    if release_on:
+        messages.error(request, release_notice(release_on))
+        return redirect("invoice_detail", invoice_id=invoice_id)
     if inv.parasut_manual_recorded or inv.parasut_display_status in ("yes", "skip", "api"):
         messages.error(request, "Paraşüt işlemi zaten kayıtlı veya aktarım kapalı.")
         return redirect("invoice_detail", invoice_id=invoice_id)
@@ -1191,6 +1221,10 @@ def standalone_invoice_edit(request, invoice_id=None, proforma=False):
                     existing_orders = set(invoice.lines.exclude(order_id__isnull=True).values_list("order_id", flat=True))
                     new_orders = set(selected_ids)
                     chosen = list(Order.objects.select_for_update().filter(pk__in=new_orders, musteri=customer))
+                    for order in chosen:
+                        release_on = order_release_block(order, invoice_date)
+                        if release_on:
+                            raise ValueError(release_notice(release_on))
                     if new_orders and invoice_date.weekday() >= 5:
                         raise ValueError("Sevkiyat planına aktarılacak siparişler için hafta içi tarih seçin.")
                     if len(chosen) != len(new_orders) or any((o.para_birimi or "TRY") != currency for o in chosen):
@@ -1234,8 +1268,13 @@ def standalone_invoice_send(request, invoice_id, platform):
         return HttpResponseForbidden("Yetkiniz yok.")
     from .standalone_invoice_export import send_manual_invoice, ManualTransferError
     from .invoice_models import StandaloneInvoice
-    if get_object_or_404(StandaloneInvoice, pk=invoice_id).is_proforma:
+    invoice = get_object_or_404(StandaloneInvoice, pk=invoice_id)
+    if invoice.is_proforma:
         return HttpResponseForbidden("Proforma faturalar dış sistemlere aktarılamaz.")
+    release_on = _invoice_release_date(invoice)
+    if release_on:
+        messages.error(request, release_notice(release_on))
+        return redirect("standalone_invoice_edit", invoice_id=invoice_id)
     try:
         send_manual_invoice(invoice_id, platform)
     except ManualTransferError as exc:
@@ -1316,7 +1355,7 @@ def standalone_available_orders(request):
         if inv:
             existing_ids = set(StandaloneInvoiceLine.objects.filter(invoice=inv, order_id__isnull=False).values_list("order_id", flat=True))
     from .invoice_models import StandaloneInvoiceLine
-    available = Order.objects.filter(musteri_id=customer_id).exclude(invoice_line__isnull=False).exclude(shipment_plan__isnull=False).exclude(standalone_invoice_line__isnull=False).order_by("-id")[:800]
+    available = Order.objects.filter(musteri_id=customer_id).exclude(invoice_line__isnull=False).exclude(shipment_plan__isnull=False).exclude(standalone_invoice_line__isnull=False).exclude(invoice_shipment_release_on__gt=timezone.localdate()).order_by("-id")[:800]
     orders = [
         {"id":o.pk,"number":o.siparis_numarasi or str(o.pk),
          "description":" / ".join(str(v) for v in (o.urun_kodu, o.renk, o.beden) if v),
@@ -1464,6 +1503,12 @@ def standalone_invoice_list_control(request, invoice_id):
     action = request.POST.get("action")
     with transaction.atomic():
         inv = get_object_or_404(StandaloneInvoice.objects.select_for_update(), pk=invoice_id, is_proforma=False)
+        if (action == "official" and request.POST.get("official_number", "").strip()) or (
+            action == "platform" and request.POST.get("recorded") in ("yes", "api")
+        ):
+            release_on = _invoice_release_date(inv)
+            if release_on:
+                return HttpResponseForbidden(release_notice(release_on))
         if action == "official":
             number = request.POST.get("official_number", "").strip()
             if len(number) > 80:

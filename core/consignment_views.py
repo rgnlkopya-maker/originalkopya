@@ -3,7 +3,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.db import transaction
 from django.db.models import Sum
-from django.http import HttpResponseForbidden
+from django.http import HttpResponseBadRequest, HttpResponseForbidden
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
 
@@ -139,10 +139,14 @@ def consignment_use(request, order_id):
 
 @login_required
 @require_POST
+@transaction.atomic
 def consignment_send_order(request, order_id):
     if not _allowed(request.user, "consignment.send"):
         return HttpResponseForbidden("Bu işlem için yetkiniz yok.")
-    source = get_object_or_404(Order.objects.select_related("musteri"), pk=order_id)
+    source = get_object_or_404(Order.objects.select_for_update(of=("self",)).select_related("musteri"), pk=order_id)
+    if source.invoice_shipment_locked:
+        from product_cards.folio_release import release_notice
+        return HttpResponseBadRequest(release_notice(source.invoice_shipment_release_on))
     if not source.musteri_id:
         messages.error(request, "Konsinyeye göndermek için siparişte müşteri seçilmiş olmalıdır.")
         return redirect("order_detail", pk=source.pk)

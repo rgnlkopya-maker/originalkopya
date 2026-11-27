@@ -364,10 +364,14 @@
                 <button class="soft-btn btn-soft-info" hx-post="{% url 'update_stage' order.id %}" hx-headers='{"X-CSRFToken":"{{ csrf_token }}"}' hx-vals='{"stage":"kalite_kontrol","value":"kontrol_ettim"}' hx-target="#uretim-paneli" hx-swap="innerHTML">✓ Kontrol Ettim</button>
                 <button type="button" class="soft-btn btn-soft-warning" onclick="return kaliteHataGordum();">⚠ Hata Gördüm</button>
                 <button type="button" class="soft-btn btn-soft-success" data-bs-toggle="modal" data-bs-target="#stokModal">Depoya Girdi</button>
+                {% if order.invoice_shipment_locked %}
+                <button type="button" class="soft-btn btn-soft-dark" disabled>🔒 {{ order.invoice_shipment_release_on|date:"d.m.Y" }} tarihine kadar sevk edilemez</button>
+                {% else %}
                 <button class="soft-btn btn-soft-dark" hx-post="{% url 'update_stage' order.id %}" hx-headers='{"X-CSRFToken":"{{ csrf_token }}"}' hx-vals='{"stage":"sevkiyat_durum","value":"gonderildi"}' hx-target="#uretim-paneli" hx-swap="innerHTML">🚚 Gönderildi</button>
+                {% endif %}
                 <button class="soft-btn btn-soft-warning shipping-return-action" {% if not order.production_locked %}disabled{% endif %} hx-post="{% url 'update_stage' order.id %}" hx-headers='{"X-CSRFToken":"{{ csrf_token }}"}' hx-vals='{"stage":"sevkiyat_durum","value":"iade_geldi"}' hx-confirm="Bu siparişin iade geldiğini kaydetmek istiyor musunuz?" hx-target="#uretim-paneli" hx-swap="innerHTML">↩️ İade Geldi</button>
                 <button class="soft-btn btn-soft-info shipping-return-action" {% if not order.production_locked %}disabled{% endif %} hx-post="{% url 'update_stage' order.id %}" hx-headers='{"X-CSRFToken":"{{ csrf_token }}"}' hx-vals='{"stage":"sevkiyat_durum","value":"tadilata_geldi"}' hx-confirm="Bu siparişin tadilata geldiğini kaydetmek istiyor musunuz?" hx-target="#uretim-paneli" hx-swap="innerHTML">🪡 Tadilata Geldi</button>
-                {% if user|can_feature:'consignment.send' %}
+                {% if not order.invoice_shipment_locked and user|can_feature:'consignment.send' %}
                 <button type="button" class="soft-btn btn-soft-info"
                     hx-post="{% url 'consignment_send_order' order.id %}"
                     hx-vals='{"quantity":"1"}'

@@ -199,6 +199,12 @@ class Order(models.Model):
     renk = models.CharField(max_length=50, null=True, blank=True, db_index=True)
     beden = models.CharField(max_length=50, null=True, blank=True, db_index=True)
     teslim_tarihi = models.DateField(null=True, blank=True, db_index=True)
+    invoice_shipment_release_on = models.DateField(null=True, blank=True, editable=False)
+
+    @property
+    def invoice_shipment_locked(self):
+        return bool(self.invoice_shipment_release_on and timezone.localdate() < self.invoice_shipment_release_on)
+
     aciklama = models.TextField(blank=True, null=True)
     resim = models.ImageField(upload_to='siparis_resimleri/', blank=True, null=True)
 

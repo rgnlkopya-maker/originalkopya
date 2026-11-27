@@ -339,6 +339,7 @@ def _showroom_transfer_create_impl(request, draft_id):
                         urun_kodu=code, urun_tipi=row["urun_tipi"],
                         renk=row["renk"] or None, beden=row["beden"] or None,
                         adet=1, aciklama=row["aciklama"] or None, teslim_tarihi=draft.delivery_date,
+                        invoice_shipment_release_on=draft.invoice_shipment_release_on,
                         satis_fiyati=(None if row.get("price_pending") else final_price), vat_rate=vat_rate_for_order,
                         para_birimi=draft.currency or "TRY",
                         maliyet_uygulanan=cost, maliyet_para_birimi=cost_currency,

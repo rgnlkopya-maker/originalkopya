@@ -1044,12 +1044,17 @@ def staff_after_hours_location_verify(request):
 @require_POST
 @transaction.atomic
 def update_stage(request, pk):
-    order = get_object_or_404(Order, pk=pk)
+    stage = request.POST.get("stage")
+    value = request.POST.get("value")
+    sending = (stage == "sevkiyat_durum" and value in {"gonderildi", "tekrar_gonderildi", "tekrar_sevk"}) or (stage == "konsinye_durum" and value == "verildi")
+    queryset = Order.objects.select_for_update() if sending else Order.objects.all()
+    order = get_object_or_404(queryset, pk=pk)
     if not order_scope_allows(request.user, order):
         return HttpResponseForbidden("Bu siparişte işlem yapma yetkiniz yok.")
 
-    stage = request.POST.get("stage")
-    value = request.POST.get("value")
+    if sending and order.invoice_shipment_locked:
+        from product_cards.folio_release import release_notice
+        return HttpResponseBadRequest(release_notice(order.invoice_shipment_release_on))
 
     # Ek alanlar
     aciklama = request.POST.get("aciklama")
@@ -1058,6 +1063,8 @@ def update_stage(request, pk):
 
     if not stage or not value:
         return HttpResponseForbidden("Eksik veri")
+    if stage == "invoice_shipment_release_on":
+        return HttpResponseBadRequest("Kilit tarihi yalnızca sipariş föyünden düzenlenebilir.")
 
     if stage == "susleme_durum" and value in {"kismi_bitti", "kismi"}:
         return HttpResponseBadRequest("Kısmi süsleme işlemi kaldırıldı.")

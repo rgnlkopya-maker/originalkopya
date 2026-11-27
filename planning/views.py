@@ -80,6 +80,9 @@ def shipment_planning_page(request):
 @require_POST
 def toggle_shipment_invoice(request, plan_id):
     plan = get_object_or_404(ShipmentPlan, pk=plan_id)
+    if not plan.invoiced and plan.order.invoice_shipment_locked:
+        from product_cards.folio_release import release_notice
+        return JsonResponse({"ok": False, "message": release_notice(plan.order.invoice_shipment_release_on)}, status=409)
     plan.invoiced = not plan.invoiced
     plan.save(update_fields=["invoiced", "updated_at"])
     return JsonResponse({"ok": True, "invoiced": plan.invoiced})
@@ -94,6 +97,10 @@ def plan_order_shipment(request, order_id):
         return HttpResponseForbidden("Bu siparişi planlama yetkiniz yok.")
     try: planned_date = date.fromisoformat(request.POST.get("planned_date", ""))
     except ValueError: return redirect("order_detail", pk=order.pk)
+    if order.invoice_shipment_release_on and planned_date < order.invoice_shipment_release_on:
+        from django.http import HttpResponseBadRequest
+        from product_cards.folio_release import release_notice
+        return HttpResponseBadRequest(release_notice(order.invoice_shipment_release_on))
     ShipmentPlan.objects.update_or_create(order=order, defaults={"planned_date": planned_date, "created_by": request.user})
     return redirect(f"{reverse('shipment_planning_page')}?date={planned_date.isoformat()}")
 
