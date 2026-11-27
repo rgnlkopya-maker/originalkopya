@@ -47,6 +47,7 @@ class AttendanceDashboardRoleFilterTests(TestCase):
         self.client.force_login(self.manager)
 
     def test_patrons_are_not_listed_in_attendance_calendar(self):
+        self.client.post(reverse("attendance_password_gate"), {"password": "test"})
         response = self.client.get(reverse("attendance_dashboard"))
 
         self.assertEqual(response.status_code, 200)
