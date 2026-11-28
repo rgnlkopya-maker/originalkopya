@@ -122,7 +122,13 @@ def order_list(request):
     # Patron Ekranı "geciken siparişler" bağlantısı:
     # aktif, malzeme olmayan, henüz sevk edilmemiş ve teslim tarihi geçmiş siparişler.
     delivery_filter = request.GET.get("teslim", "").strip()
-    if delivery_filter == "geciken":
+    if delivery_filter == "bildirim":
+        # The notification URL carries its original delivery date in the date range.
+        # Never substitute the date on which an older notification is opened.
+        qs = qs.filter(is_active=True).exclude(
+            siparis_tipi="MALZEME",
+        ).exclude(sevkiyat_durum="gonderildi")
+    elif delivery_filter == "geciken":
         qs = qs.filter(
             is_active=True,
             teslim_tarihi__lt=timezone.localdate(),
