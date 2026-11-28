@@ -91,7 +91,13 @@
             </div>
           </details>
         {% else %}
-          <div class="small mb-1">{{ item.summary }}</div><div class="small mb-1">Kayıt: {{ item.records }} · Yeni fotoğraf: {{ item.new_photos }}</div><div class="backup-muted">{{ item.comparison }}</div>
+          {% if item.summary %}<div class="small mb-1">{{ item.summary }}</div>{% endif %}
+          {% if item.records != None %}<div class="small mb-1">Kayıt: {{ item.records }}{% if item.new_photos != None %} · Yeni fotoğraf: {{ item.new_photos }}{% endif %}</div>{% endif %}
+          {% if item.categories %}<div class="small mb-2"><strong>Çek/senet türleri:</strong> {% for category in item.categories %}<span class="d-inline-block me-2">{{ category.kind }} / {{ category.direction }}: {{ category.count }} kayıt</span>{% endfor %}</div>{% endif %}
+          {% if item.name %}<div class="small">Dosya: {{ item.name }} · Tür: {{ item.type }} · Boyut: {{ item.size|filesizeformat }}</div>{% endif %}
+          {% if item.model_counts %}<div class="small mb-2"><strong>Yedeklenen kayıt türleri:</strong> {% for name, count in item.model_counts.items %}<span class="d-inline-block me-2">{{ name }}: {{ count }}</span>{% endfor %}</div>{% endif %}
+          {% if item.drive_file_id %}<div class="small">Drive dosya kimliği: {{ item.drive_file_id }}{% if item.bytes %} · Boyut: {{ item.bytes|filesizeformat }}{% endif %}</div>{% endif %}
+          {% if item.comparison %}<div class="backup-muted">{{ item.comparison }}</div>{% endif %}
         {% endif %}
       {% empty %}<div class="backup-muted">Bu eski işlem için dosya bazında detay kaydı tutulmamış. Yeni çalışmalarda ayrıntılar burada görünecek.</div>{% endfor %}
       </div></div></td></tr>

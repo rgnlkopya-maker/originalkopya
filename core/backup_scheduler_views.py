@@ -133,7 +133,7 @@ def scheduler_tick(request):
                 if existing:
                     continue
                 result = salary_backup()
-                BackupExecution.objects.create(module="salary", completed_at=timezone.now(), success=True, files=len(result["files"]), records=result["records"], message="Şifreli maaş yedeği Drive'a kaydedildi", details=result["files"])
+                BackupExecution.objects.create(module="salary", completed_at=timezone.now(), success=True, files=len(result["files"]), records=result["records"], message="Şifreli maaş yedeği Drive'a kaydedildi", details=[dict(file, model_counts=result["model_counts"]) for file in result["files"]])
                 outcomes.append({"module": "salary", "done": True})
                 continue
             if module == "database":
@@ -176,7 +176,8 @@ def scheduler_tick(request):
                 run.records = source.record_count
                 run.photos = source.new_photo_count
                 run.files = 2
-                run.details = [{"summary": "Her çalışmada yeni Excel ve JSON dosyası oluşturuldu.", "records": source.record_count, "new_photos": source.new_photo_count, "comparison": "Kayıt bazında önceki yedekle karşılaştırma henüz yapılmıyor."}]
+                from .instrument_models import NegotiableInstrument
+                run.details = [{"summary": "Excel ve JSON yedeği oluşturuldu.", "records": source.record_count, "new_photos": source.new_photo_count, "comparison": "Kayıt bazında önceki yedekle karşılaştırma henüz yapılmıyor.", "categories": [{"kind": kind, "direction": direction, "count": count} for (kind, direction), count in sorted(__import__("collections").Counter(NegotiableInstrument.objects.values_list("kind", "direction")).items())]}]
                 run.success = True
                 run.completed_at = timezone.now()
                 run.message = "Tamamlandı"
